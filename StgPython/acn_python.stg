@@ -1,0 +1,5 @@
+group acn_python;
+
+// Python ACN template - ASN.1 Control Notation
+// This file contains templates for generating Python ACN encoding/decoding functions
+// Analog to acn_scala.stg and acn_c.stg

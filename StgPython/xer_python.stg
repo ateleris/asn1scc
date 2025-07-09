@@ -1,0 +1,5 @@
+group xer_python;
+
+// Python XER template - XML Encoding Rules
+// This file contains templates for generating Python XER encoding/decoding functions
+// Analog to xer_scala.stg and xer_c.stg

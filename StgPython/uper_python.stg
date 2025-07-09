@@ -1,0 +1,5 @@
+group uper_python;
+
+// Python UPER template - Unaligned Packed Encoding Rules
+// This file contains templates for generating Python UPER encoding/decoding functions
+// Analog to uper_scala.stg and uper_c.stg

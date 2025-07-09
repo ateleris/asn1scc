@@ -1,0 +1,5 @@
+group isvalid_python;
+
+// Python validation template - constraint validation functions
+// This file contains templates for generating Python validation functions
+// Analog to isvalid_scala.stg and isvalid_c.stg

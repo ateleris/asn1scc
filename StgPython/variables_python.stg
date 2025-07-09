@@ -1,0 +1,5 @@
+group variables_python;
+
+// Python variables template - variable declarations and formatting
+// This file contains templates for generating Python variable declarations
+// Analog to variables_scala.stg and variables_c.stg

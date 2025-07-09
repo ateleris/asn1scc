@@ -1,0 +1,5 @@
+group aux_python;
+
+// Python auxiliary template - auxiliary functions and utilities
+// This file contains templates for generating Python auxiliary functions
+// Analog to aux_scala.stg and aux_c.stg
