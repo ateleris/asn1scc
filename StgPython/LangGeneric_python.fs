@@ -67,9 +67,6 @@ let getAccess2_python (acc: Accessor) =
     | PointerAccess (sel, _, _) -> $".{sel}"
     | ArrayAccess (ix, _) -> $"[{ix}]"
 
-let srcDirName = Path.Combine("src", "main", "python", "asn1src")
-let asn1rtlDirName  = Path.Combine("src", "main", "python", "asn1scala")
-
 type LangBasic_python() =
     inherit ILangBasic()
     
@@ -310,15 +307,10 @@ type LangGeneric_python() =
     override this.bitStringValueToByteArray (v : BitStringValue) = 
         FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-    override this.getTopLevelDirs (target:Targets option) = [asn1rtlDirName; srcDirName; "lib"]
+    override this.getTopLevelDirs (target:Targets option) = []
 
     override this.getDirInfo (target:Targets option) rootDir =
-        {
-            rootDir = rootDir;
-            srcDir=Path.Combine(rootDir, srcDirName);
-            asn1rtlDir=Path.Combine(rootDir, asn1rtlDirName);
-            boardsDir=rootDir
-        }
+        {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
 
     override this.getChChildIsPresent (arg:Selection) (chParent:string) (pre_name:string) =
         sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
