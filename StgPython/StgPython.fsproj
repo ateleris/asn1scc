@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="LangGeneric_python.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Antlr\Antlr.csproj" />
+      <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
+      <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+      <ProjectReference Include="..\parseStg2\parseStg2.csproj" />
+      <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
+      <ProjectReference Include="..\ST\ST.fsproj" />
+    </ItemGroup>
+
+</Project>
