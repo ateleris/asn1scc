@@ -1,0 +1,5 @@
+group header_python;
+
+// Python header template - type definitions and class declarations
+// This file contains templates for generating Python type definitions
+// Analog to header_scala.stg and header_c.stg

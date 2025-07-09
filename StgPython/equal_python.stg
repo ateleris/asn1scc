@@ -1,0 +1,5 @@
+group equal_python;
+
+// Python equality template - equality comparison functions
+// This file contains templates for generating Python equality functions
+// Analog to equal_scala.stg and equal_c.stg

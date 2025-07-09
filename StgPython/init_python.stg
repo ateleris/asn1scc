@@ -1,0 +1,5 @@
+group init_python;
+
+// Python initialization template - initialization functions
+// This file contains templates for generating Python initialization functions
+// Analog to init_scala.stg and init_c.stg

@@ -1,0 +1,5 @@
+group test_cases_python;
+
+// Python test cases template - automatic test case generation
+// This file contains templates for generating Python test cases
+// Analog to test_cases_scala.stg and test_cases_c.stg
