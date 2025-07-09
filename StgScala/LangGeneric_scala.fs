@@ -178,8 +178,7 @@ type LangGeneric_scala() =
 
         override _.real_annotations = ["extern"]
 
-        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
-            (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) = (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
         override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
             let itemname =

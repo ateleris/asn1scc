@@ -9,7 +9,66 @@ open System
 open Asn1AcnAstUtilFunctions
 // open ProofGen // TODO
 // open ProofAst // TODO
-//
+
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
+    match t with
+    | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+    | _ -> t
+
+let isPythonPrimitive (t: Asn1TypeKind) =
+    match resolveReferenceType t with
+    | Integer _ | Real _ | NullType _ | Boolean _ -> true
+    | _ -> false
+
+let initMethSuffix k =
+    match isPythonPrimitive k with
+    | false ->
+        match k with
+        | BitString bitString -> ""
+        | _ -> "()"
+    | true -> ""
+
+let isEnumForPythonelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Python ->
+        match resolveReferenceType k with
+        | Enumerated e -> true
+        | _ -> false
+    | _ -> false
+
+let isSequenceForPythonelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Python ->
+        match k with
+        | Sequence s -> true
+        | _ -> false
+    | _ -> false
+
+let isOctetStringForPythonelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Python ->
+        match k with
+        | OctetString s -> true
+        | _ -> false
+    | _ -> false
+
+let uperExprMethodCall (k: Asn1TypeKind) (sChildInitExpr: string) =
+    let isSequence = isSequenceForPythonelseFalse k
+    let isEnum = isEnumForPythonelseFalse k
+    let isOctetString = isOctetStringForPythonelseFalse k
+
+    match isSequence || sChildInitExpr.Equals("None") || isEnum || isOctetString with
+    | true -> ""
+    | false -> initMethSuffix k
+
+let getAccess2_python (acc: Accessor) =
+    match acc with
+    | ValueAccess (sel, _, _) -> $".{sel}"
+    | PointerAccess (sel, _, _) -> $".{sel}"
+    | ArrayAccess (ix, _) -> $"[{ix}]"
+
+let srcDirName = Path.Combine("src", "main", "python", "asn1src")
+let asn1rtlDirName  = Path.Combine("src", "main", "python", "asn1scala")
 
 type LangBasic_python() =
     inherit ILangBasic()
@@ -24,109 +83,378 @@ type LangBasic_python() =
     override this.getRealRtlTypeName = "", "float", "REAL"
     override this.getObjectIdentifierRtlTypeName relativeId =
         let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
-        "", "ObjectIdentifier", asn1Name
+        "", "Asn1ObjectIdentifier", asn1Name
     override this.getTimeRtlTypeName timeClass =
         let asn1Name = "TIME"
         match timeClass with
-        | Asn1LocalTime                    _ -> "", "datetime", asn1Name
-        | Asn1UtcTime                      _ -> "", "datetime", asn1Name
-        | Asn1LocalTimeWithTimeZone        _ -> "", "datetime", asn1Name
-        | Asn1Date                           -> "", "date", asn1Name
-        | Asn1Date_LocalTime               _ -> "", "datetime", asn1Name
-        | Asn1Date_UtcTime                 _ -> "", "datetime", asn1Name
-        | Asn1Date_LocalTimeWithTimeZone   _ -> "", "datetime", asn1Name
+        | Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
+        | Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
+        | Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
+        | Asn1Date                           -> "", "Asn1Date", asn1Name
+        | Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
+        | Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
+        | Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
     override this.getNullRtlTypeName = "", "None", "NULL"
     override this.getBoolRtlTypeName = "", "bool", "BOOLEAN"
     
 type LangGeneric_python() =
     inherit ILangGeneric()
+    
+    override _.ArrayStartIndex = 0
+    
+    override _.intValueToString (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
+        match intClass with
+        | Asn1AcnAst.ASN1SCC_Int8     _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_Int _ when
+            i >= BigInteger System.Int32.MinValue &&
+            i <= BigInteger System.Int32.MaxValue ->
+                sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%s" (i.ToString())
+        | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%s" (i.ToString())
 
-    override this.CreateAuxFiles var0 var1 (var2, var3) = failwith "todo"
-    override this.CreateMakeFile var0 var1 = failwith "todo"
-    override this.Length var0 var1 = failwith "todo"
-    override this.asn1SccIntValueToString var0 unsigned = failwith "todo"
-    override this.bitStringValueToByteArray(var0) = failwith "todo"
-    override this.callFuncWithNoArgs() = failwith "todo"
-    override this.castExpression var0 var1 = failwith "todo"
-    override this.choiceIDForNone var0 var1 = failwith "todo"
-    override this.createSingleLineComment(var0) = failwith "todo"
-    override this.decodeEmptySeq(var0) = failwith "todo"
-    override this.decode_nullType(var0) = failwith "todo"
-    override this.definitionOrRef(var0) = failwith "todo"
-    override this.doubleValueToString(v) =  v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
-    override this.getAccess(var0) = "."
-    override this.getAccess2(var0) = failwith "todo"
-    override this.getArrayItem sel idx childTypeIsString = failwith "todo"
-    override this.getAsn1ChChildBackendName(var0) = failwith "todo"
-    override this.getAsn1ChChildBackendName0(var0) = failwith "todo"
-    override this.getAsn1ChildBackendName(var0) = failwith "todo"
-    override this.getAsn1ChildBackendName0(var0) = failwith "todo"
-    override this.getChChild var0 var1 var2 = failwith "todo"
-    override this.getChChildIsPresent var0 var1 var2 = failwith "todo"
-    override this.getChildInfoName(var0) = failwith "todo"
-    override this.getChoiceChildPresentWhenName var0 var1 = failwith "todo"
-    override this.getChoiceTypeDefinition(var0) = failwith "todo"
-    override this.getDirInfo var0 var1 = failwith "todo"
-    override this.getEmptySequenceInitExpression(var0) = failwith "todo"
-    override this.getEnumTypeDefinition(var0) = failwith "todo"
-    override this.getLocalVariableDeclaration(var0) = failwith "todo"
-    override this.getLongTypedefName(var0) = failwith "todo"
-    override this.getNamedItemBackendName var0 var1 = failwith "todo"
-    override this.getNamedItemBackendName0(var0) = failwith "todo"
-    override this.getNamedItemBackendName2 var0 var1 var2 = failwith "todo"
-    override this.getParamTypeSuffix var0 var1 var2 = failwith "todo"
-    override this.getParamValue var0 var1 var2 = failwith "todo"
-    override this.getPointer(var0) = failwith "todo"
-    override this.getPointerUnchecked var0 var1 = failwith "todo"
-    override this.getStar(var0) = ""
-    override this.getPtrPrefix(var0) = ""
-    override this.getPtrSuffix(var0) = ""
-    override this.getRtlFiles var0 var1 = failwith "todo"
-    override this.getSeqChild sel childName childTypeIsString childIsOptional = failwith "todo"
-    override this.getSeqChildIsPresent var0 var1 = failwith "todo"
-    override this.getSequenceTypeDefinition(var0) = failwith "todo"
-    override this.getSizeableTypeDefinition(var0) = failwith "todo"
-    override this.getStrTypeDefinition(var0) = failwith "todo"
-    override this.getTopLevelDirs(var0) = failwith "todo"
-    override this.getTypeDefinition(var0) = failwith "todo"
-    override this.getValue(var0) = failwith "todo"
-    override this.getValueAssignmentName(var0) = failwith "todo"
-    override this.getValueUnchecked var0 var1 = failwith "todo"
-    override this.initializeString stringSize= sprintf "bytearray(%d)" stringSize
-    override this.intValueToString var0 var1 = failwith "todo"
-    override this.joinSelectionUnchecked var0 var1 = failwith "todo"
-    override this.presentWhenName var0 var1 = failwith "todo"
-    override this.presentWhenName0 var0 var1 = failwith "todo"
-    override this.setChildInfoName var0 var1 = failwith "todo"
-    override this.setNamedItemBackendName0 var0 var1 = failwith "todo"
-    override this.toHex n = sprintf "0x%x" n
-    override this.typeDef(var0) = failwith "todo"
-    override this.uper = failwith "todo"
-    override this.acn = failwith "todo"
-    override this.supportsStaticVerification = false
-    override this.allowsSrcFilesWithNoFunctions = true
-    override this.usesWrappedOptional = false
+    override _.asn1SccIntValueToString (i: BigInteger) (unsigned: bool) =
+        let iStr = i.ToString()
+        if unsigned then iStr else iStr
+
+    override _.doubleValueToString (v:double) =
+        v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
+
+    override _.initializeString stringSize = sprintf "bytearray(%d)" stringSize
+
+    override _.supportsInitExpressions = true
+
+    override this.getPointer (sel: Selection) = sel.joined this
+
+    override this.getValue (sel: Selection) = sel.joined this
+    override this.getValueUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+    override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+    override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
+        let len = sel.path.Length
+        List.fold (fun str (ix, accessor) ->
+            let accStr =
+                match accessor with
+                | ValueAccess (id, _, isOpt) ->
+                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                | PointerAccess (id, _, isOpt) ->
+                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                | ArrayAccess (ix, _) -> $"[{ix}]"
+            $"{str}{accStr}"
+        ) sel.receiverId (List.indexed sel.path)
+    
+    override this.getAccess (sel: Selection) = "."
+
+    override this.getAccess2 (acc: Accessor) = getAccess2_python acc
+
+    override this.getPtrPrefix _ = ""
+
+    override this.getPtrSuffix _ = ""
+
+    override this.getStar _ = ""
+
+    override _.real_annotations = []
+
+    override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) = 
+        (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+
+    override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
+        let itemname =
+            match defOrRef with
+            | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.python_name
+            | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "." + ToC nm.python_name
+            | _ -> ToC nm.python_name
+        itemname
+
+    override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem) = nm.python_name
+    override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+        {nm with python_name = newValue}
+
+    override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) =
+        ToC nm.python_name
+
+    override this.decodeEmptySeq _ = None
+    override this.decode_nullType _ = None
+
+    override this.Length exp sAcc =
+        isvalid_python.ArrayLen exp sAcc
+
+    override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Python]
+    override this.definitionOrRef (d:Map<ProgrammingLanguage, TypeDefinitionOrReference>) = d.[Python]
+    override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Python]
+    override this.getEnumTypeDefinition (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Python]
+    override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Python]
+    override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Python]
+    override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Python]
+    override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Python]
+    override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._python_name
+    override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._python_name
+    override _.getChildInfoName (ch:Asn1Ast.ChildInfo) = ch.python_name
+    override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with python_name = newValue}
+    override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
+    override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
+    override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
+        ch.typeDef[Python].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
+
+    override this.getRtlFiles (encodings:Asn1Encoding list) (_ :string list) =
+        let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
+        let uperRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []
+        let acnRtl = match encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
+        let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
+        encRtl@uperRtl@acnRtl@xerRtl
+
+    override this.getEmptySequenceInitExpression sTypeDefName = $"{sTypeDefName}()"
+    override this.callFuncWithNoArgs () = "()"
+    override this.rtlModuleName = ""
+    override this.AssignOperator = "="
+    override this.TrueLiteral = "True"
+    override this.FalseLiteral = "False"
+    override this.emptyStatement = ""
+    override this.bitStreamName = "BitStream"
+    override this.unaryNotOperator = "not"
+    override this.modOp = "%"
+    override this.eqOp = "=="
+    override this.neqOp = "!="
     override this.andOp = "and"
     override this.orOp = "or"
-    override this.emptyStatement = ""
-    override this.supportsInitExpressions = true
-    override this.Keywords = failwith "todo"
-    override this.init = failwith "todo"
-    override this.unaryNotOperator = "not"
-    override this.requiresValueAssignmentsInSrcFile = true
-    override this.rtlModuleName = ""
-    override this.bitStreamName = "BitStream"
-    override this.decodingKind = failwith "todo"
-    override this.ArrayStartIndex = 0
-    override this.eqOp = "=="
-    override this.atc = failwith "todo"
-    override this.initMethod = failwith "todo"
-    override this.neqOp = "!="
-    override this.SpecNameSuffix = failwith "todo"
-    override this.FalseLiteral = "False"
+    override this.initMethod = InitMethod.Procedure
+    override _.decodingKind = Copy
+    override _.usesWrappedOptional = false
+    override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
+    override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
+
+    override _.SpecNameSuffix = "Def"
+    override _.SpecExtension = "py"
+    override _.BodyExtension = "py"
+    override _.Keywords = CommonTypes.python_keywords
+
+    override _.getValueAssignmentName (vas: ValueAssignment) = vas.python_name
+
     override this.hasModules = true
-    override this.BodyExtension = "py"
-    override this.TrueLiteral = "True"
-    override this.modOp = "%"
-    override this.AssignOperator = "="
-    override this.SpecExtension = "py"
+    override this.allowsSrcFilesWithNoFunctions = true
+    override this.requiresValueAssignmentsInSrcFile = true
+    override this.supportsStaticVerification = false
+
+    override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
+        sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName
+
+    override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+        sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+
+    override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
+        Selection.emptyPath childName (if childTypeIsString then FixArray else Value)
+
+    override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) = ""
+
+    override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
+        let parentName =
+            match defOrRef with
+            | Some a -> match a with
+                        | ReferenceToExistingDefinition b -> b.typedefName + "."
+                        | TypeDefinition c -> c.typedefName + "."
+            | None -> ""
+        parentName + (ToC ch._present_when_name_private) + "_PRESENT"
+
+    override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
+        let parentName =
+            match defOrRef with
+            | Some a -> match a with
+                        | ReferenceToExistingDefinition b -> b.typedefName + "."
+                        | TypeDefinition c -> c.typedefName + "."
+            | None -> ""
+        parentName + (ToC ch.present_when_name) + "_PRESENT"
+
+    override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
+            match kind with
+            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
+            | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
+            | _ -> Pointer
+        let recvId = "pVal" + suf
+        {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+
+    override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
+        p.joined this
+
+    override this.getLocalVariableDeclaration (lv:LocalVariable) : string =
+        match lv with
+        | SequenceOfIndex (i,None)                  -> sprintf "i%d = 0" i
+        | SequenceOfIndex (i,Some iv)               -> sprintf "i%d = %s" i iv
+        | IntegerLocalVariable (name,None)          -> sprintf "%s = 0" name
+        | IntegerLocalVariable (name,Some iv)       -> sprintf "%s = %s" name iv
+        | Asn1SIntLocalVariable (name,None)         -> sprintf "%s = 0" name
+        | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "%s = %s" name iv
+        | Asn1UIntLocalVariable (name,None)         -> sprintf "%s = 0" name
+        | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "%s = %s" name iv
+        | FlagLocalVariable (name,None)             -> sprintf "%s = False" name
+        | FlagLocalVariable (name,Some iv)          -> sprintf "%s = %s" name iv
+        | BooleanLocalVariable (name,None)          -> sprintf "%s = False" name
+        | BooleanLocalVariable (name,Some iv)       -> sprintf "%s = %s" name iv
+        | AcnInsertedChild(name, vartype, initVal)  ->
+            sprintf "%s = %s" name initVal
+        | GenericLocalVariable lv                   ->
+            sprintf "%s = %s" lv.name (if lv.initExp.IsNone then "None" else lv.initExp.Value)
+
+    override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
+        match tdr with
+        | TypeDefinition  td -> td.typedefName
+        | ReferenceToExistingDefinition ref -> ref.typedefName
+
+    override this.toHex n = sprintf "0x%x" n
+
+    override this.bitStringValueToByteArray (v : BitStringValue) = 
+        FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
+
+    override this.getTopLevelDirs (target:Targets option) = [asn1rtlDirName; srcDirName; "lib"]
+
+    override this.getDirInfo (target:Targets option) rootDir =
+        {
+            rootDir = rootDir;
+            srcDir=Path.Combine(rootDir, srcDirName);
+            asn1rtlDir=Path.Combine(rootDir, asn1rtlDirName);
+            boardsDir=rootDir
+        }
+
+    override this.getChChildIsPresent (arg:Selection) (chParent:string) (pre_name:string) =
+        sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
+
+    override this.CreateMakeFile (r:AstRoot) (di:DirInfo) = ()
+
+    override this.CreateAuxFiles (r:AstRoot) (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        let CreatePythonMainFile (r:AstRoot) outDir  =
+            // Main file for test case
+            let printMain = test_cases_python.PrintMain
+            let content = printMain "testsuite"
+            let outFileName = Path.Combine(outDir, "mainprogram.py")
+            File.WriteAllText(outFileName, content.Replace("\r",""))
+
+        CreatePythonMainFile r di.srcDir
+
+    override this.uper =
+        {
+            Uper_parts.createLv = (fun name -> Asn1SIntLocalVariable(name,None))
+            requires_sBlockIndex  = true
+            requires_sBLJ = false
+            requires_charIndex = false
+            requires_IA5String_i = true
+            count_var            = Asn1SIntLocalVariable ("nCount", None)
+            requires_presenceBit = false
+            catd                 = false
+            seqof_lv              =
+              (fun id minSize maxSize -> [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
+            exprMethodCall = uperExprMethodCall
+        }
+
+    override this.acn =
+        {
+            Acn_parts.null_valIsUnReferenced = true
+            checkBitPatternPresentResult = true
+            getAcnContainingByLocVars = fun _ -> []
+            getAcnDepSizeDeterminantLocVars =
+                fun  sReqBytesForUperEncoding ->
+                    [
+                        GenericLocalVariable {GenericLocalVariable.name = "arr"; varType = "bytearray"; arrSize = Some sReqBytesForUperEncoding; isStatic = false; initExp = None}
+                        GenericLocalVariable {GenericLocalVariable.name = "bitStrm"; varType = "BitStream"; arrSize = None; isStatic = false; initExp = None}
+                    ]
+            createLocalVariableEnum =
+                (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp= (Some("0")) })
+            choice_handle_always_absent_child = false
+            choice_requires_tmp_decoding = false
+        }
+
+    override this.init =
+        {
+            Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+            choiceComponentTempInit                     = false
+            initMethSuffix                              = initMethSuffix
+        }
+
+    override this.atc =
+        {
+            Atc_parts.uperPrefix = ""
+            acnPrefix            = "ACN_"
+            xerPrefix            = "XER_"
+            berPrefix            = "BER_"
+        }
+
+    override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
+        prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1)))
+
+    // Placeholder methods for features not yet implemented in Python
+    override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
+        [], None
+
+    override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
+        [], ""
+
+    override this.generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
+        funcBody
+
+    override this.generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
+        []
+
+    override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+        None
+
+    override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+        []
+
+    override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        []
+
+    override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+        None
+
+    override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+        None
+
+    override this.generateOctetStringInvariants (minSize : SIZE) (maxSize : SIZE): string list =
+        []
+
+    override this.generateBitStringInvariants (minSize : SIZE) (maxSize : SIZE): string list =
+        []
+
+    override this.generateSequenceInvariants (children: Asn1AcnAst.Asn1Child list): string list =
+        []
+
+    override this.generateSequenceOfInvariants (minSize : SIZE) (maxSize : SIZE) : string list =
+        []
+
+    override this.generateSequenceSizeDefinitions (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : Asn1AcnAst.SeqChildInfo list): string list =
+        []
+
+    override this.generateChoiceSizeDefinitions (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option)
+                  (acnMinSizeInBits    : BigInteger)
+                  (acnMaxSizeInBits    : BigInteger)
+                  (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
+                  (children            : Asn1AcnAst.ChChildInfo list): string list =
+        []
+
+    override this.generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
+        [], []
+
+    override this.generateSequenceSubtypeDefinitions (dealiased: string) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) (children: Asn1AcnAst.Asn1Child list): string list =
+        []
