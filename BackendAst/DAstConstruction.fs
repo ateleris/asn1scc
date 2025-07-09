@@ -609,10 +609,10 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.Asn1Child) (newChildType : Asn1Type, us:State) =
     let ret =
         {
-
             Asn1Child.Name     = ch.Name
             _c_name            = ch._c_name
             _scala_name        = ch._scala_name
+            _python_name        = ch._python_name
             _ada_name          = ch._ada_name
             Type               = newChildType
             Optionality        = ch.Optionality
@@ -719,6 +719,7 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn
             ChChildInfo.Name     = ch.Name
             _c_name             = ch._c_name
             _scala_name         = ch._scala_name
+            _python_name         = ch._python_name
             _ada_name           = ch._ada_name
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions
@@ -892,6 +893,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
         scala_name = tas.scala_name
+        python_name = tas.python_name
         ada_name = tas.ada_name
         Type = newType
         Comments = tas.Comments |> Seq.toArray
@@ -916,6 +918,7 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (allNewTypeAss
         ValueAssignment.Name = vas.Name
         c_name = vas.c_name
         scala_name = vas.scala_name
+        python_name = vas.python_name
         ada_name = vas.ada_name
         Type = newType
         Value = mapValue vas.Value
