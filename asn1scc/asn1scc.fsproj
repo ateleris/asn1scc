@@ -29,27 +29,13 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\types.py">
-      <Link>types.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py">
-      <Link>bitstream.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py">
-      <Link>codec.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py">
-      <Link>codec_uper.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py">
-      <Link>helper.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py">
-      <Link>verification.py</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\vector.py">
-      <Link>vector.py</Link>
-    </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1python\src\asn1python\types.py" Link="types.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py" Link="bitstream.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py" Link="codec.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\vector.py" Link="vector.py" />
     
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 
