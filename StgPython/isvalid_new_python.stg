@@ -1,5 +1,7 @@
 group isvalid_new_python;
 
-// Python new validation template - enhanced constraint validation
-// This file contains templates for generating enhanced Python validation functions
-// Analog to isvalid_new_scala.stg and isvalid_new_c.stg
+
+makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
+ret = <sIsValidExp>;
+*pErrCode = ret ? 0 :  <sErrCode>;
+>>

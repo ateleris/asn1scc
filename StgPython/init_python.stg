@@ -1,5 +1,318 @@
 group init_python;
 
-// Python initialization template - initialization functions
-// This file contains templates for generating Python initialization functions
-// Analog to init_scala.stg and init_c.stg
+rtlModuleName() ::= "adaasn1rtl"
+methodNameSuffix() ::= "_Initialize"
+
+initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
+
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
+<arrsAnnots:{ann|@<ann>}; separator=" ">
+def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
+>>
+
+initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar> = SomeMut(<sValue>)
+<else>
+val <sResVar> = <sValue>
+<endif>
+>>
+initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar> = SomeMut(<dValue>)
+<else>
+val <sResVar> = <dValue>
+<endif>
+>>
+initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar> = SomeMut(<if(bValue)>true<else>false<endif>)
+<else>
+val <sResVar> = <if(bValue)>true<else>false<endif>
+<endif>
+>>
+
+initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) = <nIntVal>"
+initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
+<p><sAcc>nCount = <nSize>
+<arrsValues; separator="\n">
+>>
+
+init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+>>
+
+init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+>>
+
+
+init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+<p><sAcc>tz.sign = <tz.sign>
+<p><sAcc>tz.hours = <tz.hours>
+<p><sAcc>tz.mins = <tz.mins>
+>>
+
+init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
+<p><sAcc>years = <dt.years>
+<p><sAcc>months = <dt.months>
+<p><sAcc>days = <dt.days>
+>>
+
+init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1LocalTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_UtcTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
+>>
+
+assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue>"
+assignString(p, sValue) ::= "<p> = <sValue>"
+
+
+initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar> = SomeMut(<sValue>)
+<else>
+val <sResVar> = <sValue>
+<endif>
+>>
+
+initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar>: OptionMut[<sTypeDefName>] = SomeMut(<sValue>)
+<else>
+val <sResVar>: <sTypeDefName> = <sValue>
+<endif>
+>>
+
+initNull(sVal, bIsOptional, sResVar) ::= <<
+<if(bIsOptional)>
+val <sResVar>: OptionMut[NullType] = SomeMut(0)
+<else>
+val <sResVar>: NullType = 0
+<endif>
+>>
+
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
+<if(bZero)>
+val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
+<else>
+<if(bAlpha)>
+val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then UByte.fromRaw(0) else allowedCharSet(<i> % <nAlphabetLength>))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+<else>
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+<endif>
+<endif>
+>>
+
+/* BIT AND OCTET STRINGS */
+
+initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>"
+
+initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr(<sI>) = 0x<sByteHexVal>;"
+initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
+<arrsBytes; separator="\n">
+>>
+
+initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
+<p><sAcc>nCount = <nSize>
+<arrsBytes; separator="\n">
+>>
+
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray, sResVar) ::= <<
+<if(bZero)>
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Vector.fill(<nSize>)(0.toRawUByte))
+<else>
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw((<i> % 256).toByte))
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fromScala(<sResVar>_tmp))
+<endif>
+>>
+
+
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
+<if(bZero)>
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Vector.fill(<nSizeCeiled>/8)(0.toRawUByte))
+<else>
+<if(bIsOptionalField)>
+val <sResVar>: OptionMut[<sArrayHolderName>] = SomeMut(<sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fill(<nSizeCeiled> / 8)(UByte.fromRaw(0x55))))
+<else>
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fill(<nSizeCeiled> / 8)(UByte.fromRaw(0x55)))
+<endif>
+<endif>
+>>
+
+
+
+/*SEQUENCE OF */
+
+/*dummy in C*/
+initSequence_pragma(p) ::= ""
+
+
+initFixedSequenceOf(arrsInnerValues) ::= <<
+<arrsInnerValues; separator="\n">
+>>
+
+
+initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
+<p><sAcc>nCount = <nSize>;
+<arrsInnerValues; separator="\n">
+>>
+
+
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen, sResVar) ::= <<
+<if(!bLastItem)><if(bFirst)>if<else>else if<endif> (<i> % <nCaseLen> == <nCaseIdx>)  {<else>else {<endif>
+    <sChildCaseInit>
+    <sResVar>
+}>>
+
+initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
+val <sResVar>_vec = scala.collection.immutable.Vector.tabulate(<nSize>) { <i> =>
+    <arrsInnerItems; separator="\n">
+}
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif>Vector.fromScala(<sResVar>_vec))
+>>
+
+
+/*SEQUENCE*/
+
+initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
+<p><sAcc>exist.<sChName> = if <sPresentFlag> == 0 then false else true
+<sChildContent>
+>>
+
+initSequence(arrsInnerValues) ::= <<
+<arrsInnerValues; separator="\n">
+>>
+
+initSequence_emptySeq(p) ::= ""
+
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
+<sChildContent>
+>>
+
+initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
+val <sResVar>: OptionMut[<sChildTypedef>] = NoneMut()
+>>
+
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
+var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
+<sChildContent>
+<p> = <sChildID>(<sChildTempVarName>)
+>>
+
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
+<sChildContent>
+<if(bIsOptional)>
+val <sResVar> = SomeMut(<sChildID>(<sChildTempVarName>))
+<else>
+val <sResVar> = <sChildID>(<sChildTempVarName>)
+<endif>
+>>
+
+initChildWithInitFunc(p, sChildInitFuncName) ::= <<
+<p> = <sChildInitFuncName>()
+>>
+
+
+initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>->arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+>>
+
+initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+>>
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+val <sConstantName>: <sTypeDecl> = <sValue>
+>>
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
+val <sConstantName>: <sTypeDecl> = <sValue>
+>>
+
+initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>(Vector.fill(<nMax>)(0.toRawUByte))"
+initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMax>)(0.toRawUByte))"
+
+initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Vector.fill(<nMaxOctets>)(0.toRawUByte))"
+initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMaxOctets>)(0.toRawUByte))"
+
+initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(Vector.fill(<nMax>)(<sChildExp>))"
+initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMax>)(<sChildExp>))"
+
+
+initObjectIdentifierAsExpr() ::= <<
+{.nCount = 0, .values  = {[0 ... OBJECT_IDENTIFIER_MAX_LENGTH-1] = 0 }}
+>>
+
+init_Asn1LocalTimeExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1UtcTimeExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+
+init_Asn1LocalTimeWithTimeZoneExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0}
+>>
+
+init_Asn1DateExpr() ::= <<
+{.years = 0, .months = 0, .days = 0}
+>>
+
+init_Asn1Date_LocalTimeExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1Date_UtcTimeExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
+>>
+
+initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
+<if(bIsOptional)>
+<if(bIsAbsent)>
+<sChildName> = NoneMut()
+<else>
+<sChildName> = SomeMut(<sChildExpr>)
+<endif>
+<else>
+<sChildName> = <sChildExpr>
+<endif>
+>>
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = if <nPresenceBit> == 0 then false else true"
+initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
+<sTypeDefName>(<arrsChildren; separator=", ">)
+>>
+
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "<sChildKind>(<sChildExpr>)"
