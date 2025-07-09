@@ -13,6 +13,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-c")>]C_lang
     | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
     | [<Unique; AltCommandLine("-Scala")>]Scala_Lang
+    | [<Unique; AltCommandLine("-python")>]Python_Lang
     | [<Unique; AltCommandLine("-uPER")>]UPER_enc
     | [<Unique; AltCommandLine("-XER")>]XER_enc
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
@@ -60,6 +61,7 @@ with
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | Scala_Lang       -> "generate code for the Scala programming language"
+            | Python_Lang      -> "generate code for the Python programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
@@ -186,6 +188,21 @@ let scala_macro =
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
         }
+        
+let python_macro =
+        {
+            LanguageMacros.equal = new IEqual_python.IEqual_python()
+            init = new IInit_python.IInit_python()
+            typeDef = new ITypeDefinition_python.ITypeDefinition_python()
+            lg = new LangGeneric_python.LangGeneric_python();
+            isvalid= new IIsValid_python.IIsValid_python()
+            vars = new IVariables_python.IVariables_python()
+            uper = new IUper_python.IUper_python()
+            acn = new IAcn_python.IAcn_python()
+            atc = new ITestCases_python.ITestCases_python()
+            xer = new IXer_python.IXer_python()
+            src = new ISrcBody_python.ISrcBody_python()
+        }
 let ada_macro =
         {
             LanguageMacros.equal = new IEqual_a.IEqual_a();
@@ -200,7 +217,7 @@ let ada_macro =
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
         }
-let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Python, python_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
@@ -212,6 +229,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | C_lang           -> ()
     | Ada_Lang         -> ()
     | Scala_Lang       -> ()
+    | Python_Lang       -> ()
     | UPER_enc         -> ()
     | XER_enc          -> ()
     | ACN_enc          -> ()
@@ -346,9 +364,10 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         renamePolicy =
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
-                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang) with
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Python_Lang) with
                 | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
+                | [ Python_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
                 | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> raise (UserException ("Please select only one of target languages, not both."))
@@ -367,7 +386,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _ when vl = "AUTO"          -> Some FieldPrefixAuto
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
-            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
+            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) | _ -> None)
 
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
@@ -375,7 +394,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
 
-        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
+        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Python, new LangGeneric_python.LangBasic_python()) ]
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
     }
 
@@ -387,6 +406,7 @@ let setActiveLanguages args =
             | C_lang -> Some (CommonTypes.ProgrammingLanguage.C) 
             | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) 
             | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) 
+            | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) 
             | _ -> None)
     match activeLangs with
     | [] ->     ProgrammingLanguage.ActiveLanguages <- [CommonTypes.ProgrammingLanguage.C]
@@ -457,6 +477,9 @@ let main0 argv =
                 | Ada_Lang              ->
                     let lm = getLanguageMacro Ada
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
+                | Python_Lang              ->
+                    let lm = getLanguageMacro Python
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (lm:LanguageMacros) target =

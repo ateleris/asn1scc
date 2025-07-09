@@ -29,7 +29,8 @@ namespace PUS_C_Scala_Test
         CREATE_TESTS =      0b0000_0100,
         CREATE_SCALA =      0b0000_1000,
         CREATE_C =          0b0001_0000,
-        COMPARE_ENCODINGS = 0b0010_0000
+        COMPARE_ENCODINGS = 0b0010_0000,
+        CREATE_PYTHON =     0b0100_0000,
     }
 
     class TestBasics
@@ -38,6 +39,7 @@ namespace PUS_C_Scala_Test
 
         private readonly string scalaLang = "-Scala";
         private readonly string cLang = "-c";
+        private readonly string pythonLang = "-python";
         private readonly string uperEnc = "--uper-enc";
         private readonly string acnEnc = "--acn-enc";
         private readonly string genTests = "-atc";
@@ -49,6 +51,7 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
+        private readonly string outFolderSuffixPython = "/Python";
         private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/";
 
         private readonly string asn1FileEnding = ".asn1";
@@ -65,6 +68,9 @@ namespace PUS_C_Scala_Test
 
             if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 parList.Add(cLang);
+            
+            if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                parList.Add(pythonLang);
 
             if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
                 parList.Add(uperEnc);
@@ -117,6 +123,8 @@ namespace PUS_C_Scala_Test
                 ret += outFolderSuffixScala;
             else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 ret += outFolderSuffixC;
+            else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                ret += outFolderSuffixPython;
             else
                 Assert.IsTrue(false, "can not do both");
 
@@ -276,6 +284,8 @@ namespace PUS_C_Scala_Test
                 CompileScala(folderPath, !createAndRunTests);
             else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 CompileC(folderPath, !createAndRunTests);
+            else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                CompilePython(folderPath, !createAndRunTests);
             else
                 Assert.IsTrue(false, "no input created that could be tested");
 
@@ -285,6 +295,8 @@ namespace PUS_C_Scala_Test
                     RunScalaTests(folderPath, createAndRunTests);
                 else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                     RunCTests(folderPath, createAndRunTests);
+                else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                    RunPythonTests(folderPath, createAndRunTests);
             }
         }
 
@@ -330,6 +342,11 @@ namespace PUS_C_Scala_Test
                 RunMake(outDir);
         }
 
+        private void CompilePython(string outDir, bool printOutput)
+        {
+            // TODO: most probably no need to compile python.
+        }
+
         private void RunScalaTests(string outDir, bool printOutput)
         {
             StartSBTWithArg(outDir, "sbt run", "[test success]", printOutput);
@@ -360,6 +377,12 @@ namespace PUS_C_Scala_Test
 
                 Assert.IsTrue(worked, "C test cases failed");
             }
+        }
+
+        private void RunPythonTests(string outDir, bool printOutput)
+        {
+            // TODO
+            throw new NotImplementedException("RunPythonTests is not implemented.");
         }
 
         private void RunMake(string outDir)

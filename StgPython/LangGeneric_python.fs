@@ -1,4 +1,4 @@
-module StgPython.LangGeneric_python
+module LangGeneric_python
 open CommonTypes
 open System.Numerics
 open DAst
