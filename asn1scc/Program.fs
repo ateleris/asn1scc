@@ -446,14 +446,14 @@ let main0 argv =
         let activeLangs = 
             allMacros |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang)) 
             
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args activeLangs debugFunc)
+        let frontEndAst, acnDeps = TL "FrontEndMain.constructAst" (fun () -> FrontEndMain.constructAst args activeLangs debugFunc)
 
 
         // print front ent ast as xml
         match args.AstXmlAbsFileName with
         | ""    -> ()
         | _     ->
-            TL "ExportToXml.exportFile" (fun () -> ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName)
+            TL "ExportToXml.exportFile" (fun () -> ExportToXml.exportFile frontEndAst acnDeps args.AstXmlAbsFileName)
 
         let icdStgFileName =
             match parserResults.TryGetResult (<@CustomIcdAcn@>) with
@@ -470,16 +470,16 @@ let main0 argv =
                 match a with
                 | C_lang                ->
                     let lm = getLanguageMacro C
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Scala_Lang              ->
                     let lm = getLanguageMacro Scala
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
                 | Ada_Lang              ->
                     let lm = getLanguageMacro Ada
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | Python_Lang              ->
                     let lm = getLanguageMacro Python
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (lm:LanguageMacros) target =
@@ -530,7 +530,7 @@ let main0 argv =
                             xer = new IXer_c.IXer_c()
                             src = new ISrcBody_c.ISrcBody_c()
                         }
-                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
+                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
 
         let generateCustomStgCode () =

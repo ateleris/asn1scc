@@ -2262,7 +2262,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
             raise(SemanticError(errChild.Name.Location, errMessage))
             //let loc = errChild.Name.Location
-            //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
+            //Console.Out.WriteLine (FrontEndMain.formatSemanticWarning loc errMessage)
             //None, ns
 
     let isTestVaseValid (atc:AutomaticTestCase) =
