@@ -1414,3 +1414,4 @@ Inputs/
 asn1scc/Properties/launchSettings_UPER.json
 /dotnet-debian.SENTINEL
 /asn1python/src/asn1python.egg-info/
+/generated-python-output/

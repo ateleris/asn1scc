@@ -285,7 +285,7 @@ namespace PUS_C_Scala_Test
             else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 CompileC(folderPath, !createAndRunTests);
             else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
-                CompilePython(folderPath, !createAndRunTests);
+                Console.WriteLine("Python does not need compilation.");
             else
                 Assert.IsTrue(false, "no input created that could be tested");
 
@@ -342,11 +342,6 @@ namespace PUS_C_Scala_Test
                 RunMake(outDir);
         }
 
-        private void CompilePython(string outDir, bool printOutput)
-        {
-            // TODO: most probably no need to compile python.
-        }
-
         private void RunScalaTests(string outDir, bool printOutput)
         {
             StartSBTWithArg(outDir, "sbt run", "[test success]", printOutput);
@@ -382,6 +377,7 @@ namespace PUS_C_Scala_Test
         private void RunPythonTests(string outDir, bool printOutput)
         {
             // TODO
+            // todo: maybe we can make the test cases run using PyTest? Would then be called +/- analog to RunScalaTests
             throw new NotImplementedException("RunPythonTests is not implemented.");
         }
 
