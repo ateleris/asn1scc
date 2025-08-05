@@ -132,7 +132,7 @@ Asn1Real = float
 Asn1Boolean = bool
 
 # ASN.1 NULL type - matches C "typedef char NullType" and Scala "type NullType = Byte"
-NullType = int  # Using int to represent a single byte like C char
+NullType = None
 
 # Floating point types for different precisions
 Asn1Real32 = float  # matches C typedef float asn1Real32
@@ -190,9 +190,9 @@ def uint2int(v: int, uint_size_in_bytes: int) -> int:
     else:
         return v
 
-def null_type_initialize() -> int:
+def null_type_initialize() -> NullType:
     """Initialize NullType (matches C function)"""
-    return 0
+    return None
 
 def asn1_real_initialize() -> float:
     """Initialize Asn1Real (matches Scala function)"""

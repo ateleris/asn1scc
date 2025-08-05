@@ -5,6 +5,8 @@ echo "Removing generated .stg.fs files & python-output..."
 rm -- StgPython/*.stg.fs
 rm -r $OUT_DIR
 
+dotnet build asn1scc
+
 echo "Generating new .stg.fs files..."
 cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
 

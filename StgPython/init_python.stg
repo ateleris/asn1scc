@@ -7,29 +7,38 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
 <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
+<sFuncName>: <sTypeDefName> = <sDefaultInitValue>
 >>
 
 initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
+# initInteger
 <if(bIsOptional)>
-val <sResVar> = SomeMut(<sValue>)
+#val <sResVar> = SomeMut(<sValue>)
+<sResVar> = <sValue>
 <else>
-val <sResVar> = <sValue>
+#val <sResVar> = <sValue>
+<sResVar> = <sValue>
 <endif>
 >>
+
 initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
+# initReal
 <if(bIsOptional)>
-val <sResVar> = SomeMut(<dValue>)
+#val <sResVar> = SomeMut(<dValue>)
 <else>
-val <sResVar> = <dValue>
+#val <sResVar> = <dValue>
 <endif>
+<sResVar> = <sValue>
 >>
+
 initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
+# initBoolean
 <if(bIsOptional)>
-val <sResVar> = SomeMut(<if(bValue)>true<else>false<endif>)
+#val <sResVar> = SomeMut(<if(bValue)>true<else>false<endif>)
 <else>
-val <sResVar> = <if(bValue)>true<else>false<endif>
+#val <sResVar> = <if(bValue)>true<else>false<endif>
 <endif>
+<sResVar> = <if(bValue)>True<else>False<endif>
 >>
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) = <nIntVal>"
@@ -90,39 +99,47 @@ assignString(p, sValue) ::= "<p> = <sValue>"
 
 initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-val <sResVar> = SomeMut(<sValue>)
+#val <sResVar> = SomeMut(<sValue>)
 <else>
-val <sResVar> = <sValue>
+#val <sResVar> = <sValue>
 <endif>
+<sResVar> = <sValue>
 >>
 
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-val <sResVar>: OptionMut[<sTypeDefName>] = SomeMut(<sValue>)
+#val <sResVar>: OptionMut[<sTypeDefName>] = SomeMut(<sValue>)
+<sResVar>: Optional[<sTypeDefName>] = <sValue>
 <else>
-val <sResVar>: <sTypeDefName> = <sValue>
+#val <sResVar>: <sTypeDefName> = <sValue>
+<sResVar>: <sTypeDefName> = <sValue>
 <endif>
 >>
 
 initNull(sVal, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-val <sResVar>: OptionMut[NullType] = SomeMut(0)
+#val <sResVar>: OptionMut[NullType] = SomeMut(0)
+<sResVar>: Optional[NullType] = None
 <else>
-val <sResVar>: NullType = 0
+#val <sResVar>: NullType = 0
+<sResVar>: NullType = None
 <endif>
 >>
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
 <if(bZero)>
-val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
+#val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
+<sResVar> = [0] * <nMaxSizePlusOne>
 <else>
 <if(bAlpha)>
-val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
-val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then UByte.fromRaw(0) else allowedCharSet(<i> % <nAlphabetLength>))
-val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+#val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
+#val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then UByte.fromRaw(0) else allowedCharSet(<i> % <nAlphabetLength>))
+#val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+# todo: python?
 <else>
 val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
 val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+# todo: python?
 <endif>
 <endif>
 >>
