@@ -1,18 +1,18 @@
 #!/bin/bash
 
-OUT_DIR="generated-python-output"
-echo "Removing generated .stg.fs files & python-output..."
-rm -- StgPython/*.stg.fs
+OUT_DIR="generated-scala-output"
+echo "Removing generated .stg.fs files & scala-output..."
+rm -- StgScala/*.stg.fs
 #rm -r $OUT_DIR
 
 dotnet build asn1scc
 
 echo "Generating new .stg.fs files..."
-cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
+cd StgScala && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
 
-echo "Running Asn1SCC Compiler for Python..."
+echo "Running Asn1SCC Compiler for Scala..."
 ./asn1scc/bin/Debug/net9.0/asn1scc \
--python --acn-enc -atc --field-prefix AUTO --type-prefix T \
+-Scala --acn-enc -atc --field-prefix AUTO --type-prefix T \
 -o $OUT_DIR \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcess.asn1 \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcessUser.asn1 \

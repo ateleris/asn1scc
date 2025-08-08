@@ -2,6 +2,9 @@ group isvalid_new_python;
 
 
 makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>;
-*pErrCode = ret ? 0 :  <sErrCode>;
+ret = <sIsValidExp>
+pErrCode[0] = 0 if ret else <sErrCode>
+# TODO: Remove old C Code (isvalid_new_python.stg):
+# ret = <sIsValidExp>;
+# *pErrCode = ret ? 0 :  <sErrCode>;
 >>

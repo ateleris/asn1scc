@@ -26,6 +26,8 @@ Define_TAS(sTypeDefinition, arrsProcs) ::= <<
 >>
 
 PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
+<sName>: <sTypeDecl> = <sValue>  # defined in body
+# TODO: Remove old Scala Code (header_python.stg):
 # @inline @cCode.inline val <sName>: <sTypeDecl> = <sValue> # defined in body
 >>
 
@@ -80,9 +82,11 @@ Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateLocalTimeWithTimeZone
 
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
-<arrsAnnots:{ann|@<ann>}; separator=" ">
-type <sTypeDefinitionName> = <sParentType>
+<sTypeDefinitionName> = <sParentType>
 <soExtraDefs>
+# TODO: Remove old Scala Code (header_python.stg):
+# <arrsAnnots:{ann|@<ann>}; separator=" ">
+# type <sTypeDefinitionName> = <sParentType>
 >>
 
 
@@ -104,8 +108,7 @@ class <td.typeName>(Enum):
     @property
     def i(self):
         return self.value
-    
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case object <sName> extends <td.typeName>:
 #     override def i: Int32 = <nValue>
 >>
@@ -120,14 +123,13 @@ from enum import Enum
 class <td.typeName>:
     i: Int32 = 0
 
-object <td.typeName>:
+class <td.typeName>Meta:
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 # please use the following macros to avoid breaking code.
 <arrsResolvingMacros; separator="\n">
 
-
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # sealed trait <td.typeName>:
 #     def i: Int
 # object <td.typeName>:
@@ -135,9 +137,8 @@ object <td.typeName>:
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
-type <prTd.typeName> <td.typeName>
-
-# TODO: Remove old Scala Code:
+<prTd.typeName> = <td.typeName>
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -151,15 +152,13 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
 <td.typeName> = List[UInt8]
-
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # type <td.typeName> = Vector[UByte]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-type <prTd.typeName> <td.typeName>
-
-# TODO: Remove old Scala Code:
+<prTd.typeName> = <td.typeName>
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -171,15 +170,15 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 
 <endif>
 from dataclasses import dataclass
+from typing import List
 
 @dataclass(frozen=True)
 class <td.typeName>:
     <if(!bFixedSize)>nCount: Int64 = 0 <endif>
-    arr: List[UInt8] = []
+    arr: List[UInt8] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
-    
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 # {
 #     <arrsInvariants; separator="\n">
@@ -187,9 +186,8 @@ class <td.typeName>:
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-type <prTd.typeName> <td.typeName>
-
-# TODO: Remove old Scala Code:
+<prTd.typeName> = <td.typeName>
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -217,7 +215,7 @@ class <td.typeName>:
     
     <arrsInvariants; separator="\n">
     
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 # {
 #     <arrsInvariants; separator="\n">
@@ -225,9 +223,8 @@ class <td.typeName>:
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-type <prTd.typeName> <td.typeName>
-
-# TODO: Remove old Scala Code:
+<prTd.typeName> = <td.typeName>
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -251,7 +248,7 @@ class <td.typeName>:
 object <td.typeName>:
     <arrsSizeObjDefinition; separator="\n\n">
     
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Vector[<sChildType>])
 # {
 #     <arrsInvariants; separator="\n">
@@ -269,7 +266,7 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 
 type <prTd.typeName> <td.typeName>
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -285,7 +282,7 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <sName>: <sType>
 <endif>
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # <if (bIsOptional)>
 # <sName>: OptionMut[<sType>]
 # <else>
@@ -307,7 +304,7 @@ class <td.extension_function_positions>:
     arrsNullFieldsSavePos; separator="\n">
      <arrsSizeDefinition; separator="\n\n">
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case class <td.extension_function_positions> (
 #     <arrsNullFieldsSavePos; separator="\n">
 # ) {
@@ -327,7 +324,7 @@ class <td.typeName>:
     <arrsSizeDefinition; separator="\n\n">
 
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # case class <td.typeName> (
 #     <arrsChildren:{ch|<ch>}; separator=", \n">
 # ) {
@@ -351,7 +348,7 @@ class <td.typeName>:
 <endif>
 
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # type <td.typeName> = <prTd.typeName>
 
 # object <td.typeName> {
@@ -379,7 +376,7 @@ class <td.typeName>(Enum):
 
     <arrsSizeDefinition; separator="\n\n">
     
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # <arrsChildrenDefinitions; separator= "\n">
 # enum <td.typeName>:
 #     <arrsCombined:{ch|case <ch>}; separator="\n">
@@ -390,7 +387,7 @@ class <td.typeName>(Enum):
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
 type <prTd.typeName> <td.typeName>
 
-# TODO: Remove old Scala Code:
+# TODO: Remove old Scala Code (header_python.stg):
 # typedef <prTd.typeName> <td.typeName>
 >>
 

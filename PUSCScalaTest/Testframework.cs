@@ -277,6 +277,7 @@ namespace PUS_C_Scala_Test
             Console.WriteLine("Called Compiler with args:");
             foreach (var a in args)
                 Console.WriteLine(a);
+            Console.WriteLine("============= END OF ARGS =============");
 
             CompileASN(args);
 

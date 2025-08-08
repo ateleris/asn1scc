@@ -1,141 +1,219 @@
 group acn_python;
 
-getStringSize(p) ::= "ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))"
+getStringSize(p) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))
+len(<p>.split(b'\x00')[0])
+>>
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(bIsUnsigned)>
+# ULong.fromRaw(<p><sAcc>nCount)
+# <else>
+# <p><sAcc>nCount
+# <endif>
 <if(bIsUnsigned)>
-ULong.fromRaw(<p><sAcc>nCount)
+int(<p><sAcc>nCount)
 <else>
 <p><sAcc>nCount
 <endif>
 >>
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
-@inline @cCode.inline val <sErrCode>: Int = <nErrValue> /* <soErrorCodeComment> */
+# TODO: Remove old Scala Code (acn_python.stg):
+# @inline @cCode.inline val <sErrCode>: Int = <nErrValue> /* <soErrorCodeComment> */
+<sErrCode>: int = <nErrValue>  # <soErrorCodeComment>
 >>
 
-EmitAcnParameter(sName, sType) ::= "<sType> <sName> /*TODO acn:11 */"
+EmitAcnParameter(sName, sType) ::= "<sName>: <sType>  # TODO acn:11"
 
 EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 >>
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <arrsErrcodes; separator="\n">
+# @inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
+# @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 <arrsErrcodes; separator="\n">
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
+<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: int = <nMaxBytesInACN>
+<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: int = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-@opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
-{
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+# TODO: Remove old Scala Code (acn_python.stg):
+# @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
+# def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
+# {
+#     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+#     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+#     <if(soIValidFuncName)>
+#     <soIValidFuncName>(<sVarName>) match
+#         case Left(l) => return Left(l)
+#         case Right(_) =>
+#     @ghost val oldCdc = snapshot(codec)
+#     <sContent>
+#     <else>
+#     <sContent>
+#     <endif>
+#     Right(0)
+# }.ensuring { (res : Either[ErrorCode, Int]) =>
+#     <soPostcond>
+# }
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Union[ErrorCode, int]:  # acn:21
+    <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    <soIValidFuncName>(<sVarName>) match
-        case Left(l) => return Left(l)
-        case Right(_) =>
-    @ghost val oldCdc = snapshot(codec)
+    validation_result = <soIValidFuncName>(<sVarName>)
+    if validation_result.is_error():
+        return validation_result.get_error()
     <sContent>
     <else>
     <sContent>
     <endif>
-    Right(0)
-}.ensuring { (res : Either[ErrorCode, Int]) =>
-    <soPostcond>
-}
+    return 0
+    # <soPostcond>
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <arrsErrcodes; separator="\n">
 <arrsErrcodes; separator="\n">
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-@opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
-{
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+# TODO: Remove old Scala Code (acn_python.stg):
+# @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
+# def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
+# {
+#     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+#     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+# 
+#     @ghost val oldCdc = snapshot(codec)
+#     <sContent>
+# 
+#     <if(soIValidFuncName)>
+#     <soIValidFuncName>(<sVarName>) match
+#         case Left(l) => LeftMut[ErrorCode, <sTypeDefName>](l)
+#         case Right(_) => RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
+#     <else>
+#     RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
+#     <endif>
+# }.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
+#     <soPostcond>
+# }
+# 
+# @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
+# def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
+# {
+#     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+#     val cpy = snapshot(codec)
+#     val res = <sFuncName>(cpy)
+#     (cpy, res)
+# }
+def <sFuncName>(codec: ACN) -> Union[ErrorCode, <sTypeDefName>]:
+    <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
-    @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>
-    <soIValidFuncName>(<sVarName>) match
-        case Left(l) => LeftMut[ErrorCode, <sTypeDefName>](l)
-        case Right(_) => RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
+    validation_result = <soIValidFuncName>(<sVarName>)
+    if validation_result.is_error():
+        return validation_result.get_error()
+    return <sVarName>
     <else>
-    RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
+    return <sVarName>
     <endif>
-}.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
-    <soPostcond>
-}
+    # <soPostcond>
 
-@ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
-{
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
-    val cpy = snapshot(codec)
-    val res = <sFuncName>(cpy)
-    (cpy, res)
-}
+def <sFuncName>_pure(codec: ACN) -> Tuple[ACN, Union[ErrorCode, <sTypeDefName>]]:
+    <arrsPrecond:{pre|assert <pre>}; separator="\n">
+    cpy = codec.copy()
+    res = <sFuncName>(cpy)
+    return (cpy, res)
 >>
 
 A(sErrCode) /*nogen*/ ::= ""
 // TODO
 MF(soMF) ::= /*nogen*/ <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(soMF)>
+# <p> = <soMF>_decode(<p>)
+# <endif>
 <if(soMF)>
 <p> = <soMF>_decode(<p>)
 <endif>
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <i> = 0
+# (while (<i> \< <fixedSize>.toInt) {
+#     decreases(<fixedSize>.toInt - <i>)
+#     <sInternalItem>
+#     <i> += 1
+# }).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 <i> = 0
-(while (<i> \< <fixedSize>.toInt) {
-    decreases(<fixedSize>.toInt - <i>)
+for <i> in range(int(<fixedSize>)):
     <sInternalItem>
-    <i> += 1
-}).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 >>
 
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
-locally {
-    @ghost val unalignedCodec = snapshot(codec)
-    codec.base.bitStream.alignTo<sAlignmentValue>()
-    ghostExpr {
-        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-    }
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# locally {
+#     @ghost val unalignedCodec = snapshot(codec)
+#     codec.base.bitStream.alignTo<sAlignmentValue>()
+#     ghostExpr {
+#         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
+#         check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+#     }
+# }
+# <sMainBody>
+unaligned_codec = codec.copy()
+codec.base.bitStream.alignTo<sAlignmentValue>()
+# BitStream validation would go here
 <sMainBody>
 >>
 
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
-locally {
-    @ghost val unalignedCodec = snapshot(codec)
-    codec.base.bitStream.alignTo<sAlignmentValue>()
-    ghostExpr {
-        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-    }
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# locally {
+#     @ghost val unalignedCodec = snapshot(codec)
+#     codec.base.bitStream.alignTo<sAlignmentValue>()
+#     ghostExpr {
+#         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
+#         check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+#     }
+# }
+# <sMainBody>
+unaligned_codec = codec.copy()
+codec.base.bitStream.alignTo<sAlignmentValue>()
+# BitStream validation would go here
 <sMainBody>
 >>
 
 PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
-locally {
-    ghostExpr {
-        @opaque @inlineOnce
-        def bitCountLemma(v: ULong): Unit = {
-            require(v \<= ULong.fromRaw(<nUperMax>))
-        }.ensuring(_ => GetBitCountUnsigned(v) \<= <nFixedSize>)
-        bitCountLemma(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-    }
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# locally {
+#     ghostExpr {
+#         @opaque @inlineOnce
+#         def bitCountLemma(v: ULong): Unit = {
+#             require(v \<= ULong.fromRaw(<nUperMax>))
+#         }.ensuring(_ => GetBitCountUnsigned(v) \<= <nFixedSize>)
+#         bitCountLemma(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
+#     }
+# }
+# codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
+# Bit count validation would go here
 codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 >>
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
-val <p> = codec.dec_Int_PositiveInteger_ConstSize<sSsuffix>(<nFixedSize>)
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = codec.dec_Int_PositiveInteger_ConstSize<sSsuffix>(<nFixedSize>)
+# <MF(soMF)>
+<p> = codec.dec_Int_PositiveInteger_ConstSize<sSsuffix>(<nFixedSize>)
 <MF(soMF)>
 >>
 
@@ -164,7 +242,10 @@ locally {
 codec.enc_Int_PositiveInteger_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 >>
 PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-val <p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>()
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>()
+# <MF(soMF)>
+<p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>()
 <MF(soMF)>
 >>
 
@@ -330,27 +411,39 @@ val <p> = codec.dec_Real_IEEE754_64_little_endian()
 
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
-locally {
-    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    codec.base.bitStream.appendBitsMSBFirst(if <p> then true_data else false_data, <nSize>)
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# locally {
+#     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     codec.base.bitStream.appendBitsMSBFirst(if <p> then true_data else false_data, <nSize>)
+# }
+true_data = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+false_data = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+codec.base.bitStream.appendBitsMSBFirst(true_data if <p> else false_data, <nSize>)
 >>
 
 Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
-val <p> = {
-    <if(bEncValIsTrue)>
-    val tmp: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    <else>
-    val tmp: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    <endif>
-    val x = codec.BitStream_ReadBitPattern(tmp, <nSize>)
-    <if(!bEncValIsTrue)>
-    !x
-    <else>
-    x
-    <endif>
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = {
+#     <if(bEncValIsTrue)>
+#     val tmp: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     <else>
+#     val tmp: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     <endif>
+#     val x = codec.BitStream_ReadBitPattern(tmp, <nSize>)
+#     <if(!bEncValIsTrue)>
+#     !x
+#     <else>
+#     x
+#     <endif>
+# }
+<if(bEncValIsTrue)>
+tmp = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+<else>
+tmp = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+<endif>
+x = codec.BitStream_ReadBitPattern(tmp, <nSize>)
+<p> = <if(!bEncValIsTrue)>not x<else>x<endif>
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
@@ -362,42 +455,69 @@ locally {
 >>
 
 BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
-val <p> = locally {
-    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    codec.BitStream_DecodeTrueFalseBoolean(true_data, false_data, <nSize>) match {
-        case Some(b) => b
-        case None() => return LeftMut(<sErrCode>)
-    }
-}
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = locally {
+#     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+#     codec.BitStream_DecodeTrueFalseBoolean(true_data, false_data, <nSize>) match {
+#         case Some(b) => b
+#         case None() => return LeftMut(<sErrCode>)
+#     }
+# }
+true_data = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+false_data = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+boolean_result = codec.BitStream_DecodeTrueFalseBoolean(true_data, false_data, <nSize>)
+if boolean_result is not None:
+    <p> = boolean_result
+else:
+    return <sErrCode>
 >>
 
 
-Null_declare(p) ::= "val <p>: NullType = 0"
+Null_declare(p) ::= "<p>: NullType = None"
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(arruNullValueAsByteArray)>
+# locally {
+#     val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
+#     codec.base.bitStream.appendBitsMSBFirst(tmp, <nSize>)
+# }
+# <endif>
 <if(arruNullValueAsByteArray)>
-locally {
-    val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
-    codec.base.bitStream.appendBitsMSBFirst(tmp, <nSize>)
-}
+tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+codec.base.bitStream.appendBitsMSBFirst(tmp, <nSize>)
 <endif>
 >>
 
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(bSavePosition)>
+# codec.BitStream_ReadBitPattern_ignore_value(<nSize>)
+# val <p>: NullType = 0
+# <else>
+# <if(arruNullValueAsByteArray)>
+# locally {
+#     val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
+#     if !codec.BitStream_ReadBitPattern(tmp, <nSize>) then
+#         return LeftMut(<sErrCode>)
+# 
+#     <A(sErrCode)>
+# }
+# val <p>: NullType = 0
+# <endif>
+# <endif>
 <if(bSavePosition)>
 codec.BitStream_ReadBitPattern_ignore_value(<nSize>)
-val <p>: NullType = 0
+<p>: NullType = None
 <else>
 <if(arruNullValueAsByteArray)>
-locally {
-    val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
-    if !codec.BitStream_ReadBitPattern(tmp, <nSize>) then
-        return LeftMut(<sErrCode>)
+tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+if not codec.BitStream_ReadBitPattern(tmp, <nSize>):
+    return <sErrCode>
 
-    <A(sErrCode)>
-}
-val <p>: NullType = 0
+<A(sErrCode)>
+<p>: NullType = None
 <endif>
 <endif>
 >>
@@ -410,10 +530,16 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 >>
 
 Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
-case <sName> => <sItemVal>
+# TODO: Remove old Scala Code (acn_python.stg):
+# case <sName> => <sItemVal>
+if <p> == <sName>:
+    return <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
-case <nItemIdx> => <sName>
+# TODO: Remove old Scala Code (acn_python.stg):
+# case <nItemIdx> => <sName>
+if decoded_value == <nItemIdx>:
+    return <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -425,17 +551,29 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-val <sIntVal> = <p> match
-    <arrsItem; separator="\n">
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <sIntVal> = <p> match
+#     <arrsItem; separator="\n">
+# 
+# <sActualCodecFunc>
+<arrsItem; separator="\nel">
+else:
+    raise ValueError("Invalid enum value")
 
 <sActualCodecFunc>
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <sActualCodecFunc>
+# val <p> = <sIntVal>.toRaw match
+#     <arrsItem; separator="\n">
+#     case _ => return LeftMut(<sErrCode>)
 <sActualCodecFunc>
-val <p> = <sIntVal>.toRaw match
-    <arrsItem; separator="\n">
-    case _ => return LeftMut(<sErrCode>)
+decoded_value = int(<sIntVal>)
+<arrsItem; separator="\nel">
+else:
+    return <sErrCode>
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -448,15 +586,21 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "codec.enc_String_Ascii_FixSize(<nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
-val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
+<p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
 >>
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
+# TODO: Remove old Scala Code (acn_python.stg):
+# codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
+codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>), <p>)
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
+<p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>))
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
@@ -562,23 +706,31 @@ locally {
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(bIntroSnap)>
+# @ghost val codec_0_1 = snapshot(codec)
+# <endif>
+# 
+# val <p>_nCount = locally {
+#     @ghost val oldCodec = snapshot(codec)
+#     val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>).toInt
+#     ghostExpr {
+#         @opaque @inlineOnce
+#         def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
+#         bitCountLemma()
+#         assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
+#         BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
+#         check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
+#     }
+#     <p>_nCount
+# }
+# <soCallAux>
 <if(bIntroSnap)>
-@ghost val codec_0_1 = snapshot(codec)
+codec_0_1 = codec.copy()
 <endif>
 
-val <p>_nCount = locally {
-    @ghost val oldCodec = snapshot(codec)
-    val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>).toInt
-    ghostExpr {
-        @opaque @inlineOnce
-        def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
-        bitCountLemma()
-        assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
-        BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
-        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
-    }
-    <p>_nCount
-}
+<p>_nCount = int(codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>))
+# Bit validation would go here
 <soCallAux>
 >>
 
@@ -766,22 +918,37 @@ sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatemen
 >>
 
 sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
-/* Encode <sChName> */
-/* marked as ALWAYS PRESENT, so it must be Some */
-<p> match
-    case SomeMut(<sChName>) =>
-        <soSaveBitStrmPosStatement>
-        <soChildContent>
-    case NoneMut() => return Left(628)
+# TODO: Remove old Scala Code (acn_python.stg):
+# /* Encode <sChName> */
+# /* marked as ALWAYS PRESENT, so it must be Some */
+# <p> match
+#     case SomeMut(<sChName>) =>
+#         <soSaveBitStrmPosStatement>
+#         <soChildContent>
+#     case NoneMut() => return Left(628)
+# Encode <sChName>
+# marked as ALWAYS PRESENT, so it must not be None
+if <p> is not None:
+    <sChName> = <p>
+    <soSaveBitStrmPosStatement>
+    <soChildContent>
+else:
+    return 628
 >>
 
 sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
-/* Decode <sChName> */
-/* marked as ALWAYS PRESENT */
+# TODO: Remove old Scala Code (acn_python.stg):
+# /* Decode <sChName> */
+# /* marked as ALWAYS PRESENT */
+# <soSaveBitStrmPosStatement>
+# val <p>: OptionMut[<sChildTypedef>] =
+#     <soChildContent>
+#     SomeMut(<soChildExpr>)
+# Decode <sChName>
+# marked as ALWAYS PRESENT
 <soSaveBitStrmPosStatement>
-val <p>: OptionMut[<sChildTypedef>] =
-    <soChildContent>
-    SomeMut(<soChildExpr>)
+<soChildContent>
+<p>: Optional[<sChildTypedef>] = <soChildExpr>
 >>
 
 sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
@@ -790,29 +957,50 @@ sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTyped
 <soSaveBitStrmPosStatement>
 >>
 sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
-/* Decode <sChName> */
-/* marked as ALWAYS ABSENT, so do not decode anything */
+# TODO: Remove old Scala Code (acn_python.stg):
+# /* Decode <sChName> */
+# /* marked as ALWAYS ABSENT, so do not decode anything */
+# <soSaveBitStrmPosStatement>
+# val <p>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
+# Decode <sChName>
+# marked as ALWAYS ABSENT, so do not decode anything
 <soSaveBitStrmPosStatement>
-val <p>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
+<p>: Optional[<sChildTypedef>] = None
 >>
 
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
-/* Encode <sChName> */
+# TODO: Remove old Scala Code (acn_python.stg):
+# /* Encode <sChName> */
+# <soSaveBitStrmPosStatement>
+# <p> match
+#     case SomeMut(<sChName>) =>
+#         <sChildContent>
+#     case NoneMut() =>
+# Encode <sChName>
 <soSaveBitStrmPosStatement>
-<p> match
-    case SomeMut(<sChName>) =>
-        <sChildContent>
-    case NoneMut() =>
+if <p> is not None:
+    <sChName> = <p>
+    <sChildContent>
+else:
+    pass
 >>
 
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
-/* Decode <sChName> */
+# TODO: Remove old Scala Code (acn_python.stg):
+# /* Decode <sChName> */
+# <soSaveBitStrmPosStatement>
+# val <p>: OptionMut[<sChildTypedef>] =
+#     if <soExistVar> then
+#         <sChildContent>
+#         SomeMut(<soChildExpr>)
+#     else NoneMut[<sChildTypedef>]()
+# Decode <sChName>
 <soSaveBitStrmPosStatement>
-val <p>: OptionMut[<sChildTypedef>] =
-    if <soExistVar> then
-        <sChildContent>
-        SomeMut(<soChildExpr>)
-    else NoneMut[<sChildTypedef>]()
+if <soExistVar>:
+    <sChildContent>
+    <p>: Optional[<sChildTypedef>] = <soChildExpr>
+else:
+    <p>: Optional[<sChildTypedef>] = None
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
@@ -836,9 +1024,13 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 >>
 
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
-<sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec) match
-    case Left(err) => return LeftMut(err)
-    case Right(_) =>
+# TODO: Remove old Scala Code (acn_python.stg):
+# <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec) match
+#     case Left(err) => return LeftMut(err)
+#     case Right(_) =>
+validation_result = <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
+if validation_result.is_error():
+    return validation_result.get_error()
 >>
 
 /* SEQUENCE END */
@@ -856,32 +1048,54 @@ case <nChildIndex> =>
 >>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>(<sChildName>) =>
+# TODO: Remove old Scala Code (acn_python.stg):
+# case <sChildID>(<sChildName>) =>
+#     codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+#     <sChildContent>
+if isinstance(<p>, <sChildID>):
+    <sChildName> = <p>.value
     codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex> =>
+# TODO: Remove old Scala Code (acn_python.stg):
+# case <nChildIndex> =>
+#     <sChildContent>
+#     <sChildID>(<sChildName>)
+if choice_index == <nChildIndex>:
     <sChildContent>
-    <sChildID>(<sChildName>)
+    return <sChildID>(<sChildName>)
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-<p> match
-    <arrsChildren: {ch|<ch>}; separator="\n">
+# TODO: Remove old Scala Code (acn_python.stg):
+# <p> match
+#     <arrsChildren: {ch|<ch>}; separator="\n">
+<arrsChildren: {ch|<ch>}; separator="\nel">
+else:
+    raise ValueError("Invalid choice type")
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
-    <arrsChildren: {ch|<ch>}; separator="\n">
-    case _ => return LeftMut(<sErrCode>)
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
+#     <arrsChildren: {ch|<ch>}; separator="\n">
+#     case _ => return LeftMut(<sErrCode>)
+choice_index = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<arrsChildren: {ch|<ch>}; separator="\nel">
+else:
+    return <sErrCode>
 >>
 
 /* Choice with presence determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>(<sChildName>) =>
+# TODO: Remove old Scala Code (acn_python.stg):
+# case <sChildID>(<sChildName>) =>
+#     <sChildBody>
+if isinstance(<p>, <sChildID>):
+    <sChildName> = <p>.value
     <sChildBody>
 >>
 
@@ -892,14 +1106,22 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-<if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
+# TODO: Remove old Scala Code (acn_python.stg):
+# <if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
+# <else>
+# else if (<arrsConditions; separator=" && ">) {
+# <endif>
+# 
+#     <sChildBody>
+#     <sChildID>(<sChildName>)
+# }
+<if(bFirst)><p> = None
+if <arrsConditions; separator=" and ">:
 <else>
-else if (<arrsConditions; separator=" && ">) {
+elif <arrsConditions; separator=" and ">:
 <endif>
-
     <sChildBody>
-    <sChildID>(<sChildName>)
-}
+    <p> = <sChildID>(<sChildName>)
 >>
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
@@ -936,13 +1158,19 @@ val <p> = <sEnmExtFld> match
 
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
-val <v> = <sCount>
-if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
-    return Left(860)
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <v> = <sCount>
+# if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
+#     return Left(860)
+<v> = <sCount>
+if <v> \< <nMin> or <v> \> <nMax>:
+    return 860
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
-val <v> = <nFixedSize>
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <v> = <nFixedSize>
+<v> = <nFixedSize>
 >>
 
 ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
@@ -963,7 +1191,9 @@ val <sV> = <sChPath> match
 >>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-val <v> = <sSeqPath><sAcc><sChildName>.isDefined
+# TODO: Remove old Scala Code (acn_python.stg):
+# val <v> = <sSeqPath><sAcc><sChildName>.isDefined
+<v> = <sSeqPath><sAcc><sChildName> is not None
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<

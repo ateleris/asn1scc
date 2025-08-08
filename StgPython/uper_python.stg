@@ -3,14 +3,23 @@ group uper_python;
 rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= <<
-<sFuncName>(<p>, codec, false) match // uper:6
-    case Right(_) =>
-    case Left(err) => return Left(err)
+result = <sFuncName>(<p>, codec, False)  # uper:6
+if result.is_left():
+    return result.get_left()
+# TODO: Remove old Scala Code (uper_python.stg):
+# <sFuncName>(<p>, codec, false) match // uper:6
+#     case Right(_) =>
+#     case Left(err) => return Left(err)
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
-val <p> = <sFuncName>(codec) match // uper:13
-    case RightMut(decData) => decData
-    case LeftMut(err) => return LeftMut(err)
+result = <sFuncName>(codec)  # uper:13
+if result.is_left():
+    return result
+<p> = result.get_right()
+# TODO: Remove old Scala Code (uper_python.stg):
+# val <p> = <sFuncName>(codec) match // uper:13
+#     case RightMut(decData) => decData
+#     case LeftMut(err) => return LeftMut(err)
 >>
 
 /*******************************************************/
@@ -18,13 +27,18 @@ val <p> = <sFuncName>(codec) match // uper:13
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-@inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
+<sErrCode>: ErrorCode = <nErrValue>
+# TODO: Remove old Scala Code (uper_python.stg):
+# @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes:{x|<x>}; separator="\n">
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING = <nMaxBytesInPER>
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING = <nMaxBitsInPER>
+<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
+<sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+# TODO: Remove old Scala Code (uper_python.stg):
+# @inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING = <nMaxBytesInPER>
+# @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING = <nMaxBitsInPER>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
