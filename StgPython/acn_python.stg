@@ -917,42 +917,37 @@ MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 >>
 
 MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
-val <v> = {
-    <arrsLocalDeclarations; separator="\n">
+<arrsLocalDeclarations; separator="\n">
 
-    <arrsLocalUpdateStatements; separator="\n">
+<arrsLocalUpdateStatements; separator="\n">
 
-    <arrsGetFirstIntValue; separator="\n">
-    <if(!bIsFirstIntValueSingle)>
-    else <sDefaultExpr>
-    <endif>
+<arrsGetFirstIntValue; separator="\n">
+<if(!bIsFirstIntValueSingle)>
+else <sDefaultExpr>
+<endif>
 
 
-    if !(<arrsLocalCheckEquality; separator=" && ">) then
-        return Left(998)
-    <v>
-}
+if not <arrsLocalCheckEquality; separator=" && ">:
+    <p> = Left(998)
 >>
 
 
 checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
-val <v> =
-    if <arrsCheckPaths; separator=" && "> then
-        <sUpdateStatement>
-        <v>
-    else <sInitExpr>
+if <arrsCheckPaths; separator=" && ">:
+    <sUpdateStatement>
+else <sInitExpr>
 >>
 
 
 SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
 {
-    /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
-    val pBitStrm_save: BitStream = pBitStrm
+    # first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
+    pBitStrm_save: BitStream = pBitStrm
     pBitStrm = BitStream_Init(arr.length)
     <sInner>
     pBitStrm = pBitStrm_save
 }
-<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;
+<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>
 
 >>
 
@@ -961,23 +956,22 @@ codec.base.encodeOctetString_no_length_vec(arr, int(<sExtField>))
 >>
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
-/*open new scope to declare some variables*/
-{
-    /* decode to a temporary bitstream */
-    val pBitStrm_save: BitStream = pBitStrm
-    val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
+# TODO: open new scope to declare some variables
 
-    if <sExtField>.toInt \<= <sReqBytesForUperEncoding> then
-        codec.base.decodeOctetString_no_length_vec(<sExtField>.toInt) match
-            case NoneMut() =>
-                return LeftMut(<pErrCode>)
-            case SomeMut(arr) =>
-                bitStrm.buf = arr
+# decode to a temporary bitstream
+pBitStrm_save: BitStream = pBitStrm
+bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 
-        pBitStrm = bitStrm
-        <soInner>
-        pBitStrm = pBitStrm_save;
-}
+if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
+    match codec.base.decodeOctetString_no_length_vec(<sExtField>.toInt):
+        case NoneMut():
+            return LeftMut(<pErrCode>)
+        case SomeMut(arr):
+            bitStrm.buf = arr
+
+    pBitStrm = bitStrm
+    <soInner>
+    pBitStrm = pBitStrm_save;
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -985,21 +979,20 @@ codec.base.bitStream.appendBitsMSBFirstVec(arr, int(<sExtField>))
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-/*open new scope to declare some variables*/
-{
-    /* decode to a temporary bitstream */
-    val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
-    if <sExtField>.toInt \<= <sReqBitsForUperEncoding> then
-        codec.base.bitStream.readBits((int)<sExtField>) match
-            case NoneMut() =>
-                return LeftMut(<pErrCode>)
-            case SomeMut(arr) =>
-                bitStrm.buf = arr
+# TODO: open new scope to declare some variables
 
-        <sFuncName>(<p>, bitStrm) match
-            case LeftMut(err) => return LeftMut(err)
-            case RightMut(_) =>
-}
+# decode to a temporary bitstream
+bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
+if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
+    match codec.base.bitStream.readBits((int)<sExtField>):
+        case NoneMut():
+            return LeftMut(<pErrCode>)
+        case SomeMut(arr):
+            bitStrm.buf = arr
+
+    match <sFuncName>(<p>, bitStrm):
+        case LeftMut(err): return LeftMut(err)
+        case RightMut(_): Nothing
 >>
 
 rtlModuleName() ::= ""
@@ -1007,116 +1000,113 @@ sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-/*open new scope to declare some variables*/
-{
-    /* encode to a temporary bitstream */
-    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
-    <sFuncName>(<p>, bitStrm, false) match
-        case Left(err) => return Left(err)
-        case Right(_) =>
+# TODO: open new scope to declare some variables
 
-    int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
-    <if(bFixedSize)>
-    codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
+# encode to a temporary bitstream
+bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
+match <sFuncName>(<p>, bitStrm, false):
+    case Left(err): return Left(err)
+    case Right(_): Nothing
+    
+nCount: Int32 = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
+<if(bFixedSize)>
+codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
 
-    <else>
-    codec.base.encodeConstrainedWholeNumber(nCount, <nMinSize>, <nMaxSize>)
-    codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
+<else>
+codec.base.encodeConstrainedWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
 
-    <endif>
-}
+<endif>
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-/*open new scope to declare some variables*/
-{
-    /* decode to a temporary bitstream */
-    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
+# TODO: open new scope to declare some variables*/
 
-    <if(bFixedSize)>
-    codec.base.decodeOctetString_no_length(<nMinSize>) match
-        case NoneMut() =>
-            return LeftMut(pErrCode)
-        case SomeMut(arr) =>
-            bitStrm.buf = arr
-    <else>
-    var nCount: Int = 0
-    codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>) match
-        case None() =>
-            return LeftMut(pErrCode)
-        case Some(x) =>
-            nCount = x
+# decode to a temporary bitstream
+bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
-    codec.base.decodeOctetString_no_length(nCount.toInt)
-        case NoneMut() =>
-            return LeftMut(pErrCode)
-        case SomeMut(arr) =>
-            bitStrm.buf = arr
+<if(bFixedSize)>
+match codec.base.decodeOctetString_no_length(<nMinSize>):
+    case NoneMut():
+        return LeftMut(pErrCode)
+    case SomeMut(arr):
+        bitStrm.buf = arr
+<else>
 
-    <endif>
-    <sFuncName>(<p>, &bitStrm) match
-        case LeftMut(err) => return LeftMut(err)
-        case RightMut(_) =>
-}
+nCount: Int32 = 0
+match codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
+    case None():
+        return LeftMut(pErrCode)
+    case Some(x):
+        nCount = x
+
+codec.base.decodeOctetString_no_length(nCount.toInt)
+    case NoneMut():
+        return LeftMut(pErrCode)
+    case SomeMut(arr):
+        bitStrm.buf = arr
+
+<endif>
+match <sFuncName>(<p>, &bitStrm):
+    case LeftMut(err): return LeftMut(err)
+    case RightMut(_): Nothing
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-/* open new scope to declare some variables */
-{
-    /* encode to a temporary bitstream */
-    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
+# TODO: open new scope to declare some variables
 
-    <sFuncName>(<p>, bitStrm, false) match // TODO check if call is correct asn:1131
-        case Left(err) => return Left(err)
-        case Right(_) =>
+# encode to a temporary bitstream 
+bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
-    val nCount: Int = bitStrm.currentByte*8 + bitStrm.currentBit;
-    <if(bFixedSize)>
-    codec.base.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
+match <sFuncName>(<p>, bitStrm, false):
+    case Left(err): return Left(err)
+    case Right(_): pass
 
-    <else>
-    codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
-    codec.appendBits(bitStrm.buf, nCount)
+nCount: Int32 = bitStrm.currentByte*8 + bitStrm.currentBit;
+<if(bFixedSize)>
+codec.base.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
 
-    <endif>
-}
+<else>
+codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+codec.appendBits(bitStrm.buf, nCount)
+
+<endif>
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-/*open new scope to declare some variables*/
-{
-    /* decode to a temporary bitstream */
-    val codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
+# TODO: open new scope to declare some variables
 
-    <if(bFixedSize)>
-    codec.base.bitStream.readBits(<nMinSize>) match
-        case NoneMut() =>
-            return LeftMut(pErrCode)
-        case SomeMut(arr) =>
-            bitStrm.buf = arr
+# decode to a temporary bitstream
+codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
 
-    <sFuncName>(<p>, bitStrm) match // TODO check if call is right
-        case LeftMut(err) => return LeftMut(err)
-        case RightMut(_) =>
+<if(bFixedSize)>
+match codec.base.bitStream.readBits(<nMinSize>):
+    case NoneMut():
+        return LeftMut(pErrCode)
+    case SomeMut(arr):
+        bitStrm.buf = arr
 
-    <else>
-    var nCount: Int = 0
-    codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>) match
-        case None() =>
-            return LeftMut(pErrCode)
-        case Some(x) =>
-            nCount = x
+match <sFuncName>(<p>, bitStrm):
+    case LeftMut(err): return LeftMut(err)
+    case RightMut(_):
 
-    codec.base.bitStream.readBits(nCount) match
-        case NoneMut() =>
-            return LeftMut(pErrCode)
-        case SomeMut(arr) =>
-            bitStrm.buf = arr
+<else>
+nCount: Int32 = 0
+match codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
+    case None():
+        return LeftMut(pErrCode)
+    case Some(x):
+        nCount = x
 
-    <sFuncName>(<p>, bitStrm) match
-        case LeftMut(err) => return LeftMut(err)
-        case RightMut(_) =>
+match codec.base.bitStream.readBits(nCount):
+    case NoneMut():
+        return LeftMut(pErrCode)
+    case SomeMut(arr):
+        bitStrm.buf = arr
 
-    <endif>
-}
+match <sFuncName>(<p>, bitStrm):
+    case LeftMut(err): return LeftMut(err)
+    case RightMut(_): pass
+
+<endif>
 >>
