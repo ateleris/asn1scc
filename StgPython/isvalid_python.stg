@@ -7,9 +7,6 @@ JoinItems(sPart, soNestedPart) ::= <<
 <if(soNestedPart)>
 if ret.is_right():
     <soNestedPart>
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# if ret.isRight then
-#     <soNestedPart>
 <endif>
 >>
 
@@ -17,9 +14,6 @@ JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
 if ret.is_right():
     <sStr2>
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# if ret.isRight then
-#     <sStr2>
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
@@ -29,24 +23,14 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 ret = Right(0)
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# ret = Right(0)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
 ret = Left(<sErrorCodeName>)
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# ret = Left(<sErrorCodeName>)
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 ret = Right(0) if <sIsValidExp> else Left(45)
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# ret = <sIsValidExp> match
-#     case true =>
-#         Right(0)
-#     case false =>
-#         Left(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -59,14 +43,10 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
 ret = Right(0)
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# ret = Right(0)
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
 ret = Left(<sErrCode>)
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# ret = Left(<sErrCode>)
 >>
 
 /*
@@ -77,8 +57,6 @@ ret = Left(<sErrCode>)
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
 <sErrCode>: Int32 = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = "\n">
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# @inline @cCode.inline val <sErrCode>: Int = <nErrValue> /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
@@ -92,14 +70,6 @@ def <sFuncName>(<sVarName>: <sTypeDefName>) -> Union[ErrorCode, int]:
     <arrsLocalVars; separator="\n">
     <sContent>
     return ret
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] =
-# {
-#     var ret: Either[ErrorCode, Int] = Right(0)
-#     <arrsLocalVars; separator="\n">
-#     <sContent>
-#     ret
-# }
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
@@ -107,20 +77,18 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>.encode())"  // TODO: Remove old Scala Code (isvalid_python.stg): (<sExp1>.sameElements(<sExp2>.getBytes))
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>.encode())"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
 ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
-ExpOr(sExp1, sExp2) ::= "((<sExp1>) or (<sExp2>))"  // TODO: Remove old Scala Code (isvalid_python.stg): ((<sExp1>) || (<sExp2>))
-ExpAnd(sExp1, sExp2) ::= "(<sExp1> and <sExp2>)"  // TODO: Remove old Scala Code (isvalid_python.stg): (<sExp1> && <sExp2>)
+ExpOr(sExp1, sExp2) ::= "((<sExp1>) or (<sExp2>))"
+ExpAnd(sExp1, sExp2) ::= "(<sExp1> and <sExp2>)"
 ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" and ">
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# <arrsExp; separator=" && ">
 >>
-ExpNot(sExp) ::= "(not <sExp>)"  // TODO: Remove old Scala Code (isvalid_python.stg): (!<sExp>)
-StrLen(sExp) ::= "<sExp>.find(b'\\x00')"  // TODO: Remove old Scala Code (isvalid_python.stg): <sExp>.indexOf(0.toRawUByte)
+ExpNot(sExp) ::= "(not <sExp>)"
+StrLen(sExp) ::= "<sExp>.find(b'\\x00')"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
@@ -131,27 +99,18 @@ StatementOrStatement(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.is_left():
     <sStat2>
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# if ret.isLeft then
-#     <sStat2>
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
 if ret.is_left():
     <sStat2>
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# if ret.isLeft then
-#     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 <sStat1>
 if ret.is_left():
     ret = <sExp2>
-# TODO: Remove old Scala Code (isvalid_python.stg):
-# if ret.isLeft then
-#     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
@@ -212,11 +171,9 @@ if ret.isRight then
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-(while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>) {
-    decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
+while ret.isRight and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
-}).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
 >>
 
 
@@ -228,8 +185,6 @@ def <sFuncName>(str0: Vector[UByte]): Boolean =
     valid: Boolean = true
     i: Int32 = 0
     while valid and i \< str_.length and str_[i] != CHAR_0000:
-        assert i >= 0 and i \<= len(str_)
-        decreases(str_.length - i)
         valid = valid and (<arrsAlphaConBody; separator=" and ">);
         i += 1
     return valid
@@ -280,21 +235,11 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 if <p><sAcc><sChName> == <sChName>:
     <sInnerStatement>
-
-# todo: remove scala code (isvalid_python.stg:284)
-#<p><sAcc><sChName> match
-#    case SomeMut(<sChName>) =>
-#        <sInnerStatement>
-#    case NoneMut() =>
 >>
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 ret = Left(<sErrCode>);
-
-# todo: what is this? ret is overwritten? (isvalid_python:296)
-# ret = <p><sAcc><sChName>.isDefined == <sPresOrAbs>
-#  ret = Left(<sErrCode>);
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
@@ -309,12 +254,6 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 if <p> == <sChPresent>:
     <sInnerStatement>
-    
-# todo: remove scala code (isvalid_python:313)
-#<p> match
-#    case <sChPresent>(<sPLocal>) =>
-#        <sInnerStatement>
-#    case _ => ()
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
@@ -328,19 +267,11 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
 case <sChPresent>:
     <sChildBody>
-
-# todo: remove scala (isvalid_python:332)
-# case <sChPresent>(<sChildName>) =>
-#    <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 match <p>:
     <arrsChildren; separator="\n">
-
-# todo: remove scala (isvalid_python:341)
-# <p> match
-#     <arrsChildren; separator="\n">
 >>
 
 /* CHOICE end*/
@@ -358,20 +289,6 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <soInnerStatement>
 
 <endif>
-
-# todo: remove scala code
-# <if(!bIsFixedSize)>
-# ret = <soIsValidSizeExp>;
-# ret = <soErrCode>;
-# 
-# <endif>
-# <if (soInnerStatement)>
-# for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
-# {
-#     <soInnerStatement>
-# }
-# 
-# <endif>
 >>
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
@@ -379,14 +296,6 @@ sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> = <i> + 1
-
-# todo: remove scala code (isvalid_python:380)
-# <i> = 0
-# (while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) {
-#     decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
-#     <sInnerStatement>
-#     <i> = <i> + 1
-# }).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
 >>
 
 
