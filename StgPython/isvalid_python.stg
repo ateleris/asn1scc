@@ -307,7 +307,7 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 /* CHOICE start*/
 
 Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
-if <p> == <sChPresent>(<sPLocal>):
+if <p> == <sChPresent>:
     <sInnerStatement>
     
 # todo: remove scala code (isvalid_python:313)
@@ -326,31 +326,52 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
-case <sChPresent>(<sChildName>) =>
+case <sChPresent>:
     <sChildBody>
+
+# todo: remove scala (isvalid_python:332)
+# case <sChPresent>(<sChildName>) =>
+#    <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
-
-<p> match
+match <p>:
     <arrsChildren; separator="\n">
+
+# todo: remove scala (isvalid_python:341)
+# <p> match
+#     <arrsChildren; separator="\n">
 >>
 
 /* CHOICE end*/
 
 sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
 <if(!bIsFixedSize)>
-ret = <soIsValidSizeExp>;
-ret = <soErrCode>;
+ret = <soIsValidSizeExp>
+ret = <soErrCode> # todo: this overwrites the above assignment?
 
 <endif>
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
-{
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <soInnerStatement>
-}
+    if not ret:
+        break
 
 <endif>
+
+# todo: remove scala code
+# <if(!bIsFixedSize)>
+# ret = <soIsValidSizeExp>;
+# ret = <soErrCode>;
+# 
+# <endif>
+# <if (soInnerStatement)>
+# for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
+# {
+#     <soInnerStatement>
+# }
+# 
+# <endif>
 >>
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
