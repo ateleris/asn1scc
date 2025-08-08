@@ -250,7 +250,7 @@ namespace parseStg2
                     lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true";
                     break;
                 case "PYTHON":
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Python; ST.double2StringPlain <- true";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Python; ST.double2StringPlain <- false";
                     break;
                 default:
                     lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true";
