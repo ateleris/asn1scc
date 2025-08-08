@@ -5,9 +5,6 @@ JoinItems(sPart, soNestedPart) ::= <<
 <if(soNestedPart)>
 if ret:
     <soNestedPart>
-# TODO: Remove old Scala Code (equal_python.stg):
-# if ret then
-#     <soNestedPart>
 <endif>
 >>
 
@@ -15,20 +12,12 @@ JoinItems2_ret(sPart, sNestedPart) ::= <<
 <sPart>
 if ret:
     <sNestedPart>
-# TODO: Remove old Scala Code (equal_python.stg):
-# if (ret) {
-#     <sNestedPart>
-# }
 >>
 
 JoinItems2_ret_result(sPart, sNestedPart) ::= <<
 <sPart>
 if ret:
     <sNestedPart>
-# TODO: Remove old Scala Code (equal_python.stg):
-# if (ret) {
-#     <sNestedPart>
-# }
 >>
 
 
@@ -47,11 +36,6 @@ PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
 def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
     return <sContent>
-# TODO: Remove old Scala Code (equal_python.stg):
-# def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>): Boolean =
-# {
-#     return <sContent>
-# }
 >>
 
 
@@ -63,35 +47,11 @@ def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>) -> bool:
 
     <sContent>
     return ret
-# TODO: Remove old Scala Code (equal_python.stg):
-# def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>): Boolean =
-# {
-#     var ret: Boolean = true
-#     <arrsLocalVars; separator="\n">
-# 
-#     <sContent>
-#     return ret
-# }
 >>
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>): Boolean =
-# {
-#     <if(bExpression)>
-#     return <sContent>
-# 
-#     <else>
-#     var ret: Boolean = true
-#     <arrsLocalVars; separator="\n">
-# 
-#     <sContent>
-#     return ret
-# 
-#     <endif>
-# }
 def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>) -> bool:
     <if(bExpression)>
     return <sContent>
@@ -110,11 +70,6 @@ def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>) -> boo
 isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
 
 isEqual_String(p1, p2) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# locally {
-#     val zero = <p1>.indexOfOrLength(UByte.fromRaw(0))
-#     <p1>.toScala.slice(0, zero).sameElements(<p2>.toScala.slice(0, zero))
-# }
 zero1 = <p1>.find(b'\x00') if b'\x00' in <p1> else len(<p1>)
 zero2 = <p2>.find(b'\x00') if b'\x00' in <p2> else len(<p2>)
 <p1>[:zero1] == <p2>[:zero2]
@@ -131,11 +86,6 @@ isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ((<p1> and <p2>) or (not <p1> and no
 isEqual_Real(p1, p2) ::= "asn1_real_equal(<p1>, <p2>)"
 
 isEqual_IA5String(p1, p2) /*nogen*/::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# locally {
-#     val zero = <p1>.indexOfOrLength(UByte.fromRaw(0))
-#     ret = <p1>.toScala.slice(0, zero).sameElements(<p2>.toScala.slice(0, zero))
-# }
 zero1 = <p1>.find(b'\x00') if b'\x00' in <p1> else len(<p1>)
 zero2 = <p2>.find(b'\x00') if b'\x00' in <p2> else len(<p2>)
 ret = <p1>[:zero1] == <p2>[:zero2]
@@ -145,15 +95,6 @@ isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
 isEqual_NullType()/*nogen*/ ::= "ret = True"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# <if(!bIsFixedSize)>
-#     (<p1>nCount == <p2>nCount) &&
-#     (<p1>arr.toScala.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.toScala.slice(0,(<p1>nCount/8).toInt))) &&
-#     (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt == <p2>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt) else true)
-# <else>
-#     (<p1>arr.toScala.slice(0,<nFixedSize>/8).sameElements(<p2>arr.toScala.slice(0,<nFixedSize>/8))) &&
-#     (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt == <p2>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt) else true)
-# <endif>
 <if(!bIsFixedSize)>
     (<p1>.nCount == <p2>.nCount) and \
     (<p1>.arr[:<p1>.nCount//8] == <p2>.arr[:<p1>.nCount//8]) and \
@@ -167,12 +108,6 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# <if(!bIsFixedSize)>
-#     (<p1>nCount == <p2>nCount) && (<p1>arr.toScala.slice(0, <p1>nCount.toInt).sameElements(<p2>arr.toScala.slice(0, <p1>nCount.toInt)))
-# <else>
-#     <p1>arr.toScala.sameElements(<p2>arr.toScala)
-# <endif>
 <if(!bIsFixedSize)>
     (<p1>.nCount == <p2>.nCount) and (<p1>.arr[:<p1>.nCount] == <p2>.arr[:<p1>.nCount])
 <else>
@@ -181,45 +116,31 @@ isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 >>
 
 isObjectIdentifier_equal(p1, p2) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# ObjectIdentifier_equal(<p1>, <p2>)
-object_identifier_equal(<p1>, <p2>)
+ObjectIdentifier_equal(<p1>, <p2>)
 >>
 
 
 
 isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# case (<sChoiceTypeDefName>.<sCid>(<sTmpVarName1>), <sChoiceTypeDefName>.<sCid>(<sTmpVarName2>)) =>
-#     <sInnerStatement>
 if isinstance(<p1>, <sChoiceTypeDefName>.<sCid>) and isinstance(<p2>, <sChoiceTypeDefName>.<sCid>):
+    # todo: test if this actually is the same as in scala
     <sTmpVarName1> = <p1>.value
     <sTmpVarName2> = <p2>.value
     <sInnerStatement>
 >>
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# (<p1>, <p2>) match {
-#     <arrsChildren: {ch|<ch>}; separator="\n">
-#     case (_, _) =>
-#         ret = false
-# }
-ret = False
-<arrsChildren: {ch|<ch>}; separator="\n">
-if not ret:
-    ret = False
+match (<p1>, <p2>):
+    <arrsChildren: {ch | <ch>}; separator="\n">
+    case _:
+        ret = False
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
 <if(bIsOptional)>
-# TODO: Remove old Scala Code (equal_python.stg):
-# ret = (<p1><sAcc><sChName>.isDefined == <p2><sAcc><sChName>.isDefined)
-# if (ret && <p1><sAcc><sChName>.isDefined) then // equal:149
-#     <soInnerStatement>
 ret = ((<p1><sAcc><sChName> is not None) == (<p2><sAcc><sChName> is not None))
 <if(soInnerStatement)>
-if ret and <p1><sAcc><sChName> is not None:  # equal:149
+if ret and <p1><sAcc><sChName> is not None:
     <soInnerStatement>
 
 <endif>
@@ -232,16 +153,6 @@ if ret and <p1><sAcc><sChName> is not None:  # equal:149
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
-# <if (soInnerStatement)>
-# <i> = 0
-# (while (ret && <i> \< <p1><sAcc>nCount) {
-#     decreases(<p1><sAcc>nCount - <i>)
-#     <soInnerStatement>
-#     <i> += 1
-# }).invariant(0 \<= <i> && <i> \<= <p1><sAcc>nCount)
-# <endif>
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
 <i> = 0
@@ -253,13 +164,6 @@ while ret and <i> \< <p1><sAcc>nCount:
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-# TODO: Remove old Scala Code (equal_python.stg):
-# <i> = 0
-# (while (ret && <i> \< <nFixedSize>) {
-#     decreases(<nFixedSize> - <i>)
-#     <sInnerStatement>
-#     <i> += 1
-# }).invariant(0 \<= <i> && <i> \<= <nFixedSize>)
 <i> = 0
 while ret and <i> \< <nFixedSize>:
     <sInnerStatement>
@@ -269,8 +173,6 @@ while ret and <i> \< <nFixedSize>:
 
 call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
 <sFuncName>(<p1><if (bIsP1Option)> if <p1> is not None else None<endif>, <p2><if (bIsP2Option)> if <p2> is not None else None<endif>)
-# TODO: Remove old Scala Code (equal_python.stg:272):
-# <sFuncName>(<p1><if (bIsP1Option)>.get<endif>, <p2><if (bIsP2Option)>.get<endif>)
 >>
 
 makeExpressionToStatement(sIsValidExp) ::= <<
