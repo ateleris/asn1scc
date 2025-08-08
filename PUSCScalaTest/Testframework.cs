@@ -41,9 +41,9 @@ namespace PUS_C_Scala_Test
         private readonly string cLang = "-c";
         private readonly string pythonLang = "-python";
         private readonly string uperEnc = "--uper-enc";
-        private readonly string acnEnc = "--acn-enc";
+        private readonly string acnEnc = "-ACN";
         private readonly string genTests = "-atc";
-        private readonly List<string> stdArgs = ["--field-prefix", "AUTO", "--type-prefix", "T", "-o"];
+        private readonly List<string> stdArgs = ["-fp", "AUTO", "-typePrefix", "T", "-o"];
 
         private readonly string outFolderPrefix = "../../../../PUSCScalaTest/GenTests/";
         private readonly string outFolderTestFix = "Test/";
