@@ -276,6 +276,12 @@ def ObjectIdentifier_equal(pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdentif
     
     return True
 
+# TODO: OctetString_equal might be required for isvalid_python:394
+# def OctetString_equal(...):
+
+# TODO: BitString_equal is required for isvalid_python:402
+# def BitString_equal(...):
+
 
 # Time types - matching C and Scala struct-like implementations
 class Asn1TimeZone:

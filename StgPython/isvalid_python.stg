@@ -353,9 +353,9 @@ ret = <soErrCode> # todo: this overwrites the above assignment?
 <endif>
 <if (soInnerStatement)>
 for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
-    <soInnerStatement>
     if not ret:
         break
+    <soInnerStatement>
 
 <endif>
 
@@ -376,11 +376,17 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-(while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) {
-    decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
+while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> = <i> + 1
-}).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
+
+# todo: remove scala code (isvalid_python:380)
+# <i> = 0
+# (while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) {
+#     decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
+#     <sInnerStatement>
+#     <i> = <i> + 1
+# }).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
 >>
 
 
