@@ -190,9 +190,10 @@ type Asn1AcnAst.ChChildInfo with
 type ChChildInfo with
     member this.presentWhenName (defOrRef:TypeDefinitionOrReference option) l =
         match l with
-        | C     -> (ToC this._present_when_name_private) + "_PRESENT"
-        | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
-        | Ada   ->
+        | C      -> (ToC this._present_when_name_private) + "_PRESENT"
+        | Scala  -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
+        | Python -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Python
+        | Ada    ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
             | _       -> (ToC this._present_when_name_private) + "_PRESENT"
@@ -201,9 +202,10 @@ type ChChildInfo with
 type Asn1AcnAst.NamedItem      with
     member this.CEnumName l =
         match l with
-        | C     -> this.c_name
-        | Scala -> this.scala_name
-        | Ada   -> this.ada_name
+        | C      -> this.c_name
+        | Scala  -> this.scala_name
+        | Ada    -> this.ada_name
+        | Python -> this.python_name
 
 
 type Asn1AcnAst.Asn1Type with
@@ -737,6 +739,7 @@ type Asn1Child with
         | C         -> this._c_name
         | Scala     -> this._scala_name
         | Ada       -> this._ada_name
+        | Python    -> this._python_name
     member this.acnMinSizeInBits =
         match this.Optionality with
         | Some(AlwaysAbsent) -> 0I
