@@ -15,7 +15,6 @@
         <Compile Include="header_python.stg.fs" />
         <Compile Include="init_python.stg.fs" />
         <Compile Include="isvalid_python.stg.fs" />
-        <Compile Include="isvalid_new_python.stg.fs" />
         <Compile Include="test_cases_python.stg.fs" />
         <Compile Include="uper_python.stg.fs" />
         <Compile Include="variables_python.stg.fs" />
@@ -53,9 +52,6 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Include="isvalid_python.stg">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="isvalid_new_python.stg">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Include="test_cases_python.stg">

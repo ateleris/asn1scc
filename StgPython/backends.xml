@@ -41,12 +41,6 @@
     <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
     <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IIsValid_python">IIsValid_python.stg.fs</implementationClass>
    </run>
-  <run mode="single" >
-        <input>isvalid_new_python.stg</input>
-        <output>isvalid_new_python.stg.fs</output>
-        <modName>isvalid_new_python</modName>
-        <lang>python</lang>
-    </run>
     <run mode="single">
         <input>init_python.stg</input>
         <output>init_python.stg.fs</output>
