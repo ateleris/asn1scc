@@ -112,7 +112,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 # test_cases_scala.stg:129
-def <sFuncName>(<sVal>: <sTasName>, filename: String) -> Union[ErrorCode, Int]:
+def <sFuncName>(<sVal>: <sTasName>, filename: String) -> Either:
     ret: Either = Right(0)
     decodedPDU: <sTasName> = <sTasName>_Initialize() # TODO: does this always work?
 
@@ -281,7 +281,7 @@ emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValue
 import time
 def <sFuncName>(output: TestOutput) -> Int32 =
     totalErrors: Int32 = 0
-    result: Union(ErrorCode | Int32) = Left(NOT_INITIALIZED_ERR_CODE)
+    result: Either = Left(NOT_INITIALIZED_ERR_CODE)
     <arrsVars; separator="\n">
 
     output.report_case_begin("<sFuncName>")
