@@ -5,9 +5,7 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
-from typing import Union, Optional, List
-import struct
-from dataclasses import dataclass
+from typing import List
 from enum import Enum
 
 
@@ -94,7 +92,7 @@ def _validate_int64(value: int) -> int:
         raise Asn1ValueError(f"Int64 value {value} out of range [-9223372036854775808, 9223372036854775807]")
     return value
 
-# Type aliases to match C/Scala approach
+# Type aliases 
 UInt8 = int  # Will be validated at runtime where needed
 UInt16 = int
 UInt32 = int
@@ -104,24 +102,16 @@ Int16 = int
 Int32 = int
 Int64 = int
 
-# Byte type alias to match C implementation
-Byte = int  # equivalent to uint8_t in C
+# Byte type alias
+Byte = int
 
-# ASN.1 compiler size types to match C implementation
+# ASN.1 compiler size types
 Asn1SccSint32 = Int32
 Asn1SccUint32 = UInt32
-Asn1SccSint64 = Int64
+Asn1SccSint64 = UInt32
 Asn1SccUint64 = UInt64
-
-# Word size dependent types (matching C implementation)
-import sys
-if sys.maxsize > 2**32:  # 64-bit system
-    Asn1SccUint = Asn1SccUint64
-    Asn1SccSint = Asn1SccSint64
-else:  # 32-bit system
-    Asn1SccUint = Asn1SccUint32
-    Asn1SccSint = Asn1SccSint32
-
+Asn1SccUint = int
+Asn1SccSint = int
 
 # ASN.1 semantic types - simplified to match C/Scala approach
 
@@ -190,7 +180,7 @@ def uint2int(v: int, uint_size_in_bytes: int) -> int:
     else:
         return v
 
-def null_type_initialize() -> NullType:
+def null_type_initialize() -> None:
     """Initialize NullType (matches C function)"""
     return None
 
