@@ -159,7 +159,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
         let pythonDi = { di with asn1rtlDir = Path.Combine(di.asn1rtlDir, "asn1python") }
         Directory.CreateDirectory(pythonDi.asn1rtlDir) |> ignore
         writeResource pythonDi "__init__.py" None
-        writeResource pythonDi "types.py" None
+        writeResource pythonDi "asn1_types.py" None
         writeResource pythonDi "bitstream.py" None
         
         match args.encodings with

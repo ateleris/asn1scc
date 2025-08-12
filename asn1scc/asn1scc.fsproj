@@ -29,7 +29,7 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1python\src\asn1python\types.py" Link="types.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_types.py" Link="asn1_types.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py" Link="bitstream.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py" Link="codec.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
