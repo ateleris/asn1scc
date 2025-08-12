@@ -113,7 +113,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 # test_cases_scala.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: String) -> Union[ErrorCode, Int]:
-    ret: Union[ErrorCode, Int32] = Right(0)
+    ret: Either = Right(0)
     decodedPDU: <sTasName> = <sTasName>_Initialize() # TODO: does this always work?
 
     codec = init<sCodecClass>Codec(int(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)) # TODO: what to do with too large Longs?
@@ -126,7 +126,7 @@ PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedSt
 flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename)
 {
     static <sTasName> decodedPDU;
-    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; # +1 for zerosized types
     ByteStream bitStrm;
     flag ret = TRUE;
 

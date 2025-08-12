@@ -28,7 +28,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Union[ErrorCode, Int32]:  # acn:21
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Either:  # acn:21
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>

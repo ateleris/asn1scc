@@ -6,6 +6,8 @@ This module provides utility functions for ASN.1 operations.
 
 from typing import List, Union, Optional
 
+from asn1python import Int32
+
 
 def calculate_asn1_int_size_in_bytes(value: int) -> int:
     """
@@ -398,3 +400,20 @@ def bytes_to_int(data: Union[bytearray, bytes], signed: bool = False) -> int:
             result = result - (1 << (len(data) * 8))
 
     return result
+
+class Either:
+    def __init__(self, is_right: bool, value: Int32):
+        self.is_right = is_right
+        self.value = value
+
+    def is_right(self):
+        return self.is_right
+    
+    def is_left(self):
+        return not self.is_right
+
+def Right(value):
+    return Either(True, value)
+
+def Left(value):
+    return Either(False, value)
