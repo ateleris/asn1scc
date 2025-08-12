@@ -65,7 +65,7 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either:
+def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either[Int32]:
     ret: Either = Right(0)
     <arrsLocalVars; separator="\n">
     <sContent>

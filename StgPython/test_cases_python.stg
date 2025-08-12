@@ -112,7 +112,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 # test_cases_scala.stg:129
-def <sFuncName>(<sVal>: <sTasName>, filename: String) -> Either:
+def <sFuncName>(<sVal>: <sTasName>, filename: String) -> Either[Int32]:
     ret: Either = Right(0)
     decodedPDU: <sTasName> = <sTasName>_Initialize() # TODO: does this always work?
 

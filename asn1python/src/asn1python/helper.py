@@ -401,19 +401,24 @@ def bytes_to_int(data: Union[bytearray, bytes], signed: bool = False) -> int:
 
     return result
 
-class Either:
-    def __init__(self, is_right: bool, value: Int32):
-        self.is_right = is_right
-        self.value = value
+from typing import TypeVar, Generic
 
-    def is_right(self):
+T = TypeVar('T')
+class Either(Generic[T]):
+    def __init__(self, is_right: bool, value: T):
+        self.is_right = is_right
+        self.value: T = value
+
+    def is_right(self) -> bool:
+        """ returns whether the value is available. """
         return self.is_right
     
-    def is_left(self):
+    def is_left(self) -> bool:
+        """ returns whether the value is unavailable and there is an error code. """
         return not self.is_right
 
-def Right(value):
+def Right(value: T) -> Either[T]:
     return Either(True, value)
 
-def Left(value):
+def Left(value: T) -> Either[T]:
     return Either(False, value)
