@@ -3,7 +3,7 @@ group xer_python;
 rtlModuleName() ::= ""
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-const int <sErrCode> = <nErrValue>;
+const Int32 <sErrCode> = <nErrValue>;
 >>
 
 
