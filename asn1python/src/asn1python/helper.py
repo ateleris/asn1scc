@@ -6,9 +6,6 @@ This module provides utility functions for ASN.1 operations.
 
 from typing import List, Union, Optional
 
-from asn1python import Int32
-
-
 def calculate_asn1_int_size_in_bytes(value: int) -> int:
     """
     Calculate the minimum number of bytes needed to represent an ASN.1 integer.

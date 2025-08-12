@@ -30,7 +30,7 @@ ret = Left(<sErrorCodeName>)
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
-ret = if <sIsValidExp> ? Right(0) : Left(45)
+ret = Right(0) if <sIsValidExp> else Left(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -66,7 +66,7 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either[Int32]:
-    ret: Either = Right(0)
+    ret: Either[Int32] = Right(0)
     <arrsLocalVars; separator="\n">
     <sContent>
     return ret

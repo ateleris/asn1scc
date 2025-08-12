@@ -26,7 +26,7 @@ flag <sFuncName>_aux(const <sTypeDefName><sStar> <sVarName>, const char* xmlTag,
 
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
+	ret = <soIValidFuncName>(<sVarName>, pErrCode) if bCheckConstraints else TRUE ;
 	if (ret) {
 	    <sContent>
     }
@@ -79,7 +79,7 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* p
 
 Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_EncodeInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+*pErrCode = 0 if ret : <sErrCode>;
 >>
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeInteger(pByteStrm, <sTag>, <p>, pErrCode);

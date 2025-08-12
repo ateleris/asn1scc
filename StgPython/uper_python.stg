@@ -52,7 +52,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: UPER): EitherMut[ErrorCode, <sTypeDefName>]: // uper:58
+def <sFuncName>(codec: UPER): Either[ErrorCode, <sTypeDefName>]: # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -60,11 +60,12 @@ def <sFuncName>(codec: UPER): EitherMut[ErrorCode, <sTypeDefName>]: // uper:58
     <sContent>
 
     <if(soIValidFuncName)>
-    match <soIValidFuncName>(pVal): // uper:68
-        case Left(l): return LeftMut[ErrorCode, <sTypeDefName>](l)
-        case Right(_): return RightMut[ErrorCode, <sTypeDefName>](pVal)
+    if <soIValidFuncName>(pVal).is_left(): # uper:68
+        return Left(l)
+    else: 
+        return Right(pVal)
     <else>
-    return RightMut[ErrorCode, <sTypeDefName>](pVal)
+    return Right(pVal)
     <endif>
 
 # @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
@@ -602,11 +603,11 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
     check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
-    ret = check ? RightMut(0) : LeftMut(<sErrCodeName>)
+    ret = Right(0) if check else Left(<sErrCodeName>)
     if ret == 0:
         <if(bIsBitStringType)>
         ret = int(codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
-        ret = ret == 0 ? 0 : <sErrCodeName>;
+        ret = Right(0) if ret == 0 else <sErrCodeName>;
 
         <else>
         <sBLI> = int(<sCurOffset>)
@@ -658,7 +659,7 @@ ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingI
 if ret == 0:
     <if(bIsBitStringType)>
     ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt); # TODO call wrong
-    ret = ret.isRight ?  RightMut(0) : LeftMut(<sErrCodeName>)
+    ret = ret.isRight if RightMut(0) else LeftMut(<sErrCodeName>)
 
     <else>
     <sBLI> = int(<sCurOffset>)
@@ -773,7 +774,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBit
 
     ret = <sFuncName>(<p>, &bitStrm, false) # TODO call wrong
     if ret:
-        nCount: Int32 = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
+        nCount: Int32 = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
         ret = pBitStrm.encodeOctetString(arr, nCount, <nMinSize>, <nMaxSize>)
 >>
 

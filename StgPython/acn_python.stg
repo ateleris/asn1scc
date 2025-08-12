@@ -28,7 +28,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Either:  # acn:21
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Either[Int32]:  # acn:21
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -39,7 +39,7 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool)
     <else>
     <sContent>
     <endif>
-    return 0
+    return Right(0)
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
@@ -947,7 +947,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
     <sInner>
     pBitStrm = pBitStrm_save
 }
-<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>
+<v> = <if(bIsOctet)>bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>
 
 >>
 
@@ -1008,7 +1008,7 @@ match <sFuncName>(<p>, bitStrm, false):
     case Left(err): return Left(err)
     case Right(_): Nothing
     
-nCount: Int32 = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
+nCount: Int32 = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
 <if(bFixedSize)>
 codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
 
