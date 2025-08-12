@@ -5,8 +5,6 @@ This module provides utility functions for ASN.1 operations.
 """
 
 from typing import List, Union, Optional
-import math
-from .types import UInt8, UInt16, UInt32, UInt64, Int8, Int16, Int32, Int64
 
 
 def calculate_asn1_int_size_in_bytes(value: int) -> int:
@@ -176,45 +174,6 @@ def is_power_of_two(n: int) -> bool:
         True if n is a power of two, False otherwise
     """
     return n > 0 and (n & (n - 1)) == 0
-
-
-def create_sized_integer(value: int, size_in_bits: int, signed: bool = False):
-    """
-    Create an appropriately sized integer type based on bit size.
-
-    Args:
-        value: The integer value
-        size_in_bits: Number of bits for the type
-        signed: Whether the type should be signed
-
-    Returns:
-        Appropriate sized integer type instance
-
-    Raises:
-        ValueError: If size_in_bits is not supported
-    """
-    if signed:
-        if size_in_bits <= 8:
-            return Int8(value)
-        elif size_in_bits <= 16:
-            return Int16(value)
-        elif size_in_bits <= 32:
-            return Int32(value)
-        elif size_in_bits <= 64:
-            return Int64(value)
-        else:
-            raise ValueError(f"Signed integer size {size_in_bits} bits not supported")
-    else:
-        if size_in_bits <= 8:
-            return UInt8(value)
-        elif size_in_bits <= 16:
-            return UInt16(value)
-        elif size_in_bits <= 32:
-            return UInt32(value)
-        elif size_in_bits <= 64:
-            return UInt64(value)
-        else:
-            raise ValueError(f"Unsigned integer size {size_in_bits} bits not supported")
 
 
 def encode_length_determinant(length: int) -> List[int]:

@@ -4,11 +4,11 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from typing import Union, Optional, Tuple, Any
+from typing import Optional, Any
 from dataclasses import dataclass
 from enum import IntEnum
 from .bitstream import BitStream, BitStreamError
-from .types import Asn1Error
+from .asn1_types import Asn1Error
 
 
 class ErrorCode(IntEnum):
@@ -386,8 +386,8 @@ class Codec:
             )
 
     def decode_bit_string(self, stream: BitStream,
-                         min_length: Optional[int] = None,
-                         max_length: Optional[int] = None) -> DecodeResult:
+                         min_length: int,
+                         max_length: int) -> DecodeResult:
         """Decode a bit string value"""
         try:
             bits_consumed = 0

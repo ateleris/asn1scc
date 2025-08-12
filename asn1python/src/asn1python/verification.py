@@ -6,7 +6,7 @@ This module provides constraint validation functions for ASN.1 types.
 
 from typing import Union, Optional, List, Any, Callable
 import re
-from .types import Asn1Error, Asn1ValueError
+from .asn1_types import Asn1Error
 from .vector import Asn1Vector
 
 

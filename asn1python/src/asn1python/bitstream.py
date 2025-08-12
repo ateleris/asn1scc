@@ -5,9 +5,7 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
-from typing import Optional, List
-import struct
-
+from typing import Optional
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -61,13 +59,13 @@ class BitStream:
         """Get the internal buffer"""
         return self._buffer
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset the bit position to the beginning"""
         self._current_bit = 0
         self._current_byte = 0
         self._bit_in_byte = 0
 
-    def set_bit_position(self, bit_position: int):
+    def set_bit_position(self, bit_position: int) -> None:
         """Set the current bit position"""
         if bit_position < 0 or bit_position > self._size_in_bits:
             raise BitStreamError(f"Bit position {bit_position} out of range [0, {self._size_in_bits}]")
@@ -76,7 +74,7 @@ class BitStream:
         self._current_byte = bit_position // 8
         self._bit_in_byte = bit_position % 8
 
-    def _ensure_capacity(self, required_bits: int):
+    def _ensure_capacity(self, required_bits: int) -> None:
         """Ensure the buffer has enough capacity for the required bits"""
         required_size = (required_bits + 7) // 8
         if len(self._buffer) < required_size:
@@ -85,7 +83,7 @@ class BitStream:
         if self._size_in_bits < required_bits:
             self._size_in_bits = required_bits
 
-    def write_bit(self, bit: bool):
+    def write_bit(self, bit: bool) -> None:
         """Write a single bit"""
         if self._current_bit >= self._size_in_bits:
             self._ensure_capacity(self._current_bit + 1)
@@ -105,7 +103,7 @@ class BitStream:
             self._bit_in_byte = 0
             self._current_byte += 1
 
-    def write_bits(self, value: int, bit_count: int):
+    def write_bits(self, value: int, bit_count: int) -> None:
         """Write multiple bits from an integer value"""
         if bit_count < 0 or bit_count > 64:
             raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
@@ -123,14 +121,14 @@ class BitStream:
             bit = (value >> i) & 1
             self.write_bit(bool(bit))
 
-    def write_byte(self, byte_value: int):
+    def write_byte(self, byte_value: int) -> None:
         """Write a complete byte"""
         if byte_value < 0 or byte_value > 255:
             raise BitStreamError(f"Byte value {byte_value} out of range [0, 255]")
 
         self.write_bits(byte_value, 8)
 
-    def write_bytes(self, data: bytes):
+    def write_bytes(self, data: bytes) -> None:
         """Write multiple bytes"""
         for byte_value in data:
             self.write_byte(byte_value)
@@ -216,7 +214,7 @@ class BitStream:
         """Check if we're at the end of the bitstream"""
         return self._current_bit >= self._size_in_bits
 
-    def align_to_byte(self):
+    def align_to_byte(self) -> None:
         """Align the current position to the next byte boundary"""
         if self._bit_in_byte != 0:
             self._current_bit += (8 - self._bit_in_byte)
