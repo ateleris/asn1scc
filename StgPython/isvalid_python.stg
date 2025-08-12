@@ -182,7 +182,7 @@ Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 def <sFuncName>(str0: Vector[UByte]): Boolean =
 {
     str_ = str0.toVectorRaws
-    valid: Boolean = true
+    valid: bool = True
     i: Int32 = 0
     while valid and i \< str_.length and str_[i] != CHAR_0000:
         valid = valid and (<arrsAlphaConBody; separator=" and ">);

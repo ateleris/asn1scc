@@ -32,9 +32,9 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool)
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    validation_result = <soIValidFuncName>(<sVarName>)
-    if validation_result.is_error():
-        return validation_result.get_error()
+    if <soIValidFuncName>(<sVarName>).is_left():
+        return Left(l)
+    
     <sContent>
     <else>
     <sContent>
@@ -54,12 +54,12 @@ def <sFuncName>(codec: ACN) -> Either[<sTypeDefName>]:
     <sContent>
 
     <if(soIValidFuncName)>
-    validation_result = <soIValidFuncName>(<sVarName>)
-    if validation_result.is_error():
-        return validation_result.get_error()
-    return <sVarName>
+    if <soIValidFuncName>(<sVarName>).is_left:
+        return Left(l)
+    else:
+        return Right(<sVarName>)
     <else>
-    return <sVarName>
+    return Right(<sVarName>)
     <endif>
 
 def <sFuncName>_pure(codec: ACN) -> Tuple[ACN, Either[<sTypeDefName>]]:
@@ -534,12 +534,12 @@ oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, a
 <i> = 0
 
 checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
-while <i> \< <nSizeMax> and !checkBitPatternPresentResult.getOrElse(true):
+while <i> \< <nSizeMax> and !checkBitPatternPresentResult.getOrElse(True):
     <sInternalItem>
     <i> += 1
     checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 
-if (<i> == <nSizeMax>) and !checkBitPatternPresentResult.getOrElse(true):
+if (<i> == <nSizeMax>) and !checkBitPatternPresentResult.getOrElse(True):
     checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 
 if checkBitPatternPresentResult.isEmpty:
@@ -739,9 +739,8 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 >>
 
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
-validation_result = <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
-if validation_result.is_error():
-    return validation_result.get_error()
+if <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec).is_left():
+    return Left(err)
 >>
 
 /* SEQUENCE END */

@@ -21,7 +21,7 @@ if result.is_left():
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>: ErrorCode = <nErrValue>
 # TODO: Remove old Scala Code (uper_python.stg):
-# @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
+# @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
@@ -106,7 +106,7 @@ codec.base.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-<p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
+<p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) # uper:109
 >>
 
 /* INTEGER START*/
@@ -117,7 +117,7 @@ codec.base.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-<p> = codec.base.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:122
+<p> = codec.base.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) # uper:122
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
@@ -127,7 +127,7 @@ codec.base.encodeConstrainedPosWholeNumber(<p>, <nMin>.toRawULong, <nMax>.toRawU
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
-<p> = codec.base.decodeConstrainedPosWholeNumber<sSsuffix>(ULong.fromRaw(<nMin>), ULong.fromRaw(<nMax>)) // uper:135
+<p> = codec.base.decodeConstrainedPosWholeNumber<sSsuffix>(ULong.fromRaw(<nMin>), ULong.fromRaw(<nMax>)) # uper:135
 >>
 
 /*case: A :: = INTEGER */
@@ -143,7 +143,7 @@ elif:
 /*case: A :: = INTEGER(MIN..5) */
 IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
-if !codec.base.decodeUnconstrainedWholeNumber() then // TODO meth does not return a boolean value...?
+if !codec.base.decodeUnconstrainedWholeNumber() then # TODO meth does not return a boolean value...?
     <if(soCheckExp)>
     if not <soCheckExp>: return LeftMut(<sErrCode>)
     <else>
@@ -167,8 +167,8 @@ if not codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>):
 
 /*case: A:: = INTEGER (5..5) */
 IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
-/* No need to encode the val <p>, it will always be <sConst> */
-; // NOP
+# No need to encode the val <p>, it will always be <sConst> 
+; # NOP
 >>
 IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
 <p> = <sConst>
@@ -176,7 +176,7 @@ IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-codec.base.appendBitZero() /* write extension bit*/
+codec.base.appendBitZero() # write extension bit
 <sIntBody>
 >>
 
@@ -189,7 +189,7 @@ if success:
     if not extBit: # ext bit is zero ==> value is expected with root range
         <sIntBody>
     else
-        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
+        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="True")>
 else
     ret = <sErrCode>
 >>
@@ -215,17 +215,17 @@ codec.base.bitStream.appendBit(<p>)
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
-<p> = codec.base.bitStream.readBit() // uper:225
+<p> = codec.base.bitStream.readBit() # uper:225
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "codec.base.encodeReal(<p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
-<p> = double(codec.base.decodeReal<sSuffix>()) // uper:234
+<p> = double(codec.base.decodeReal<sSuffix>()) # uper:234
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
-if not codec.ObjectIdentifier_decode(): // uper:234 TODO
+if not codec.ObjectIdentifier_decode(): # uper:234 TODO
     return LeftMut(<sErrCode>)
 >>
 
@@ -250,16 +250,16 @@ case <nIndex>: <sName>
 >>
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-match <p>: // uper:270
+match <p>: # uper:270
     <arrsItem; separator="\n">
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # TODO: <p> = ?????
-match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): // uper:277
+match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:277
     <arrsItem; separator="\n">
     case _:
-        return LeftMut(<sErrCode>)
+        return Left(<sErrCode>)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
@@ -288,7 +288,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-match <p>: // uper:310
+match <p>: # uper:310
     <arrsChildren: {ch|<ch>}; separator="\n">
 >>
 
@@ -298,7 +298,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 <endif>
 
 # TODO: <p> = ????
-match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): // uper:317
+match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:317
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _:
         return LeftMut(<sErrCode>)
@@ -624,14 +624,14 @@ for <sBlockIndex> in range(0, nBlocks64K>):
 
 
 FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
-//decode a single Block with <nBlockSize> items
+# decode a single Block with <nBlockSize> items
 <sCurBlockSize> = <nBlockSize>;
 ret = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
 ret = if (check) then RightMut(0) else LeftMut(<sErrCodeName>)
 if ret.isRight then
 <if(bIsBitStringType)>
-    ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); // TODO call wrong
+    ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); # TODO call wrong
     ret = if (ret == 0) then RightMut(0) else LeftMut(<sErrCodeName>)
 
 <else>
@@ -686,7 +686,7 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sLengthTmp> = 0
 <endif>
 
-<sRemainingItemsVar> = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) // uper:733
+<sRemainingItemsVar> = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) # uper:733
 
 while (<sRemainingItemsVar> & 0xC0) == 0xC0:
     if <sRemainingItemsVar> == 0xC4:
@@ -717,13 +717,13 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
     <sLengthTmp> += <sCurBlockSize>
     <endif>
     <sCurOffset> += <sCurBlockSize>
-    <sRemainingItemsVar> = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) // uper:770
+    <sRemainingItemsVar> = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) # uper:770
 }
 
 if (<sRemainingItemsVar> & 0x80) > 0:
     len2 = 0;
     <sRemainingItemsVar> \<\<= 8 # TODO: how to do this bit shifting in python?
-    len2 = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) // uper:780
+    len2 = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) # uper:780
 
     <sRemainingItemsVar> |= len2;
     <sRemainingItemsVar> &= 0x7FFF;
