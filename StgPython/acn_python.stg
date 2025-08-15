@@ -28,7 +28,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACN, bCheckConstraints: bool) -> Either[Int32]:  # acn:21
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACNCodec, bCheckConstraints: bool) -> Either[Int32]:  # acn:21
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -47,7 +47,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: ACN) -> Either[<sTypeDefName>]:
+def <sFuncName>(codec: ACNCodec) -> Either[<sTypeDefName>]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -62,7 +62,7 @@ def <sFuncName>(codec: ACN) -> Either[<sTypeDefName>]:
     return Right(<sVarName>)
     <endif>
 
-def <sFuncName>_pure(codec: ACN) -> Tuple[ACN, Either[<sTypeDefName>]]:
+def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACN, Either[<sTypeDefName>]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sFuncName>(cpy)

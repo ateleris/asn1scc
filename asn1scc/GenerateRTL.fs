@@ -170,8 +170,11 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
             writeResource pythonDi "verification.py" None
             writeResource pythonDi "vector.py" None
             
-            if hasUper || hasAcn then
+            if hasUper then
                 writeResource pythonDi "codec_uper.py" None
+                
+            if hasAcn then
+                writeResource pythonDi "codec_acn.py" None
                 
     | ProgrammingLanguage.Ada ->
         writeResource di "adaasn1rtl.adb" None

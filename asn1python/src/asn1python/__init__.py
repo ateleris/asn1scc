@@ -32,7 +32,7 @@ from .codec import (
 )
 
 from .codec_uper import UPERCodec
-# from .codec_acn import ACNCodec
+from .codec_acn import ACNCodec
 # from .codec_xer import XERCodec
 # from .codec_ber import BERCodec
 # from .codec_per import PERCodec
@@ -74,7 +74,7 @@ __all__ = [
 
     # Codecs
     "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
-    "UPERCodec",# "ACNCodec", "XERCodec", "BERCodec", "PERCodec",
+    "UPERCodec", "ACNCodec", #"XERCodec", "BERCodec", "PERCodec",
 
     # Constants
     "ENCODE_OK", "DECODE_OK", "ERROR_INSUFFICIENT_DATA",
