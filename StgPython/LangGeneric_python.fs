@@ -225,7 +225,8 @@ type LangGeneric_python() =
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
 
-    override _.SpecNameSuffix = "Def"
+    // In case of Python, there is no Spec and Body file distinction. We use no Suffix and use Append in GenerateFiles.fs to merge the spec & body into the same file.
+    override _.SpecNameSuffix = ""
     override _.SpecExtension = "py"
     override _.BodyExtension = "py"
     override _.Keywords = CommonTypes.python_keywords
