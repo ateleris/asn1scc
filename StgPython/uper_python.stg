@@ -168,7 +168,7 @@ if not codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>):
 /*case: A:: = INTEGER (5..5) */
 IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
 # No need to encode the val <p>, it will always be <sConst> 
-; # NOP
+# NOPs
 >>
 IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
 <p> = <sConst>

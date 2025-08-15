@@ -62,7 +62,7 @@ def <sFuncName>(codec: ACNCodec) -> Either[<sTypeDefName>]:
     return Right(<sVarName>)
     <endif>
 
-def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACN, Either[<sTypeDefName>]]:
+def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Either[<sTypeDefName>]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sFuncName>(cpy)
