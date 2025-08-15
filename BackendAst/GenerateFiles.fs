@@ -177,10 +177,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
 
     let fileName = Path.Combine(outDir, pu.specFileName)
-    match r.lang with
-    // In case of Python, there is no Spec and Body file distinction, therefore we append rather than overwrite
-    | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(fileName, definitionsContntent.Replace("\r",""))
-    | _ -> File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
+    File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
 
 
     // test cases header file
