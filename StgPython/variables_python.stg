@@ -37,6 +37,7 @@ PrintCharValue(cValue)    ::= "'<cValue>'"
 
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 
+// todo: null = None oder 0?
 PrintNullValue()    ::= "0"
 
 PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
@@ -63,10 +64,12 @@ PrintBitOrOctetStringValueAsCompoundLiteral(td/*:FE_SizeableTypeDefinition*/, bI
 
 
 PrintOctetArrayAsCompoundLiteral(arruBytes) ::= <<
-(const byte[]){<arruBytes:{b|0x<b;format="X2">}; wrap, anchor, separator=", ">}
+# No Compound Literals in Python
+SYNTAX ERROR
 >>
 
 PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
+# No Compound Literals in Python
 SYNTAX ERROR
 >>
 
@@ -79,39 +82,35 @@ PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount
 >>
 
 PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
-(Asn1ObjectIdentifier){	.nCount = <nCount>, .values = {<arrnValues; wrap, anchor, separator=", ">} }
+type("Asn1ObjectIdentifier", (Asn1ObjectIdentifier, object), {"nCount": <nCount>, "values": {<arrnValues; wrap, anchor, separator=", ">})
 >>
 
-
-
-
 PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
-(Asn1LocalTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+type("Asn1LocalTime", (Asn1LocalTime, object), {"hours": <tv.hours>, "mins": <tv.mins>, "secs": <tv.secs>, "secsFraction": <tv.secsFraction>})
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
-(Asn1UtcTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+type("Asn1UtcTime", (Asn1UtcTime, object), {"hours": <tv.hours>, "mins": <tv.mins>, "secs": <tv.secs>, "secsFraction": <tv.secsFraction>})
 >>
 
-
 PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
-(Asn1TimeWithTimeZone){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>, .tz= {<tz.sign>, <tz.hours>, <tz.mins>}}
+type("Asn1TimeWithTimeZone", (Asn1TimeWithTimeZone, object), {"hours": <tv.hours>, "mins": <tv.mins>, "secs": <tv.secs>, "secsFraction": <tv.secsFraction>, "tz": {"sign": <tz.sign>, "hours": <tz.hours>, "mins": <tz.mins>})
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
-(Asn1Date){ .years = <dt.years>, .months = <dt.months>, .days = <dt.days>}
+type("Asn1Date", (Asn1Date, object), {"years": <dt.years>, "months": <dt.months>, "days": <dt.days>})
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
-(Asn1DateLocalTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)>}
+type("Asn1DateLocalTime", (Asn1DateLocalTime, object), {"date": <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, "time": <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)>})
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
-(Asn1DateUtcTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)>}
+type("Asn1DateUtcTime", (Asn1DateUtcTime, object), {"date": <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, "time": <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)>})
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
-(Asn1DateTimeWithTimeZone){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)>}
+type("Asn1DateTimeWithTimeZone", (Asn1DateTimeWithTimeZone, object), {"date": <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, "time": <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)>})
 >>
 
 
