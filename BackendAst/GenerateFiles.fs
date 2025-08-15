@@ -344,7 +344,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 | []    -> None
                 | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
 
-        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
+        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent ->
+            match r.lang with
+            | CommonTypes.ProgrammingLanguage.Python ->File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+            | _ -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+        )
 
     (definitionsContntent, srcBody)
 

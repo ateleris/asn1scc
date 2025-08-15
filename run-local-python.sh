@@ -3,7 +3,7 @@
 OUT_DIR="generated-python-output"
 echo "Removing generated .stg.fs files & python-output..."
 rm -- StgPython/*.stg.fs
-rm -r $OUT_DIR
+#rm -r $OUT_DIR
 
 dotnet build asn1scc
 
