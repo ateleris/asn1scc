@@ -5,6 +5,7 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
+import ctypes
 from typing import List
 from enum import Enum
 
@@ -25,91 +26,23 @@ class Asn1OverflowError(Asn1Error):
     pass
 
 
-# Integer classes with range validation
+# Integer types using ctypes for automatic range validation and conversion
 
-class UInt8(int):
-    """8-bit unsigned integer (0 to 255)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"UInt8 requires int, got {type(value).__name__}")
-        if not (0 <= value <= 255):
-            raise Asn1ValueError(f"UInt8 value {value} out of range [0, 255]")
-        return super().__new__(cls, value)
+# Unsigned integer types
+UInt8 = ctypes.c_uint8    # 8-bit unsigned integer (0 to 255)
+UInt16 = ctypes.c_uint16  # 16-bit unsigned integer (0 to 65535)  
+UInt32 = ctypes.c_uint32  # 32-bit unsigned integer (0 to 4294967295)
+UInt64 = ctypes.c_uint64  # 64-bit unsigned integer (0 to 18446744073709551615)
 
-class UInt16(int):
-    """16-bit unsigned integer (0 to 65535)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"UInt16 requires int, got {type(value).__name__}")
-        if not (0 <= value <= 65535):
-            raise Asn1ValueError(f"UInt16 value {value} out of range [0, 65535]")
-        return super().__new__(cls, value)
+# Signed integer types
+Int8 = ctypes.c_int8      # 8-bit signed integer (-128 to 127)
+Int16 = ctypes.c_int16    # 16-bit signed integer (-32768 to 32767)
+Int32 = ctypes.c_int32    # 32-bit signed integer (-2147483648 to 2147483647)
+Int64 = ctypes.c_int64    # 64-bit signed integer (-9223372036854775808 to 9223372036854775807)
 
-class UInt32(int):
-    """32-bit unsigned integer (0 to 4294967295)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"UInt32 requires int, got {type(value).__name__}")
-        if not (0 <= value <= 4294967295):
-            raise Asn1ValueError(f"UInt32 value {value} out of range [0, 4294967295]")
-        return super().__new__(cls, value)
-
-class UInt64(int):
-    """64-bit unsigned integer (0 to 18446744073709551615)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"UInt64 requires int, got {type(value).__name__}")
-        if not (0 <= value <= 18446744073709551615):
-            raise Asn1ValueError(f"UInt64 value {value} out of range [0, 18446744073709551615]")
-        return super().__new__(cls, value)
-
-class Int8(int):
-    """8-bit signed integer (-128 to 127)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"Int8 requires int, got {type(value).__name__}")
-        if not (-128 <= value <= 127):
-            raise Asn1ValueError(f"Int8 value {value} out of range [-128, 127]")
-        return super().__new__(cls, value)
-
-class Int16(int):
-    """16-bit signed integer (-32768 to 32767)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"Int16 requires int, got {type(value).__name__}")
-        if not (-32768 <= value <= 32767):
-            raise Asn1ValueError(f"Int16 value {value} out of range [-32768, 32767]")
-        return super().__new__(cls, value)
-
-class Int32(int):
-    """32-bit signed integer (-2147483648 to 2147483647)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"Int32 requires int, got {type(value).__name__}")
-        if not (-2147483648 <= value <= 2147483647):
-            raise Asn1ValueError(f"Int32 value {value} out of range [-2147483648, 2147483647]")
-        return super().__new__(cls, value)
-
-class Int64(int):
-    """64-bit signed integer (-9223372036854775808 to 9223372036854775807)"""
-    
-    def __new__(cls, value=0):
-        if not isinstance(value, int):
-            raise Asn1ValueError(f"Int64 requires int, got {type(value).__name__}")
-        if not (-9223372036854775808 <= value <= 9223372036854775807):
-            raise Asn1ValueError(f"Int64 value {value} out of range [-9223372036854775808, 9223372036854775807]")
-        return super().__new__(cls, value)
-
-# Byte type alias - equivalent to UInt8
-UByte = UInt8
-Byte = Int8
+# Byte type aliases
+UByte = ctypes.c_uint8    # Unsigned byte (0 to 255)
+Byte = ctypes.c_int8      # Signed byte (-128 to 127)
     
 
 # ASN.1 compiler size types
