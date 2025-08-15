@@ -25,85 +25,92 @@ class Asn1OverflowError(Asn1Error):
     pass
 
 
-# Sized integer types - simplified to match C/Scala approach
-# These are essentially type aliases with validation functions for compatibility
+# Integer classes with range validation
 
-def _validate_uint8(value: int) -> int:
-    """Validate and return UInt8 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"UInt8 requires int, got {type(value).__name__}")
-    if not (0 <= value <= 255):
-        raise Asn1ValueError(f"UInt8 value {value} out of range [0, 255]")
-    return value
+class UInt8(int):
+    """8-bit unsigned integer (0 to 255)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"UInt8 requires int, got {type(value).__name__}")
+        if not (0 <= value <= 255):
+            raise Asn1ValueError(f"UInt8 value {value} out of range [0, 255]")
+        return super().__new__(cls, value)
 
-def _validate_uint16(value: int) -> int:
-    """Validate and return UInt16 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"UInt16 requires int, got {type(value).__name__}")
-    if not (0 <= value <= 65535):
-        raise Asn1ValueError(f"UInt16 value {value} out of range [0, 65535]")
-    return value
+class UInt16(int):
+    """16-bit unsigned integer (0 to 65535)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"UInt16 requires int, got {type(value).__name__}")
+        if not (0 <= value <= 65535):
+            raise Asn1ValueError(f"UInt16 value {value} out of range [0, 65535]")
+        return super().__new__(cls, value)
 
-def _validate_uint32(value: int) -> int:
-    """Validate and return UInt32 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"UInt32 requires int, got {type(value).__name__}")
-    if not (0 <= value <= 4294967295):
-        raise Asn1ValueError(f"UInt32 value {value} out of range [0, 4294967295]")
-    return value
+class UInt32(int):
+    """32-bit unsigned integer (0 to 4294967295)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"UInt32 requires int, got {type(value).__name__}")
+        if not (0 <= value <= 4294967295):
+            raise Asn1ValueError(f"UInt32 value {value} out of range [0, 4294967295]")
+        return super().__new__(cls, value)
 
-def _validate_uint64(value: int) -> int:
-    """Validate and return UInt64 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"UInt64 requires int, got {type(value).__name__}")
-    if not (0 <= value <= 18446744073709551615):
-        raise Asn1ValueError(f"UInt64 value {value} out of range [0, 18446744073709551615]")
-    return value
+class UInt64(int):
+    """64-bit unsigned integer (0 to 18446744073709551615)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"UInt64 requires int, got {type(value).__name__}")
+        if not (0 <= value <= 18446744073709551615):
+            raise Asn1ValueError(f"UInt64 value {value} out of range [0, 18446744073709551615]")
+        return super().__new__(cls, value)
 
-def _validate_int8(value: int) -> int:
-    """Validate and return Int8 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"Int8 requires int, got {type(value).__name__}")
-    if not (-128 <= value <= 127):
-        raise Asn1ValueError(f"Int8 value {value} out of range [-128, 127]")
-    return value
+class Int8(int):
+    """8-bit signed integer (-128 to 127)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"Int8 requires int, got {type(value).__name__}")
+        if not (-128 <= value <= 127):
+            raise Asn1ValueError(f"Int8 value {value} out of range [-128, 127]")
+        return super().__new__(cls, value)
 
-def _validate_int16(value: int) -> int:
-    """Validate and return Int16 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"Int16 requires int, got {type(value).__name__}")
-    if not (-32768 <= value <= 32767):
-        raise Asn1ValueError(f"Int16 value {value} out of range [-32768, 32767]")
-    return value
+class Int16(int):
+    """16-bit signed integer (-32768 to 32767)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"Int16 requires int, got {type(value).__name__}")
+        if not (-32768 <= value <= 32767):
+            raise Asn1ValueError(f"Int16 value {value} out of range [-32768, 32767]")
+        return super().__new__(cls, value)
 
-def _validate_int32(value: int) -> int:
-    """Validate and return Int32 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"Int32 requires int, got {type(value).__name__}")
-    if not (-2147483648 <= value <= 2147483647):
-        raise Asn1ValueError(f"Int32 value {value} out of range [-2147483648, 2147483647]")
-    return value
+class Int32(int):
+    """32-bit signed integer (-2147483648 to 2147483647)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"Int32 requires int, got {type(value).__name__}")
+        if not (-2147483648 <= value <= 2147483647):
+            raise Asn1ValueError(f"Int32 value {value} out of range [-2147483648, 2147483647]")
+        return super().__new__(cls, value)
 
-def _validate_int64(value: int) -> int:
-    """Validate and return Int64 value"""
-    if not isinstance(value, int):
-        raise Asn1ValueError(f"Int64 requires int, got {type(value).__name__}")
-    if not (-9223372036854775808 <= value <= 9223372036854775807):
-        raise Asn1ValueError(f"Int64 value {value} out of range [-9223372036854775808, 9223372036854775807]")
-    return value
+class Int64(int):
+    """64-bit signed integer (-9223372036854775808 to 9223372036854775807)"""
+    
+    def __new__(cls, value=0):
+        if not isinstance(value, int):
+            raise Asn1ValueError(f"Int64 requires int, got {type(value).__name__}")
+        if not (-9223372036854775808 <= value <= 9223372036854775807):
+            raise Asn1ValueError(f"Int64 value {value} out of range [-9223372036854775808, 9223372036854775807]")
+        return super().__new__(cls, value)
 
-# Type aliases 
-UInt8 = int  # Will be validated at runtime where needed
-UInt16 = int
-UInt32 = int
-UInt64 = int
-Int8 = int
-Int16 = int
-Int32 = int
-Int64 = int
-
-# Byte type alias
-Byte = int
+# Byte type alias - equivalent to UInt8
+UByte = UInt8
+Byte = Int8
+    
 
 # ASN.1 compiler size types
 Asn1SccSint32 = Int32
