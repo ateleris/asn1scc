@@ -7,6 +7,7 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
 def <sFuncName>() -> <sTypeDefName>:
+    # init_python.stg 10
     return <sDefaultInitValue>
 >>
 

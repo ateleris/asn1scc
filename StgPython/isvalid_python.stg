@@ -69,6 +69,7 @@ def <sFuncName>(<sVarName>: <sTypeDefName>) -> Union[int, Asn1SccError]:
     ret: Union[int, Asn1SccError] = 0
     <arrsLocalVars; separator="\n">
     <sContent>
+    # isvalid_python.stg 72
     return ret
 >>
 

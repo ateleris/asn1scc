@@ -35,6 +35,7 @@ PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
 def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
+    # equal_python.stg 38
     return <sContent>
 >>
 
@@ -46,6 +47,7 @@ def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>) -> bool:
     <arrsLocalVars; separator="\n">
 
     <sContent>
+    # equal_python.stg 49
     return ret
 >>
 
@@ -54,6 +56,7 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
 def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>) -> bool:
     <if(bExpression)>
+    # equal_python.stg 59
     return <sContent>
 
     <else>
@@ -61,6 +64,7 @@ def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>) -> boo
     <arrsLocalVars; separator="\n">
 
     <sContent>
+    # equal_python.stg 66
     return ret
 
     <endif>

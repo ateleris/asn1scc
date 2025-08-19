@@ -34,12 +34,14 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACNCodec, bCheckConstraints: 
     <if(soIValidFuncName)>
     res = <soIValidFuncName>(<sVarName>)
     if isinstance(res, Asn1SccError):
+        # acn_python.stg 37
         return res
     
     <sContent>
     <else>
     <sContent>
     <endif>
+    # acn_python.stg 43
     return 0
 >>
 
@@ -57,10 +59,13 @@ def <sFuncName>(codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
     <if(soIValidFuncName)>
     res = <soIValidFuncName>(<sVarName>)
     if isinstance(res, Asn1SccError):
+        # acn_python.stg 60
         return res
     else:
+        # acn_python.stg 62
         return <sVarName>
     <else>
+    # acn_python.stg 64
     return <sVarName>
     <endif>
 
@@ -68,6 +73,7 @@ def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[<sTypeDefName>, A
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sFuncName>(cpy)
+    # acn_python.stg 75
     return (cpy, res)
 >>
 
@@ -341,6 +347,7 @@ Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSav
     <if(arruNullValueAsByteArray)>
     tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
     if not codec.BitStream_ReadBitPattern(tmp, <nSize>):
+        # acn_python.stg 348
         return <sErrCode>
     
     <A(sErrCode)>
@@ -358,11 +365,13 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 if <p> == <sName>:
+    # acn_python.stg 365
     return <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 if decoded_value == <nItemIdx>:
-    return <sName>
+    # acn_python.stg 373
+    <p> = <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -383,7 +392,8 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 decoded_value = int(<sIntVal>)
 
 <arrsItem; separator="\n">
-return Asn1SccError(<sErrCode>)
+# acn_python.stg 395
+# TODO: <p> = Asn1SccError(<sErrCode>)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -449,6 +459,7 @@ Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max,
 bix = codec.base.bitStream.bitIndex
 codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
 if codec.base.bitStream.bitIndex > bix + <nAsn1Max> * <nCharSize> or codec.base.bitStream.bitIndex != bix + 7 * <p>.indexOfOrLength(0.toByte):
+    # acn_python.stg 462
     return Asn1SccError(461)
 >>
 
@@ -545,6 +556,7 @@ if (<i> == <nSizeMax>) and !checkBitPatternPresentResult.getOrElse(True):
     checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 
 if checkBitPatternPresentResult.isEmpty:
+    # acn_python.stg 559
     return Asn1SccError(<sErrCode>)
 elif checkBitPatternPresentResult.get:
     <p><sAcc>nCount = <i>
@@ -594,6 +606,7 @@ ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>;// 3031<endif>}; separator="\n">
 res = <sName>_ACN_Encode(<p>, codec, pErrCode, FALSE<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
 if instanceof(res, Asn1SccError):
+    # acn_python.stg 609
     return res
 >>
 
@@ -601,6 +614,7 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>; // 3030<endif>}; separator="\n">
 res = <sName>_ACN_Decode(<p>, codec, pErrCode<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
 if instanceof(res, Asn1SccError):
+    # acn_python.stg 617
     return res
 >>
 
@@ -618,6 +632,7 @@ sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 
 sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
 if <p><sAcc><sChName>.isDefined != <sAcnExpression>:
+    # acn_python.stg 635
     return Asn1SccError(<sErrCode>)
 >>
 sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
@@ -681,6 +696,7 @@ if <p> is not None:
     <soSaveBitStrmPosStatement>
     <soChildContent>
 else:
+    # acn_python.stg 699
     return 628
 >>
 
@@ -747,6 +763,7 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 res = <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 766
     return res
 >>
 
@@ -756,11 +773,13 @@ if isinstance(res, Asn1SccError):
 /* Choice like uper */
 ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 case <sChildID>:
+    # acn_python.stg 776
     return Asn1SccError(<sErrorCodeName>)
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 case <nChildIndex>:
+    # acn_python.stg 782
     return Asn1SccError(<sErrorCodeName>)
 >>
 
@@ -785,6 +804,7 @@ Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 choice_index = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
+    # acn_python.stg 807
     return <sErrCode>
 >>
 
@@ -820,6 +840,7 @@ match <p>:
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
 <arrsChildren; separator="\n">
 else:
+    # acn_python.stg 843
     return Asn1SccError(<sErrCode>)
 >>
 
@@ -849,6 +870,7 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
+    # acn_python.stg 873
     return Asn1SccError(860)
 >>
 
@@ -977,6 +999,7 @@ bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
     match codec.base.decodeOctetString_no_length_vec(<sExtField>):
         case NoneMut():
+            # acn_python.stg 1002
             return Asn1SccError(<pErrCode>)
         case SomeMut(arr):
             bitStrm.buf = arr
@@ -998,12 +1021,14 @@ bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
     match codec.base.bitStream.readBits((int)<sExtField>):
         case NoneMut():
+            # acn_python.stg 1024
             return Asn1SccError(<pErrCode>)
         case SomeMut(arr):
             bitStrm.buf = arr
 
     res = <sFuncName>(<p>, bitStrm)
     if isinstance(res, Asn1SccError):
+        # acn_python.stg 1031
         return res
 >>
 
@@ -1018,6 +1043,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 res = <sFuncName>(<p>, bitStrm, false)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 1046
     return res
     
 nCount: int = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
@@ -1040,6 +1066,7 @@ bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 <if(bFixedSize)>
 arr = codec.base.decodeOctetString_no_length(<nMinSize>):
 if arr is None:
+    # acn_python.stg 1069
     return Asn1SccError(pErrCode)
 else:
     bitStrm.buf = arr
@@ -1048,12 +1075,14 @@ else:
 nCount: int = 0
 x = codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
 if x is None:
+    # acn_python.stg 1078
     return Asn1SccError(pErrCode)
 else:
     nCount = x
 
 arr = codec.base.decodeOctetString_no_length(nCount.toInt)
 if arr is None:
+    # acn_python.stg 1085
     return Asn1SccError(pErrCode)
 else:
     bitStrm.buf = arr
@@ -1061,6 +1090,7 @@ else:
 <endif>
 res =  <sFuncName>(<p>, &bitStrm)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 1093
     return res
 >>
 
@@ -1072,6 +1102,7 @@ bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
 res = <sFuncName>(<p>, bitStrm, false)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 1105
     return res
 
 nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
@@ -1094,30 +1125,35 @@ codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
 <if(bFixedSize)>
 arr = codec.base.bitStream.readBits(<nMinSize>):
 if arr is None:
+    # acn_python.stg 1128
     return Asn1SccError(pErrCode)
 else:
     bitStrm.buf = arr
 
 res = <sFuncName>(<p>, bitStrm)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 1135
     return res
 
 <else>
 nCount: int = 0
 x = codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
 if x is None:
+    # acn_python.stg 1142
     return Asn1SccError(pErrCode)
 else:
     nCount = x
 
 arr = codec.base.bitStream.readBits(nCount):
 if arr is None:
+    # acn_python.stg 1149
     return Asn1SccError(pErrCode)
 else:
     bitStrm.buf = arr
 
 res = <sFuncName>(<p>, bitStrm)
 if isinstance(res, Asn1SccError):
+    # acn_python.stg 1156
     return res
 
 <endif>

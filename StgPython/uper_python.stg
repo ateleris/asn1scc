@@ -5,11 +5,13 @@ rtlModuleName() ::= ""
 call_base_type_func_encode(p, sFuncName) ::= <<
 result = <sFuncName>(<p>, codec, False)  # uper:6
 if isinstance(result, Asn1SccError):
+    # uper_python.stg 8
     return result
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 result = <sFuncName>(codec)  # uper:13
 if isinstance(result, Asn1SccError):
+    # uper_python.stg 13
     return result
 <p> = result
 >>
@@ -39,12 +41,14 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, bCheckConstraints: bool
     if bCheckConstraints:
         res = <soIValidFuncName>(<sVarName>)
         if isinstance(res, Asn1SccError):
+            # uper_python.stg 42
             return res
     # @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
     <sContent>
     <endif>
+    # uper_python.stg 48
     return 0
 >>
 
@@ -62,10 +66,13 @@ def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
 
     <if(soIValidFuncName)>
     if isinstance(<soIValidFuncName>(pVal), Asn1SccError): # uper:68
+        # uper_python.stg 65
         return Asn1SccError(l)
     else: 
+        # uper_python.stg 67
         return pVal
     <else>
+    # uper_python.stg 69
     return pVal
     <endif>
 
@@ -74,6 +81,7 @@ def <sFuncName>_pure(codec: UPER): (UPER, Union[<sTypeDefName>, Asn1SccError]):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     cpy = snapshot(codec)
     res = <sFuncName>(cpy)
+    # uper_python.stg 77
     return cpy, res
 >>
 
@@ -84,6 +92,7 @@ if not codec.base.bitStream.appendByte(<p><sAcc>arr(<i>)):
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 if not codec.readByte(<p><sAcc>arr(<i>)):
+    # uper_python.stg 87
     return Asn1SccError(<sErrCode>)
 >>
 
@@ -136,6 +145,7 @@ IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "codec.base.encodeUnco
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= << 
 res = codec.base.decodeUnconstrainedWholeNumber()
 if res is None:
+    # uper_python.stg 139
     return Asn1SccError(<sErrCode>)
 elif:
  <p> = res
@@ -146,8 +156,11 @@ IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.base.encode
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 if !codec.base.decodeUnconstrainedWholeNumber() then # TODO meth does not return a boolean value...?
     <if(soCheckExp)>
-    if not <soCheckExp>: return Asn1SccError(<sErrCode>)
+    if not <soCheckExp>: 
+        # uper_python.stg 149
+        return Asn1SccError(<sErrCode>)
     <else>
+    # uper_python.stg 151
     return Asn1SccError(<sErrCode>)
     <endif>
 >>
@@ -156,6 +169,7 @@ if !codec.base.decodeUnconstrainedWholeNumber() then # TODO meth does not return
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedWholeNumber(<p>, <nMin>)"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 if not codec.base.decodeSemiConstrainedWholeNumber(<nMin>):
+    # uper_python.stg 159
     return Asn1SccError(<sErrCode>)
 >>
 
@@ -163,6 +177,7 @@ if not codec.base.decodeSemiConstrainedWholeNumber(<nMin>):
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedPosWholeNumber(<p>, <nMin>)"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 if not codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>):
+    # uper_python.stg 166
     return Asn1SccError(<sErrCode>)
 >>
 
@@ -227,18 +242,21 @@ Real_decode(p, sSuffix, sErrCode) ::= <<
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 if not codec.ObjectIdentifier_decode(): # uper:234 TODO
+    # uper_python.stg 230
     return Asn1SccError(<sErrCode>)
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "codec.RelativeOID_encode(<p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 if not codec.RelativeOID_decode():
+    # uper_python.stg 236
     return Asn1SccError(<sErrCode>)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "codec.<sTimeSubType>_encode(<p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 if not codec.<sTimeSubType>_decode():
+    # uper_python.stg 242
     return Asn1SccError(<sErrCode>)
 >>
 
@@ -260,6 +278,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:277
     <arrsItem; separator="\n">
     case _:
+        # uper_python.stg 263
         return Asn1SccError(<sErrCode>)
 >>
 
@@ -302,6 +321,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:317
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _:
+        # uper_python.stg 305
         return Asn1SccError(<sErrCode>)
 >>
 
@@ -697,13 +717,16 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
     elif <sRemainingItemsVar> == 0xC1:
         <sCurBlockSize> = 0x4000
     else:
+        # uper_python.stg 700
         return Asn1SccError(<sErrCodeName>)
 
     if <sCurOffset> + <sCurBlockSize> > <nSizeMax>:
+        # uper_python.stg 703
         return Asn1SccError(<sErrCodeName>)
 
     <if(bIsBitStringType)>
     if not codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
+       # uper_python.stg 707
        return <sErrCodeName>
     <else>
     <sBLI> = <sCurOffset>
@@ -728,10 +751,12 @@ if (<sRemainingItemsVar> & 0x80) > 0:
     <sRemainingItemsVar> &= 0x7FFF;
 
 if <sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>:
+    # uper_python.stg 731
     return Asn1SccError(<sErrCodeName>)
 
 <if(bIsBitStringType)>
 if not codec.base.bitStream.readBits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
+    # uper_python.stg 735
     return <sErrCodeName>
 
 <else>
@@ -753,6 +778,7 @@ if (<sLengthTmp> >= <nSizeMin>) and (<sLengthTmp> \<= <nSizeMax>):
     <p>[<sLengthTmp>] = 0x0
     <endif>
 else
+    # uper_python.stg 756
     return Asn1SccError(<sErrCodeName>)
 
 <else>

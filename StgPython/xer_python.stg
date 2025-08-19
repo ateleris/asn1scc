@@ -38,11 +38,13 @@ flag <sFuncName>_aux(const <sTypeDefName><sStar> <sVarName>, const char* xmlTag,
 
     <endif>
 
+    # xer_python.stg 41
     return ret;
 }
 
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints)
 {
+    # xer_python.stg 46
     return <sFuncName>_aux(<sVarName>, "<sTasName>", pByteStrm, pErrCode, bCheckConstraints);
 }
 >>
@@ -65,11 +67,13 @@ flag <sFuncName>_aux(<sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteS
 
 	<sContent>
 
+	# xer_python.stg 68
 	return ret;
 }
 
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode)
 {
+    # xer_python.stg 73
     return <sFuncName>_aux(<sVarName>, "<sTasName>", pByteStrm, pErrCode);
 }
 >>
