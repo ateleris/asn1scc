@@ -13,7 +13,7 @@ int(<p><sAcc>nCount)
 >>
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
-<sErrCode>: Int32 = <nErrValue>  # <soErrorCodeComment>
+<sErrCode>: int = <nErrValue>  # <soErrorCodeComment>
 >>
 
 EmitAcnParameter(sName, sType) ::= "<sName>: <sType>  # TODO acn:11"
@@ -23,12 +23,12 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: Int32 = <nMaxBytesInACN>
-<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: Int32 = <nMaxBitsInACN>
+<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: int = <nMaxBytesInACN>
+<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: int = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACNCodec, bCheckConstraints: bool) -> Either[Int32]:  # acn:21
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACNCodec, bCheckConstraints: bool) -> Either[int]:  # acn:21
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -267,7 +267,7 @@ ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUp
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
+Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>)"
 Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
 <p> = codec.dec_Real_IEEE754_32_big_endian<sSsuffix>()
 >>
@@ -449,16 +449,16 @@ Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, ar
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 bix = codec.base.bitStream.bitIndex
 codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
-if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L or codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)):
+if codec.base.bitStream.bitIndex > bix + <nAsn1Max> * <nCharSize> or codec.base.bitStream.bitIndex != bix + 7 * <p>.indexOfOrLength(0.toByte):
     return Left(461)
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 bix = codec.base.bitStream.bitIndex
-if <sExtFld>.toRaw \< 0L:
+if <sExtFld> \< 0:
     <p> = LeftMut(464)
-<p> = codec.dec_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <sExtFld>.toRaw)
-if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L or codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)):
+<p> = codec.dec_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <sExtFld>)
+if codec.base.bitStream.bitIndex > bix + <nAsn1Max> * <nCharSize> or codec.base.bitStream.bitIndex != bix + 7 * <p>.indexOfOrLength(0):
      <p> = LeftMut(470)
 >>
 
@@ -468,8 +468,8 @@ codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, int(<p><sAcc>nCount))
 >>
 
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-if <if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>):
-    <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>.toRaw)<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)>(<sExtFld>.toRaw)<else><sExtFld><endif>))
+if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
+    <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>))
 elif <p> = LeftMut(<sErrCode>)
 >>
 
@@ -478,7 +478,7 @@ codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <nSizeMax>)
 >>
 
 oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-if <if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>):
+if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     <p> = <sTypedefName>(codec.base.decodeOctetString_no_length_vec(<nSizeMax>))
 elif <p> = LeftMut(<sErrCode>)
 >>
@@ -508,8 +508,8 @@ sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 # TODO Validation: @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-if <if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>):
-    <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>.toRaw)<else><sExtFld><endif>
+if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
+    <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
     <soCallAux>
 else:
     <p> = LeftMut(<sErrCode>)
@@ -520,7 +520,7 @@ sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 >>
 
 sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
-if <if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>):
+if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     <soCallAux>
 else <p> = LeftMut(<sErrCode>)
 >>
@@ -791,7 +791,7 @@ case <sChildID>(<sChildName>):
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
+(<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|0x<b;format="X2">}; separator=", ">))))
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -875,7 +875,7 @@ case _: <sChildNamePresent> =>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
 case _: <sChildNamePresent> =>
-    Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
+    Vector.fromList(List(<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">))
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
@@ -1007,7 +1007,7 @@ match <sFuncName>(<p>, bitStrm, false):
     case Left(err): return Left(err)
     case Right(_): Nothing
     
-nCount: Int32 = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
+nCount: int = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
 <if(bFixedSize)>
 codec.base.encodeOctetString_no_length(bitStrm.buf, nCount)
 
@@ -1032,7 +1032,7 @@ match codec.base.decodeOctetString_no_length(<nMinSize>):
         bitStrm.buf = arr
 <else>
 
-nCount: Int32 = 0
+nCount: int = 0
 match codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
     case None():
         return LeftMut(pErrCode)
@@ -1061,7 +1061,7 @@ match <sFuncName>(<p>, bitStrm, false):
     case Left(err): return Left(err)
     case Right(_): pass
 
-nCount: Int32 = bitStrm.currentByte*8 + bitStrm.currentBit;
+nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
 <if(bFixedSize)>
 codec.base.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
 
@@ -1090,7 +1090,7 @@ match <sFuncName>(<p>, bitStrm):
     case RightMut(_):
 
 <else>
-nCount: Int32 = 0
+nCount: int = 0
 match codec.base.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
     case None():
         return LeftMut(pErrCode)

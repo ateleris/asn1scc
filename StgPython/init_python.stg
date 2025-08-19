@@ -11,9 +11,9 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 
 initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sResVar> : Optional[Int32] = <sValue>
+<sResVar> : Optional[int] = <sValue>
 <else>
-<sResVar> : Int32 = <sValue>
+<sResVar> : int = <sValue>
 <endif>
 >>
 

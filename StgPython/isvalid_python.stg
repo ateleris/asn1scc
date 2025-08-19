@@ -56,7 +56,7 @@ ret = Left(<sErrCode>)
 */
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
-<sErrCode>: Int32 = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = "\n">
+<sErrCode>: int = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = "\n">
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
@@ -65,8 +65,8 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either[Int32]:
-    ret: Either[Int32] = Right(0)
+def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either[int]:
+    ret: Either[int] = Right(0)
     <arrsLocalVars; separator="\n">
     <sContent>
     return ret
@@ -183,7 +183,7 @@ def <sFuncName>(str0: Vector[UByte]): Boolean =
 {
     str_ = str0.toVectorRaws
     valid: bool = True
-    i: Int32 = 0
+    i: int = 0
     while valid and i \< str_.length and str_[i] != CHAR_0000:
         valid = valid and (<arrsAlphaConBody; separator=" and ">);
         i += 1

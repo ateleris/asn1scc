@@ -35,22 +35,22 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 Python TYPES
 */
 
-Declare_Integer() ::="Int64" // TODO: is this really 64 bit? 
-Declare_PosInteger() ::="UInt64" // TODO: is this really 64 bit?
+Declare_Integer() ::="int" // TODO: is this really 64 bit? 
+Declare_PosInteger() ::="int" // TODO: is this really 64 bit?
 Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
 Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
 
 Declare_Boolean() ::= "Asn1Boolean"
 Declare_Real() ::= "Asn1Real"
 
-Declare_Int8() ::="Int8"
-Declare_UInt8() ::="UInt8"
-Declare_Int16() ::="Int16"
-Declare_UInt16() ::="UInt16"
-Declare_Int32() ::="Int32"
-Declare_UInt32() ::="UInt32"
-Declare_Int64() ::="Int64"
-Declare_UInt64() ::="UInt64"
+Declare_Int8() ::="int"
+Declare_UInt8() ::="int"
+Declare_Int16() ::="int"
+Declare_UInt16() ::="int"
+Declare_Int32() ::="int"
+Declare_UInt32() ::="int"
+Declare_Int64() ::="int"
+Declare_UInt64() ::="int"
 
 Declare_Real32() ::= "Asn1Real32"
 Declare_Real64() ::= "Asn1Real64"
@@ -115,7 +115,7 @@ Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnu
 from enum import Enum
 
 class <td.typeName>:
-    i: Int32 = 0
+    i: int = 0
 
 class <td.typeName>Meta:
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
@@ -137,7 +137,7 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-<td.typeName> = List[UInt8]
+<td.typeName> = List[int]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
@@ -156,8 +156,8 @@ from typing import List
 
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: Int64 = 0 <endif>
-    arr: List[UInt8] = field(default_factory=list)
+    <if(!bFixedSize)>nCount: int = 0 <endif>
+    arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
 >>
@@ -185,8 +185,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: Int64 = 0 <endif>
-    arr: List[UInt8] = []
+    <if(!bFixedSize)>nCount: int = 0 <endif>
+    arr: List[int] = []
     
     <arrsInvariants; separator="\n">
 >>
@@ -205,8 +205,8 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 from dataclasses import dataclass
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: Int32 = 0 <endif>
-    arr: List[UInt8] = []
+    <if(!bFixedSize)>nCount: int = 0 <endif>
+    arr: List[int] = []
     
     <arrsInvariants; separator="\n">
 
