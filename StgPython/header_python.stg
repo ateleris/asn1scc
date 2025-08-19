@@ -13,6 +13,8 @@ Header / Spec implementation
 """
 from asn1python import *
 from typing import *
+import BasicTypes
+from enum import Enum
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
@@ -97,14 +99,7 @@ Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange
 /***********************************       ENUMERATED    ************************************************************/
 
 Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= <<
-from enum import Enum
-
-class <td.typeName>(Enum):
-    <sName> = <nValue>
-    
-    @property
-    def i(self):
-        return self.value
+<sName> = <nValue>
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
@@ -112,12 +107,7 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 >>
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
-from enum import Enum
-
-class <td.typeName>:
-    i: int = 0
-
-class <td.typeName>Meta:
+class <td.typeName>(Enum):
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 # please use the following macros to avoid breaking code.

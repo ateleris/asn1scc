@@ -336,16 +336,16 @@ codec.base.bitStream.appendBitsMSBFirst(tmp, <nSize>)
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(bSavePosition)>
     codec.BitStream_ReadBitPattern_ignore_value(<nSize>)
-    <p>: NullType = None
+    <p> = None
     <else>
-        <if(arruNullValueAsByteArray)>
-            tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-            if not codec.BitStream_ReadBitPattern(tmp, <nSize>):
-                return <sErrCode>
-            
-            <A(sErrCode)>
-            <p>: NullType = None
-        <endif>
+    <if(arruNullValueAsByteArray)>
+    tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+    if not codec.BitStream_ReadBitPattern(tmp, <nSize>):
+        return <sErrCode>
+    
+    <A(sErrCode)>
+    <p> = None
+    <endif>
 <endif>
 >>
 
@@ -374,19 +374,16 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-<arrsItem; separator="\nel">
-else:
-    raise ValueError("Invalid enum value")
-
+<sIntVal> = <arrsItem; separator="\n">
 <sActualCodecFunc>
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
 decoded_value = int(<sIntVal>)
-<arrsItem; separator="\nel">
-else:
-    return <sErrCode>
+
+<arrsItem; separator="\n">
+return Asn1SccError(<sErrCode>)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -786,7 +783,7 @@ match <p>:
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 choice_index = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
-<arrsChildren: {ch|<ch>}; separator="\nel">
+<arrsChildren: {ch|<ch>}; separator="\n">
 else:
     return <sErrCode>
 >>
@@ -805,7 +802,8 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-<if(bFirst)><p> = None
+<if(bFirst)>
+<p> = None
 if <arrsConditions; separator=" and ">:
 <else>
 elif <arrsConditions; separator=" and ">:
@@ -902,11 +900,11 @@ MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleEl
 <sV0> = <sVi>
 <else>
 <if(bIsFirst)>
-<sV0> = if <sChPath> is not None:
-    <sVi>
+if <sChPath> is not None:
+    <sV0> = <sVi>
 <else>
 elif <sChPath> is not None:
-    <sVi>
+    <sV0> = <sVi>
 <endif>
 <endif>
 >>
@@ -957,7 +955,11 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
     <sInner>
     pBitStrm = pBitStrm_save
 }
-<v> = <if(bIsOctet)>bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>
+<if(bIsOctet)>
+<v> = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
+<else>
+<v> = bitStrm.currentByte*8+bitStrm.currentBit
+<endif>
 
 >>
 

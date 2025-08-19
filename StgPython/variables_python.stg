@@ -41,11 +41,10 @@ PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 PrintNullValue()    ::= "0"
 
 PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
-{<if(!bIsFixedSize)><nCount>,<endif>
-    {
-        <arruBytes:{b|0x<b;format="X2">}; separator=",\n">
-    }
-}
+# TODO variables_python.stg
+<if(!bIsFixedSize)><nCount><endif>
+    <arruBytes:{b|0x<b;format="X2">}; separator=",\n">
+
 >>
 
 

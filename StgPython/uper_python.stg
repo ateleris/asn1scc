@@ -36,10 +36,10 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, bCheckConstraints: bool
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-        if bCheckConstraints:
-            res = <soIValidFuncName>(<sVarName>)
-            if isinstance(res, Asn1SccError):
-                return res
+    if bCheckConstraints:
+        res = <soIValidFuncName>(<sVarName>)
+        if isinstance(res, Asn1SccError):
+            return res
     # @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
