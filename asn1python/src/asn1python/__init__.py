@@ -42,7 +42,7 @@ from .helper import (
     get_number_of_bits_for_non_negative_integer,
     bit_string_to_byte_array,
     byte_array_to_bit_string,
-    Either, Right, Left,
+    Asn1SccError,
 )
 
 from .vector import Asn1Vector
@@ -85,7 +85,7 @@ __all__ = [
     "get_number_of_bits_for_non_negative_integer",
     "bit_string_to_byte_array",
     "byte_array_to_bit_string",
-    "Either", "Left", "Right",
+    "Asn1SccError",
 
     # Vector and validation
     "Asn1Vector",

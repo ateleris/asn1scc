@@ -6,7 +6,8 @@ methodNameSuffix() ::= "_Initialize"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
-<sFuncName>: <sTypeDefName> = <sDefaultInitValue>
+def <sFuncName>() -> <sTypeDefName>:
+    return <sDefaultInitValue>
 >>
 
 initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
