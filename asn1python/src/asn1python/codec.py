@@ -64,21 +64,19 @@ class Codec:
     including UPER, ACN, XER, and BER.
     """
 
-    def __init__(self):
-        self._max_bits = 8 * 1024 * 1024  # 1MB default max size
+    def __init__(self, buffer_size = 8 * 1024 * 1024):
+        assert buffer_size > 0, "Codec buffer_size must be greater than zero"
+        self._max_bits = buffer_size  # 1MB default max size
+        self._bitstream = BitStream(size_in_bits=self._max_bits)
 
-    def set_max_bits(self, max_bits: int):
-        """Set the maximum number of bits for encoding/decoding operations"""
-        self._max_bits = max_bits
-
-    def encode_boolean(self, value: bool, stream: BitStream) -> EncodeResult:
+    def encode_boolean(self, value: bool) -> EncodeResult:
         """Encode a boolean value"""
         try:
-            stream.write_bit(value)
+            self._bitstream.write_bit(value)
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=1
             )
         except BitStreamError as e:
@@ -88,17 +86,17 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_boolean(self, stream: BitStream) -> DecodeResult:
+    def decode_boolean(self) -> DecodeResult:
         """Decode a boolean value"""
         try:
-            if stream.bits_remaining() < 1:
+            if self._bitstream.bits_remaining() < 1:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
                     error_message="Insufficient data to decode boolean"
                 )
 
-            value = stream.read_bit()
+            value = self._bitstream.read_bit()
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
@@ -112,7 +110,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def encode_integer(self, value: int, stream: BitStream, 
+    def encode_integer(self, value: int,
                       min_val: Optional[int] = None, 
                       max_val: Optional[int] = None,
                       size_in_bits: Optional[int] = None) -> EncodeResult:
@@ -121,7 +119,6 @@ class Codec:
 
         Args:
             value: The integer value to encode
-            stream: The bitstream to write to
             min_val: Minimum allowed value (optional)
             max_val: Maximum allowed value (optional)
             size_in_bits: Fixed size in bits (optional)
@@ -158,12 +155,12 @@ class Codec:
                     bits_needed = value.bit_length() if value > 0 else 1
 
             # Encode the value
-            stream.write_bits(value, bits_needed)
+            self._bitstream.write_bits(value, bits_needed)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_needed
             )
 
@@ -174,7 +171,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_integer(self, stream: BitStream,
+    def decode_integer(self,
                       min_val: Optional[int] = None,
                       max_val: Optional[int] = None,
                       size_in_bits: Optional[int] = None) -> DecodeResult:
@@ -182,7 +179,6 @@ class Codec:
         Decode an integer value with optional constraints.
 
         Args:
-            stream: The bitstream to read from
             min_val: Minimum allowed value (optional)
             max_val: Maximum allowed value (optional)
             size_in_bits: Fixed size in bits (optional)
@@ -201,15 +197,15 @@ class Codec:
                     error_message="Cannot determine integer size without constraints"
                 )
 
-            if stream.bits_remaining() < bits_needed:
+            if self._bitstream.bits_remaining() < bits_needed:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {bits_needed} bits, have {stream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.bits_remaining()}"
                 )
 
             # Decode the value
-            value = stream.read_bits(bits_needed)
+            value = self._bitstream.read_bits(bits_needed)
 
             # Apply offset decoding if range is specified
             if min_val is not None and max_val is not None:
@@ -244,8 +240,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def encode_enumerated(self, value: int, stream: BitStream, 
-                         enum_values: list) -> EncodeResult:
+    def encode_enumerated(self, value: int, enum_values: list) -> EncodeResult:
         """Encode an enumerated value"""
         try:
             if value not in enum_values:
@@ -258,12 +253,12 @@ class Codec:
             index = enum_values.index(value)
             bits_needed = (len(enum_values) - 1).bit_length()
 
-            stream.write_bits(index, bits_needed)
+            self._bitstream.write_bits(index, bits_needed)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_needed
             )
 
@@ -274,20 +269,19 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_enumerated(self, stream: BitStream, 
-                         enum_values: list) -> DecodeResult:
+    def decode_enumerated(self, enum_values: list) -> DecodeResult:
         """Decode an enumerated value"""
         try:
             bits_needed = (len(enum_values) - 1).bit_length()
 
-            if stream.bits_remaining() < bits_needed:
+            if self._bitstream.bits_remaining() < bits_needed:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
                     error_message=f"Insufficient data for enumerated value"
                 )
 
-            index = stream.read_bits(bits_needed)
+            index = self._bitstream.read_bits(bits_needed)
 
             if index >= len(enum_values):
                 return DecodeResult(
@@ -312,16 +306,16 @@ class Codec:
                 error_message=str(e)
             )
 
-    def encode_null(self, stream: BitStream) -> EncodeResult:
+    def encode_null(self) -> EncodeResult:
         """Encode a NULL value (typically no bits)"""
         return EncodeResult(
             success=True,
             error_code=ENCODE_OK,
-            encoded_data=stream.get_data_copy(),
+            encoded_data=self._bitstream.get_data_copy(),
             bits_encoded=0
         )
 
-    def decode_null(self, stream: BitStream) -> DecodeResult:
+    def decode_null(self) -> DecodeResult:
         """Decode a NULL value (typically no bits)"""
         return DecodeResult(
             success=True,
@@ -330,7 +324,7 @@ class Codec:
             bits_consumed=0
         )
 
-    def encode_bit_string(self, value: str, stream: BitStream,
+    def encode_bit_string(self, value: str,
                          min_length: Optional[int] = None,
                          max_length: Optional[int] = None) -> EncodeResult:
         """Encode a bit string value"""
@@ -363,18 +357,18 @@ class Codec:
             if min_length != max_length:
                 # Variable length - encode length first
                 length_bits = (max_length - 1).bit_length() if max_length else 16
-                stream.write_bits(len(value), length_bits)
+                self._bitstream.write_bits(len(value), length_bits)
                 bits_encoded += length_bits
 
             # Encode bit string data
             for bit_char in value:
-                stream.write_bit(bit_char == '1')
+                self._bitstream.write_bit(bit_char == '1')
                 bits_encoded += 1
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -385,7 +379,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_bit_string(self, stream: BitStream,
+    def decode_bit_string(self,
                          min_length: int,
                          max_length: int) -> DecodeResult:
         """Decode a bit string value"""
@@ -397,13 +391,13 @@ class Codec:
                 length = min_length
             else:
                 length_bits = (max_length - 1).bit_length() if max_length else 16
-                if stream.bits_remaining() < length_bits:
+                if self._bitstream.bits_remaining() < length_bits:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INSUFFICIENT_DATA,
                         error_message="Insufficient data for bit string length"
                     )
-                length = stream.read_bits(length_bits)
+                length = self._bitstream.read_bits(length_bits)
                 bits_consumed += length_bits
 
             # Validate length constraints
@@ -422,7 +416,7 @@ class Codec:
                 )
 
             # Decode bit string data
-            if stream.bits_remaining() < length:
+            if self._bitstream.bits_remaining() < length:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -431,7 +425,7 @@ class Codec:
 
             bit_string = ""
             for _ in range(length):
-                bit = stream.read_bit()
+                bit = self._bitstream.read_bit()
                 bit_string += '1' if bit else '0'
                 bits_consumed += 1
 

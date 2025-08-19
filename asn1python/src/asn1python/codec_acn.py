@@ -19,8 +19,8 @@ class ACNCodec(Codec):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, buffer_size: int):        
+        super().__init__(buffer_size)
 
     # ============================================================================
     # INTEGER ENCODING/DECODING - POSITIVE INTEGER
