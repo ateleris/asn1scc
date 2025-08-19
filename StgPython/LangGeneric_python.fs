@@ -229,6 +229,8 @@ type LangGeneric_python() =
     override _.SpecNameSuffix = ""
     override _.SpecExtension = "py"
     override _.BodyExtension = "py"
+    override _.isFilenameCaseSensitive = true
+    
     override _.Keywords = CommonTypes.python_keywords
 
     override _.getValueAssignmentName (vas: ValueAssignment) = vas.python_name

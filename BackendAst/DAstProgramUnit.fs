@@ -219,12 +219,24 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = ToC (m.Name.Value.ToLower()) + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
-            let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.BodyExtension
-            let testcase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs" + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
-            let testcase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtension
-            //let importedProgramUnits = m.Imports |> List.map (fun im -> ToC im.Name.Value)
-            let testcase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
+            let specFileName, bodyFileName, testcase_specFileName, testcase_bodyFileName, testcase_name =
+                match lm.lg.isFilenameCaseSensitive with
+                    | true ->
+                        // Python imports reference the file name, which in that case is case sensitive
+                        let specFileName = ToC m.Name.Value + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
+                        let bodyFileName = ToC m.Name.Value + "." + lm.lg.BodyExtension
+                        let testcase_specFileName = ToC m.Name.Value + "_auto_tcs" + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
+                        let testcase_bodyFileName = ToC m.Name.Value + "_auto_tcs." + lm.lg.BodyExtension
+                        let testcase_name = ToC (m.Name.Value+"_auto_tcs")
+                        specFileName, bodyFileName, testcase_specFileName, testcase_bodyFileName, testcase_name
+                    | false ->
+                        let specFileName = ToC (m.Name.Value.ToLower()) + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
+                        let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.BodyExtension
+                        let testcase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs" + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension
+                        let testcase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtension
+                        //let importedProgramUnits = m.Imports |> List.map (fun im -> ToC im.Name.Value)
+                        let testcase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
+                        specFileName, bodyFileName, testcase_specFileName, testcase_bodyFileName, testcase_name
             {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; testcase_specFileName=testcase_specFileName; testcase_bodyFileName=testcase_bodyFileName; testcase_name=testcase_name; importedTypes= importedTypes; importedUserModules=importedUserModules})
 
 

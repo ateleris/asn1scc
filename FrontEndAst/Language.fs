@@ -239,6 +239,7 @@ type ILangGeneric () =
     abstract member BodyExtension : string
     abstract member Keywords : string Set
     abstract member isCaseSensitive : bool
+    abstract member isFilenameCaseSensitive : bool
 
     abstract member RtlFuncNames : string list
     abstract member AlwaysPresentRtlFuncNames : string list
@@ -406,6 +407,7 @@ type ILangGeneric () =
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
+    default _.isFilenameCaseSensitive = false
     default _.getBoardNames _ = []
     default _.getBoardDirs  _ = []
 

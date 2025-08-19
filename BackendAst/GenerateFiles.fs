@@ -346,7 +346,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent ->
             match r.lang with
-            | CommonTypes.ProgrammingLanguage.Python ->File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+            | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
             | _ -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
         )
 
