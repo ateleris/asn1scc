@@ -5,7 +5,7 @@ This module provides UPER (Unaligned Packed Encoding Rules) encoding and decodin
 """
 
 from .codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
-from .bitstream import BitStream, BitStreamError
+from .bitstream import BitStreamError
 
 
 class UPERCodec(Codec):
@@ -19,101 +19,20 @@ class UPERCodec(Codec):
     def __init__(self):
         super().__init__()
 
-    def encode_constrained_integer(self, value: int, stream: BitStream,
-                                  min_val: int, max_val: int) -> EncodeResult:
+    def encode_constrained_integer(self, value: int, min_val: int, max_val: int) -> EncodeResult:
         """
         Encode a constrained integer using UPER rules.
 
         For constrained integers, UPER uses the minimum number of bits
         needed to represent the range.
         """
-        if value < min_val or value > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {value} out of range [{min_val}, {max_val}]"
-            )
+        return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
-        # Calculate bits needed for the range
-        range_size = max_val - min_val + 1
-        if range_size == 1:
-            # Single value - no bits needed
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
-                bits_encoded=0
-            )
-
-        # Encode as offset from minimum
-        offset_value = value - min_val
-        bits_needed = (range_size - 1).bit_length()
-
-        try:
-            stream.write_bits(offset_value, bits_needed)
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
-                bits_encoded=bits_needed
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def decode_constrained_integer(self, stream: BitStream,
-                                  min_val: int, max_val: int) -> DecodeResult:
+    def decode_constrained_integer(self, min_val: int, max_val: int) -> DecodeResult:
         """Decode a constrained integer using UPER rules"""
-        range_size = max_val - min_val + 1
+        return self.decode_integer(min_val=min_val, max_val=max_val)
 
-        if range_size == 1:
-            # Single value - no bits to read
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=min_val,
-                bits_consumed=0
-            )
-
-        bits_needed = (range_size - 1).bit_length()
-
-        try:
-            if stream.bits_remaining() < bits_needed:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Insufficient data: need {bits_needed} bits"
-                )
-
-            offset_value = stream.read_bits(bits_needed)
-            value = offset_value + min_val
-
-            if value > max_val:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Decoded value {value} exceeds maximum {max_val}"
-                )
-
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=value,
-                bits_consumed=bits_needed
-            )
-
-        except BitStreamError as e:
-            return DecodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def encode_semi_constrained_integer(self, value: int, stream: BitStream,
-                                       min_val: int) -> EncodeResult:
+    def encode_semi_constrained_integer(self, value: int, min_val: int) -> EncodeResult:
         """
         Encode a semi-constrained integer (only minimum bound) using UPER rules.
 
@@ -137,7 +56,7 @@ class UPERCodec(Codec):
                 octets_needed = (offset_value.bit_length() + 7) // 8
 
             # Encode length determinant
-            length_result = self._encode_length_determinant(octets_needed, stream)
+            length_result = self._encode_length_determinant(octets_needed)
             if not length_result.success:
                 return length_result
 
@@ -146,13 +65,13 @@ class UPERCodec(Codec):
             # Encode the integer value in octets
             for i in range(octets_needed - 1, -1, -1):
                 octet = (offset_value >> (i * 8)) & 0xFF
-                stream.write_bits(octet, 8)
+                self._bitstream.write_bits(octet, 8)
                 bits_encoded += 8
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -163,12 +82,11 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_semi_constrained_integer(self, stream: BitStream,
-                                       min_val: int) -> DecodeResult:
+    def decode_semi_constrained_integer(self, min_val: int) -> DecodeResult:
         """Decode a semi-constrained integer using UPER rules"""
         try:
             # Decode length determinant
-            length_result = self._decode_length_determinant(stream)
+            length_result = self._decode_length_determinant()
             if not length_result.success or length_result.decoded_value is None:
                 return length_result
 
@@ -176,7 +94,7 @@ class UPERCodec(Codec):
             bits_consumed = length_result.bits_consumed
 
             # Decode the integer value from octets
-            if stream.bits_remaining() < octets_count * 8:
+            if self._bitstream.bits_remaining() < octets_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -184,8 +102,8 @@ class UPERCodec(Codec):
                 )
 
             offset_value = 0
-            for i in range(octets_count):
-                octet = stream.read_bits(8)
+            for _ in range(octets_count):
+                octet = self._bitstream.read_bits(8)
                 offset_value = (offset_value << 8) | octet
                 bits_consumed += 8
 
@@ -205,7 +123,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def encode_unconstrained_integer(self, value: int, stream: BitStream) -> EncodeResult:
+    def encode_unconstrained_integer(self, value: int) -> EncodeResult:
         """
         Encode an unconstrained integer using UPER rules.
 
@@ -227,7 +145,7 @@ class UPERCodec(Codec):
                 octets_needed = 1
 
             # Encode length determinant
-            length_result = self._encode_length_determinant(octets_needed, stream)
+            length_result = self._encode_length_determinant(octets_needed)
             if not length_result.success:
                 return length_result
 
@@ -242,13 +160,13 @@ class UPERCodec(Codec):
             # Encode the integer value in octets (big-endian)
             for i in range(octets_needed - 1, -1, -1):
                 octet = (twos_complement >> (i * 8)) & 0xFF
-                stream.write_bits(octet, 8)
+                self._bitstream.write_bits(octet, 8)
                 bits_encoded += 8
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -259,11 +177,11 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_unconstrained_integer(self, stream: BitStream) -> DecodeResult:
+    def decode_unconstrained_integer(self) -> DecodeResult:
         """Decode an unconstrained integer using UPER rules"""
         try:
             # Decode length determinant
-            length_result = self._decode_length_determinant(stream)
+            length_result = self._decode_length_determinant()
             if not length_result.success or length_result.decoded_value is None:
                 return length_result
 
@@ -271,7 +189,7 @@ class UPERCodec(Codec):
             bits_consumed = length_result.bits_consumed
 
             # Decode the integer value from octets
-            if stream.bits_remaining() < octets_count * 8:
+            if self._bitstream.bits_remaining() < octets_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -280,8 +198,8 @@ class UPERCodec(Codec):
 
             # Read octets (big-endian)
             twos_complement = 0
-            for i in range(octets_count):
-                octet = stream.read_bits(8)
+            for _ in range(octets_count):
+                octet = self._bitstream.read_bits(8)
                 twos_complement = (twos_complement << 8) | octet
                 bits_consumed += 8
 
@@ -308,7 +226,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def encode_real(self, value: float, stream: BitStream) -> EncodeResult:
+    def encode_real(self, value: float) -> EncodeResult:
         """
         Encode a REAL value using UPER rules.
 
@@ -320,13 +238,13 @@ class UPERCodec(Codec):
             # Handle special cases
             if value == 0.0:
                 # Zero is encoded as empty (length 0)
-                return self._encode_length_determinant(0, stream)
+                return self._encode_length_determinant(0)
 
             # Convert to IEEE 754 double precision
             ieee_bytes = struct.pack('>d', value)  # Big-endian double
 
             # Encode length determinant (8 octets for IEEE double)
-            length_result = self._encode_length_determinant(8, stream)
+            length_result = self._encode_length_determinant(8)
             if not length_result.success:
                 return length_result
 
@@ -334,13 +252,13 @@ class UPERCodec(Codec):
 
             # Encode the IEEE 754 bytes
             for byte in ieee_bytes:
-                stream.write_bits(byte, 8)
+                self._bitstream.write_bits(byte, 8)
                 bits_encoded += 8
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -351,13 +269,13 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_real(self, stream: BitStream) -> DecodeResult:
+    def decode_real(self) -> DecodeResult:
         """Decode a REAL value using UPER rules"""
         try:
             import struct
 
             # Decode length determinant
-            length_result = self._decode_length_determinant(stream)
+            length_result = self._decode_length_determinant()
             if not length_result.success:
                 return length_result
 
@@ -382,7 +300,7 @@ class UPERCodec(Codec):
                 )
 
             # Read IEEE 754 bytes
-            if stream.bits_remaining() < 64:
+            if self._bitstream.bits_remaining() < 64:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -390,8 +308,8 @@ class UPERCodec(Codec):
                 )
 
             ieee_bytes = bytearray()
-            for i in range(8):
-                octet = stream.read_bits(8)
+            for _ in range(8):
+                octet = self._bitstream.read_bits(8)
                 ieee_bytes.append(octet)
                 bits_consumed += 8
 
@@ -412,7 +330,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def _encode_length_determinant(self, length: int, stream: BitStream) -> EncodeResult:
+    def _encode_length_determinant(self, length: int) -> EncodeResult:
         """
         Encode a length determinant according to UPER rules.
 
@@ -428,20 +346,20 @@ class UPERCodec(Codec):
 
             if length < 128:
                 # Short form: 0xxxxxxx
-                stream.write_bits(length, 8)
+                self._bitstream.write_bits(length, 8)
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=stream.get_data_copy(),
+                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=8
                 )
             elif length < 16384:
                 # Medium form: 10xxxxxx xxxxxxxx
-                stream.write_bits(0x8000 | length, 16)
+                self._bitstream.write_bits(0x8000 | length, 16)
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=stream.get_data_copy(),
+                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=16
                 )
             else:
@@ -459,17 +377,17 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_length_determinant(self, stream: BitStream) -> DecodeResult:
+    def _decode_length_determinant(self) -> DecodeResult:
         """Decode a length determinant according to UPER rules"""
         try:
-            if stream.bits_remaining() < 8:
+            if self._bitstream.bits_remaining() < 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message="Insufficient data for length determinant"
                 )
 
-            first_byte = stream.read_bits(8)
+            first_byte = self._bitstream.read_bits(8)
 
             if (first_byte & 0x80) == 0:
                 # Short form: 0xxxxxxx
@@ -481,14 +399,14 @@ class UPERCodec(Codec):
                 )
             elif (first_byte & 0xC0) == 0x80:
                 # Medium form: 10xxxxxx xxxxxxxx
-                if stream.bits_remaining() < 8:
+                if self._bitstream.bits_remaining() < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
                         error_message="Insufficient data for medium length determinant"
                     )
 
-                second_byte = stream.read_bits(8)
+                second_byte = self._bitstream.read_bits(8)
                 length = ((first_byte & 0x3F) << 8) | second_byte
 
                 return DecodeResult(
