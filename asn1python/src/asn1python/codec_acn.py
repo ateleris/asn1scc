@@ -19,128 +19,81 @@ class ACNCodec(Codec):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self, buffer_size: int):        
+    def __init__(self, buffer_size: int = 8 * 1024 * 1024):        
         super().__init__(buffer_size)
 
     # ============================================================================
     # INTEGER ENCODING/DECODING - POSITIVE INTEGER
     # ============================================================================
 
-    def enc_int_positive_integer_const_size(self, int_val: int, stream: BitStream, 
-                                           encoded_size_in_bits: int) -> EncodeResult:
+    def enc_int_positive_integer_const_size(self, int_val: int,
+                                            encoded_size_in_bits: int) -> EncodeResult:
         """Encode positive integer with constant size in bits."""
-        if int_val < 0:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} must be non-negative"
-            )
+        return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
+                                  size_in_bits=encoded_size_in_bits)
 
-        max_value = (1 << encoded_size_in_bits) - 1
-        if int_val > max_value:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} exceeds {encoded_size_in_bits} bits"
-            )
-
-        try:
-            stream.write_bits(int_val, encoded_size_in_bits)
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
-                bits_encoded=encoded_size_in_bits
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def dec_int_positive_integer_const_size(self, stream: BitStream, 
-                                          encoded_size_in_bits: int) -> DecodeResult:
+    def dec_int_positive_integer_const_size(self, encoded_size_in_bits: int) -> DecodeResult:
         """Decode positive integer with constant size in bits."""
-        try:
-            if stream.bits_remaining() < encoded_size_in_bits:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Insufficient data: need {encoded_size_in_bits} bits"
-                )
+        return self.decode_integer(min_val=0, max_val=(1 << encoded_size_in_bits) - 1,
+                                  size_in_bits=encoded_size_in_bits)
 
-            value = stream.read_bits(encoded_size_in_bits)
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=value,
-                bits_consumed=encoded_size_in_bits
-            )
-        except BitStreamError as e:
-            return DecodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def enc_int_positive_integer_const_size_8(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
         """Encode 8-bit positive integer."""
-        return self.enc_int_positive_integer_const_size(int_val, stream, 8)
+        return self.enc_int_positive_integer_const_size(int_val, 8)
 
-    def dec_int_positive_integer_const_size_8(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_8(self) -> DecodeResult:
         """Decode 8-bit positive integer."""
-        return self.dec_int_positive_integer_const_size(stream, 8)
+        return self.dec_int_positive_integer_const_size(8)
 
-    def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
         """Encode 16-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 16, False)
+        return self._encode_integer_big_endian(int_val, 16, False)
 
-    def dec_int_positive_integer_const_size_big_endian_16(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_big_endian_16(self) -> DecodeResult:
         """Decode 16-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 16, False)
+        return self._decode_integer_big_endian(16, False)
 
-    def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
         """Encode 32-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 32, False)
+        return self._encode_integer_big_endian(int_val, 32, False)
 
-    def dec_int_positive_integer_const_size_big_endian_32(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_big_endian_32(self) -> DecodeResult:
         """Decode 32-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 32, False)
+        return self._decode_integer_big_endian(32, False)
 
-    def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
         """Encode 64-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 64, False)
+        return self._encode_integer_big_endian(int_val, 64, False)
 
-    def dec_int_positive_integer_const_size_big_endian_64(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_big_endian_64(self) -> DecodeResult:
         """Decode 64-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 64, False)
+        return self._decode_integer_big_endian(64, False)
 
-    def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
         """Encode 16-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 16, False)
+        return self._encode_integer_little_endian(int_val, 16, False)
 
-    def dec_int_positive_integer_const_size_little_endian_16(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_little_endian_16(self) -> DecodeResult:
         """Decode 16-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 16, False)
+        return self._decode_integer_little_endian(16, False)
 
-    def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
         """Encode 32-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 32, False)
+        return self._encode_integer_little_endian(int_val, 32, False)
 
-    def dec_int_positive_integer_const_size_little_endian_32(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_little_endian_32(self) -> DecodeResult:
         """Decode 32-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 32, False)
+        return self._decode_integer_little_endian(32, False)
 
-    def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
         """Encode 64-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 64, False)
+        return self._encode_integer_little_endian(int_val, 64, False)
 
-    def dec_int_positive_integer_const_size_little_endian_64(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_const_size_little_endian_64(self) -> DecodeResult:
         """Decode 64-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 64, False)
+        return self._decode_integer_little_endian(64, False)
 
-    def enc_int_positive_integer_var_size_length_embedded(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
         if int_val < 0:
             return EncodeResult(
@@ -150,29 +103,26 @@ class ACNCodec(Codec):
             )
 
         try:
-            # Calculate number of bytes needed
             if int_val == 0:
                 bytes_needed = 1
             else:
                 bytes_needed = (int_val.bit_length() + 7) // 8
 
-            # Encode length
-            length_result = self.enc_length(bytes_needed, stream, 8)
+            length_result = self.enc_length(bytes_needed, 8)
             if not length_result.success:
                 return length_result
 
             bits_encoded = length_result.bits_encoded
 
-            # Encode value
             for i in range(bytes_needed - 1, -1, -1):
                 byte_val = (int_val >> (i * 8)) & 0xFF
-                stream.write_bits(byte_val, 8)
+                self._bitstream.write_bits(byte_val, 8)
                 bits_encoded += 8
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -182,28 +132,26 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_positive_integer_var_size_length_embedded(self, stream: BitStream) -> DecodeResult:
+    def dec_int_positive_integer_var_size_length_embedded(self) -> DecodeResult:
         """Decode positive integer with variable size (length embedded)."""
         try:
-            # Decode length
-            length_result = self.dec_length(stream, 8)
+            length_result = self.dec_length(8)
             if not length_result.success:
                 return length_result
 
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
-            if stream.bits_remaining() < bytes_count * 8:
+            if self._bitstream.bits_remaining() < bytes_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message=f"Insufficient data: need {bytes_count} bytes"
                 )
 
-            # Decode value
             value = 0
             for i in range(bytes_count):
-                byte_val = stream.read_bits(8)
+                byte_val = self._bitstream.read_bits(8)
                 value = (value << 8) | byte_val
                 bits_consumed += 8
 
@@ -224,62 +172,25 @@ class ACNCodec(Codec):
     # INTEGER ENCODING/DECODING - TWO'S COMPLEMENT
     # ============================================================================
 
-    def enc_int_twos_complement_const_size(self, int_val: int, stream: BitStream, 
-                                         format_bit_length: int) -> EncodeResult:
+    def enc_int_twos_complement_const_size(self, int_val: int, format_bit_length: int) -> EncodeResult:
         """Encode signed integer using two's complement with constant size."""
-        if format_bit_length <= 0 or format_bit_length > 64:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Invalid bit length: {format_bit_length}"
-            )
-
-        # Check value range
         min_val = -(1 << (format_bit_length - 1))
         max_val = (1 << (format_bit_length - 1)) - 1
-        
-        if int_val < min_val or int_val > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-            )
+        return self.encode_integer(int_val, min_val=min_val, max_val=max_val, 
+                                  size_in_bits=format_bit_length)
 
-        try:
-            # Convert to unsigned representation
-            if int_val < 0:
-                unsigned_val = (1 << format_bit_length) + int_val
-            else:
-                unsigned_val = int_val
-
-            stream.write_bits(unsigned_val, format_bit_length)
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
-                bits_encoded=format_bit_length
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def dec_int_twos_complement_const_size(self, stream: BitStream, 
-                                         format_bit_length: int) -> DecodeResult:
+    def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult:
         """Decode signed integer using two's complement with constant size."""
         try:
-            if stream.bits_remaining() < format_bit_length:
+            if self._bitstream.bits_remaining() < format_bit_length:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message=f"Insufficient data: need {format_bit_length} bits"
                 )
 
-            unsigned_val = stream.read_bits(format_bit_length)
+            unsigned_val = self._bitstream.read_bits(format_bit_length)
             
-            # Convert from unsigned to signed
             sign_bit = 1 << (format_bit_length - 1)
             if unsigned_val & sign_bit:
                 signed_val = unsigned_val - (1 << format_bit_length)
@@ -299,69 +210,68 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_int_twos_complement_const_size_8(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
         """Encode 8-bit signed integer."""
-        return self.enc_int_twos_complement_const_size(int_val, stream, 8)
+        return self.enc_int_twos_complement_const_size(int_val, 8)
 
-    def dec_int_twos_complement_const_size_8(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_8(self) -> DecodeResult:
         """Decode 8-bit signed integer."""
-        return self.dec_int_twos_complement_const_size(stream, 8)
+        return self.dec_int_twos_complement_const_size(8)
 
-    def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
         """Encode 16-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 16, True)
+        return self._encode_integer_big_endian(int_val, 16, True)
 
-    def dec_int_twos_complement_const_size_big_endian_16(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_16(self) -> DecodeResult:
         """Decode 16-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 16, True)
+        return self._decode_integer_big_endian(16, True)
 
-    def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
         """Encode 32-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 32, True)
+        return self._encode_integer_big_endian(int_val, 32, True)
 
-    def dec_int_twos_complement_const_size_big_endian_32(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_32(self) -> DecodeResult:
         """Decode 32-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 32, True)
+        return self._decode_integer_big_endian(32, True)
 
-    def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
         """Encode 64-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, stream, 64, True)
+        return self._encode_integer_big_endian(int_val, 64, True)
 
-    def dec_int_twos_complement_const_size_big_endian_64(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_64(self) -> DecodeResult:
         """Decode 64-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(stream, 64, True)
+        return self._decode_integer_big_endian(64, True)
 
-    def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
         """Encode 16-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 16, True)
+        return self._encode_integer_little_endian(int_val, 16, True)
 
-    def dec_int_twos_complement_const_size_little_endian_16(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_16(self) -> DecodeResult:
         """Decode 16-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 16, True)
+        return self._decode_integer_little_endian(16, True)
 
-    def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
         """Encode 32-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 32, True)
+        return self._encode_integer_little_endian(int_val, 32, True)
 
-    def dec_int_twos_complement_const_size_little_endian_32(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_32(self) -> DecodeResult:
         """Decode 32-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 32, True)
+        return self._decode_integer_little_endian(32, True)
 
-    def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
         """Encode 64-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, stream, 64, True)
+        return self._encode_integer_little_endian(int_val, 64, True)
 
-    def dec_int_twos_complement_const_size_little_endian_64(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_64(self) -> DecodeResult:
         """Decode 64-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(stream, 64, True)
+        return self._decode_integer_little_endian(64, True)
 
-    def enc_int_twos_complement_var_size_length_embedded(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_twos_complement_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode signed integer with variable size (length embedded)."""
         try:
-            # Determine number of bytes needed for two's complement
             if int_val >= 0:
                 bit_length = int_val.bit_length()
-                bytes_needed = (bit_length + 8) // 8  # +1 for sign bit, then round up
+                bytes_needed = (bit_length + 8) // 8
             else:
                 bit_length = (abs(int_val) - 1).bit_length()
                 bytes_needed = (bit_length + 8) // 8
@@ -369,29 +279,26 @@ class ACNCodec(Codec):
             if bytes_needed == 0:
                 bytes_needed = 1
 
-            # Encode length
-            length_result = self.enc_length(bytes_needed, stream, 8)
+            length_result = self.enc_length(bytes_needed, 8)
             if not length_result.success:
                 return length_result
 
             bits_encoded = length_result.bits_encoded
 
-            # Convert to two's complement representation
             if int_val >= 0:
                 twos_complement = int_val
             else:
                 twos_complement = (1 << (bytes_needed * 8)) + int_val
 
-            # Encode value (big-endian)
             for i in range(bytes_needed - 1, -1, -1):
                 byte_val = (twos_complement >> (i * 8)) & 0xFF
-                stream.write_bits(byte_val, 8)
+                self._bitstream.write_bits(byte_val, 8)
                 bits_encoded += 8
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -401,32 +308,29 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_twos_complement_var_size_length_embedded(self, stream: BitStream) -> DecodeResult:
+    def dec_int_twos_complement_var_size_length_embedded(self) -> DecodeResult:
         """Decode signed integer with variable size (length embedded)."""
         try:
-            # Decode length
-            length_result = self.dec_length(stream, 8)
+            length_result = self.dec_length(8)
             if not length_result.success:
                 return length_result
 
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
-            if stream.bits_remaining() < bytes_count * 8:
+            if self._bitstream.bits_remaining() < bytes_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message=f"Insufficient data: need {bytes_count} bytes"
                 )
 
-            # Read bytes (big-endian)
             twos_complement = 0
             for i in range(bytes_count):
-                byte_val = stream.read_bits(8)
+                byte_val = self._bitstream.read_bits(8)
                 twos_complement = (twos_complement << 8) | byte_val
                 bits_consumed += 8
 
-            # Convert from two's complement
             sign_bit = 1 << (bytes_count * 8 - 1)
             if twos_complement & sign_bit:
                 value = twos_complement - (1 << (bytes_count * 8))
@@ -450,8 +354,7 @@ class ACNCodec(Codec):
     # INTEGER ENCODING/DECODING - BCD (Binary Coded Decimal)
     # ============================================================================
 
-    def enc_int_bcd_const_size(self, int_val: int, stream: BitStream, 
-                              encoded_size_in_nibbles: int) -> EncodeResult:
+    def enc_int_bcd_const_size(self, int_val: int, encoded_size_in_nibbles: int) -> EncodeResult:
         """Encode integer in BCD format with constant size in nibbles."""
         if int_val < 0:
             return EncodeResult(
@@ -461,14 +364,12 @@ class ACNCodec(Codec):
             )
 
         try:
-            # Convert to BCD digits
             digits = []
             temp_val = int_val
             while temp_val > 0:
                 digits.append(temp_val % 10)
                 temp_val //= 10
 
-            # Pad with leading zeros if necessary
             while len(digits) < encoded_size_in_nibbles:
                 digits.append(0)
 
@@ -479,16 +380,15 @@ class ACNCodec(Codec):
                     error_message=f"Value {int_val} requires more than {encoded_size_in_nibbles} BCD digits"
                 )
 
-            # Encode digits (most significant first)
             bits_encoded = 0
             for i in range(encoded_size_in_nibbles - 1, -1, -1):
-                stream.write_bits(digits[i], 4)
+                self._bitstream.write_bits(digits[i], 4)
                 bits_encoded += 4
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -498,11 +398,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_const_size(self, stream: BitStream, 
-                              encoded_size_in_nibbles: int) -> DecodeResult:
+    def dec_int_bcd_const_size(self, encoded_size_in_nibbles: int) -> DecodeResult:
         """Decode integer from BCD format with constant size in nibbles."""
         try:
-            if stream.bits_remaining() < encoded_size_in_nibbles * 4:
+            if self._bitstream.bits_remaining() < encoded_size_in_nibbles * 4:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -513,7 +412,7 @@ class ACNCodec(Codec):
             bits_consumed = 0
 
             for i in range(encoded_size_in_nibbles):
-                digit = stream.read_bits(4)
+                digit = self._bitstream.read_bits(4)
                 if digit > 9:
                     return DecodeResult(
                         success=False,
@@ -536,7 +435,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_int_bcd_var_size_length_embedded(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_bcd_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode integer in BCD format with variable size (length embedded)."""
         if int_val < 0:
             return EncodeResult(
@@ -546,7 +445,6 @@ class ACNCodec(Codec):
             )
 
         try:
-            # Calculate number of nibbles needed
             if int_val == 0:
                 nibbles_needed = 1
             else:
@@ -556,20 +454,18 @@ class ACNCodec(Codec):
                     nibbles_needed += 1
                     temp_val //= 10
 
-            # Encode length
-            length_result = self.enc_length(nibbles_needed, stream, 8)
+            length_result = self.enc_length(nibbles_needed, 8)
             if not length_result.success:
                 return length_result
 
-            # Encode BCD value
-            bcd_result = self.enc_int_bcd_const_size(int_val, stream, nibbles_needed)
+            bcd_result = self.enc_int_bcd_const_size(int_val, nibbles_needed)
             if not bcd_result.success:
                 return bcd_result
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=length_result.bits_encoded + bcd_result.bits_encoded
             )
         except Exception as e:
@@ -579,18 +475,16 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_var_size_length_embedded(self, stream: BitStream) -> DecodeResult:
+    def dec_int_bcd_var_size_length_embedded(self) -> DecodeResult:
         """Decode integer from BCD format with variable size (length embedded)."""
         try:
-            # Decode length
-            length_result = self.dec_length(stream, 8)
+            length_result = self.dec_length(8)
             if not length_result.success:
                 return length_result
 
             nibbles_count = length_result.decoded_value
 
-            # Decode BCD value
-            bcd_result = self.dec_int_bcd_const_size(stream, nibbles_count)
+            bcd_result = self.dec_int_bcd_const_size(nibbles_count)
             if not bcd_result.success:
                 return bcd_result
 
@@ -607,7 +501,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_int_bcd_var_size_null_terminated(self, int_val: int, stream: BitStream) -> EncodeResult:
+    def enc_int_bcd_var_size_null_terminated(self, int_val: int) -> EncodeResult:
         """Encode integer in BCD format with null termination (0xF)."""
         if int_val < 0:
             return EncodeResult(
@@ -617,7 +511,6 @@ class ACNCodec(Codec):
             )
 
         try:
-            # Calculate number of nibbles needed
             if int_val == 0:
                 nibbles_needed = 1
             else:
@@ -627,18 +520,16 @@ class ACNCodec(Codec):
                     nibbles_needed += 1
                     temp_val //= 10
 
-            # Encode BCD value
-            bcd_result = self.enc_int_bcd_const_size(int_val, stream, nibbles_needed)
+            bcd_result = self.enc_int_bcd_const_size(int_val, nibbles_needed)
             if not bcd_result.success:
                 return bcd_result
 
-            # Encode null terminator (0xF)
-            stream.write_bits(0xF, 4)
+            self._bitstream.write_bits(0xF, 4)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bcd_result.bits_encoded + 4
             )
         except BitStreamError as e:
@@ -648,25 +539,24 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_var_size_null_terminated(self, stream: BitStream) -> DecodeResult:
+    def dec_int_bcd_var_size_null_terminated(self) -> DecodeResult:
         """Decode integer from BCD format with null termination (0xF)."""
         try:
             value = 0
             bits_consumed = 0
 
             while True:
-                if stream.bits_remaining() < 4:
+                if self._bitstream.bits_remaining() < 4:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
                         error_message="Unexpected end of data while reading BCD"
                     )
 
-                digit = stream.read_bits(4)
+                digit = self._bitstream.read_bits(4)
                 bits_consumed += 4
 
                 if digit == 0xF:
-                    # Found terminator
                     break
 
                 if digit > 9:
@@ -695,17 +585,17 @@ class ACNCodec(Codec):
     # REAL ENCODING/DECODING - IEEE 754
     # ============================================================================
 
-    def enc_real_ieee754_32_big_endian(self, real_val: float, stream: BitStream) -> EncodeResult:
+    def enc_real_ieee754_32_big_endian(self, real_val: float) -> EncodeResult:
         """Encode 32-bit IEEE 754 float (big-endian)."""
         try:
             packed = struct.pack('>f', real_val)
             for byte in packed:
-                stream.write_bits(byte, 8)
+                self._bitstream.write_bits(byte, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=32
             )
         except (BitStreamError, struct.error) as e:
@@ -715,10 +605,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_32_big_endian(self, stream: BitStream) -> DecodeResult:
+    def dec_real_ieee754_32_big_endian(self) -> DecodeResult:
         """Decode 32-bit IEEE 754 float (big-endian)."""
         try:
-            if stream.bits_remaining() < 32:
+            if self._bitstream.bits_remaining() < 32:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -727,7 +617,7 @@ class ACNCodec(Codec):
 
             bytes_data = bytearray()
             for i in range(4):
-                bytes_data.append(stream.read_bits(8))
+                bytes_data.append(self._bitstream.read_bits(8))
 
             value = struct.unpack('>f', bytes_data)[0]
 
@@ -744,17 +634,17 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_real_ieee754_32_little_endian(self, real_val: float, stream: BitStream) -> EncodeResult:
+    def enc_real_ieee754_32_little_endian(self, real_val: float) -> EncodeResult:
         """Encode 32-bit IEEE 754 float (little-endian)."""
         try:
             packed = struct.pack('<f', real_val)
             for byte in packed:
-                stream.write_bits(byte, 8)
+                self._bitstream.write_bits(byte, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=32
             )
         except (BitStreamError, struct.error) as e:
@@ -764,10 +654,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_32_little_endian(self, stream: BitStream) -> DecodeResult:
+    def dec_real_ieee754_32_little_endian(self) -> DecodeResult:
         """Decode 32-bit IEEE 754 float (little-endian)."""
         try:
-            if stream.bits_remaining() < 32:
+            if self._bitstream.bits_remaining() < 32:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -776,7 +666,7 @@ class ACNCodec(Codec):
 
             bytes_data = bytearray()
             for i in range(4):
-                bytes_data.append(stream.read_bits(8))
+                bytes_data.append(self._bitstream.read_bits(8))
 
             value = struct.unpack('<f', bytes_data)[0]
 
@@ -793,17 +683,17 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_real_ieee754_64_big_endian(self, real_val: float, stream: BitStream) -> EncodeResult:
+    def enc_real_ieee754_64_big_endian(self, real_val: float) -> EncodeResult:
         """Encode 64-bit IEEE 754 double (big-endian)."""
         try:
             packed = struct.pack('>d', real_val)
             for byte in packed:
-                stream.write_bits(byte, 8)
+                self._bitstream.write_bits(byte, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=64
             )
         except (BitStreamError, struct.error) as e:
@@ -813,10 +703,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_64_big_endian(self, stream: BitStream) -> DecodeResult:
+    def dec_real_ieee754_64_big_endian(self) -> DecodeResult:
         """Decode 64-bit IEEE 754 double (big-endian)."""
         try:
-            if stream.bits_remaining() < 64:
+            if self._bitstream.bits_remaining() < 64:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -825,7 +715,7 @@ class ACNCodec(Codec):
 
             bytes_data = bytearray()
             for i in range(8):
-                bytes_data.append(stream.read_bits(8))
+                bytes_data.append(self._bitstream.read_bits(8))
 
             value = struct.unpack('>d', bytes_data)[0]
 
@@ -842,17 +732,17 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def enc_real_ieee754_64_little_endian(self, real_val: float, stream: BitStream) -> EncodeResult:
+    def enc_real_ieee754_64_little_endian(self, real_val: float) -> EncodeResult:
         """Encode 64-bit IEEE 754 double (little-endian)."""
         try:
             packed = struct.pack('<d', real_val)
             for byte in packed:
-                stream.write_bits(byte, 8)
+                self._bitstream.write_bits(byte, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=64
             )
         except (BitStreamError, struct.error) as e:
@@ -862,19 +752,19 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_64_little_endian(self, stream: BitStream) -> DecodeResult:
+    def dec_real_ieee754_64_little_endian(self) -> DecodeResult:
         """Decode 64-bit IEEE 754 double (little-endian)."""
         try:
-            if stream.bits_remaining() < 64:
+            if self._bitstream.bits_remaining() < 64:
                 return DecodeResult(
                     success=False,
-                error_code=ERROR_INVALID_VALUE,
+                    error_code=ERROR_INVALID_VALUE,
                     error_message="Insufficient data for IEEE 754 double"
                 )
 
             bytes_data = bytearray()
             for i in range(8):
-                bytes_data.append(stream.read_bits(8))
+                bytes_data.append(self._bitstream.read_bits(8))
 
             value = struct.unpack('<d', bytes_data)[0]
 
@@ -895,8 +785,7 @@ class ACNCodec(Codec):
     # LENGTH ENCODING/DECODING
     # ============================================================================
 
-    def enc_length(self, length_val: int, stream: BitStream, 
-                  length_size_in_bits: int) -> EncodeResult:
+    def enc_length(self, length_val: int, length_size_in_bits: int) -> EncodeResult:
         """Encode length value with specified size in bits."""
         if length_val < 0:
             return EncodeResult(
@@ -914,11 +803,11 @@ class ACNCodec(Codec):
             )
 
         try:
-            stream.write_bits(length_val, length_size_in_bits)
+            self._bitstream.write_bits(length_val, length_size_in_bits)
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=length_size_in_bits
             )
         except BitStreamError as e:
@@ -928,17 +817,17 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_length(self, stream: BitStream, length_size_in_bits: int) -> DecodeResult:
+    def dec_length(self, length_size_in_bits: int) -> DecodeResult:
         """Decode length value with specified size in bits."""
         try:
-            if stream.bits_remaining() < length_size_in_bits:
+            if self._bitstream.bits_remaining() < length_size_in_bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message=f"Insufficient data for length: need {length_size_in_bits} bits"
                 )
 
-            length_val = stream.read_bits(length_size_in_bits)
+            length_val = self._bitstream.read_bits(length_size_in_bits)
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
@@ -956,8 +845,7 @@ class ACNCodec(Codec):
     # HELPER METHODS
     # ============================================================================
 
-    def _encode_integer_big_endian(self, int_val: int, stream: BitStream, 
-                                  bits: int, signed: bool) -> EncodeResult:
+    def _encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in big-endian format."""
         if signed:
             min_val = -(1 << (bits - 1))
@@ -982,12 +870,12 @@ class ACNCodec(Codec):
             bytes_count = bits // 8
             for i in range(bytes_count - 1, -1, -1):
                 byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                stream.write_bits(byte_val, 8)
+                self._bitstream.write_bits(byte_val, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits
             )
         except BitStreamError as e:
@@ -997,10 +885,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_integer_big_endian(self, stream: BitStream, bits: int, signed: bool) -> DecodeResult:
+    def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult:
         """Helper method to decode integer in big-endian format."""
         try:
-            if stream.bits_remaining() < bits:
+            if self._bitstream.bits_remaining() < bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -1010,7 +898,7 @@ class ACNCodec(Codec):
             unsigned_val = 0
             bytes_count = bits // 8
             for i in range(bytes_count):
-                byte_val = stream.read_bits(8)
+                byte_val = self._bitstream.read_bits(8)
                 unsigned_val = (unsigned_val << 8) | byte_val
 
             if signed:
@@ -1036,8 +924,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def _encode_integer_little_endian(self, int_val: int, stream: BitStream, 
-                                     bits: int, signed: bool) -> EncodeResult:
+    def _encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in little-endian format."""
         if signed:
             min_val = -(1 << (bits - 1))
@@ -1062,12 +949,12 @@ class ACNCodec(Codec):
             bytes_count = bits // 8
             for i in range(bytes_count):
                 byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                stream.write_bits(byte_val, 8)
+                self._bitstream.write_bits(byte_val, 8)
 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=stream.get_data_copy(),
+                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits
             )
         except BitStreamError as e:
@@ -1077,10 +964,10 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_integer_little_endian(self, stream: BitStream, bits: int, signed: bool) -> DecodeResult:
+    def _decode_integer_little_endian(self, bits: int, signed: bool) -> DecodeResult:
         """Helper method to decode integer in little-endian format."""
         try:
-            if stream.bits_remaining() < bits:
+            if self._bitstream.bits_remaining() < bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -1090,7 +977,7 @@ class ACNCodec(Codec):
             unsigned_val = 0
             bytes_count = bits // 8
             for i in range(bytes_count):
-                byte_val = stream.read_bits(8)
+                byte_val = self._bitstream.read_bits(8)
                 unsigned_val |= (byte_val << (i * 8))
 
             if signed:
