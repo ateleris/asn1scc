@@ -4,14 +4,14 @@ rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= <<
 result = <sFuncName>(<p>, codec, False)  # uper:6
-if result.is_left():
-    return result.get_left()
+if isinstance(result, Asn1SccError):
+    return result
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 result = <sFuncName>(codec)  # uper:13
-if result.is_left():
+if isinstance(result, Asn1SccError):
     return result
-<p> = result.get_right()
+<p> = result
 >>
 
 /*******************************************************/
@@ -37,14 +37,15 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, bCheckConstraints: bool
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
         if bCheckConstraints:
-            match <soIValidFuncName>(<sVarName>):
-                case Left(l): return Left(l)
+            res = <soIValidFuncName>(<sVarName>)
+            if isinstance(res, Asn1SccError):
+                return res
     # @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
     <sContent>
     <endif>
-    Right(0)
+    return 0
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
@@ -52,7 +53,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: UPER): Either[ErrorCode, <sTypeDefName>]: # uper:58
+def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -60,16 +61,16 @@ def <sFuncName>(codec: UPER): Either[ErrorCode, <sTypeDefName>]: # uper:58
     <sContent>
 
     <if(soIValidFuncName)>
-    if <soIValidFuncName>(pVal).is_left(): # uper:68
-        return Left(l)
+    if isinstance(<soIValidFuncName>(pVal), Asn1SccError): # uper:68
+        return Asn1SccError(l)
     else: 
-        return Right(pVal)
+        return pVal
     <else>
-    return Right(pVal)
+    return pVal
     <endif>
 
 # @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>_pure(codec: UPER): (UPER, EitherMut[ErrorCode, <sTypeDefName>]):
+def <sFuncName>_pure(codec: UPER): (UPER, Union[<sTypeDefName>, Asn1SccError]):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     cpy = snapshot(codec)
     res = <sFuncName>(cpy)
@@ -83,7 +84,7 @@ if not codec.base.bitStream.appendByte(<p><sAcc>arr(<i>)):
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 if not codec.readByte(<p><sAcc>arr(<i>)):
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
@@ -135,7 +136,7 @@ IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "codec.base.encodeUnco
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= << 
 res = codec.base.decodeUnconstrainedWholeNumber()
 if res is None:
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 elif:
  <p> = res
 >>
@@ -145,9 +146,9 @@ IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.base.encode
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 if !codec.base.decodeUnconstrainedWholeNumber() then # TODO meth does not return a boolean value...?
     <if(soCheckExp)>
-    if not <soCheckExp>: return LeftMut(<sErrCode>)
+    if not <soCheckExp>: return Asn1SccError(<sErrCode>)
     <else>
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
     <endif>
 >>
 
@@ -155,14 +156,14 @@ if !codec.base.decodeUnconstrainedWholeNumber() then # TODO meth does not return
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedWholeNumber(<p>, <nMin>)"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 if not codec.base.decodeSemiConstrainedWholeNumber(<nMin>):
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedPosWholeNumber(<p>, <nMin>)"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 if not codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>):
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 /*case: A:: = INTEGER (5..5) */
@@ -226,19 +227,19 @@ Real_decode(p, sSuffix, sErrCode) ::= <<
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 if not codec.ObjectIdentifier_decode(): # uper:234 TODO
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "codec.RelativeOID_encode(<p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 if not codec.RelativeOID_decode():
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "codec.<sTimeSubType>_encode(<p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 if not codec.<sTimeSubType>_decode():
-    return LeftMut(<sErrCode>)
+    return Asn1SccError(<sErrCode>)
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
@@ -259,7 +260,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:277
     <arrsItem; separator="\n">
     case _:
-        return Left(<sErrCode>)
+        return Asn1SccError(<sErrCode>)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
@@ -301,7 +302,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:317
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _:
-        return LeftMut(<sErrCode>)
+        return Asn1SccError(<sErrCode>)
 >>
 
 /* CHOICE END*/
@@ -603,11 +604,11 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
     check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
-    ret = Right(0) if check else Left(<sErrCodeName>)
+    ret = 0 if check else Asn1SccError(<sErrCodeName>)
     if ret == 0:
         <if(bIsBitStringType)>
         ret = int(codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
-        ret = Right(0) if ret == 0 else <sErrCodeName>;
+        ret = 0 if ret == 0 else <sErrCodeName>;
 
         <else>
         <sBLI> = int(<sCurOffset>)
@@ -628,21 +629,19 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 ret = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
-ret = if (check) then RightMut(0) else LeftMut(<sErrCodeName>)
-if ret.isRight then
-<if(bIsBitStringType)>
-    ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); # TODO call wrong
-    ret = if (ret == 0) then RightMut(0) else LeftMut(<sErrCodeName>)
-
-<else>
-    <sBLI> = <sCurOffset>.toInt
-    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).toInt)
-    {
-        <sInternalItem>
-        <sBLI> += 1
-    }
-<endif>
-    <sCurOffset> += <sCurBlockSize>
+ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
+if not isinstance(ret, Asn1SccError):
+    <if(bIsBitStringType)>
+        ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); # TODO call wrong
+        ret = 0 if (ret == 0) else Asn1SccError(<sErrCodeName>)
+    
+    <else>
+        <sBLI> = <sCurOffset>
+        while <sBLI> \< (<sCurBlockSize> + <sCurOffset>):
+            <sInternalItem>
+            <sBLI> += 1
+    <endif>
+        <sCurOffset> += <sCurBlockSize>
 >>
 
 FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
@@ -659,7 +658,7 @@ ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingI
 if ret == 0:
     <if(bIsBitStringType)>
     ret = codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt); # TODO call wrong
-    ret = ret.isRight if RightMut(0) else LeftMut(<sErrCodeName>)
+    ret = 0 if not isinstance(ret, Asn1SccError) else Asn1SccError(<sErrCodeName>)
 
     <else>
     <sBLI> = int(<sCurOffset>)
@@ -698,10 +697,10 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
     elif <sRemainingItemsVar> == 0xC1:
         <sCurBlockSize> = 0x4000
     else:
-        return LeftMut(<sErrCodeName>)
+        return Asn1SccError(<sErrCodeName>)
 
     if <sCurOffset> + <sCurBlockSize> > <nSizeMax>:
-        return LeftMut(<sErrCodeName>)
+        return Asn1SccError(<sErrCodeName>)
 
     <if(bIsBitStringType)>
     if not codec.base.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
@@ -729,7 +728,7 @@ if (<sRemainingItemsVar> & 0x80) > 0:
     <sRemainingItemsVar> &= 0x7FFF;
 
 if <sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>:
-    return LeftMut(<sErrCodeName>)
+    return Asn1SccError(<sErrCodeName>)
 
 <if(bIsBitStringType)>
 if not codec.base.bitStream.readBits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
@@ -754,7 +753,7 @@ if (<sLengthTmp> >= <nSizeMin>) and (<sLengthTmp> \<= <nSizeMax>):
     <p>[<sLengthTmp>] = 0x0
     <endif>
 else
-    return LeftMut(<sErrCodeName>)
+    return Asn1SccError(<sErrCodeName>)
 
 <else>
 

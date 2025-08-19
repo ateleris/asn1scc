@@ -5,14 +5,14 @@ rtlModuleName() ::= ""
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError):
     <soNestedPart>
 <endif>
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError):
     <sStr2>
 >>
 
@@ -22,15 +22,15 @@ JoinItems2(sPart, sNestedPart) ::= <<
 >>
 
 always_true_statement ()::= <<
-ret = Right(0)
+ret = 0
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = Left(<sErrorCodeName>)
+ret = Asn1SccError(<sErrorCodeName>)
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
-ret = Right(0) if <sIsValidExp> else Left(45)
+ret = 0 if <sIsValidExp> else Asn1SccError(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -42,11 +42,11 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = Right(0)
+ret = 0
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = Left(<sErrCode>)
+ret = Asn1SccError(<sErrCode>)
 >>
 
 /*
@@ -65,8 +65,8 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-def <sFuncName>(<sVarName>: <sTypeDefName>) -> Either[int]:
-    ret: Either[int] = Right(0)
+def <sFuncName>(<sVarName>: <sTypeDefName>) -> Union[int, Asn1SccError]:
+    ret: Union[int, Asn1SccError] = 0
     <arrsLocalVars; separator="\n">
     <sContent>
     return ret
@@ -97,81 +97,81 @@ ret = <sExp1>
 
 StatementOrStatement(sStat1, sStat2) ::= <<
 <sStat1>
-if ret.is_left():
+if isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
-if ret.is_left():
+if isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if ret.is_left():
+if isinstance(ret, Asn1SccError):
     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
 <sStat1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 ExpressionAndStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError)::
     <sStat2>
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError)::
     ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
 <sStat>
-if ret.is_right():
-    ret = Left(142)
+if not isinstance(ret, Asn1SccError):
+    ret = Asn1SccError(142)
 else:
     ret = 0
 >>
 
 StatementExceptStatement(sStat1, sStat2) ::= <<
 <sStat1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError):
     <sStat2>
-    if ret.is_right():
-        ret = Left(152)
+    if not isinstance(ret, Asn1SccError):
+        ret = Asn1SccError(152)
     else:
-        ret = Right(0)
+        ret = 0
 >>
 
 ExpressionExceptStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
-if ret.is_right():
+if not isinstance(ret, Asn1SccError):
     <sStat2>
-    if ret.is_right():
-        ret = Left(162)
+    if not isinstance(ret, Asn1SccError):
+        ret = Asn1SccError(162)
     else:
-        ret = Right(0)
+        ret = 0
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if ret.isRight:
-    ret = (<sExp2>) match
-        case x.is_left():
-            Left(171)
-        case x.is_right():
-            ret = Right(0)
+if not isinstance(ret, Asn1SccError):
+    <sExp2>
+    if isinstance(x, Asn1SccError):
+        ret = Asn1SccError(171)
+    else:
+        ret = 0
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-while ret.isRight and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
 >>
@@ -239,7 +239,7 @@ if <p><sAcc><sChName> == <sChName>:
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
-ret = Left(<sErrCode>);
+ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
