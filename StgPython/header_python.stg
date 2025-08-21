@@ -141,7 +141,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 # nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)
 
 <endif>
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 @dataclass(frozen=True)
