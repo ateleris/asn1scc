@@ -223,7 +223,7 @@ Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean"
 
 Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <if (bIsOptional)>
-<sName>: OptionMut[<sType>]
+<sName>: Optional[<sType>]
 <else>
 <sName>: <sType>
 <endif>

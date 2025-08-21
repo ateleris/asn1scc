@@ -4,11 +4,11 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from typing import Optional, Any
+from typing import Optional, TypeVar, Generic, List
 from dataclasses import dataclass
 from enum import IntEnum
-from .bitstream import BitStream, BitStreamError
-from .asn1_types import Asn1Error
+from bitstream import BitStream, BitStreamError
+from asn1_types import Asn1Error
 
 
 class ErrorCode(IntEnum):
@@ -40,13 +40,14 @@ class EncodeResult:
     bits_encoded: int = 0
     error_message: Optional[str] = None
 
+TDVal = TypeVar('TDVal')
 
 @dataclass
-class DecodeResult:
+class DecodeResult(Generic[TDVal]):
     """Result of a decoding operation"""
     success: bool
     error_code: ErrorCode
-    decoded_value: Optional[Any] = None
+    decoded_value: Optional[TDVal] = None
     bits_consumed: int = 0
     error_message: Optional[str] = None
 
@@ -64,7 +65,7 @@ class Codec:
     including UPER, ACN, XER, and BER.
     """
 
-    def __init__(self, buffer_size = 8 * 1024 * 1024):
+    def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:
         assert buffer_size > 0, "Codec buffer_size must be greater than zero"
         self._max_bits = buffer_size  # 1MB default max size
         self._bitstream = BitStream(size_in_bits=self._max_bits)
@@ -86,7 +87,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_boolean(self) -> DecodeResult:
+    def decode_boolean(self) -> DecodeResult[bool]:
         """Decode a boolean value"""
         try:
             if self._bitstream.bits_remaining() < 1:
@@ -174,7 +175,7 @@ class Codec:
     def decode_integer(self,
                       min_val: Optional[int] = None,
                       max_val: Optional[int] = None,
-                      size_in_bits: Optional[int] = None) -> DecodeResult:
+                      size_in_bits: Optional[int] = None) -> DecodeResult[int]:
         """
         Decode an integer value with optional constraints.
 
@@ -240,7 +241,8 @@ class Codec:
                 error_message=str(e)
             )
 
-    def encode_enumerated(self, value: int, enum_values: list) -> EncodeResult:
+    # TODO: Is this only for List[int] or other lists as well?
+    def encode_enumerated(self, value: int, enum_values: List[int]) -> EncodeResult:
         """Encode an enumerated value"""
         try:
             if value not in enum_values:
@@ -269,7 +271,7 @@ class Codec:
                 error_message=str(e)
             )
 
-    def decode_enumerated(self, enum_values: list) -> DecodeResult:
+    def decode_enumerated(self, enum_values: List[int]) -> DecodeResult:
         """Decode an enumerated value"""
         try:
             bits_needed = (len(enum_values) - 1).bit_length()
@@ -315,7 +317,7 @@ class Codec:
             bits_encoded=0
         )
 
-    def decode_null(self) -> DecodeResult:
+    def decode_null(self) -> DecodeResult[None]:
         """Decode a NULL value (typically no bits)"""
         return DecodeResult(
             success=True,
@@ -381,7 +383,7 @@ class Codec:
 
     def decode_bit_string(self,
                          min_length: int,
-                         max_length: int) -> DecodeResult:
+                         max_length: int) -> DecodeResult[str]:
         """Decode a bit string value"""
         try:
             bits_consumed = 0

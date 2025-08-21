@@ -5,7 +5,7 @@ This module provides vector (array) operations for ASN.1 SEQUENCE OF and SET OF 
 """
 
 from typing import TypeVar, Generic, List, Optional, Iterator, Union
-from .asn1_types import Asn1Error
+from asn1_types import Asn1Error
 
 
 T = TypeVar('T')
@@ -44,12 +44,12 @@ class Asn1Vector(Generic[T]):
         """Get the current size of the vector"""
         return len(self._data)
 
-    def _validate_index(self, index: int):
+    def _validate_index(self, index: int) -> None:
         """Validate that an index is within bounds"""
         if not (0 <= index < len(self._data)):
             raise Asn1VectorError(f"Index {index} out of range [0, {len(self._data)})")
 
-    def append(self, item: T):
+    def append(self, item: T) -> None:
         """
         Append an item to the vector.
 
@@ -58,7 +58,7 @@ class Asn1Vector(Generic[T]):
         """
         self._data.append(item)
 
-    def extend(self, items: List[T]):
+    def extend(self, items: List[T]) -> None:
         """
         Extend the vector with multiple items.
 
@@ -67,7 +67,7 @@ class Asn1Vector(Generic[T]):
         """
         self._data.extend(items)
 
-    def insert(self, index: int, item: T):
+    def insert(self, index: int, item: T) -> None:
         """
         Insert an item at a specific index.
 
@@ -83,7 +83,7 @@ class Asn1Vector(Generic[T]):
 
         self._data.insert(index, item)
 
-    def remove(self, item: T):
+    def remove(self, item: T) -> None:
         """
         Remove the first occurrence of an item.
 
@@ -98,7 +98,7 @@ class Asn1Vector(Generic[T]):
 
         self._data.remove(item)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Remove all items from the vector.
 
@@ -191,7 +191,7 @@ class Asn1Vector(Generic[T]):
         """
         return self._data.count(item)
 
-    def reverse(self):
+    def reverse(self) -> None:
         """Reverse the order of items in the vector"""
         self._data.reverse()
 

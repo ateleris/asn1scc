@@ -62,7 +62,7 @@ Asn1Real = float
 Asn1Boolean = bool
 
 # ASN.1 NULL type - matches C "typedef char NullType" and Scala "type NullType = Byte"
-NullType = None
+NullType: type = type(None)
 
 # Floating point types for different precisions
 Asn1Real32 = float  # matches C typedef float asn1Real32
@@ -245,7 +245,7 @@ class Asn1TimeZone:
     def __repr__(self) -> str:
         return f"Asn1TimeZone({self.sign}, {self.hours}, {self.mins})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1TimeZone):
             return self.sign == other.sign and self.hours == other.hours and self.mins == other.mins
         return False
@@ -279,7 +279,7 @@ class Asn1Date:
     def __repr__(self) -> str:
         return f"Asn1Date({self.years}, {self.months}, {self.days})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1Date):
             return self.years == other.years and self.months == other.months and self.days == other.days
         return False
@@ -322,7 +322,7 @@ class Asn1LocalTime:
     def __repr__(self) -> str:
         return f"Asn1LocalTime({self.hours}, {self.mins}, {self.secs}, {self.fraction})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1LocalTime):
             return (self.hours == other.hours and self.mins == other.mins and 
                    self.secs == other.secs and self.fraction == other.fraction)
@@ -366,7 +366,7 @@ class Asn1UtcTime:
     def __repr__(self) -> str:
         return f"Asn1UtcTime({self.hours}, {self.mins}, {self.secs}, {self.fraction})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1UtcTime):
             return (self.hours == other.hours and self.mins == other.mins and 
                    self.secs == other.secs and self.fraction == other.fraction)
@@ -396,8 +396,7 @@ class Asn1TimeWithTimeZone:
             raise Asn1ValueError(f"Seconds must be 0-59, got {secs}")
         if fraction < 0:
             raise Asn1ValueError(f"Fraction must be non-negative, got {fraction}")
-        if not isinstance(tz, Asn1TimeZone):
-            raise Asn1ValueError(f"tz must be Asn1TimeZone, got {type(tz).__name__}")
+        assert isinstance(tz, Asn1TimeZone)
         
         self.hours = hours
         self.mins = mins
@@ -414,7 +413,7 @@ class Asn1TimeWithTimeZone:
     def __repr__(self) -> str:
         return f"Asn1TimeWithTimeZone({self.hours}, {self.mins}, {self.secs}, {self.fraction}, {self.tz!r})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1TimeWithTimeZone):
             return (self.hours == other.hours and self.mins == other.mins and 
                    self.secs == other.secs and self.fraction == other.fraction and 
@@ -434,10 +433,8 @@ class Asn1DateLocalTime:
             date: Date component
             time: Local time component
         """
-        if not isinstance(date, Asn1Date):
-            raise Asn1ValueError(f"date must be Asn1Date, got {type(date).__name__}")
-        if not isinstance(time, Asn1LocalTime):
-            raise Asn1ValueError(f"time must be Asn1LocalTime, got {type(time).__name__}")
+        assert isinstance(date, Asn1Date)
+        assert isinstance(time, Asn1LocalTime)
         
         self.date = date
         self.time = time
@@ -448,7 +445,7 @@ class Asn1DateLocalTime:
     def __repr__(self) -> str:
         return f"Asn1DateLocalTime({self.date!r}, {self.time!r})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1DateLocalTime):
             return self.date == other.date and self.time == other.time
         return False
@@ -466,11 +463,9 @@ class Asn1DateUtcTime:
             date: Date component
             time: UTC time component
         """
-        if not isinstance(date, Asn1Date):
-            raise Asn1ValueError(f"date must be Asn1Date, got {type(date).__name__}")
-        if not isinstance(time, Asn1UtcTime):
-            raise Asn1ValueError(f"time must be Asn1UtcTime, got {type(time).__name__}")
-        
+        assert isinstance(date, Asn1Date)
+        assert isinstance(time, Asn1UtcTime)
+
         self.date = date
         self.time = time
 
@@ -480,7 +475,7 @@ class Asn1DateUtcTime:
     def __repr__(self) -> str:
         return f"Asn1DateUtcTime({self.date!r}, {self.time!r})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1DateUtcTime):
             return self.date == other.date and self.time == other.time
         return False
@@ -498,10 +493,8 @@ class Asn1DateTimeWithTimeZone:
             date: Date component
             time: Time with timezone component
         """
-        if not isinstance(date, Asn1Date):
-            raise Asn1ValueError(f"date must be Asn1Date, got {type(date).__name__}")
-        if not isinstance(time, Asn1TimeWithTimeZone):
-            raise Asn1ValueError(f"time must be Asn1TimeWithTimeZone, got {type(time).__name__}")
+        assert isinstance(date, Asn1Date)
+        assert isinstance(time, Asn1TimeWithTimeZone)
         
         self.date = date
         self.time = time
@@ -512,7 +505,7 @@ class Asn1DateTimeWithTimeZone:
     def __repr__(self) -> str:
         return f"Asn1DateTimeWithTimeZone({self.date!r}, {self.time!r})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Asn1DateTimeWithTimeZone):
             return self.date == other.date and self.time == other.time
         return False

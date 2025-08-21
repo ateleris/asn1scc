@@ -4,8 +4,8 @@ ASN.1 Python Runtime Library - UPER Codec
 This module provides UPER (Unaligned Packed Encoding Rules) encoding and decoding.
 """
 
-from .codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
-from .bitstream import BitStreamError
+from codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
+from bitstream import BitStreamError
 
 
 class UPERCodec(Codec):
@@ -16,7 +16,7 @@ class UPERCodec(Codec):
     following the UPER standard.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def encode_constrained_integer(self, value: int, min_val: int, max_val: int) -> EncodeResult:
@@ -28,7 +28,7 @@ class UPERCodec(Codec):
         """
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
-    def decode_constrained_integer(self, min_val: int, max_val: int) -> DecodeResult:
+    def decode_constrained_integer(self, min_val: int, max_val: int) -> DecodeResult[int]:
         """Decode a constrained integer using UPER rules"""
         return self.decode_integer(min_val=min_val, max_val=max_val)
 
@@ -82,7 +82,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_semi_constrained_integer(self, min_val: int) -> DecodeResult:
+    def decode_semi_constrained_integer(self, min_val: int) -> DecodeResult[int]:
         """Decode a semi-constrained integer using UPER rules"""
         try:
             # Decode length determinant
@@ -177,7 +177,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_unconstrained_integer(self) -> DecodeResult:
+    def decode_unconstrained_integer(self) -> DecodeResult[int]:
         """Decode an unconstrained integer using UPER rules"""
         try:
             # Decode length determinant
@@ -269,7 +269,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def decode_real(self) -> DecodeResult:
+    def decode_real(self) -> DecodeResult[float]:
         """Decode a REAL value using UPER rules"""
         try:
             import struct
@@ -277,7 +277,12 @@ class UPERCodec(Codec):
             # Decode length determinant
             length_result = self._decode_length_determinant()
             if not length_result.success:
-                return length_result
+                return DecodeResult(
+                    success=length_result.success,
+                    error_code=length_result.error_code,
+                    error_message=length_result.error_message,
+                    decoded_value=length_result.decoded_value
+                )
 
             octets_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
@@ -314,7 +319,7 @@ class UPERCodec(Codec):
                 bits_consumed += 8
 
             # Convert from IEEE 754 double precision
-            value = struct.unpack('>d', ieee_bytes)[0]
+            value: float = struct.unpack('>d', ieee_bytes)[0]
 
             return DecodeResult(
                 success=True,
@@ -377,7 +382,7 @@ class UPERCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_length_determinant(self) -> DecodeResult:
+    def _decode_length_determinant(self) -> DecodeResult[int]:
         """Decode a length determinant according to UPER rules"""
         try:
             if self._bitstream.bits_remaining() < 8:

@@ -5,7 +5,7 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
-from typing import Optional
+from typing import Optional, List
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -242,7 +242,7 @@ class BitStream:
 
     def to_binary_string(self) -> str:
         """Convert the bitstream data to a binary string"""
-        result = []
+        result: List[str] = []
         for byte in self._buffer[:self.size_in_bytes]:
             result.append(f"{byte:08b}")
         return "".join(result)[:self._size_in_bits]

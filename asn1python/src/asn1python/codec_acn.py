@@ -6,9 +6,8 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
-from typing import List, Tuple, Union
-from .codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
-from .bitstream import BitStream, BitStreamError
+from codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
+from bitstream import BitStream, BitStreamError
 
 
 class ACNCodec(Codec):
@@ -19,7 +18,7 @@ class ACNCodec(Codec):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self, buffer_size: int = 8 * 1024 * 1024):        
+    def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:        
         super().__init__(buffer_size)
 
     # ============================================================================
@@ -139,6 +138,7 @@ class ACNCodec(Codec):
             if not length_result.success:
                 return length_result
 
+            assert isinstance(length_result.decoded_value, int)
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
@@ -214,7 +214,7 @@ class ACNCodec(Codec):
         """Encode 8-bit signed integer."""
         return self.enc_int_twos_complement_const_size(int_val, 8)
 
-    def dec_int_twos_complement_const_size_8(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_8(self) -> DecodeResult[int]:
         """Decode 8-bit signed integer."""
         return self.dec_int_twos_complement_const_size(8)
 
@@ -222,7 +222,7 @@ class ACNCodec(Codec):
         """Encode 16-bit signed integer (big-endian)."""
         return self._encode_integer_big_endian(int_val, 16, True)
 
-    def dec_int_twos_complement_const_size_big_endian_16(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_16(self) -> DecodeResult[int]:
         """Decode 16-bit signed integer (big-endian)."""
         return self._decode_integer_big_endian(16, True)
 
@@ -230,7 +230,7 @@ class ACNCodec(Codec):
         """Encode 32-bit signed integer (big-endian)."""
         return self._encode_integer_big_endian(int_val, 32, True)
 
-    def dec_int_twos_complement_const_size_big_endian_32(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_32(self) -> DecodeResult[int]:
         """Decode 32-bit signed integer (big-endian)."""
         return self._decode_integer_big_endian(32, True)
 
@@ -238,7 +238,7 @@ class ACNCodec(Codec):
         """Encode 64-bit signed integer (big-endian)."""
         return self._encode_integer_big_endian(int_val, 64, True)
 
-    def dec_int_twos_complement_const_size_big_endian_64(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_big_endian_64(self) -> DecodeResult[int]:
         """Decode 64-bit signed integer (big-endian)."""
         return self._decode_integer_big_endian(64, True)
 
@@ -246,7 +246,7 @@ class ACNCodec(Codec):
         """Encode 16-bit signed integer (little-endian)."""
         return self._encode_integer_little_endian(int_val, 16, True)
 
-    def dec_int_twos_complement_const_size_little_endian_16(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_16(self) -> DecodeResult[int]:
         """Decode 16-bit signed integer (little-endian)."""
         return self._decode_integer_little_endian(16, True)
 
@@ -254,7 +254,7 @@ class ACNCodec(Codec):
         """Encode 32-bit signed integer (little-endian)."""
         return self._encode_integer_little_endian(int_val, 32, True)
 
-    def dec_int_twos_complement_const_size_little_endian_32(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_32(self) -> DecodeResult[int]:
         """Decode 32-bit signed integer (little-endian)."""
         return self._decode_integer_little_endian(32, True)
 
@@ -262,7 +262,7 @@ class ACNCodec(Codec):
         """Encode 64-bit signed integer (little-endian)."""
         return self._encode_integer_little_endian(int_val, 64, True)
 
-    def dec_int_twos_complement_const_size_little_endian_64(self) -> DecodeResult:
+    def dec_int_twos_complement_const_size_little_endian_64(self) -> DecodeResult[int]:
         """Decode 64-bit signed integer (little-endian)."""
         return self._decode_integer_little_endian(64, True)
 
@@ -308,13 +308,14 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_twos_complement_var_size_length_embedded(self) -> DecodeResult:
+    def dec_int_twos_complement_var_size_length_embedded(self) -> DecodeResult[int]:
         """Decode signed integer with variable size (length embedded)."""
         try:
             length_result = self.dec_length(8)
             if not length_result.success:
                 return length_result
-
+            
+            assert isinstance(length_result.decoded_value, int)
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
@@ -398,7 +399,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_const_size(self, encoded_size_in_nibbles: int) -> DecodeResult:
+    def dec_int_bcd_const_size(self, encoded_size_in_nibbles: int) -> DecodeResult[int]:
         """Decode integer from BCD format with constant size in nibbles."""
         try:
             if self._bitstream.bits_remaining() < encoded_size_in_nibbles * 4:
@@ -408,7 +409,7 @@ class ACNCodec(Codec):
                     error_message=f"Insufficient data: need {encoded_size_in_nibbles} nibbles"
                 )
 
-            value = 0
+            value: int = 0
             bits_consumed = 0
 
             for i in range(encoded_size_in_nibbles):
@@ -475,13 +476,14 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_var_size_length_embedded(self) -> DecodeResult:
+    def dec_int_bcd_var_size_length_embedded(self) -> DecodeResult[int]:
         """Decode integer from BCD format with variable size (length embedded)."""
         try:
             length_result = self.dec_length(8)
             if not length_result.success:
                 return length_result
-
+            
+            assert isinstance(length_result.decoded_value, int)
             nibbles_count = length_result.decoded_value
 
             bcd_result = self.dec_int_bcd_const_size(nibbles_count)
@@ -539,7 +541,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_int_bcd_var_size_null_terminated(self) -> DecodeResult:
+    def dec_int_bcd_var_size_null_terminated(self) -> DecodeResult[int]:
         """Decode integer from BCD format with null termination (0xF)."""
         try:
             value = 0
@@ -605,7 +607,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_32_big_endian(self) -> DecodeResult:
+    def dec_real_ieee754_32_big_endian(self) -> DecodeResult[float]:
         """Decode 32-bit IEEE 754 float (big-endian)."""
         try:
             if self._bitstream.bits_remaining() < 32:
@@ -619,7 +621,7 @@ class ACNCodec(Codec):
             for i in range(4):
                 bytes_data.append(self._bitstream.read_bits(8))
 
-            value = struct.unpack('>f', bytes_data)[0]
+            value: float = struct.unpack('>f', bytes_data)[0]
 
             return DecodeResult(
                 success=True,
@@ -654,7 +656,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_32_little_endian(self) -> DecodeResult:
+    def dec_real_ieee754_32_little_endian(self) -> DecodeResult[float]:
         """Decode 32-bit IEEE 754 float (little-endian)."""
         try:
             if self._bitstream.bits_remaining() < 32:
@@ -668,7 +670,7 @@ class ACNCodec(Codec):
             for i in range(4):
                 bytes_data.append(self._bitstream.read_bits(8))
 
-            value = struct.unpack('<f', bytes_data)[0]
+            value: float = struct.unpack('<f', bytes_data)[0]
 
             return DecodeResult(
                 success=True,
@@ -703,7 +705,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_64_big_endian(self) -> DecodeResult:
+    def dec_real_ieee754_64_big_endian(self) -> DecodeResult[float]:
         """Decode 64-bit IEEE 754 double (big-endian)."""
         try:
             if self._bitstream.bits_remaining() < 64:
@@ -717,7 +719,7 @@ class ACNCodec(Codec):
             for i in range(8):
                 bytes_data.append(self._bitstream.read_bits(8))
 
-            value = struct.unpack('>d', bytes_data)[0]
+            value: float = struct.unpack('>d', bytes_data)[0]
 
             return DecodeResult(
                 success=True,
@@ -752,7 +754,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_real_ieee754_64_little_endian(self) -> DecodeResult:
+    def dec_real_ieee754_64_little_endian(self) -> DecodeResult[float]:
         """Decode 64-bit IEEE 754 double (little-endian)."""
         try:
             if self._bitstream.bits_remaining() < 64:
@@ -766,7 +768,7 @@ class ACNCodec(Codec):
             for i in range(8):
                 bytes_data.append(self._bitstream.read_bits(8))
 
-            value = struct.unpack('<d', bytes_data)[0]
+            value: float = struct.unpack('<d', bytes_data)[0]
 
             return DecodeResult(
                 success=True,
@@ -817,7 +819,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def dec_length(self, length_size_in_bits: int) -> DecodeResult:
+    def dec_length(self, length_size_in_bits: int) -> DecodeResult[int]:
         """Decode length value with specified size in bits."""
         try:
             if self._bitstream.bits_remaining() < length_size_in_bits:
@@ -885,7 +887,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult:
+    def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult[int]:
         """Helper method to decode integer in big-endian format."""
         try:
             if self._bitstream.bits_remaining() < bits:
@@ -964,7 +966,7 @@ class ACNCodec(Codec):
                 error_message=str(e)
             )
 
-    def _decode_integer_little_endian(self, bits: int, signed: bool) -> DecodeResult:
+    def _decode_integer_little_endian(self, bits: int, signed: bool) -> DecodeResult[int]:
         """Helper method to decode integer in little-endian format."""
         try:
             if self._bitstream.bits_remaining() < bits:
