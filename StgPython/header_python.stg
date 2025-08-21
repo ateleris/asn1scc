@@ -146,7 +146,7 @@ from typing import List
 
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: int = 0 <endif>
+    <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
@@ -175,7 +175,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: int = 0 <endif>
+    <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = []
     
     <arrsInvariants; separator="\n">
@@ -195,15 +195,18 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 from dataclasses import dataclass
 @dataclass(frozen=True)
 class <td.typeName>:
-    <if(!bFixedSize)>nCount: int = 0 <endif>
+    <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = []
     
     <arrsInvariants; separator="\n">
 
     <arrsSizeClassDefinition; separator="\n\n">
     
+    <if(arrsSizeObjDefinition)>
+# TODO is this required?
 object <td.typeName>:
-    <arrsSizeObjDefinition; separator="\n\n">
+    # <arrsSizeObjDefinition; separator="\n\n">
+    <endif>
 >>
 
 Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
@@ -245,7 +248,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class <td.typeName>:
-    <arrsChildren:{ch|<ch>}; separator=", \n">
+    <arrsChildren:{ch|<ch>}; separator="\n">
     <arrsInvariants; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
 >>
