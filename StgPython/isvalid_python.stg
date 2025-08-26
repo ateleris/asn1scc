@@ -3,6 +3,7 @@ group isvalid_python;
 rtlModuleName() ::= ""
 
 JoinItems(sPart, soNestedPart) ::= <<
+# isvalid_python.stg 6
 <sPart>
 <if(soNestedPart)>
 if not isinstance(ret, Asn1SccError):
@@ -11,41 +12,50 @@ if not isinstance(ret, Asn1SccError):
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
+# isvalid_python.stg 15
 <sStr1>
 if not isinstance(ret, Asn1SccError):
     <sStr2>
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
+# isvalid_python.stg 22
 <sPart>
 <sNestedPart>
 >>
 
 always_true_statement ()::= <<
+# isvalid_python.stg 28
 ret = 0
 >>
 
 always_false_statement(sErrorCodeName)::= <<
+# isvalid_python.stg 33
 ret = Asn1SccError(<sErrorCodeName>)
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
+# isvalid_python.stg 38
 ret = 0 if <sIsValidExp> else Asn1SccError(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+# isvalid_python.stg 43
 ret = <sIsValidExp>
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+# isvalid_python.stg 48
 <sStatement>
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+# isvalid_python.stg 53
 ret = 0
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+# isvalid_python.stg 58
 ret = Asn1SccError(<sErrCode>)
 >>
 
@@ -56,20 +66,23 @@ ret = Asn1SccError(<sErrCode>)
 */
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+# isvalid_python.stg 69
 <sErrCode>: int = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = "\n">
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+# isvalid_python.stg 74
 <arrsErrcodes; separator="\n">
 >>
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+# isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<sVarName>: <sTypeDefName>) -> Union[int, Asn1SccError]:
     ret: Union[int, Asn1SccError] = 0
     <arrsLocalVars; separator="\n">
     <sContent>
-    # isvalid_python.stg 72
+    # isvalid_python.stg 85
     return ret
 >>
 
@@ -93,46 +106,54 @@ StrLen(sExp) ::= "<sExp>.find(b'\\x00')"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
+# isvalid_python.stg 109
 ret = <sExp1>
 >>
 
 StatementOrStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 114
 <sStat1>
 if isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 121
 ret = <sExp1>
 if isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 128
 <sStat1>
 if isinstance(ret, Asn1SccError):
     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 135
 <sStat1>
 if not isinstance(ret, Asn1SccError):
     <sStat2>
 >>
 
 ExpressionAndStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 142
 ret = <sExp1>
 if not isinstance(ret, Asn1SccError)::
     <sStat2>
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 149
 <sStat1>
 if not isinstance(ret, Asn1SccError)::
     ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
+# isvalid_python.stg 156
 <sStat>
 if not isinstance(ret, Asn1SccError):
     ret = Asn1SccError(142)
@@ -141,6 +162,7 @@ else:
 >>
 
 StatementExceptStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 165
 <sStat1>
 if not isinstance(ret, Asn1SccError):
     <sStat2>
@@ -151,6 +173,7 @@ if not isinstance(ret, Asn1SccError):
 >>
 
 ExpressionExceptStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 176
 ret = <sExp1>
 if not isinstance(ret, Asn1SccError):
     <sStat2>
@@ -161,6 +184,7 @@ if not isinstance(ret, Asn1SccError):
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 187
 <sStat1>
 if not isinstance(ret, Asn1SccError):
     <sExp2>
@@ -171,6 +195,7 @@ if not isinstance(ret, Asn1SccError):
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+# isvalid_python.stg 198
 <i> = 0
 while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
@@ -180,6 +205,7 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
+# isvalid_python.stg 208
 def <sFuncName>(str0: Vector[UByte]): Boolean =
 {
     str_ = str0.toVectorRaws
@@ -222,6 +248,7 @@ callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 
 Emit_type(arrsConstraints, sErrCodeName) ::= <<
+# isvalid_python.stg 251
 ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
@@ -234,16 +261,19 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
+# isvalid_python.stg 264
 if <p><sAcc><sChName> == <sChName>:
     <sInnerStatement>
 >>
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
+# isvalid_python.stg 271
 ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+# isvalid_python.stg 276
 (<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
 >>
 
@@ -253,24 +283,29 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 /* CHOICE start*/
 
 Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+# isvalid_python.stg 286
 if <p> == <sChPresent>:
     <sInnerStatement>
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+# isvalid_python.stg 292
 <p> == <sChPresent>
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+# isvalid_python.stg 297
 <p> != <sChPresent>
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+# isvalid_python.stg 302
 case <sChPresent>:
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
+# isvalid_python.stg 308
 match <p>:
     <arrsChildren; separator="\n">
 >>
@@ -278,6 +313,7 @@ match <p>:
 /* CHOICE end*/
 
 sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
+# isvalid_python.stg 316
 <if(!bIsFixedSize)>
 ret = <soIsValidSizeExp>
 ret = <soErrCode> # todo: this overwrites the above assignment?
@@ -293,6 +329,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 >>
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+# isvalid_python.stg 332
 <i> = 0
 while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
@@ -301,22 +338,27 @@ while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+# isvalid_python.stg 341
 OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+# isvalid_python.stg 346
 OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+# isvalid_python.stg 351
 BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+# isvalid_python.stg 356
 BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 >>
 
 
 objId_equal(p, sObjIdLiteral)::=<<
+# isvalid_python.stg 362
 ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
 >>
