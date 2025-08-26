@@ -12,7 +12,7 @@ cd StgScala && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3
 
 echo "Running Asn1SCC Compiler for Scala..."
 ./asn1scc/bin/Debug/net9.0/asn1scc \
--Scala --acn-enc -atc --field-prefix AUTO --type-prefix T \
+-Scala -printTemplateInfo --acn-enc -atc --field-prefix AUTO --type-prefix T \
 -o $OUT_DIR \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/additional-test-cases/NULLTERMINATED.asn1 \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \

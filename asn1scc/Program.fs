@@ -45,6 +45,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string
     | [<Unique; AltCommandLine("-debug")>]   Debug
+    | [<Unique; AltCommandLine("-printTemplateInfo")>]   PrintTemplateInfo
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
@@ -108,6 +109,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD. If there are multiple type assignments, please separate them with commas and enclose them in double quotes."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
+            | PrintTemplateInfo  -> "Add line number comments to generated code indicating the source location that generated each line"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
             | Word_Size _       -> "Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4. (Applicable only to C.)"
             | Fp_Word_Size _    -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4. (Applicable only to C.)"
@@ -278,6 +280,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | DetectPdus                -> ()
     | AdaUses                   -> ()
     | ACND                      -> ()
+    | PrintTemplateInfo          -> ()
     | Debug_Asn1  _             -> ()
     | Word_Size  ws             ->
         match ws with
@@ -427,12 +430,13 @@ let main0 argv =
         cliArgs |> Seq.iter (checkArgument cliArgs)
         setActiveLanguages cliArgs
 
-
-
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
 
         // create front ent ast
+
+        // Enable line number printing if requested
+        ST.printTemplateInfo <- parserResults.Contains <@ PrintTemplateInfo @>
 
         let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) =
             match parserResults.Contains <@ Debug_Asn1 @> with

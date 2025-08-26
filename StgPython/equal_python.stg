@@ -82,7 +82,6 @@ def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>) -> boo
 isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
 
 isEqual_String(p1, p2) ::= <<
-# equal_python.stg 85
 zero1 = <p1>.find(b'\x00') if b'\x00' in <p1> else len(<p1>)
 zero2 = <p2>.find(b'\x00') if b'\x00' in <p2> else len(<p2>)
 <p1>[:zero1] == <p2>[:zero2]

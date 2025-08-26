@@ -329,7 +329,6 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 >>
 
 initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
-# init_python.stg 332
 <if(bIsOptional)>
 <if(bIsAbsent)>
 <sChildName> = None
@@ -342,7 +341,6 @@ initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
 >>
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = False if <nPresenceBit> == 0 else True"
 initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
-# init_python.stg 345
 <sTypeDefName>(<arrsChildren; separator=", ">)
 >>
 
