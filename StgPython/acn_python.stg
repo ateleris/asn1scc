@@ -96,7 +96,7 @@ MF(soMF) ::= /*nogen*/ <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 # acn_python.stg 98
-<i> = 0
+<i>: int = 0
 for <i> in range(int(<fixedSize>)):
     <sInternalItem>
 >>
@@ -632,7 +632,7 @@ codec.base.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", "
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 # acn_python.stg 634
-<i> = 0
+<i>: int = 0
 
 checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 while <i> \< <nSizeMax> and !checkBitPatternPresentResult.getOrElse(True):

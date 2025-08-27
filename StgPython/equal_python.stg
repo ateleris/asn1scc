@@ -160,7 +160,7 @@ isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
 # equal_python.stg 173
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
-<i> = 0
+<i>: int = 0
 while ret and <i> \< <p1><sAcc>nCount:
     <soInnerStatement>
     <i> += 1
@@ -170,7 +170,7 @@ while ret and <i> \< <p1><sAcc>nCount:
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
 # equal_python.stg 185
-<i> = 0
+<i>: int = 0
 while ret and <i> \< <nFixedSize>:
     <sInnerStatement>
     <i> += 1
