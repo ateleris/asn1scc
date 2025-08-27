@@ -61,12 +61,6 @@ let uperExprMethodCall (k: Asn1TypeKind) (sChildInitExpr: string) =
     | true -> ""
     | false -> initMethSuffix k
 
-let getAccess2_python (acc: Accessor) =
-    match acc with
-    | ValueAccess (sel, _, _) -> $".{sel}"
-    | PointerAccess (sel, _, _) -> $".{sel}"
-    | ArrayAccess (ix, _) -> $"[{ix}]"
-
 type LangBasic_python() =
     inherit ILangBasic()
     
@@ -145,9 +139,15 @@ type LangGeneric_python() =
             $"{str}{accStr}"
         ) sel.receiverId (List.indexed sel.path)
     
+    override this.joinSelection (sel: Selection) =
+        List.fold (fun str accessor -> $"self{this.getAccess2 accessor}") sel.receiverId sel.path
     override this.getAccess (sel: Selection) = "."
 
-    override this.getAccess2 (acc: Accessor) = getAccess2_python acc
+    override this.getAccess2 (acc: Accessor) =
+        match acc with
+            | ValueAccess (sel, _, _) -> $".{sel}"
+            | PointerAccess (sel, _, _) -> $".{sel}"
+            | ArrayAccess (ix, _) -> $"[{ix}]"
 
     override this.getPtrPrefix _ = ""
 

@@ -213,7 +213,8 @@ type ILangGeneric () =
     abstract member getPointerUnchecked: Selection -> UncheckedAccessKind -> string;
     abstract member getValue        : Selection -> string;
     abstract member getValueUnchecked: Selection -> UncheckedAccessKind -> string;
-    abstract member joinSelectionUnchecked: Selection -> UncheckedAccessKind -> string;
+    abstract member joinSelection: Selection -> string
+    abstract member joinSelectionUnchecked: Selection -> UncheckedAccessKind -> string
     abstract member getAccess       : Selection -> string;
     abstract member getAccess2      : Accessor  -> string;
     abstract member getStar         : Selection -> string;
@@ -404,6 +405,7 @@ type ILangGeneric () =
     default this.generateChoiceSizeDefinitions _ _ _ _ _ _ = []
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ = []
+    default this.joinSelection sel = List.fold (fun str accessor -> $"{str}{this.getAccess2 accessor}") sel.receiverId sel.path
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
@@ -428,7 +430,7 @@ type LanguageMacros = {
 
 type Selection with
     member this.joined (lg: ILangGeneric): string =
-        List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.receiverId this.path
+        lg.joinSelection this
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
     member this.asIdentifier: string =
