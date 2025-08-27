@@ -183,7 +183,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 @dataclass(frozen=True)
 class <td.typeName>:
     <if(!bFixedSize)>    nCount: int = 0<endif>
-    arr: List[int] = []
+    arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
 >>
@@ -202,7 +202,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 @dataclass(frozen=True)
 class <td.typeName>:
     <if(!bFixedSize)>    nCount: int = 0<endif>
-    arr: List[int] = []
+    arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
 

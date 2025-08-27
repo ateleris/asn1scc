@@ -451,7 +451,7 @@ sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 # uper_python.stg 453
-<i> = 0
+<i>: int = 0
 while <i> \< int(<fixedSize>):
     <sInternalItem>
     <i> += 1
@@ -481,16 +481,16 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
 # uper_python.stg 483
-nStringLength = len(<p>)
+nStringLength: int = len(<p>)
 # ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;
 codec.base.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
-<sPIden>_nCount = nStringLength
+<sPIden>_nCount: int = nStringLength
 <soCallAux>
 >>
 
 str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
 # uper_python.stg 492
-nStringLength = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
+nStringLength: int = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
 <p>_nCount = nStringLength
 <soCallAux>
 >>
@@ -582,8 +582,8 @@ FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 # uper_python.stg 582
 # encode <nBlocks64K> x 64K Blocks
 <sCurBlockSize> = 0x10000;
-<sCurOffset> = 0;
-<sBlockIndex> = 0
+<sCurOffset>: int = 0;
+<sBlockIndex>: int = 0
 while <sBlockIndex> \< <nBlocks64K>:
     codec.base.encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
@@ -640,9 +640,9 @@ FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 # uper_python.stg 641
 <sRemainingItemsVar> = <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>
-<sCurBlockSize> = 0
-<sCurOffset> = 0
-<sBlockIndex> = 0
+<sCurBlockSize>: int = 0
+<sCurOffset>: int = 0
+<sBlockIndex>: int = 0
 while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>:
     if <sRemainingItemsVar> >= 0x10000:
         <sCurBlockSize> = 0x10000
@@ -694,11 +694,11 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 # uper_python.stg 694
 # we expect to decode <nBlocks64K> Blocks and each block must contain 64K elements. Each block must begin with the byte 0xC4
 <sCurBlockSize> = 0x10000
-<sCurOffset> = 0
+<sCurOffset>: int = 0
 *pErrCode = <sErrCodeName> # TODO: no pointers in python...
 
 for <sBlockIndex> in range(0, nBlocks64K>):        
-    ret = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
+    ret: int = codec.base.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
     check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
     ret = 0 if check else Asn1SccError(<sErrCodeName>)
     if ret == 0:
@@ -778,11 +778,11 @@ FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 
 Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 # uper_python.stg 780
-<sRemainingItemsVar> = 0
-<sCurBlockSize> = 0
-<sCurOffset> = 0
+<sRemainingItemsVar>: int = 0
+<sCurBlockSize>: int = 0
+<sCurOffset>: int = 0
 <if(bIsVariableSize)>
-<sLengthTmp> = 0
+<sLengthTmp>: int = 0
 <endif>
 
 <sRemainingItemsVar> = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) # uper:733
@@ -823,7 +823,7 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
 }
 
 if (<sRemainingItemsVar> & 0x80) > 0:
-    len2 = 0;
+    len2: int = 0;
     <sRemainingItemsVar> \<\<= 8 # TODO: how to do this bit shifting in python?
     len2 = int(codec.base.decodeConstrainedWholeNumber(0, 0xFF)) # uper:780
 

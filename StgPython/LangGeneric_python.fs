@@ -123,7 +123,7 @@ type LangGeneric_python() =
     override _.doubleValueToString (v:double) =
         v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-    override _.initializeString stringSize = sprintf "bytearray(%d)" stringSize
+    override _.initializeString stringSize = sprintf "\"0\" * %d" stringSize
 
     override _.supportsInitExpressions = true
 

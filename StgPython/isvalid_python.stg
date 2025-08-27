@@ -26,7 +26,7 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
-ret = 0
+ret: int = 0
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -36,7 +36,7 @@ ret = Asn1SccError(<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-ret = 0 if <sIsValidExp> else Asn1SccError(45)
+ret: int = 0 if <sIsValidExp> else Asn1SccError(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -51,7 +51,7 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
 # isvalid_python.stg 53
-ret = 0
+ret: int = 0
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
@@ -196,7 +196,7 @@ if not isinstance(ret, Asn1SccError):
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 198
-<i> = 0
+<i>: int = 0
 while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
@@ -330,7 +330,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 332
-<i> = 0
+<i>: int = 0
 while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> = <i> + 1

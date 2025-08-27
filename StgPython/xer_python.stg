@@ -34,7 +34,7 @@ flag <sFuncName>_aux(const <sTypeDefName><sStar> <sVarName>, const char* xmlTag,
     }
 
     <else>
-    *pErrCode = 0;
+    pErrCode = 0;
     bCheckConstraints=bCheckConstraints;
     <sContent>
 
@@ -289,8 +289,8 @@ SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, s
 /* SEQUENCE OF Decode*/
 ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
 if (ret) {
-    <if(!bFixedSize)><p><sAcc>nCount = 0;<endif>
-    <sI> = 0;
+    <if(!bFixedSize)><p><sAcc>nCount: int = 0;<endif>
+    <sI>: int = 0;
     while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
     {
 	    <sChildBody>
