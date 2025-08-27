@@ -444,3 +444,9 @@ class Codec:
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+    
+    def reset_bitstream(self):
+        self._bitstream.reset()
+    
+    def get_bitstream_buffer(self):
+        self._bitstream.get_data()

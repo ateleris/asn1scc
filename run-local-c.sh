@@ -3,7 +3,7 @@
 OUT_DIR="generated-c-output"
 echo "Removing generated .stg.fs files & c-output..."
 rm -- StgC/*.stg.fs
-rm -r $OUT_DIR
+#rm -r $OUT_DIR
 
 dotnet build asn1scc
 

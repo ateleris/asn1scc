@@ -91,7 +91,7 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>.encode())"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
@@ -102,7 +102,7 @@ ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" and ">
 >>
 ExpNot(sExp) ::= "(not <sExp>)"
-StrLen(sExp) ::= "<sExp>.find(b'\\x00')"
+StrLen(sExp) ::= "len(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<

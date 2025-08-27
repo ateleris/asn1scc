@@ -82,7 +82,7 @@ def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[<sTypeDefName>, A
     cpy = codec.copy()
     res = <sFuncName>(cpy)
     # acn_python.stg 84
-    return (cpy, res)
+    return cpy, res
 >>
 
 A(sErrCode) /*nogen*/ ::= ""

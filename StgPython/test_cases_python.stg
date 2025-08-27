@@ -38,17 +38,17 @@ if isinstance(res, Asn1SccError):
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 # test_cases_python.stg:62
-codec.base.bit_stream.reset_bit_index()
+codec.reset_bitstream()
 # Decode value
 res = <sFuncName>(codec)
 
 if isinstance(res, Asn1SccError):
     # test_cases_python.stg 45
     return Asn1SccError(2)
-elif res == pVal:
-    decodedPDU = pVal
+decodedPDU = res
 >>
 
+// todo: Bitstream not yet adjusted - not found in the output
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 # test_cases_python.stg:71
 bit_stream.attach_buffer(enc_buff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
@@ -86,9 +86,9 @@ Codec_write_CharstreamToFile() ::= <<
 
 Codec_write_bitstreamToFile() ::= <<
 # test_cases_python.stg:99
-codec.base.bitStream.resetBitIndex()
-with open(filename+".dat", "wb") as fp:
-    fp.write(codec.base.bitStream.buf.toArrayRaws)
+codec.reset_bitstream()
+with open(f"{filename}.dat", "wb") as fp:
+    fp.write(codec.get_bitstream_buffer())
 >>
 
 JoinItems(sPart, soNestedPart) ::= <<
