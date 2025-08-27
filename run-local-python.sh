@@ -12,7 +12,7 @@ cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 
 
 echo "Running Asn1SCC Compiler for Python..."
 ./asn1scc/bin/Debug/net9.0/asn1scc \
--python -printTemplateInfo -ACN -atc -fp AUTO -typePrefix T \
+-python -printTemplateInfo -ACN -atc -fp AUTO \
 -o $OUT_DIR \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/additional-test-cases/NULLTERMINATED.asn1 \
 ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \
