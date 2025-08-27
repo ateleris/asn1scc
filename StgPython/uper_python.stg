@@ -23,10 +23,10 @@ if isinstance(result, Asn1SccError):
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-# uper_python.stg 26
-<sErrCode>: ErrorCode = <nErrValue>
-# TODO: Remove old Scala Code (uper_python.stg):
-# @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>
+    # uper_python.stg 26
+    <sErrCode>: ErrorCode = <nErrValue>
+    # TODO: Remove old Scala Code (uper_python.stg):
+    # @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<

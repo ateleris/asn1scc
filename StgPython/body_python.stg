@@ -12,5 +12,5 @@ Body Implementation
 
 printTass(arrsAllProcs) ::= <<
 
-<arrsAllProcs: {a|<a>}; separator="\n\n">
+    <arrsAllProcs: {a|<a>}; separator="\n\n">
 >>

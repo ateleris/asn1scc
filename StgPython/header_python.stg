@@ -17,6 +17,7 @@ from asn1python import *
 from typing import *
 import BasicTypes
 from enum import Enum
+from dataclasses import dataclass, field
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
@@ -149,7 +150,6 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 # nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)
 
 <endif>
-from dataclasses import dataclass, field
 from typing import List
 
 @dataclass(frozen=True)
@@ -180,8 +180,6 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 
 <endif>
 
-from dataclasses import dataclass
-
 @dataclass(frozen=True)
 class <td.typeName>:
     <if(!bFixedSize)>    nCount: int = 0<endif>
@@ -201,7 +199,6 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 # header_python.stg 201
 <soChildDefinition>
 
-from dataclasses import dataclass
 @dataclass(frozen=True)
 class <td.typeName>:
     <if(!bFixedSize)>    nCount: int = 0<endif>
@@ -247,15 +244,11 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 
-from dataclasses import dataclass
-
 @dataclass(frozen=True)
 class <td.extension_function_positions>:
     arrsNullFieldsSavePos; separator="\n">
      <arrsSizeDefinition; separator="\n\n">
 <endif>
-
-from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class <td.typeName>:
@@ -266,8 +259,6 @@ class <td.typeName>:
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 # header_python.stg 268
-from dataclasses import dataclass
-
 <td.typeName> = <prTd.typeName>
 
 class <td.typeName>:
