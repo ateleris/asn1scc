@@ -9,24 +9,6 @@ from src.asn1python import Asn1Error
 from src.asn1python.asn1_types import Asn1Base
 
 
-# codec extract
-
-@dataclass(frozen=True)
-class Asn1ConstraintValidResult:
-    is_valid: bool
-    error_code: int = 0
-
-    def __bool__(self):
-        return self.is_valid
-
-    def __post_init__(self):
-        if not self.is_valid and self.error_code <= 0:
-            raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
-
-        if self.is_valid and self.error_code > 0:
-            raise Exception("No error code must be set if the constraint is valid.")
-# end
-
 @dataclass(frozen=True)
 class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
 

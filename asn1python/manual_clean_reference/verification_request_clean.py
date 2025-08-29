@@ -56,37 +56,21 @@ class VerificationRequest_ID(Asn1Base):
         return ret
 
     def encode(self, codec: Codec):
-
-    # acn_python EmitTypeAssignment_primitive_encode
-    # acn_python.stg 36
-    def VerificationRequest_ID_ACN_Encode(pVal: VerificationRequest_ID, codec: ACNCodec, bCheckConstraints: bool) -> Union[int, Asn1SccError]:
-        res = VerificationRequest_ID_IsConstraintValid(pVal)
-        if isinstance(res, Asn1SccError):
-            # acn_python.stg 43
-            return res
-
-
-        # acn_python.stg 50
-        return 0
-
-    # acn_python EmitTypeAssignment_primitive_decode
-    # acn_python.stg 60
-    def VerificationRequest_ID_ACN_Decode(codec: ACNCodec) -> Union[VerificationRequest_ID, Asn1SccError]:
-
-        # uper_python sequence_build
-        # uper_python.stg 441
-        pVal = VerificationRequest_ID(self_packetVersionNumber, pVal_packet_ID, self_packetSequenceControl)
-
-        res = VerificationRequest_ID_IsConstraintValid(pVal)
-        if isinstance(res, Asn1SccError):
-            # acn_python.stg 70
-            return res
+        res = self.is_constraint_valid()
+        if res:
+            pass
+            # todo: encode
         else:
-            # acn_python.stg 73
-            return pVal
+            pass
+            # todo: error?
 
-    def VerificationRequest_ID_ACN_Decode_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[VerificationRequest_ID, Asn1SccError]]:
-        cpy = codec.copy()
-        res = VerificationRequest_ID_ACN_Decode(cpy)
-        # acn_python.stg 84
-        return cpy, res
+    @classmethod
+    def decode(cls, codec: Codec):
+        request_ID = codec.decode_integer(100, 116, 4) # todo
+        instance = cls(...) #todo
+        res = instance.is_constraint_valid()
+        if res:
+            return instance
+        else:
+            pass
+            # todo: raise error?
