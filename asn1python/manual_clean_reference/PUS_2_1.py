@@ -9,6 +9,8 @@ from manual_clean_reference.general import Asn1Base
 from src.asn1python import Codec
 
 ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES: int = 4126  # (SIZE(1 .. maxTC-2-1-OnOffDeviceAdressesCount))
+DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 0
+DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
 
 class DeviceAddress_Enum(Enum):
     addr0 = 1
