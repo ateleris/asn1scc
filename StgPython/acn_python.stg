@@ -15,8 +15,8 @@ int(<p><sAcc>nCount)
 >>
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
-    # acn_python.stg 18
-    <sErrCode>: int = <nErrValue>  # <soErrorCodeComment>
+# acn_python.stg 18
+<sErrCode>: int = <nErrValue>  # <soErrorCodeComment>
 >>
 
 EmitAcnParameter(sName, sType) ::= "<sName>: <sType>  # TODO acn:11"
@@ -27,9 +27,9 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 # acn_python.stg 29
-    <arrsErrcodes; separator="\n">
-    <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: int = <nMaxBytesInACN>
-    <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: int = <nMaxBitsInACN>
+<arrsErrcodes; separator="\n">
+<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: int = <nMaxBytesInACN>
+<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: int = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<

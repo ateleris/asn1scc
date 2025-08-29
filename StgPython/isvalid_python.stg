@@ -36,7 +36,7 @@ ret = Asn1SccError(<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-ret: int = 0 if <sIsValidExp> else Asn1SccError(45)
+ret = 0 if <sIsValidExp> else Asn1SccError(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
