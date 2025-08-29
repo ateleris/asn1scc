@@ -891,41 +891,41 @@ if isinstance(res, Asn1SccError):
 /* Choice like uper */
 ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 # acn_python.stg 893
-case <sChildID>:
+if <p> == <sChildID>:
     # acn_python.stg 895
     return Asn1SccError(<sErrorCodeName>)
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 # acn_python.stg 900
-case <nChildIndex>:
+if <p> == <nChildIndex>:
     # acn_python.stg 902
     return Asn1SccError(<sErrorCodeName>)
 >>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
-case <sChildID>(<sChildName>):
+if <p> == <sChildID>(<sChildName>):
     codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 914
-case <nChildIndex>:
+if <p> == <nChildIndex>:
     <sChildContent>
     <sChildID>(<sChildName>)
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 921
-match <p>:
-    <arrsChildren: {ch|<ch>}; separator="\n">
+# match <p>:
+<arrsChildren: {ch|<ch>}; separator="\n">
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
-choice_index = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931
@@ -961,8 +961,8 @@ elif <arrsConditions; separator=" and ">:
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 # acn_python.stg 963
-match <p>:
-    <arrsChildren; separator="\n">
+#match <p>:
+<arrsChildren; separator="\n">
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
@@ -976,27 +976,27 @@ else:
 /* Choice with Enum determinant */
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 978
-case <sChildID>(<sChildName>):
+if <p> == <sChildID>(<sChildName>):
     <sChildBody>
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 984
-case <sEnmName>:
+if <p> == <sEnmName>:
     <sChildBody>
     <sChildID>(<sChildName>)
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 # acn_python.stg 991
-match <p>:
-    <arrsChildren; separator="\n">
+# match <p>:
+<arrsChildren; separator="\n">
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 # acn_python.stg 997
-<p> = match <sEnmExtFld>:
-    <arrsChildren; separator="\n">
+# <p> = match <sEnmExtFld>:
+<arrsChildren; separator="\n">
 >>
 
 /* Updates */
