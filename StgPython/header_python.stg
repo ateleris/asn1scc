@@ -21,16 +21,21 @@ from dataclasses import dataclass, field
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
-<arrsValueAssignments:{vas|<vas>}; separator="\n">
+#\<arrsValueAssignments:{vas|\<vas>}; separator="\n">
 
-<arrsPrototypes:{proto|<proto>}; separator="\n">
+#\<arrsPrototypes:{proto|\<proto>}; separator="\n">
+
 >>
 
-Define_TAS(sTypeDefinition, arrsProcs) ::= <<
+Define_TAS(sTypeDefinition, arrsClassFuncs) ::= <<
 # header_python.stg 29
 <sTypeDefinition>
 
-<arrsProcs; separator="\n\n">
+    # class implementation indented
+    <arrsClassFuncs:{proc|<proc>}; separator="\n\n">
+
+# End of class and related functions
+# ================================================================
 >>
 
 PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<

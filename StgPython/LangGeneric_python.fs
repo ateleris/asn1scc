@@ -237,7 +237,7 @@ type LangGeneric_python() =
 
     override this.hasModules = true
     override this.allowsSrcFilesWithNoFunctions = true
-    override this.requiresValueAssignmentsInSrcFile = true
+    override this.requiresValueAssignmentsInSrcFile = false
     override this.supportsStaticVerification = false
 
     override this.getSeqChildIsPresent (sel: Selection) (childName: string) =

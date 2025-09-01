@@ -91,265 +91,385 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let requiresUPER = encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
 
-    //header file
-    let typeDefs =
-        tases |>
-        List.map(fun tas ->
-            let typeAssignmentInfo = tas.Type.id.tasInfo.Value
-            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-
-            let type_definition =
-                match tas.Type.typeDefinitionOrReference with
-                | TypeDefinition td -> td.typedefBody ()
-                | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")
-            let init_def        =
-                match r.callersSet |> Set.contains (f InitFunctionType) with
-                | true -> 
-                    match lm.lg.initMethod with
-                    | Procedure ->
-                        Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
-                    | Function ->
-                        Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
-                | false -> None
-
-            let init_globals    =
-                //we generate const globals only if requested by user and the init method is procedure
-                match r.args.generateConstInitGlobals && (lm.lg.initMethod  = Procedure) with
-                | false -> None
-                | true  -> Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initGlobal ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
-
-            let special_init_funcs =
-                tas.Type.initFunction.user_aux_functions |> List.map fst
-
-
-            let equal_defs =
-                match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef )
-                | false -> []
-            let isValidFuncs =
-                match r.callersSet |> Set.contains (f IsValidFunctionType) with
-                | false -> []
-                | true  ->
-                    match tas.Type.isValidFunction with
-                    | None      -> []
-                    | Some f    ->
-                        getValidFunctions f |> List.choose(fun f -> f.funcDef)
-
-
-            let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperEncFunction.funcDef | false -> None
-            let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperDecFunction.funcDef | false -> None
-
-            let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-            let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-
-            let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-            let acnEncFunc, sEncodingSizeConstant =
-                match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
-                | true, Some x -> x.funcDef, Some x.encodingSizeConstant
-                | _  -> None, None
-            let acnDecFunc =
-                match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
-                | true, Some x -> x.funcDef
-                | _ -> None
-
-            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-            lm.typeDef.Define_TAS type_definition allProcs
-        )
-    let arrsValues =
-        vases |>
-        List.map(fun gv -> printHeaderFileValueAssignment r pu.name lm gv)
-    let arrsHeaderAnonymousValues =
-        arrsAnonymousValues |>
-        List.map(fun av -> lm.typeDef.PrintValueAssignment av.valueName av.typeDefinitionName "")
-
-
-    let arrsPrototypes = []
-
-    let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
-    let bXer = r.args.encodings |> Seq.exists ((=) XER)
-    let arrsUtilityDefines = []
-    let puCorrName =
+    let (definitionsContntent, srcBody) =
         match r.lang with
-        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-        | _ -> pu.name
-
-    let definitionsContntent =
-        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
-
-    let fileName = Path.Combine(outDir, pu.specFileName)
-    File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
-
-
-    // test cases header file
-    match r.args.generateAutomaticTestCases with
-    | false -> ()
-    | true  ->
-        let typeDefs =
-            seq {
-                for tas in tases do
+        | Python ->
+            // Python content
+            let typeDefs =
+                tases |>
+                List.map(fun tas ->
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-                    let reqUPER = r.callersSet |> Set.contains (f UperEncDecFunctionType)
-                    let reqACN = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
-                    if reqUPER && r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
-                        yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
-                        yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-                    if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
-                        yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-                } |> Seq.choose id |> Seq.toList
-        let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
-        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
-        File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
+                    let type_definition =
+                        match tas.Type.typeDefinitionOrReference with
+                        | TypeDefinition td -> td.typedefBody ()
+                        | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")                    
+                    
+                    // let privateDefinition =
+                    //    match tas.Type.typeDefinitionOrReference with
+                    //    | TypeDefinition td -> td.privateTypeDefinition
+                    //    | ReferenceToExistingDefinition _   -> None
+                    
+                    // debug print - result: I think we don't need def, just .body -> def is empty
+                    // getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> Console.WriteLine ("BODY: " + c.body))
+                    let init_funcs        =
+                        match r.callersSet |> Set.contains (f InitFunctionType) with
+                        | true -> Some(getInitializationFunctions tas.Type.initFunction |> List.choose(_.initProcedure) |> List.map(_.body) |> Seq.StrJoin "\n" )
+                        | false -> None
 
-    //source file
-    let arrsTypeAssignments =
-        tases |> List.map(fun t ->
-            let typeAssignmentInfo = t.Type.id.tasInfo.Value
-            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-
-            let privateDefinition =
-                match t.Type.typeDefinitionOrReference with
-                | TypeDefinition td -> td.privateTypeDefinition
-                | ReferenceToExistingDefinition _   -> None
-
-            let initialize =
-                match r.callersSet |> Set.contains (f InitFunctionType) with
-                | true -> 
-                    match lm.lg.initMethod with
-                    | InitMethod.Procedure  ->
-                        Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
-                    | InitMethod.Function  ->
-                        Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
-                | false -> None
-
-            let init_globals    =
-                match r.args.generateConstInitGlobals  && (lm.lg.initMethod  = Procedure) with
-                | false -> None
-                | true  -> Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initGlobal) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                    let init_globals    =
+                        //we generate const globals only if requested by user
+                        match r.args.generateConstInitGlobals with
+                        | false -> None
+                        | true  ->
+                            Console.WriteLine "generateConstInitGlobals not implemented for Python backend!"
+                            None
+                    
+                    // todo: do we need special init funcs? how can they look like?
+                    let special_init_funcs =
+                        tas.Type.initFunction.user_aux_functions |> List.map fst
 
 
-            let special_init_funcs =
-                t.Type.initFunction.user_aux_functions |> List.map snd
+                    let equal_funcs =
+                        match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                        | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> Some((defaultArg t.equalFunction.isEqualFuncDef "") + "\n" + (defaultArg t.equalFunction.isEqualFunc "")))
+                        | false -> []
+                        
+                    let is_valid_funcs =
+                        match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                        | false -> []
+                        | true  ->
+                            match tas.Type.isValidFunction with
+                            | None      -> []
+                            | Some f    ->
+                                getValidFunctions f |> List.choose(fun f -> Some((defaultArg f.funcDef "") + "\n" + (defaultArg f.func "")))
 
-            let eqFuncs =
-                match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                | true  -> GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
-                | false -> []
+                    let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperEncFunction.funcDef | false -> None
+                    let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperDecFunction.funcDef | false -> None
+                    
+                    let uperEncDecBody =
+                        if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
+                            ((tas.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: tas.Type.uperEncFunction.auxiliaries))) @
+                            ((tas.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: tas.Type.uperDecFunction.auxiliaries)))
+                        else []
 
-            let isValidFuncs =
-                match r.callersSet |> Set.contains (f IsValidFunctionType) with
-                | false -> []
-                | true  ->
-                    match t.Type.isValidFunction with
-                    | None      -> []
-                    | Some f    ->
-                        getValidFunctions f |> List.choose(fun f -> f.func)
+                    let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+                    let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
 
-            let uperEncDec =
-                if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
-                    ((t.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: t.Type.uperEncFunction.auxiliaries))) @
-                    ((t.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: t.Type.uperDecFunction.auxiliaries)))
-                else []
+                    let xerEncDecBody =
+                        (match tas.Type.xerEncFunction with
+                        | XerFunction z ->  z.func |> Option.toList
+                        | XerFunctionDummy  -> []) @
+                        (match tas.Type.xerDecFunction with
+                        | XerFunction z -> z.func |> Option.toList
+                        | XerFunctionDummy -> [])
+                        
+                    let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    let acnEncFunc, sEncodingSizeConstant =
+                        match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
+                        | true, Some x -> x.funcDef, Some x.encodingSizeConstant
+                        | _  -> None, None
+                    let acnDecFunc =
+                        match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
+                        | true, Some x -> x.funcDef
+                        | _ -> None
+                    
+                    let ancEncDec =
+                        if requiresAcn && hasAcnEncDec then
+                            (tas.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
+                            (tas.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
+                        else []
 
-            let xerEncDec =
-                (match t.Type.xerEncFunction with
-                | XerFunction z ->  z.func |> Option.toList
-                | XerFunctionDummy  -> []) @
-                (match t.Type.xerDecFunction with
-                | XerFunction z -> z.func |> Option.toList
-                | XerFunctionDummy -> [])
-            
-            let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-            let ancEncDec =
-                if requiresAcn && hasAcnEncDec then
-                    (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
-                    (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
-                else []
-            let allProcs =
-                (privateDefinition |> Option.toList) @
-                eqFuncs @ isValidFuncs @ special_init_funcs @
-                (init_globals |> Option.toList) @
-                (initialize |> Option.toList) @
-                uperEncDec @ ancEncDec @ xerEncDec
-            lm.src.printTass allProcs)
+                    let allProcs = equal_funcs@is_valid_funcs@special_init_funcs@([init_globals;init_funcs;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+                    lm.typeDef.Define_TAS type_definition allProcs// + lm.src.printTass allProcs  // todo: only use one function, but adjust the stg-files for that one
+                )
+            let arrsValues =
+                vases |>
+                List.map(fun gv -> printHeaderFileValueAssignment r pu.name lm gv)
+            let arrsHeaderAnonymousValues =
+                arrsAnonymousValues |>
+                List.map(fun av -> lm.typeDef.PrintValueAssignment av.valueName av.typeDefinitionName "")
 
 
-    let arrsValueAssignments, arrsSourceAnonymousValues =
-        match lm.lg.requiresValueAssignmentsInSrcFile with
-        | true ->
-            let arrsValueAssignments = vases |> List.map (printSourceFileValueAssignment r pu.name lm)
-            let arrsSourceAnonymousValues =  arrsAnonymousValues |> List.map (fun av -> lm.vars.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpression)
-            arrsValueAssignments, arrsSourceAnonymousValues
-        | false ->
-            [], []
-    let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
-    let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
-    let puCorrName =
-        match r.lang with
-        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-        | _ -> pu.name
-    let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+            let arrsPrototypes = []
 
-    let eqContntent =
-        match lm.lg.allowsSrcFilesWithNoFunctions with
-        | true     ->
-            Some srcBody
-        | false   ->
-            match arrsTypeAssignments with
-            | []    -> None
-            | _     -> Some srcBody
+            let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
+            let bXer = r.args.encodings |> Seq.exists ((=) XER)
+            let arrsUtilityDefines = []
+            let puCorrName =
+                match r.lang with
+                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+                | _ -> pu.name
 
-    match eqContntent with
-    | Some eqContntent ->
-        let fileName = Path.Combine(outDir, pu.bodyFileName) // todo: here
-        match r.lang with
-        // In case of Python, there is no Spec and Body file distinction, therefore we append rather than overwrite
-        | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(fileName, eqContntent.Replace("\r",""))
-        | _ -> File.WriteAllText(fileName, eqContntent.Replace("\r",""))
-    | None             -> ()
+            let definitionsContntent =
+                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
 
-    //test cases source file
-    match r.args.generateAutomaticTestCases with
-    | false -> ()
-    | true  ->
-        let encDecFuncs =
-            seq {
-                for tas in tases do
+            let fileName = Path.Combine(outDir, pu.specFileName)
+            File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
+
+            definitionsContntent, "BODY"    
+        | _ ->
+            //header file
+            let typeDefs =
+                tases |>
+                List.map(fun tas ->
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-                    let reqUPER = 
-                        r.args.encodings |> Seq.exists ((=) CommonTypes.UPER)
-                        && r.callersSet |> Set.contains (f UperEncDecFunctionType)
-                    let reqACN = 
-                        r.args.encodings |> Seq.exists ((=) CommonTypes.ACN)
-                        && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
-                    if reqUPER then
-                        yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
-                        yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
-                    if reqACN  then
-                        yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
-                } |> Seq.choose id |> Seq.toList
+                    let type_definition =
+                        match tas.Type.typeDefinitionOrReference with
+                        | TypeDefinition td -> td.typedefBody ()
+                        | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")
+                    let init_def        =
+                        match r.callersSet |> Set.contains (f InitFunctionType) with
+                        | true -> 
+                            match lm.lg.initMethod with
+                            | Procedure ->
+                                Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                            | Function ->
+                                Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                        | false -> None
 
-        let testcase_SrcFileName = Path.Combine(outDir, pu.testcase_bodyFileName)
-        let bXer = r.args.encodings |> Seq.exists((=) XER)
-        let tstCasesHdrContent =
-            match lm.lg.allowsSrcFilesWithNoFunctions with
-            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
-            | false   ->
-                match encDecFuncs with
-                | []    -> None
-                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                    let init_globals    =
+                        //we generate const globals only if requested by user and the init method is procedure
+                        match r.args.generateConstInitGlobals && (lm.lg.initMethod  = Procedure) with
+                        | false -> None
+                        | true  -> Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initGlobal ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
 
-        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent ->
-            match r.lang with
-            | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
-            | _ -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
-        )
+                    let special_init_funcs =
+                        tas.Type.initFunction.user_aux_functions |> List.map fst
 
+
+                    let equal_defs =
+                        match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                        | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef )
+                        | false -> []
+                    let isValidFuncs =
+                        match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                        | false -> []
+                        | true  ->
+                            match tas.Type.isValidFunction with
+                            | None      -> []
+                            | Some f    ->
+                                getValidFunctions f |> List.choose(fun f -> f.funcDef)
+
+
+                    let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperEncFunction.funcDef | false -> None
+                    let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperDecFunction.funcDef | false -> None
+
+                    let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+                    let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+
+                    let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    let acnEncFunc, sEncodingSizeConstant =
+                        match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
+                        | true, Some x -> x.funcDef, Some x.encodingSizeConstant
+                        | _  -> None, None
+                    let acnDecFunc =
+                        match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
+                        | true, Some x -> x.funcDef
+                        | _ -> None
+
+                    let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+                    lm.typeDef.Define_TAS type_definition allProcs
+                )
+            let arrsValues =
+                vases |>
+                List.map(fun gv -> printHeaderFileValueAssignment r pu.name lm gv)
+            let arrsHeaderAnonymousValues =
+                arrsAnonymousValues |>
+                List.map(fun av -> lm.typeDef.PrintValueAssignment av.valueName av.typeDefinitionName "")
+
+
+            let arrsPrototypes = []
+
+            let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
+            let bXer = r.args.encodings |> Seq.exists ((=) XER)
+            let arrsUtilityDefines = []
+            let puCorrName =
+                match r.lang with
+                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+                | _ -> pu.name
+
+            let definitionsContntent =
+                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+
+            let fileName = Path.Combine(outDir, pu.specFileName)
+            File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
+
+
+            // test cases header file
+            match r.args.generateAutomaticTestCases with
+            | false -> ()
+            | true  ->
+                let typeDefs =
+                    seq {
+                        for tas in tases do
+                            let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+                            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                            let reqUPER = r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                            let reqACN = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+
+                            if reqUPER && r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                                yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                            if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
+                                yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                            if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                                yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                        } |> Seq.choose id |> Seq.toList
+                let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
+                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
+                File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
+
+            //source file
+            let arrsTypeAssignments =
+                tases |> List.map(fun t ->
+                    let typeAssignmentInfo = t.Type.id.tasInfo.Value
+                    let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+
+                    let privateDefinition =
+                        match t.Type.typeDefinitionOrReference with
+                        | TypeDefinition td -> td.privateTypeDefinition
+                        | ReferenceToExistingDefinition _   -> None
+
+                    let initialize =
+                        match r.callersSet |> Set.contains (f InitFunctionType) with
+                        | true -> 
+                            match lm.lg.initMethod with
+                            | InitMethod.Procedure  ->
+                                Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+                            | InitMethod.Function  ->
+                                Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+                        | false -> None
+
+                    let init_globals    =
+                        match r.args.generateConstInitGlobals  && (lm.lg.initMethod  = Procedure) with
+                        | false -> None
+                        | true  -> Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initGlobal) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+
+
+                    let special_init_funcs =
+                        t.Type.initFunction.user_aux_functions |> List.map snd
+
+                    let eqFuncs =
+                        match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                        | true  -> GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
+                        | false -> []
+
+                    let isValidFuncs =
+                        match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                        | false -> []
+                        | true  ->
+                            match t.Type.isValidFunction with
+                            | None      -> []
+                            | Some f    ->
+                                getValidFunctions f |> List.choose(fun f -> f.func)
+
+                    let uperEncDec =
+                        if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
+                            ((t.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: t.Type.uperEncFunction.auxiliaries))) @
+                            ((t.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: t.Type.uperDecFunction.auxiliaries)))
+                        else []
+
+                    let xerEncDec =
+                        (match t.Type.xerEncFunction with
+                        | XerFunction z ->  z.func |> Option.toList
+                        | XerFunctionDummy  -> []) @
+                        (match t.Type.xerDecFunction with
+                        | XerFunction z -> z.func |> Option.toList
+                        | XerFunctionDummy -> [])
+                    
+                    let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    let ancEncDec =
+                        if requiresAcn && hasAcnEncDec then
+                            (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
+                            (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
+                        else []
+                    let allProcs =
+                        (privateDefinition |> Option.toList) @
+                        eqFuncs @ isValidFuncs @ special_init_funcs @
+                        (init_globals |> Option.toList) @
+                        (initialize |> Option.toList) @
+                        uperEncDec @ ancEncDec @ xerEncDec
+                    lm.src.printTass allProcs)
+
+
+            let arrsValueAssignments, arrsSourceAnonymousValues =
+                match lm.lg.requiresValueAssignmentsInSrcFile with
+                | true ->
+                    let arrsValueAssignments = vases |> List.map (printSourceFileValueAssignment r pu.name lm)
+                    let arrsSourceAnonymousValues =  arrsAnonymousValues |> List.map (fun av -> lm.vars.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpression)
+                    arrsValueAssignments, arrsSourceAnonymousValues
+                | false ->
+                    [], []
+            let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
+            let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
+            let puCorrName =
+                match r.lang with
+                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+                | _ -> pu.name
+            let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+
+            let eqContntent =
+                match lm.lg.allowsSrcFilesWithNoFunctions with
+                | true     ->
+                    Some srcBody
+                | false   ->
+                    match arrsTypeAssignments with
+                    | []    -> None
+                    | _     -> Some srcBody
+
+            match eqContntent with
+            | Some eqContntent ->
+                let fileName = Path.Combine(outDir, pu.bodyFileName) // todo: here
+                match r.lang with
+                // In case of Python, there is no Spec and Body file distinction, therefore we append rather than overwrite
+                | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(fileName, eqContntent.Replace("\r",""))
+                | _ -> File.WriteAllText(fileName, eqContntent.Replace("\r",""))
+            | None             -> ()
+
+            //test cases source file
+            match r.args.generateAutomaticTestCases with
+            | false -> ()
+            | true  ->
+                let encDecFuncs =
+                    seq {
+                        for tas in tases do
+                            let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+                            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                            let reqUPER = 
+                                r.args.encodings |> Seq.exists ((=) CommonTypes.UPER)
+                                && r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                            let reqACN = 
+                                r.args.encodings |> Seq.exists ((=) CommonTypes.ACN)
+                                && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+
+                            if reqUPER then
+                                yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
+                            if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
+                                yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
+                            if reqACN  then
+                                yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
+                        } |> Seq.choose id |> Seq.toList
+
+                let testcase_SrcFileName = Path.Combine(outDir, pu.testcase_bodyFileName)
+                let bXer = r.args.encodings |> Seq.exists((=) XER)
+                let tstCasesHdrContent =
+                    match lm.lg.allowsSrcFilesWithNoFunctions with
+                    | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                    | false   ->
+                        match encDecFuncs with
+                        | []    -> None
+                        | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+
+                tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent ->
+                    match r.lang with
+                    | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+                    | _ -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+                )
+            (definitionsContntent, srcBody)
+        
     (definitionsContntent, srcBody)
 
 
