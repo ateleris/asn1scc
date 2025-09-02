@@ -139,8 +139,8 @@ type LangGeneric_python() =
             $"{str}{accStr}"
         ) sel.receiverId (List.indexed sel.path)
     
-    override this.joinSelection (sel: Selection) =
-        List.fold (fun str accessor -> $"self{this.getAccess2 accessor}") sel.receiverId sel.path
+    // override this.joinSelection (sel: Selection) =
+    //     List.fold (fun str accessor -> $"self{this.getAccess2 accessor}") sel.receiverId sel.path
     override this.getAccess (sel: Selection) = "."
 
     override this.getAccess2 (acc: Accessor) =
