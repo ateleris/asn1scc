@@ -21,6 +21,19 @@ class ACNCodec(Codec):
     def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:        
         super().__init__(buffer_size)
 
+    def copy(self) -> 'ACNCodec':
+        """Creates and returns a copy of this codec instance"""
+        current_data = self._bitstream.get_data_copy()
+        curret_position = self._bitstream.current_bit_position
+
+        new_codec = ACNCodec(buffer_size=self._max_bits)
+        new_codec._bitstream.reset()
+        if len(current_data) > 0:
+            new_codec._bitstream.write_bytes(current_data)
+        new_codec._bitstream.set_bit_position(curret_position)
+
+        return new_codec
+
     # ============================================================================
     # INTEGER ENCODING/DECODING - POSITIVE INTEGER
     # ============================================================================

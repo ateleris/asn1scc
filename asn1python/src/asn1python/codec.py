@@ -70,6 +70,19 @@ class Codec:
         self._max_bits = buffer_size  # 1MB default max size
         self._bitstream = BitStream(size_in_bits=self._max_bits)
 
+    def copy(self) -> 'Codec':
+        """Creates and returns a copy of this codec instance"""
+        current_data = self._bitstream.get_data_copy()
+        curret_position = self._bitstream.current_bit_position
+
+        new_codec = Codec(buffer_size=self._max_bits)
+        new_codec._bitstream.reset()
+        if len(current_data) > 0:
+            new_codec._bitstream.write_bytes(current_data)
+        new_codec._bitstream.set_bit_position(curret_position)
+
+        return new_codec
+
     def encode_boolean(self, value: bool) -> EncodeResult:
         """Encode a boolean value"""
         try:
