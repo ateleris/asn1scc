@@ -97,6 +97,12 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let (definitionsContntent, srcBody) =
         match r.lang with
         | Python ->
+            // let outDir = Path.Combine(outDir, "asn1src")
+            Directory.CreateDirectory(outDir) |> ignore
+            
+            // Write empty __init__.py
+            File.WriteAllText(Path.Combine(outDir, "__init__.py"), "")
+            
             // Python content
             let typeDefs =
                 tases |>
@@ -440,6 +446,12 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
 
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
+    let _ = match r.lang with
+            | Python ->
+                // Write empty __init__.py in root
+                File.WriteAllText(Path.Combine(di.rootDir, "__init__.py"), "")
+            | l -> ignore l
+    
     let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"
     match r.args.generateAutomaticTestCases with
     | false -> ()

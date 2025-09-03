@@ -156,21 +156,20 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
     
     | ProgrammingLanguage.Python ->
         // We create a subdirectory in the output to bundle the template as a python package "asn1python"
-        let pythonDi = { di with asn1rtlDir = Path.Combine(di.asn1rtlDir, "asn1python") }
-        Directory.CreateDirectory(pythonDi.asn1rtlDir) |> ignore
-        writeResource pythonDi "__init__.py" None
-        writeResource pythonDi "asn1_types.py" None
-        writeResource pythonDi "bitstream.py" None
+        Directory.CreateDirectory(di.asn1rtlDir) |> ignore
+        writeResource di "__init__.py" None
+        writeResource di "asn1_types.py" None
+        writeResource di "bitstream.py" None
         
         match args.encodings with
         | []    -> ()
         | _     ->
-            writeResource pythonDi "codec.py" None
-            writeResource pythonDi "helper.py" None
-            writeResource pythonDi "verification.py" None
-            writeResource pythonDi "vector.py" None
-            writeResource pythonDi "codec_uper.py" None
-            writeResource pythonDi "codec_acn.py" None
+            writeResource di "codec.py" None
+            writeResource di "helper.py" None
+            writeResource di "verification.py" None
+            writeResource di "vector.py" None
+            writeResource di "codec_uper.py" None
+            writeResource di "codec_acn.py" None
                 
     | ProgrammingLanguage.Ada ->
         writeResource di "adaasn1rtl.adb" None

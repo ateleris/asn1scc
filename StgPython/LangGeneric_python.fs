@@ -313,7 +313,12 @@ type LangGeneric_python() =
     override this.getTopLevelDirs (target:Targets option) = []
 
     override this.getDirInfo (target:Targets option) rootDir =
-        {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+         {
+          rootDir = rootDir
+          srcDir = Path.Combine(rootDir, "asn1src")
+          asn1rtlDir = Path.Combine(rootDir, "asn1python")
+          boardsDir = rootDir
+         }
 
     override this.getChChildIsPresent (arg:Selection) (chParent:string) (pre_name:string) =
         sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
