@@ -85,7 +85,7 @@ def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
 # @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>_pure(codec: UPER): (UPER, Union[<sTypeDefName>, Asn1SccError]):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
-    cpy = snapshot(codec)
+    cpy = codec.copy()
     res = <sFuncName>(cpy)
     # uper_python.stg 90
     return cpy, res
