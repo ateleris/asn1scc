@@ -71,6 +71,8 @@ let rec collectEqualFuncs (t:Asn1Type) =
     } |> Seq.toList
 
 
+let private combineStringOpts(a: string option) (b: string option) = (defaultArg a "") + "\n" + (defaultArg b "")
+
 let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
     let tases = pu.sortedTypeAssignments
     let printChildrenIsValidFuncs (t:Asn1Type) =
@@ -120,7 +122,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                         let equal_funcs =
                             match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                            | true  -> (defaultArg cls.equalFunction.isEqualFuncDef "") + "\n" + (defaultArg cls.equalFunction.isEqualFunc "")
+                            | true  -> combineStringOpts cls.equalFunction.isEqualFuncDef cls.equalFunction.isEqualFunc
                             | false -> ""
                             
                         let is_valid_funcs =
@@ -129,43 +131,23 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             | true  -> 
                                 match cls.isValidFunction with
                                 | None      -> ""
-                                | Some f    -> (defaultArg f.funcDef "") + "\n" + (defaultArg f.func "")
+                                | Some f    -> combineStringOpts f.funcDef f.func
 
-                        let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> cls.uperEncFunction.funcDef | false -> None
-                        let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> cls.uperDecFunction.funcDef | false -> None
+                        let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperEncFunction.funcDef cls.uperEncFunction.func) | false -> None
+                        let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperDecFunction.funcDef cls.uperDecFunction.func) | false -> None
                         
-                        let uperEncDecBody =
-                            if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
-                                (cls.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: cls.uperEncFunction.auxiliaries)) @
-                                (cls.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: cls.uperDecFunction.auxiliaries))
-                            else []
-
-                        let xerEncFunc = match cls.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-                        let xerDecFunc = match cls.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-
-                        let xerEncDecBody =
-                            (match cls.xerEncFunction with
-                            | XerFunction z ->  z.func |> Option.toList
-                            | XerFunctionDummy  -> []) @
-                            (match cls.xerDecFunction with
-                            | XerFunction z -> z.func |> Option.toList
-                            | XerFunctionDummy -> [])
+                        let xerEncFunc = match cls.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+                        let xerDecFunc = match cls.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
                             
                         let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
                         let acnEncFunc, sEncodingSizeConstant =
                             match hasAcnEncDec && requiresAcn, cls.acnEncFunction with
-                            | true, Some x -> x.funcDef, Some x.encodingSizeConstant
+                            | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
                             | _  -> None, None
                         let acnDecFunc =
                             match hasAcnEncDec && requiresAcn, cls.acnDecFunction with
-                            | true, Some x -> x.funcDef
+                            | true, Some x -> Some(combineStringOpts x.funcDef x.func)
                             | _ -> None
-                        
-                        let ancEncDec =
-                            if requiresAcn && hasAcnEncDec then
-                                (cls.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
-                                (cls.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
-                            else []
 
                         let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
                         lm.typeDef.Define_TAS type_definition allProcs// + lm.src.printTass allProcs  // todo: only use one function, but adjust the stg-files for that one
