@@ -99,9 +99,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let typeDefs =
                 tases |>
                 List.map(fun tas ->
-                    let allChildren = GetMySelfAndChildren tas.Type |> List.filter (fun a -> match a.typeDefinitionOrReference with
-                                                                                             | ReferenceToExistingDefinition _ -> false
-                                                                                             | TypeDefinition _ -> true)
+                    let allChildren = GetMySelfAndChildren tas.Type |> List.filter _.typeDefinitionOrReference.IsTypeDefinition
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
                     
