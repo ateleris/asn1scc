@@ -19,11 +19,17 @@ import BasicTypes
 from enum import Enum
 from dataclasses import dataclass, field
 
+<if(arrsIncludedModules)>
 # Included Modules: 
-<arrsIncludedModules:{inc|from .<inc> import *}; separator="\n">
+from . import <arrsIncludedModules:{inc|<inc>}; separator=", ">
+<endif>
 
+
+<if(arrsValueAssignments)>
 # Value Assignments:
 <arrsValueAssignments:{vas|<vas>}; separator="\n">
+<endif>
+
 
 # Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
