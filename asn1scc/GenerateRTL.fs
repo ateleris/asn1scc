@@ -156,7 +156,6 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
     
     | ProgrammingLanguage.Python ->
         // We create a subdirectory in the output to bundle the template as a python package "asn1python"
-        Directory.CreateDirectory(di.asn1rtlDir) |> ignore
         writeResource di "__init__.py" None
         writeResource di "asn1_types.py" None
         writeResource di "bitstream.py" None

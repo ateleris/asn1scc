@@ -5,7 +5,7 @@ This module provides vector (array) operations for ASN.1 SEQUENCE OF and SET OF 
 """
 
 from typing import TypeVar, Generic, List, Optional, Iterator, Union
-from asn1_types import Asn1Error
+from .asn1_types import Asn1Error
 
 
 T = TypeVar('T')

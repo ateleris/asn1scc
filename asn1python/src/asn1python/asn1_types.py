@@ -8,7 +8,8 @@ that match the behavior of the C and Scala runtime libraries.
 import ctypes
 from typing import List
 from enum import Enum
-
+import abc
+from dataclasses import dataclass
 
 # Error classes
 class Asn1Error(Exception):
@@ -25,9 +26,9 @@ class Asn1OverflowError(Asn1Error):
     """Raised when an arithmetic operation would cause overflow"""
     pass
 
-
-import abc
 class Asn1Base(abc.ABC):
+    from .codec import Codec
+
     @abc.abstractmethod
     def is_constraint_valid(self):
         pass

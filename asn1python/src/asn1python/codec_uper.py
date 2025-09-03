@@ -4,8 +4,8 @@ ASN.1 Python Runtime Library - UPER Codec
 This module provides UPER (Unaligned Packed Encoding Rules) encoding and decoding.
 """
 
-from codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
-from bitstream import BitStreamError
+from .codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
+from .bitstream import BitStreamError
 
 
 class UPERCodec(Codec):

@@ -7,8 +7,8 @@ This module provides the base codec framework for ASN.1 encoding/decoding operat
 from typing import Optional, TypeVar, Generic, List
 from dataclasses import dataclass
 from enum import IntEnum
-from bitstream import BitStream, BitStreamError
-from asn1_types import Asn1Error
+from .bitstream import BitStream, BitStreamError
+from .asn1_types import Asn1Error
 
 
 class ErrorCode(IntEnum):

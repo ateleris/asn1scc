@@ -98,7 +98,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         match r.lang with
         | Python ->
             // let outDir = Path.Combine(outDir, "asn1src")
-            Directory.CreateDirectory(outDir) |> ignore
             
             // Write empty __init__.py
             File.WriteAllText(Path.Combine(outDir, "__init__.py"), "")
@@ -448,8 +447,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
     let _ = match r.lang with
             | Python ->
-                // Write empty __init__.py in root
-                File.WriteAllText(Path.Combine(di.rootDir, "__init__.py"), "")
+                // Write basic __init__.py in root
+                File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
             | l -> ignore l
     
     let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"

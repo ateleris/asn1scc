@@ -6,8 +6,8 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
-from codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
-from bitstream import BitStream, BitStreamError
+from .codec import Codec, EncodeResult, DecodeResult, ENCODE_OK, DECODE_OK, ERROR_INVALID_VALUE
+from .bitstream import BitStream, BitStreamError
 
 
 class ACNCodec(Codec):
