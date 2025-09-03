@@ -22,11 +22,11 @@ from dataclasses import dataclass, field
 # Included Modules: 
 <arrsIncludedModules:{inc|from .<inc> import *}; separator="\n">
 
+# Value Assignments:
+<arrsValueAssignments:{vas|<vas>}; separator="\n">
+
+# Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
-
-#\<arrsValueAssignments:{vas|\<vas>}; separator="\n">
-
-#\<arrsPrototypes:{proto|\<proto>}; separator="\n">
 
 >>
 
