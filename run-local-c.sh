@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -u -o pipefail
+
 OUT_DIR="generated-c-output"
 echo "Removing generated .stg.fs files & c-output..."
 rm -- StgC/*.stg.fs

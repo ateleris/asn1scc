@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -u -o pipefail
+
 OUT_DIR="generated-scala-output"
 echo "Removing generated .stg.fs files & scala-output..."
 rm -- StgScala/*.stg.fs

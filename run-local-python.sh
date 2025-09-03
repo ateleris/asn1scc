@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -u -o pipefail
+
 OUT_DIR="generated-python-output"
 echo "Removing generated .stg.fs files & python-output..."
 rm -- StgPython/*.stg.fs
