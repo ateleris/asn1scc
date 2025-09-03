@@ -906,6 +906,10 @@ type TypeDefinition = {
     /// For composite types, typedefBody contains also the definition of any
     /// inner children
     typedefBody : unit -> string
+    
+    /// the definition of only this type, without including child type definitions
+    /// useful for backends like Python where you want to generate classes separately
+    typedefBodyOnly : unit -> string
     baseType    : ReferenceToExistingDefinition option
 
     /// extra information that is needed for the type definition

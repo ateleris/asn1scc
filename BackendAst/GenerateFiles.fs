@@ -9,6 +9,7 @@ open AbstractMacros
 open DAst
 open DAstUtilFunctions
 open Language
+open Microsoft.FSharp.Collections
 
 
 let getTypeDecl = DastTestCaseCreation.getTypeDecl
@@ -98,91 +99,142 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let typeDefs =
                 tases |>
                 List.map(fun tas ->
+                    let allChildren = GetMySelfAndChildren tas.Type |> List.filter (fun a -> match a.typeDefinitionOrReference with
+                                                                                             | ReferenceToExistingDefinition _ -> false
+                                                                                             | TypeDefinition _ -> true)
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-
-                    let type_definition =
-                        match tas.Type.typeDefinitionOrReference with
-                        | TypeDefinition td -> td.typedefBody ()
-                        | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")                    
                     
-                    // let privateDefinition =
-                    //    match tas.Type.typeDefinitionOrReference with
-                    //    | TypeDefinition td -> td.privateTypeDefinition
-                    //    | ReferenceToExistingDefinition _   -> None
-                    
-                    // debug print - result: I think we don't need def, just .body -> def is empty
-                    // getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> Console.WriteLine ("BODY: " + c.body))
-                    let init_funcs        =
-                        match r.callersSet |> Set.contains (f InitFunctionType) with
-                        | true -> Some(getInitializationFunctions tas.Type.initFunction |> List.choose(_.initProcedure) |> List.map(_.body) |> Seq.StrJoin "\n" )
-                        | false -> None
-
-                    let init_globals    =
-                        //we generate const globals only if requested by user
-                        match r.args.generateConstInitGlobals with
-                        | false -> None
-                        | true  ->
-                            Console.WriteLine "generateConstInitGlobals not implemented for Python backend!"
-                            None
-                    
-                    // todo: do we need special init funcs? how can they look like?
-                    let special_init_funcs =
-                        tas.Type.initFunction.user_aux_functions |> List.map fst
-
-
-                    let equal_funcs =
-                        match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                        | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> Some((defaultArg t.equalFunction.isEqualFuncDef "") + "\n" + (defaultArg t.equalFunction.isEqualFunc "")))
-                        | false -> []
+                    allChildren |> List.map(fun cls -> 
+                        // let getTypedef(tdor: TypeDefinitionOrReference) =
+                        //     match tdor with
+                        //     | TypeDefinition td -> td.typedefBodyOnly ()
+                        //     | ReferenceToExistingDefinition _ -> raise(BugErrorException "Type Assignment with no Type Definition")
+                        //
+                        // // let children = allchildren |> List.choose (fun c -> match c with Asn1AcnAst.Asn1Child z -> Some z | _ -> None)
+                        //
+                        // let rec process_elem(kind: Asn1TypeKind) =
+                        //     match kind with
+                        //     | Sequence a -> 
+                        //         let d = a.children
+                        //                 |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
+                        //                 |> List.map (fun c -> (process_elem c.Type.Kind))
+                        //                 |> List.reduce (fun a b -> a@b)
+                        //                 //|> List.map _.Type.typeDefinitionOrReference
+                        //                 //|> List.map (fun c -> (getTypedef c))
+                        //         [getTypedef a.definitionOrRef] @ d
+                        //     | SequenceOf a -> [getTypedef a.definitionOrRef]
+                        //     | ObjectIdentifier a -> [getTypedef a.definitionOrRef]
+                        //     | _ -> [""]
+                        //
+                        // let rec get_flat_children(v: Asn1Type) =
+                        //     GetMySelfAndChildren v |> List.tail // Remove self, keep only children
+                        //     // let res = match v with
+                        //     //             | Sequence sequence -> List.map (fun c -> match c with Asn1Child z -> Some z.Type.Kind | _ -> None) sequence.children                        
+                        //     //             | Choice choice -> List.map (fun c -> Some c.chType.Kind) choice.children
+                        //     //             | _ -> []
+                        //     //
+                        //     // List.map (fun c -> match c with
+                        //     //                    | None -> None
+                        //     //                    | Some Sequence a -> get_flat_children a.Type.Kind
+                        //     //                    | Some Choice a ->  get_flat_children a.Type.Kind
+                        //     //                    | Some c -> c) res2
+                        //
+                        // // let stuff2 = GetMySelfAndChildren tas.Type
+                        // // let stuff = get_flat_children tas.Type
+                        // // stuff.Length + stuff2.Length |> Console.WriteLine
+                        //
+                        // let rec get_equal_func(v: Asn1Type) =
+                        //     match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                        //     | true -> (defaultArg v.equalFunction.isEqualFuncDef "") + "\n" + (defaultArg v.equalFunction.isEqualFunc "")
+                        //     | false -> ""
+                        //
+                        // let type_definition = process_elem(tas.Type.Kind)
+                        // //just_class |> Console.WriteLine
                         
-                    let is_valid_funcs =
-                        match r.callersSet |> Set.contains (f IsValidFunctionType) with
-                        | false -> []
-                        | true  ->
-                            match tas.Type.isValidFunction with
-                            | None      -> []
-                            | Some f    ->
-                                getValidFunctions f |> List.choose(fun f -> Some((defaultArg f.funcDef "") + "\n" + (defaultArg f.func "")))
-
-                    let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperEncFunction.funcDef | false -> None
-                    let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperDecFunction.funcDef | false -> None
-                    
-                    let uperEncDecBody =
-                        if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
-                            ((tas.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: tas.Type.uperEncFunction.auxiliaries))) @
-                            ((tas.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: tas.Type.uperDecFunction.auxiliaries)))
-                        else []
-
-                    let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-                    let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
-
-                    let xerEncDecBody =
-                        (match tas.Type.xerEncFunction with
-                        | XerFunction z ->  z.func |> Option.toList
-                        | XerFunctionDummy  -> []) @
-                        (match tas.Type.xerDecFunction with
-                        | XerFunction z -> z.func |> Option.toList
-                        | XerFunctionDummy -> [])
+                        let type_definition =
+                            match cls.typeDefinitionOrReference with
+                            | TypeDefinition td -> td.typedefBodyOnly ()
+                            | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")                    
                         
-                    let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-                    let acnEncFunc, sEncodingSizeConstant =
-                        match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
-                        | true, Some x -> x.funcDef, Some x.encodingSizeConstant
-                        | _  -> None, None
-                    let acnDecFunc =
-                        match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
-                        | true, Some x -> x.funcDef
-                        | _ -> None
-                    
-                    let ancEncDec =
-                        if requiresAcn && hasAcnEncDec then
-                            (tas.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
-                            (tas.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
-                        else []
+                        // let privateDefinition =
+                        //    match tas.Type.typeDefinitionOrReference with
+                        //    | TypeDefinition td -> td.privateTypeDefinition
+                        //    | ReferenceToExistingDefinition _   -> None
+                        
+                        // debug print - result: I think we don't need def, just .body -> def is empty
+                        // getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> Console.WriteLine ("BODY: " + c.body))
+                        let init_funcs        = 
+                            match r.callersSet |> Set.contains (f InitFunctionType) with
+                            | true -> Some(getInitializationFunctions cls.initFunction |> List.choose(_.initProcedure) |> List.map(_.body) |> Seq.StrJoin "\n" )
+                            | false -> None
 
-                    let allProcs = equal_funcs@is_valid_funcs@special_init_funcs@([init_globals;init_funcs;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-                    lm.typeDef.Define_TAS type_definition allProcs// + lm.src.printTass allProcs  // todo: only use one function, but adjust the stg-files for that one
+                        let init_globals    =
+                            //we generate const globals only if requested by user
+                            match r.args.generateConstInitGlobals with
+                            | false -> None
+                            | true  ->
+                                Console.WriteLine "generateConstInitGlobals not implemented for Python backend!"
+                                None
+                        
+                        // todo: do we need special init funcs? how can they look like?
+                        let special_init_funcs =
+                            cls.initFunction.user_aux_functions |> List.map fst
+
+                        
+                        let equal_funcs =
+                            match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                            | true  -> (defaultArg cls.equalFunction.isEqualFuncDef "") + "\n" + (defaultArg cls.equalFunction.isEqualFunc "")
+                            | false -> ""
+                            
+                        let is_valid_funcs =
+                            match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                            | false -> []
+                            | true  ->
+                                match cls.isValidFunction with
+                                | None      -> []
+                                | Some f    ->
+                                    getValidFunctions f |> List.choose(fun f -> Some((defaultArg f.funcDef "") + "\n" + (defaultArg f.func "")))
+
+                        let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> cls.uperEncFunction.funcDef | false -> None
+                        let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> cls.uperDecFunction.funcDef | false -> None
+                        
+                        let uperEncDecBody =
+                            if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
+                                ((cls.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: cls.uperEncFunction.auxiliaries))) @
+                                ((cls.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: cls.uperDecFunction.auxiliaries)))
+                            else []
+
+                        let xerEncFunc = match cls.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+                        let xerDecFunc = match cls.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+
+                        let xerEncDecBody =
+                            (match cls.xerEncFunction with
+                            | XerFunction z ->  z.func |> Option.toList
+                            | XerFunctionDummy  -> []) @
+                            (match cls.xerDecFunction with
+                            | XerFunction z -> z.func |> Option.toList
+                            | XerFunctionDummy -> [])
+                            
+                        let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                        let acnEncFunc, sEncodingSizeConstant =
+                            match hasAcnEncDec && requiresAcn, cls.acnEncFunction with
+                            | true, Some x -> x.funcDef, Some x.encodingSizeConstant
+                            | _  -> None, None
+                        let acnDecFunc =
+                            match hasAcnEncDec && requiresAcn, cls.acnDecFunction with
+                            | true, Some x -> x.funcDef
+                            | _ -> None
+                        
+                        let ancEncDec =
+                            if requiresAcn && hasAcnEncDec then
+                                (cls.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
+                                (cls.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
+                            else []
+
+                        let allProcs = [equal_funcs]@is_valid_funcs@special_init_funcs@([init_globals;init_funcs;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+                        lm.typeDef.Define_TAS type_definition allProcs// + lm.src.printTass allProcs  // todo: only use one function, but adjust the stg-files for that one
+                    ) |> List.reduce (fun a b -> a+"\n\n"+b)
                 )
             let arrsValues =
                 vases |>
