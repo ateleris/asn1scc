@@ -150,7 +150,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             | _ -> None
 
                         let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-                        lm.typeDef.Define_TAS type_definition allProcs// + lm.src.printTass allProcs  // todo: only use one function, but adjust the stg-files for that one
+                        lm.typeDef.Define_TAS type_definition allProcs
                     ) |> List.reduce (fun a b -> a+"\n\n"+b)
                 )
             let arrsValues =
@@ -166,18 +166,14 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
             let bXer = r.args.encodings |> Seq.exists ((=) XER)
             let arrsUtilityDefines = []
-            let puCorrName =
-                match r.lang with
-                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-                | _ -> pu.name
 
-            let definitionsContntent =
-                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+            let definitionsContent =
+                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
 
             let fileName = Path.Combine(outDir, pu.specFileName)
-            File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
+            File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
 
-            definitionsContntent, "BODY"    
+            definitionsContent, "BODY"    
         | _ ->
             //header file
             let typeDefs =
