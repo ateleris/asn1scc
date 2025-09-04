@@ -328,7 +328,10 @@ type LangGeneric_python() =
     override this.getChChildIsPresent (arg:Selection) (chParent:string) (pre_name:string) =
         sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
 
-    override this.CreateMakeFile (r:AstRoot) (di:DirInfo) = ()
+    override this.CreateMakeFile (r:AstRoot) (di:DirInfo) =
+        let printPyproject = aux_python.PrintMakeFile
+        let content = printPyproject [""] false false false
+        File.WriteAllText(Path.Combine(di.rootDir, "pyproject.toml"), content)
 
     override this.CreateAuxFiles (r:AstRoot) (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
         let CreatePythonMainFile (r:AstRoot) outDir  =

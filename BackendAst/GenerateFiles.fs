@@ -172,7 +172,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
             let fileName = Path.Combine(outDir, pu.specFileName)
             File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
-            Console.WriteLine $"Name: {pu.name}"
             File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"from .{pu.name} import *\n")
 
             definitionsContent, "BODY"    
