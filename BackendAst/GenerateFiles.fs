@@ -96,12 +96,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
     let (definitionsContntent, srcBody) =
         match r.lang with
-        | Python ->
-            // let outDir = Path.Combine(outDir, "asn1src")
-            
-            // Write empty __init__.py
-            File.WriteAllText(Path.Combine(outDir, "__init__.py"), "")
-            
+        | Python ->            
             // Python content
             let typeDefs =
                 tases |>
@@ -177,6 +172,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
             let fileName = Path.Combine(outDir, pu.specFileName)
             File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
+            Console.WriteLine $"Name: {pu.name}"
+            File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"from .{pu.name} import *\n")
 
             definitionsContent, "BODY"    
         | _ ->
@@ -447,8 +444,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
     let _ = match r.lang with
             | Python ->
-                // Write basic __init__.py in root
+                // Write basic __init__.py in root & in srcDir
                 File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
+                File.WriteAllText(Path.Combine(di.srcDir, "__init__.py"), "")
             | l -> ignore l
     
     let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"
