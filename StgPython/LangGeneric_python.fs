@@ -87,7 +87,13 @@ type LangBasic_python() =
         | Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
     override this.getNullRtlTypeName = "", "None", "NULL"
     override this.getBoolRtlTypeName = "", "bool", "BOOLEAN"
-    
+
+let isClassVariable (receiverId: string) : bool =
+        // For Python class methods, we need to detect when the receiverId should be treated as "self"
+        // Class methods are generated via EmitTypeAssignment_composite template which expects self parameter
+        // We detect this by checking if we're in a context where the receiverId should reference the class instance
+        receiverId = "self" || receiverId.StartsWith("self")
+        
 type LangGeneric_python() =
     inherit ILangGeneric()
     
@@ -128,6 +134,7 @@ type LangGeneric_python() =
     override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
     override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
         let len = sel.path.Length
+        let receiverPrefix = if isClassVariable sel.receiverId then "self." else ""
         List.fold (fun str (ix, accessor) ->
             let accStr =
                 match accessor with
@@ -137,10 +144,8 @@ type LangGeneric_python() =
                     if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
                 | ArrayAccess (ix, _) -> $"[{ix}]"
             $"{str}{accStr}"
-        ) sel.receiverId (List.indexed sel.path)
+        ) (receiverPrefix + sel.receiverId) (List.indexed sel.path)
     
-    // override this.joinSelection (sel: Selection) =
-    //     List.fold (fun str accessor -> $"self{this.getAccess2 accessor}") sel.receiverId sel.path
     override this.getAccess (sel: Selection) = "."
 
     override this.getAccess2 (acc: Accessor) =
@@ -276,6 +281,15 @@ type LangGeneric_python() =
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> Pointer
         let recvId = "pVal" + suf
+        {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+    
+    override this.getClassMethodParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
+            match kind with
+            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
+            | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
+            | _ -> Pointer
+        let recvId = "self"  // For class methods, the receiver is always "self"
         {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
 
     override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =

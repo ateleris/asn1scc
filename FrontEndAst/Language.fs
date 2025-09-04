@@ -288,6 +288,7 @@ type ILangGeneric () =
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
+    abstract member getClassMethodParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
 
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
@@ -362,6 +363,8 @@ type ILangGeneric () =
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
+    default this.getClassMethodParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        this.getParamTypeSuffix t suf c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
