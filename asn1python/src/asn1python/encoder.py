@@ -6,8 +6,8 @@ from asn1python import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INV
 
 class Encoder(Codec):
 
-    def __init__(self, buffer_size: int = 0 * 1024 * 1024) -> None:
-        super().__init__(buffer_size=buffer_size)
+    def __init__(self, buffer_bit_size: int = 0 * 1024 * 1024) -> None:
+        super().__init__(buffer_bit_size=buffer_bit_size)
 
 
     def encode_boolean(self, value: bool) -> EncodeResult:
