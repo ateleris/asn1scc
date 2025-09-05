@@ -104,8 +104,10 @@ Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateLocalTimeWithTimeZone
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 # header_python.stg 91
-<sTypeDefinitionName> = <sParentType>
-<soExtraDefs>
+# todo: should this be a dataclass? -> In C it was just a type alias, but with type alias we would need to not add the additional is_valid, initialize and other class functions
+@dataclass(frozen=True)
+class <sTypeDefinitionName>(<sParentType>):
+    <soExtraDefs>
 >>
 
 
@@ -122,18 +124,16 @@ Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::
 <sName> = <nValue> # header_python.stg 107
 >>
 
-Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
-# header_python.stg 111
-# type <sCName> = <td.typeName>.<sAsn1Name>
->>
+Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= ""
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
-# header_python.stg 116
-class <td.typeName>(Enum):
+# header_python.stg 130
+class <td.typeName>_Enum(Enum):
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
-
-# please use the following macros to avoid breaking code.
-<arrsResolvingMacros; separator="\n">
+    
+class <td.typeName>(Asn1Type):
+    # initialize val with the first enum element by default
+    val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
