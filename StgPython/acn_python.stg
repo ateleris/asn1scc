@@ -34,7 +34,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: ACNCodec, bCheckConstraints: bool) -> Union[int, Asn1SccError]:
+def encode(self, codec: ACNCodec, bCheckConstraints: bool) -> Union[int, Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -58,7 +58,8 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
-def <sFuncName>(codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
+@classmethod
+def decode(cls, codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -77,10 +78,11 @@ def <sFuncName>(codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
     return <sVarName>
     <endif>
 
-def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[<sTypeDefName>, Asn1SccError]]:
+@staticmethod
+def decode_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[<sTypeDefName>, Asn1SccError]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
-    res = <sFuncName>(cpy)
+    res = <sTypeDefName>.decode(cpy)
     # acn_python.stg 84
     return cpy, res
 >>

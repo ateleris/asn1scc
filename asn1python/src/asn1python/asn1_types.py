@@ -41,6 +41,10 @@ class Asn1Base(abc.ABC):
     def decode(cls, codec: Codec):
         pass
 
+    @staticmethod
+    def decode_pure(cls, codec: Codec):
+        pass
+
 
 @dataclass(frozen=True)
 class Asn1ConstraintValidResult:

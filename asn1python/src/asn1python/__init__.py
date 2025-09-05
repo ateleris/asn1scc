@@ -21,6 +21,8 @@ from .asn1_types import (
 
     # Error handling
     Asn1Error, Asn1ValueError, Asn1OverflowError,
+
+    Asn1Base
 )
 
 from .bitstream import BitStream, BitStreamError
