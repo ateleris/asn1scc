@@ -67,6 +67,9 @@ __all__ = [
     "Asn1Date", "Asn1LocalTime", "Asn1UtcTime",
     "Asn1TimeWithTimeZone", "Asn1DateLocalTime",
     "Asn1DateUtcTime", "Asn1DateTimeWithTimeZone",
+    
+    # Base Class
+    "Asn1Base",
 
     # Errors
     "Asn1Error", "Asn1ValueError", "Asn1OverflowError",
