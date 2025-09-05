@@ -65,17 +65,20 @@ class Codec:
     including UPER, ACN, XER, and BER.
     """
 
-    def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:
-        assert buffer_size > 0, "Codec buffer_size must be greater than zero"
-        self._max_bits = buffer_size  # 1MB default max size
-        self._bitstream = BitStream(size_in_bits=self._max_bits)
+    def __init__(self, buffer_bit_size: int = 8 * 1024 * 1024, buffer: bytearray = None) -> None:
+        if buffer is not None:
+            buffer_bit_size = len(buffer) * 8
+
+        assert buffer_bit_size > 0, "Codec buffer_size must be greater than zero"
+        self._max_bits = buffer_bit_size  # 1MB default max size
+        self._bitstream = BitStream(size_in_bits=self._max_bits, data=buffer)
 
     def copy(self) -> 'Codec':
         """Creates and returns a copy of this codec instance"""
         current_data = self._bitstream.get_data_copy()
         curret_position = self._bitstream.current_bit_position
 
-        new_codec = Codec(buffer_size=self._max_bits)
+        new_codec = Codec(buffer_bit_size=self._max_bits)
         new_codec._bitstream.reset()
         if len(current_data) > 0:
             new_codec._bitstream.write_bytes(current_data)
@@ -86,5 +89,5 @@ class Codec:
     def reset_bitstream(self):
         self._bitstream.reset()
     
-    def get_bitstream_buffer(self):
-        self._bitstream.get_data()
+    def get_bitstream_buffer(self) -> bytearray:
+        return self._bitstream.get_data()

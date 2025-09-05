@@ -1,13 +1,13 @@
 from typing import List, Optional
 
-from src.asn1python import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from asn1python import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
 
 class Decoder(Codec):
 
-    def __init__(self, buffer_size: int = 0 * 1024 * 1024) -> None:
-        super().__init__(buffer_size)
+    def __init__(self, buffer: bytearray) -> None:
+        super().__init__(buffer=buffer)
 
     def decode_boolean(self) -> DecodeResult[bool]:
         """Decode a boolean value"""

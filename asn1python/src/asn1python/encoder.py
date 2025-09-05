@@ -1,13 +1,13 @@
 from typing import Optional, List
 
-from src.asn1python import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from asn1python import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
 
 class Encoder(Codec):
 
     def __init__(self, buffer_size: int = 0 * 1024 * 1024) -> None:
-        super().__init__(buffer_size)
+        super().__init__(buffer_size=buffer_size)
 
 
     def encode_boolean(self, value: bool) -> EncodeResult:

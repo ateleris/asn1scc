@@ -19,8 +19,8 @@ class ACNDecoder(Decoder):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:        
-        super().__init__(buffer_size)
+    def __init__(self, buffer: bytearray) -> None:
+        super().__init__(buffer=buffer)
 
     # ============================================================================
     # INTEGER DECODING - POSITIVE INTEGER

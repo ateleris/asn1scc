@@ -168,8 +168,12 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
             writeResource di "verification.py" None
             writeResource di "vector.py" None
             writeResource di "codec_uper.py" None
-            writeResource di "codec_acn.py" None
-                
+            // writeResource di "codec.py" None
+            writeResource di "decoder.py" None
+            writeResource di "encoder.py" None
+            writeResource di "acn_decoder.py" None
+            writeResource di "acn_encoder.py" None
+          
     | ProgrammingLanguage.Ada ->
         writeResource di "adaasn1rtl.adb" None
         match args.floatingPointSizeInBytes  = 4I with

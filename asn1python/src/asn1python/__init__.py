@@ -34,7 +34,8 @@ from .codec import (
 )
 
 from .codec_uper import UPERCodec
-from .codec_acn import ACNCodec
+from .acn_encoder import ACNEncoder
+from .acn_decoder import ACNDecoder
 # from .codec_xer import XERCodec
 # from .codec_ber import BERCodec
 # from .codec_per import PERCodec

@@ -20,7 +20,7 @@ class ACNEncoder(Encoder):
     """
 
     def __init__(self, buffer_size: int = 8 * 1024 * 1024) -> None:        
-        super().__init__(buffer_size)
+        super().__init__(buffer_size=buffer_size)
 
     # ============================================================================
     # INTEGER ENCODING - POSITIVE INTEGER
