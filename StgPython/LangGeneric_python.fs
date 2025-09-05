@@ -283,7 +283,7 @@ type LangGeneric_python() =
         let recvId = "pVal" + suf
         {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
     
-    override this.getClassMethodParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+    override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
             match kind with
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
