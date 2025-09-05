@@ -6,6 +6,9 @@ methodNameSuffix() ::= "_Initialize"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
+# todo: this should probably not be a standalone function but added as default
+# todo: values to the dataclass instead? -> static for the moment
+@staticmethod
 def <sFuncName>() -> <sTypeDefName>:
     # init_python.stg 10
     return <sDefaultInitValue>
