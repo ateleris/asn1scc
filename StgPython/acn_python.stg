@@ -98,7 +98,6 @@ MF(soMF) ::= /*nogen*/ <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 # acn_python.stg 98
-<i>: int = 0
 for <i> in range(int(<fixedSize>)):
     <sInternalItem>
 >>

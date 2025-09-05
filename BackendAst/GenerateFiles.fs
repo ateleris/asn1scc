@@ -174,6 +174,30 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
             File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"from .{pu.name} import *\n")
 
+            // test cases file
+            match r.args.generateAutomaticTestCases with
+            | false -> ()
+            | true  ->
+                let typeDefs =
+                    seq {
+                        for tas in tases do
+                            let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+                            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                            let reqUPER = r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                            let reqACN = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+
+                            if reqUPER && r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                                yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> (z.funcDef + "\n" + z.func)))
+                            if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
+                                yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.funcDef + "\n" + z.func))
+                            if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                                yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef + "\n" + z.func))
+                        } |> Seq.choose id |> Seq.toList
+                    
+                let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
+                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) [""] typeDefs false
+                File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
+                
             definitionsContent, "BODY"    
         | _ ->
             //header file
@@ -429,11 +453,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         | []    -> None
                         | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
 
-                tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent ->
-                    match r.lang with
-                    | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
-                    | _ -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
-                )
+                tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
             (definitionsContntent, srcBody)
         
     (definitionsContntent, srcBody)
