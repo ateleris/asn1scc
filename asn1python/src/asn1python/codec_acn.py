@@ -35,6 +35,22 @@ class ACNCodec(Codec):
         return new_codec
 
     # ============================================================================
+    # ALIGNMENT FUNCTIONS
+    # ============================================================================
+
+    def align_to_next_byte(self, encode: bool) -> None:
+        """Align to next byte boundary."""
+        raise NotImplementedError("align_to_next_byte not yet implemented")
+
+    def align_to_next_word(self, encode: bool) -> None:
+        """Align to next word (16-bit) boundary."""
+        raise NotImplementedError("align_to_next_word not yet implemented")
+
+    def align_to_next_dword(self, encode: bool) -> None:
+        """Align to next dword (32-bit) boundary."""
+        raise NotImplementedError("align_to_next_dword not yet implemented")
+
+    # ============================================================================
     # INTEGER ENCODING/DECODING - POSITIVE INTEGER
     # ============================================================================
 
@@ -1017,3 +1033,498 @@ class ACNCodec(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    # ============================================================================
+    # ASCII INTEGER ENCODING/DECODING - SIGNED
+    # ============================================================================
+
+    def enc_sint_ascii_const_size(self, int_val: int, encoded_size_in_bytes: int) -> EncodeResult:
+        """Encode signed integer as ASCII with constant size."""
+        raise NotImplementedError("enc_sint_ascii_const_size not yet implemented")
+
+    def dec_sint_ascii_const_size(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode signed integer from ASCII with constant size."""
+        raise NotImplementedError("dec_sint_ascii_const_size not yet implemented")
+
+    def enc_sint_ascii_var_size_length_embedded(self, int_val: int) -> EncodeResult:
+        """Encode signed integer as ASCII with variable size (length embedded)."""
+        raise NotImplementedError("enc_sint_ascii_var_size_length_embedded not yet implemented")
+
+    def dec_sint_ascii_var_size_length_embedded(self) -> DecodeResult:
+        """Decode signed integer from ASCII with variable size (length embedded)."""
+        raise NotImplementedError("dec_sint_ascii_var_size_length_embedded not yet implemented")
+
+    def enc_sint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
+        """Encode signed integer as ASCII with null termination."""
+        raise NotImplementedError("enc_sint_ascii_var_size_null_terminated not yet implemented")
+
+    def dec_sint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
+        """Decode signed integer from ASCII with null termination."""
+        raise NotImplementedError("dec_sint_ascii_var_size_null_terminated not yet implemented")
+
+    # ============================================================================
+    # ASCII INTEGER ENCODING/DECODING - UNSIGNED
+    # ============================================================================
+
+    def enc_uint_ascii_const_size(self, int_val: int, encoded_size_in_bytes: int) -> EncodeResult:
+        """Encode unsigned integer as ASCII with constant size."""
+        raise NotImplementedError("enc_uint_ascii_const_size not yet implemented")
+
+    def dec_uint_ascii_const_size(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode unsigned integer from ASCII with constant size."""
+        raise NotImplementedError("dec_uint_ascii_const_size not yet implemented")
+
+    def enc_uint_ascii_var_size_length_embedded(self, int_val: int) -> EncodeResult:
+        """Encode unsigned integer as ASCII with variable size (length embedded)."""
+        raise NotImplementedError("enc_uint_ascii_var_size_length_embedded not yet implemented")
+
+    def dec_uint_ascii_var_size_length_embedded(self) -> DecodeResult:
+        """Decode unsigned integer from ASCII with variable size (length embedded)."""
+        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded not yet implemented")
+
+    def enc_uint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
+        """Encode unsigned integer as ASCII with null termination."""
+        raise NotImplementedError("enc_uint_ascii_var_size_null_terminated not yet implemented")
+
+    def dec_uint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
+        """Decode unsigned integer from ASCII with null termination."""
+        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated not yet implemented")
+
+    # ============================================================================
+    # TYPED INTEGER DECODING FUNCTIONS (C Type Compatibility)
+    # ============================================================================
+
+    def dec_int_positive_integer_const_size_uint8(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_uint16(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_uint32(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode positive integer to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_uint32 not yet implemented")
+
+    def dec_int_positive_integer_const_size_8_uint8(self) -> DecodeResult:
+        """Decode 8-bit positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_8_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_16_uint16(self) -> DecodeResult:
+        """Decode 16-bit big-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_16_uint8(self) -> DecodeResult:
+        """Decode 16-bit big-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_32_uint32(self) -> DecodeResult:
+        """Decode 32-bit big-endian positive integer to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_32_uint32 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_32_uint16(self) -> DecodeResult:
+        """Decode 32-bit big-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_32_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_32_uint8(self) -> DecodeResult:
+        """Decode 32-bit big-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_32_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_64_uint32(self) -> DecodeResult:
+        """Decode 64-bit big-endian positive integer to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_64_uint32 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_64_uint16(self) -> DecodeResult:
+        """Decode 64-bit big-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_64_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_big_endian_64_uint8(self) -> DecodeResult:
+        """Decode 64-bit big-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_64_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_16_uint16(self) -> DecodeResult:
+        """Decode 16-bit little-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_16_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_16_uint8(self) -> DecodeResult:
+        """Decode 16-bit little-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_16_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_32_uint32(self) -> DecodeResult:
+        """Decode 32-bit little-endian positive integer to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_32_uint32 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_32_uint16(self) -> DecodeResult:
+        """Decode 32-bit little-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_32_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_32_uint8(self) -> DecodeResult:
+        """Decode 32-bit little-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_32_uint8 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_64_uint32(self) -> DecodeResult:
+        """Decode 64-bit little-endian positive integer to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_64_uint32 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_64_uint16(self) -> DecodeResult:
+        """Decode 64-bit little-endian positive integer to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_64_uint16 not yet implemented")
+
+    def dec_int_positive_integer_const_size_little_endian_64_uint8(self) -> DecodeResult:
+        """Decode 64-bit little-endian positive integer to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_const_size_little_endian_64_uint8 not yet implemented")
+
+    def dec_int_positive_integer_var_size_length_embedded_uint8(self) -> DecodeResult:
+        """Decode variable size positive integer (length embedded) to uint8."""
+        raise NotImplementedError("dec_int_positive_integer_var_size_length_embedded_uint8 not yet implemented")
+
+    def dec_int_positive_integer_var_size_length_embedded_uint16(self) -> DecodeResult:
+        """Decode variable size positive integer (length embedded) to uint16."""
+        raise NotImplementedError("dec_int_positive_integer_var_size_length_embedded_uint16 not yet implemented")
+
+    def dec_int_positive_integer_var_size_length_embedded_uint32(self) -> DecodeResult:
+        """Decode variable size positive integer (length embedded) to uint32."""
+        raise NotImplementedError("dec_int_positive_integer_var_size_length_embedded_uint32 not yet implemented")
+
+    # ============================================================================
+    # TYPED TWO'S COMPLEMENT INTEGER DECODING FUNCTIONS
+    # ============================================================================
+
+    def dec_int_twos_complement_const_size_int8(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_int16(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_int32(self, encoded_size_in_bits: int) -> DecodeResult:
+        """Decode two's complement integer to int32."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_int32 not yet implemented")
+
+    def dec_int_twos_complement_const_size_8_int8(self) -> DecodeResult:
+        """Decode 8-bit two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_8_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_16_int16(self) -> DecodeResult:
+        """Decode 16-bit big-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_16_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_16_int8(self) -> DecodeResult:
+        """Decode 16-bit big-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_16_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_32_int32(self) -> DecodeResult:
+        """Decode 32-bit big-endian two's complement integer to int32."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_32_int32 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_32_int16(self) -> DecodeResult:
+        """Decode 32-bit big-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_32_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_32_int8(self) -> DecodeResult:
+        """Decode 32-bit big-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_32_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_64_int32(self) -> DecodeResult:
+        """Decode 64-bit big-endian two's complement integer to int32."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_64_int32 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_64_int16(self) -> DecodeResult:
+        """Decode 64-bit big-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_64_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_big_endian_64_int8(self) -> DecodeResult:
+        """Decode 64-bit big-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_big_endian_64_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_16_int16(self) -> DecodeResult:
+        """Decode 16-bit little-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_16_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_16_int8(self) -> DecodeResult:
+        """Decode 16-bit little-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_16_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_32_int32(self) -> DecodeResult:
+        """Decode 32-bit little-endian two's complement integer to int32."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_32_int32 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_32_int16(self) -> DecodeResult:
+        """Decode 32-bit little-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_32_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_32_int8(self) -> DecodeResult:
+        """Decode 32-bit little-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_32_int8 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_64_int32(self) -> DecodeResult:
+        """Decode 64-bit little-endian two's complement integer to int32."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_64_int32 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_64_int16(self) -> DecodeResult:
+        """Decode 64-bit little-endian two's complement integer to int16."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_64_int16 not yet implemented")
+
+    def dec_int_twos_complement_const_size_little_endian_64_int8(self) -> DecodeResult:
+        """Decode 64-bit little-endian two's complement integer to int8."""
+        raise NotImplementedError("dec_int_twos_complement_const_size_little_endian_64_int8 not yet implemented")
+
+    def dec_int_twos_complement_var_size_length_embedded_int8(self) -> DecodeResult:
+        """Decode variable size two's complement integer (length embedded) to int8."""
+        raise NotImplementedError("dec_int_twos_complement_var_size_length_embedded_int8 not yet implemented")
+
+    def dec_int_twos_complement_var_size_length_embedded_int16(self) -> DecodeResult:
+        """Decode variable size two's complement integer (length embedded) to int16."""
+        raise NotImplementedError("dec_int_twos_complement_var_size_length_embedded_int16 not yet implemented")
+
+    def dec_int_twos_complement_var_size_length_embedded_int32(self) -> DecodeResult:
+        """Decode variable size two's complement integer (length embedded) to int32."""
+        raise NotImplementedError("dec_int_twos_complement_var_size_length_embedded_int32 not yet implemented")
+
+    # ============================================================================
+    # TYPED BCD INTEGER DECODING FUNCTIONS
+    # ============================================================================
+
+    def dec_int_bcd_const_size_uint8(self, encoded_size_in_nibbles: int) -> DecodeResult:
+        """Decode BCD integer to uint8."""
+        raise NotImplementedError("dec_int_bcd_const_size_uint8 not yet implemented")
+
+    def dec_int_bcd_const_size_uint16(self, encoded_size_in_nibbles: int) -> DecodeResult:
+        """Decode BCD integer to uint16."""
+        raise NotImplementedError("dec_int_bcd_const_size_uint16 not yet implemented")
+
+    def dec_int_bcd_const_size_uint32(self, encoded_size_in_nibbles: int) -> DecodeResult:
+        """Decode BCD integer to uint32."""
+        raise NotImplementedError("dec_int_bcd_const_size_uint32 not yet implemented")
+
+    def dec_int_bcd_var_size_length_embedded_uint8(self) -> DecodeResult:
+        """Decode variable size BCD integer (length embedded) to uint8."""
+        raise NotImplementedError("dec_int_bcd_var_size_length_embedded_uint8 not yet implemented")
+
+    def dec_int_bcd_var_size_length_embedded_uint16(self) -> DecodeResult:
+        """Decode variable size BCD integer (length embedded) to uint16."""
+        raise NotImplementedError("dec_int_bcd_var_size_length_embedded_uint16 not yet implemented")
+
+    def dec_int_bcd_var_size_length_embedded_uint32(self) -> DecodeResult:
+        """Decode variable size BCD integer (length embedded) to uint32."""
+        raise NotImplementedError("dec_int_bcd_var_size_length_embedded_uint32 not yet implemented")
+
+    def dec_int_bcd_var_size_null_terminated_uint8(self) -> DecodeResult:
+        """Decode null-terminated BCD integer to uint8."""
+        raise NotImplementedError("dec_int_bcd_var_size_null_terminated_uint8 not yet implemented")
+
+    def dec_int_bcd_var_size_null_terminated_uint16(self) -> DecodeResult:
+        """Decode null-terminated BCD integer to uint16."""
+        raise NotImplementedError("dec_int_bcd_var_size_null_terminated_uint16 not yet implemented")
+
+    def dec_int_bcd_var_size_null_terminated_uint32(self) -> DecodeResult:
+        """Decode null-terminated BCD integer to uint32."""
+        raise NotImplementedError("dec_int_bcd_var_size_null_terminated_uint32 not yet implemented")
+
+    # ============================================================================
+    # TYPED ASCII INTEGER DECODING FUNCTIONS
+    # ============================================================================
+
+    def dec_sint_ascii_const_size_int8(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII signed integer to int8."""
+        raise NotImplementedError("dec_sint_ascii_const_size_int8 not yet implemented")
+
+    def dec_sint_ascii_const_size_int16(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII signed integer to int16."""
+        raise NotImplementedError("dec_sint_ascii_const_size_int16 not yet implemented")
+
+    def dec_sint_ascii_const_size_int32(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII signed integer to int32."""
+        raise NotImplementedError("dec_sint_ascii_const_size_int32 not yet implemented")
+
+    def dec_sint_ascii_var_size_length_embedded_int8(self) -> DecodeResult:
+        """Decode variable size ASCII signed integer (length embedded) to int8."""
+        raise NotImplementedError("dec_sint_ascii_var_size_length_embedded_int8 not yet implemented")
+
+    def dec_sint_ascii_var_size_length_embedded_int16(self) -> DecodeResult:
+        """Decode variable size ASCII signed integer (length embedded) to int16."""
+        raise NotImplementedError("dec_sint_ascii_var_size_length_embedded_int16 not yet implemented")
+
+    def dec_sint_ascii_var_size_length_embedded_int32(self) -> DecodeResult:
+        """Decode variable size ASCII signed integer (length embedded) to int32."""
+        raise NotImplementedError("dec_sint_ascii_var_size_length_embedded_int32 not yet implemented")
+
+    def dec_sint_ascii_var_size_null_terminated_int8(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII signed integer to int8."""
+        raise NotImplementedError("dec_sint_ascii_var_size_null_terminated_int8 not yet implemented")
+
+    def dec_sint_ascii_var_size_null_terminated_int16(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII signed integer to int16."""
+        raise NotImplementedError("dec_sint_ascii_var_size_null_terminated_int16 not yet implemented")
+
+    def dec_sint_ascii_var_size_null_terminated_int32(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII signed integer to int32."""
+        raise NotImplementedError("dec_sint_ascii_var_size_null_terminated_int32 not yet implemented")
+
+    def dec_uint_ascii_const_size_uint8(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII unsigned integer to uint8."""
+        raise NotImplementedError("dec_uint_ascii_const_size_uint8 not yet implemented")
+
+    def dec_uint_ascii_const_size_uint16(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII unsigned integer to uint16."""
+        raise NotImplementedError("dec_uint_ascii_const_size_uint16 not yet implemented")
+
+    def dec_uint_ascii_const_size_uint32(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Decode ASCII unsigned integer to uint32."""
+        raise NotImplementedError("dec_uint_ascii_const_size_uint32 not yet implemented")
+
+    def dec_uint_ascii_var_size_length_embedded_uint8(self) -> DecodeResult:
+        """Decode variable size ASCII unsigned integer (length embedded) to uint8."""
+        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded_uint8 not yet implemented")
+
+    def dec_uint_ascii_var_size_length_embedded_uint16(self) -> DecodeResult:
+        """Decode variable size ASCII unsigned integer (length embedded) to uint16."""
+        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded_uint16 not yet implemented")
+
+    def dec_uint_ascii_var_size_length_embedded_uint32(self) -> DecodeResult:
+        """Decode variable size ASCII unsigned integer (length embedded) to uint32."""
+        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded_uint32 not yet implemented")
+
+    def dec_uint_ascii_var_size_null_terminated_uint8(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII unsigned integer to uint8."""
+        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated_uint8 not yet implemented")
+
+    def dec_uint_ascii_var_size_null_terminated_uint16(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII unsigned integer to uint16."""
+        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated_uint16 not yet implemented")
+
+    def dec_uint_ascii_var_size_null_terminated_uint32(self, null_characters: bytes) -> DecodeResult:
+        """Decode null-terminated ASCII unsigned integer to uint32."""
+        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated_uint32 not yet implemented")
+
+    # ============================================================================
+    # BOOLEAN DECODING
+    # ============================================================================
+
+    def read_bit_pattern(self, pattern_to_read: bytes, n_bits_to_read: int) -> DecodeResult:
+        """Read bit pattern and return boolean value."""
+        raise NotImplementedError("read_bit_pattern not yet implemented")
+
+    def decode_true_false_boolean(self, true_pattern: bytes, false_pattern: bytes, n_bits_to_read: int) -> DecodeResult:
+        """Decode boolean using true/false patterns."""
+        raise NotImplementedError("decode_true_false_boolean not yet implemented")
+
+    # ============================================================================
+    # NULL TYPE FUNCTIONS
+    # ============================================================================
+
+    def read_bit_pattern_ignore_value(self, n_bits_to_read: int) -> DecodeResult:
+        """Read bit pattern and ignore the value."""
+        raise NotImplementedError("read_bit_pattern_ignore_value not yet implemented")
+
+    # ============================================================================
+    # IEEE 754 REAL DECODING WITH FLOAT PRECISION
+    # ============================================================================
+
+    def dec_real_ieee754_32_big_endian_fp32(self) -> DecodeResult:
+        """Decode 32-bit IEEE 754 float (big-endian) with float precision."""
+        raise NotImplementedError("dec_real_ieee754_32_big_endian_fp32 not yet implemented")
+
+    def dec_real_ieee754_32_little_endian_fp32(self) -> DecodeResult:
+        """Decode 32-bit IEEE 754 float (little-endian) with float precision."""
+        raise NotImplementedError("dec_real_ieee754_32_little_endian_fp32 not yet implemented")
+
+    # ============================================================================
+    # STRING ENCODING/DECODING
+    # ============================================================================
+
+    def enc_string_ascii_fix_size(self, max_len: int, str_val: str) -> EncodeResult:
+        """Encode ASCII string with fixed size."""
+        raise NotImplementedError("enc_string_ascii_fix_size not yet implemented")
+
+    def dec_string_ascii_fix_size(self, max_len: int) -> DecodeResult:
+        """Decode ASCII string with fixed size."""
+        raise NotImplementedError("dec_string_ascii_fix_size not yet implemented")
+
+    def enc_string_ascii_null_terminated(self, max_len: int, null_character: int, str_val: str) -> EncodeResult:
+        """Encode ASCII string with null termination."""
+        raise NotImplementedError("enc_string_ascii_null_terminated not yet implemented")
+
+    def dec_string_ascii_null_terminated(self, max_len: int, null_character: int) -> DecodeResult:
+        """Decode ASCII string with null termination."""
+        raise NotImplementedError("dec_string_ascii_null_terminated not yet implemented")
+
+    def enc_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytes, str_val: str) -> EncodeResult:
+        """Encode ASCII string with multiple null characters."""
+        raise NotImplementedError("enc_string_ascii_null_terminated_mult not yet implemented")
+
+    def dec_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytes) -> DecodeResult:
+        """Decode ASCII string with multiple null characters."""
+        raise NotImplementedError("dec_string_ascii_null_terminated_mult not yet implemented")
+
+    def enc_string_ascii_external_field_determinant(self, max_len: int, str_val: str) -> EncodeResult:
+        """Encode ASCII string with external field determinant."""
+        raise NotImplementedError("enc_string_ascii_external_field_determinant not yet implemented")
+
+    def dec_string_ascii_external_field_determinant(self, max_len: int, ext_size_determinant_fld: int) -> DecodeResult:
+        """Decode ASCII string with external field determinant."""
+        raise NotImplementedError("dec_string_ascii_external_field_determinant not yet implemented")
+
+    def enc_string_ascii_internal_field_determinant(self, max_len: int, min_len: int, str_val: str) -> EncodeResult:
+        """Encode ASCII string with internal field determinant."""
+        raise NotImplementedError("enc_string_ascii_internal_field_determinant not yet implemented")
+
+    def dec_string_ascii_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult:
+        """Decode ASCII string with internal field determinant."""
+        raise NotImplementedError("dec_string_ascii_internal_field_determinant not yet implemented")
+
+    def enc_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
+        """Encode string using character index with fixed size."""
+        raise NotImplementedError("enc_string_char_index_fix_size not yet implemented")
+
+    def dec_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes) -> DecodeResult:
+        """Decode string using character index with fixed size."""
+        raise NotImplementedError("dec_string_char_index_fix_size not yet implemented")
+
+    def enc_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
+        """Encode string using character index with external field determinant."""
+        raise NotImplementedError("enc_string_char_index_external_field_determinant not yet implemented")
+
+    def dec_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, ext_size_determinant_fld: int) -> DecodeResult:
+        """Decode string using character index with external field determinant."""
+        raise NotImplementedError("dec_string_char_index_external_field_determinant not yet implemented")
+
+    def enc_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int, str_val: str) -> EncodeResult:
+        """Encode string using character index with internal field determinant."""
+        raise NotImplementedError("enc_string_char_index_internal_field_determinant not yet implemented")
+
+    def dec_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int) -> DecodeResult:
+        """Decode string using character index with internal field determinant."""
+        raise NotImplementedError("dec_string_char_index_internal_field_determinant not yet implemented")
+
+    def enc_ia5_string_char_index_external_field_determinant(self, max_len: int, str_val: str) -> EncodeResult:
+        """Encode IA5 string using character index with external field determinant."""
+        raise NotImplementedError("enc_ia5_string_char_index_external_field_determinant not yet implemented")
+
+    def dec_ia5_string_char_index_external_field_determinant(self, max_len: int, ext_size_determinant_fld: int) -> DecodeResult:
+        """Decode IA5 string using character index with external field determinant."""
+        raise NotImplementedError("dec_ia5_string_char_index_external_field_determinant not yet implemented")
+
+    def enc_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int, str_val: str) -> EncodeResult:
+        """Encode IA5 string using character index with internal field determinant."""
+        raise NotImplementedError("enc_ia5_string_char_index_internal_field_determinant not yet implemented")
+
+    def dec_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult:
+        """Decode IA5 string using character index with internal field determinant."""
+        raise NotImplementedError("dec_ia5_string_char_index_internal_field_determinant not yet implemented")
+
+    # ============================================================================
+    # MILBUS FUNCTIONS
+    # ============================================================================
+
+    def milbus_encode(self, val: int) -> int:
+        """Encode value using MILBUS encoding."""
+        raise NotImplementedError("milbus_encode not yet implemented")
+
+    def milbus_decode(self, val: int) -> int:
+        """Decode value using MILBUS encoding."""
+        raise NotImplementedError("milbus_decode not yet implemented")
+
+
+
