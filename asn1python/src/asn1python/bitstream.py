@@ -5,7 +5,9 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
+from nagini_contracts.contracts import *
 from typing import Optional, List
+from asn1_types import NO_OF_BITS_IN_BYTE
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -19,6 +21,18 @@ class BitStream:
     This class provides precise bit manipulation capabilities required for
     ASN.1 encoding rules like UPER and ACN.
     """
+
+    @Pure
+    @staticmethod
+    def position_invariant(bit_position: int, byte_position: int, buff_length: int) -> bool:
+        return (bit_position >= 0 and bit_position < NO_OF_BITS_IN_BYTE and
+                byte_position >= 0 and ((byte_position < buff_length) or (bit_position == 0 and byte_position == buff_length)))
+
+    @Predicate
+    def invariant(self) -> bool:
+        return (Acc(self._buffer) and Acc(self._size_in_bits) and
+                Acc(self._current_bit) and Acc(self._current_byte) and Acc(self._bit_in_byte) and
+                BitStream.position_invariant(self._current_bit, self._current_byte, self._size_in_bits))
 
     def __init__(self, data: Optional[bytearray] = None, size_in_bits: Optional[int] = None):
         """
@@ -38,21 +52,34 @@ class BitStream:
         self._current_bit = 0  # Current bit position (0-based)
         self._current_byte = 0  # Current byte position (0-based)
         self._bit_in_byte = 0  # Current bit within current byte (0-7)
+        Fold(self.invariant())
+        Ensures(self.invariant())
 
     @property
     def current_bit_position(self) -> int:
         """Get the current bit position"""
-        return self._current_bit
+        Requires(self.invariant())
+        Ensures(Result() >= 0 and Result() < NO_OF_BITS_IN_BYTE)
+        return Unfolding(self.invariant(), self._current_bit)
 
+    @property
+    def current_byte_position(self) -> int:
+        """Get the current bit position"""
+        Requires(self.invariant())
+        Ensures(Result() >= 0 and ((Result() < self.size_in_bits) or (self.current_bit_position == 0 and Result() == self.size_in_bits)))
+        return Unfolding(self.invariant(), self._current_byte)
+    
     @property
     def size_in_bits(self) -> int:
         """Get the total size in bits"""
-        return self._size_in_bits
+        Requires(self.invariant())
+        return Unfolding(self.invariant(), self._size_in_bits)
 
     @property
     def size_in_bytes(self) -> int:
         """Get the total size in bytes"""
-        return (self._size_in_bits + 7) // 8
+        Requires(self.invariant())
+        return (self.size_in_bits + 7) // 8
 
     @property
     def buffer(self) -> bytearray:
@@ -61,9 +88,14 @@ class BitStream:
 
     def reset(self) -> None:
         """Reset the bit position to the beginning"""
+        Requires(self.invariant())
+        Ensures(self.invariant())
+             
+        Unfold(self.invariant())
         self._current_bit = 0
         self._current_byte = 0
         self._bit_in_byte = 0
+        Fold(self.invariant())
 
     def set_bit_position(self, bit_position: int) -> None:
         """Set the current bit position"""
@@ -232,9 +264,6 @@ class BitStream:
     def __str__(self) -> str:
         """String representation for debugging"""
         return f"BitStream(size={self._size_in_bits} bits, pos={self._current_bit}, data={self._buffer[:self.size_in_bytes].hex()})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     def to_hex_string(self) -> str:
         """Convert the bitstream data to a hex string"""
