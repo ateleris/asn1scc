@@ -444,7 +444,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         } |> Seq.choose id |> Seq.toList
 
                 let testcase_SrcFileName = Path.Combine(outDir, pu.testcase_bodyFileName)
-                // todo: xer stuff test
                 let bXer = r.args.encodings |> Seq.exists((=) XER)
                 let tstCasesHdrContent =
                     match lm.lg.allowsSrcFilesWithNoFunctions with
