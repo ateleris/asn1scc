@@ -41,7 +41,7 @@ def test_enc_dec_int_positive_integer_const_size_zero(acn_encoder: ACNEncoder, s
     print(f"Input: {input_number}, decoded {decoded_res.decoded_value}, Passed: {input_number == decoded_res.decoded_value}")
     assert input_number == decoded_res.decoded_value
 
-def test_enc_dec_int_positive_integer_const_size_max_value_32(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
+def test_enc_dec_int_positive_integer_const_size_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
     input_number: int = (2 ** bit) - 1
 
     _ = acn_encoder.enc_int_positive_integer_const_size(input_number, bit)
@@ -50,7 +50,7 @@ def test_enc_dec_int_positive_integer_const_size_max_value_32(acn_encoder: ACNEn
     print(f"Input: {input_number}, decoded {decoded_res.decoded_value}, Passed: {input_number == decoded_res.decoded_value}")
     assert input_number == decoded_res.decoded_value
 
-def test_enc_dec_int_positive_integer_const_size_exceed_max_value_32(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
+def test_enc_dec_int_positive_integer_const_size_exceed_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
     input_number: int = (2 ** bit)
     encoded_res = acn_encoder.enc_int_positive_integer_const_size(input_number, bit)
     assert not encoded_res.success

@@ -8,10 +8,9 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 import struct
 
 from .acn_decoder import ACNDecoder
-from .decoder import Decoder
-from .encoder import Encoder
-from .codec import EncodeResult, ENCODE_OK, ERROR_INVALID_VALUE
 from .bitstream import BitStreamError
+from .codec import EncodeResult, ENCODE_OK, ERROR_INVALID_VALUE
+from .encoder import Encoder
 
 
 class ACNEncoder(Encoder):
@@ -80,6 +79,7 @@ class ACNEncoder(Encoder):
                 bytes_needed = 1
             else:
                 bytes_needed = (int_val.bit_length() + 7) // 8
+
 
             length_result = self.enc_length(bytes_needed, 8)
             if not length_result.success:
