@@ -43,27 +43,27 @@ class ACNEncoder(Encoder):
 
     # def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
     #     """Encode 16-bit positive integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 16, False)
+    #     return self.encode_integer_big_endian(int_val, 16, False)
     #
     # def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
     #     """Encode 32-bit positive integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 32, False)
+    #     return self.encode_integer_big_endian(int_val, 32, False)
     #
     # def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
     #     """Encode 64-bit positive integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 64, False)
+    #     return self.encode_integer_big_endian(int_val, 64, False)
 
     # def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
     #     """Encode 16-bit positive integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 16, False)
+    #     return self.encode_integer_little_endian(int_val, 16, False)
     #
     # def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
     #     """Encode 32-bit positive integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 32, False)
+    #     return self.encode_integer_little_endian(int_val, 32, False)
     #
     # def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
     #     """Encode 64-bit positive integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 64, False)
+    #     return self.encode_integer_little_endian(int_val, 64, False)
 
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
@@ -121,15 +121,15 @@ class ACNEncoder(Encoder):
     #
     # def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
     #     """Encode 16-bit signed integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 16, True)
+    #     return self.encode_integer_big_endian(int_val, 16, True)
     #
     # def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
     #     """Encode 32-bit signed integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 32, True)
+    #     return self.encode_integer_big_endian(int_val, 32, True)
     #
     # def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
     #     """Encode 64-bit signed integer (big-endian)."""
-    #     return self._encode_integer_big_endian(int_val, 64, True)
+    #     return self.encode_integer_big_endian(int_val, 64, True)
     #
     # def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
     #     """Encode 16-bit signed integer (little-endian)."""
@@ -316,7 +316,11 @@ class ACNEncoder(Encoder):
     # ============================================================================
 
     def enc_real_ieee754_32_big_endian(self, real_val: float) -> EncodeResult:
-        """Encode 32-bit IEEE 754 float (big-endian)."""
+        """Encode 32-bit IEEE 754 float (big-endian).
+        
+        Args:
+            real_val: Single-precision float (32-bit) - Python will truncate from double precision
+        """
         try:
             packed = struct.pack('>f', real_val)
             for byte in packed:
@@ -336,7 +340,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_32_little_endian(self, real_val: float) -> EncodeResult:
-        """Encode 32-bit IEEE 754 float (little-endian)."""
+        """Encode 32-bit IEEE 754 float (little-endian).
+        
+        Args:
+            real_val: Single-precision float (32-bit) - Python will truncate from double precision
+        """
         try:
             packed = struct.pack('<f', real_val)
             for byte in packed:
@@ -356,7 +364,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_64_big_endian(self, real_val: float) -> EncodeResult:
-        """Encode 64-bit IEEE 754 double (big-endian)."""
+        """Encode 64-bit IEEE 754 double (big-endian).
+        
+        Args:
+            real_val: Double-precision float (64-bit) - Python's native float precision
+        """
         try:
             packed = struct.pack('>d', real_val)
             for byte in packed:
@@ -376,7 +388,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_64_little_endian(self, real_val: float) -> EncodeResult:
-        """Encode 64-bit IEEE 754 double (little-endian)."""
+        """Encode 64-bit IEEE 754 double (little-endian).
+        
+        Args:
+            real_val: Double-precision float (64-bit) - Python's native float precision
+        """
         try:
             packed = struct.pack('<d', real_val)
             for byte in packed:
@@ -511,7 +527,7 @@ class ACNEncoder(Encoder):
     # HELPER METHODS
     # ============================================================================
 
-    def _encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
+    def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in big-endian format."""
         if signed:
             min_val = -(1 << (bits - 1))
@@ -551,7 +567,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def _encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
+    def encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in little-endian format."""
         if signed:
             min_val = -(1 << (bits - 1))
