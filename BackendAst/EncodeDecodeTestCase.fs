@@ -62,7 +62,8 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     let write_bitstreamToFile   = lm.atc.Codec_write_bitstreamToFile
 
     let p   = lm.lg.getParamType t Encode //  t.getParamType l Encode
-    let varName = p.arg.receiverId
+    // VarName must not be the python default "self", but actually the passed param
+    let varName = (lm.lg.getParamTypeSuffix t "" Encode).arg.receiverId
     let sStar = lm.lg.getStar p.arg //p.arg.getStar l
     let sAmberDecode = getAmberDecode t
     let sAmberIsValid = getAmberDecode t
@@ -148,7 +149,8 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let write_bitstreamToFile       = lm.atc.Codec_write_bitstreamToFile
 
     let p  = lm.lg.getParamType t Encode
-    let varName = p.arg.receiverId
+    // VarName must not be the python default "self", but actually the passed param
+    let varName = (lm.lg.getParamTypeSuffix t "" Encode).arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let sAmberDecode = getAmberDecode t
     let sAmberIsValid = getAmberDecode t
@@ -235,7 +237,8 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let compareInputWithOutput          = lm.atc.Codec_compare_input_with_output
 
     let p   = lm.lg.getParamType t Encode
-    let varName = p.arg.receiverId
+    // VarName must not be the python default "self", but actually the passed param
+    let varName = (lm.lg.getParamTypeSuffix t "" Encode).arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let sAmberDecode = getAmberDecode t
     let sAmberIsValid = getAmberDecode t

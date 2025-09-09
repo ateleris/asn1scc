@@ -6,9 +6,11 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
-from .encoder import Encoder
-from .codec import EncodeResult, ENCODE_OK, ERROR_INVALID_VALUE
+
+from .acn_decoder import ACNDecoder
 from .bitstream import BitStreamError
+from .codec import EncodeResult, ENCODE_OK, ERROR_INVALID_VALUE
+from .encoder import Encoder
 
 
 class ACNEncoder(Encoder):
@@ -22,6 +24,9 @@ class ACNEncoder(Encoder):
     def __init__(self, buffer_bit_size: int = 8 * 1024 * 1024) -> None:
         super().__init__(buffer_bit_size=buffer_bit_size)
 
+    def get_decoder(self) -> ACNDecoder:
+        return ACNDecoder(self.get_bitstream_buffer())
+
     # ============================================================================
     # INTEGER ENCODING - POSITIVE INTEGER
     # ============================================================================
@@ -32,33 +37,33 @@ class ACNEncoder(Encoder):
         return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
                                   size_in_bits=encoded_size_in_bits)
 
-    def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
-        """Encode 8-bit positive integer."""
-        return self.enc_int_positive_integer_const_size(int_val, 8)
+    # def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
+    #     """Encode 8-bit positive integer."""
+    #     return self.enc_int_positive_integer_const_size(int_val, 8)
 
-    def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 16, False)
+    # def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 16, False)
+    #
+    # def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 32, False)
+    #
+    # def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 64, False)
 
-    def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 32, False)
-
-    def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 64, False)
-
-    def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 16, False)
-
-    def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 32, False)
-
-    def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 64, False)
+    # def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 16, False)
+    #
+    # def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 32, False)
+    #
+    # def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 64, False)
 
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
@@ -74,6 +79,7 @@ class ACNEncoder(Encoder):
                 bytes_needed = 1
             else:
                 bytes_needed = (int_val.bit_length() + 7) // 8
+
 
             length_result = self.enc_length(bytes_needed, 8)
             if not length_result.success:
@@ -110,33 +116,33 @@ class ACNEncoder(Encoder):
         return self.encode_integer(int_val, min_val=min_val, max_val=max_val, 
                                   size_in_bits=format_bit_length)
 
-    def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
-        """Encode 8-bit signed integer."""
-        return self.enc_int_twos_complement_const_size(int_val, 8)
-
-    def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 16, True)
-
-    def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 32, True)
-
-    def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit signed integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 64, True)
-
-    def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 16, True)
-
-    def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 32, True)
-
-    def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 64, True)
+    # def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
+    #     """Encode 8-bit signed integer."""
+    #     return self.enc_int_twos_complement_const_size(int_val, 8)
+    #
+    # def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit signed integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 16, True)
+    #
+    # def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit signed integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 32, True)
+    #
+    # def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit signed integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 64, True)
+    #
+    # def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit signed integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 16, True)
+    #
+    # def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit signed integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 32, True)
+    #
+    # def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit signed integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 64, True)
 
     def enc_int_twos_complement_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode signed integer with variable size (length embedded)."""

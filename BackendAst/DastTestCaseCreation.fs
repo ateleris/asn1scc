@@ -268,7 +268,10 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
         let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))  )
+        match r.lang with
+            | Python -> File.AppendAllText(outHFileName, contentH.Replace("\r",""))
+            | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        )
 
     let _, _, func_invocations =
         tcFunctors |>
@@ -291,7 +294,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
     if hasTestSuiteRunner then
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        match r.lang with
+        | Python ->
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+            File.AppendAllText(outHFileName, contentC.Replace("\r", ""))
+        | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 
     arrsSrcTstFiles, arrsHdrTstFiles
