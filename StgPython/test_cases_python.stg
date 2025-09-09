@@ -117,8 +117,9 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 # test_cases_python.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    ret: Union[int, Asn1SccError] = 0
     # todo: this might not be necessary
+    # todo: additional todo
+    # ret: Union[int, Asn1SccError] = 0
     #decodedPDU: <sTasName> = <sTasName>_Initialize()
 
     codec = <sCodecClass>Codec(int(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING))
