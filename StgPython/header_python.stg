@@ -15,7 +15,8 @@ Header / Spec implementation
 """
 from ..asn1python import *
 from typing import *
-import BasicTypes
+# todo: find ways to import basic types everywhere except in basic types
+# from .BasicTypes import *
 from enum import Enum
 from dataclasses import dataclass, field
 
@@ -76,7 +77,7 @@ Declare_UInt64() ::="int"
 Declare_Real32() ::= "Asn1Real32"
 Declare_Real64() ::= "Asn1Real64"
 
-Declare_BooleanNoRTL() ::= "BooleanNoRTL"
+Declare_BooleanNoRTL() ::= "Asn1Boolean"
 Declare_RealNoRTL() ::= "RealNoRTL"
 
 

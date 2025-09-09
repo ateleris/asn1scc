@@ -210,7 +210,7 @@ def chars_are_valid(self) -> Boolean:
     valid: bool = True
     i: int = 0
     while valid and i \< len(self) and self[i] != CHAR_0000:
-        valid = valid and (<arrsAlphaConBody; separator=" and ">);
+        valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
     return valid
 
