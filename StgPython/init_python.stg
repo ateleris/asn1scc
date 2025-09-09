@@ -17,27 +17,27 @@ def <sFuncName>() -> <sTypeDefName>:
 initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
 # init_python.stg 15
 <if(bIsOptional)>
-<sResVar> : Optional[int] = <sValue>
+<sResVar>: Optional[int] = <sValue>
 <else>
-<sResVar> : int = <sValue>
+<sResVar>: int = <sValue>
 <endif>
 >>
 
 initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
 # init_python.stg 24
 <if(bIsOptional)>
-<sResVar> : Optional[Asn1Real] = <dValue>
+<sResVar>: Optional[Asn1Real] = <dValue>
 <else>
-<sResVar> : Asn1Real = <dValue>
+<sResVar>: Asn1Real = <dValue>
 <endif>
 >>
 
 initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
 # init_python.stg 33
 <if(bIsOptional)>
-<sResVar> Optional[Asn1Boolean] = <if(bValue)>True<else>False<endif>
+<sResVar>: Optional[Asn1Boolean] = <if(bValue)>True<else>False<endif>
 <else>
-<sResVar> : Asn1Boolean = <if(bValue)>True<else>False<endif>
+<sResVar>: Asn1Boolean = <if(bValue)>True<else>False<endif>
 <endif>
 >>
 
