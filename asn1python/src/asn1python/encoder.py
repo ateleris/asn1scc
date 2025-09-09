@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from . import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
 from .decoder import Decoder
