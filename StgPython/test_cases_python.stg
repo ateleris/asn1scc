@@ -118,7 +118,8 @@ PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatem
 # test_cases_python.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     ret: Union[int, Asn1SccError] = 0
-    decodedPDU: <sTasName> = <sTasName>_Initialize() # TODO: does this always work?
+    # todo: this might not be necessary
+    #decodedPDU: <sTasName> = <sTasName>_Initialize()
 
     codec = <sCodecClass>Codec(int(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING))
     <sNestedStatements>
