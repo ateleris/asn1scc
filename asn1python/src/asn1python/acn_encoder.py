@@ -32,33 +32,33 @@ class ACNEncoder(Encoder):
         return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
                                   size_in_bits=encoded_size_in_bits)
 
-    def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
-        """Encode 8-bit positive integer."""
-        return self.enc_int_positive_integer_const_size(int_val, 8)
+    # def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
+    #     """Encode 8-bit positive integer."""
+    #     return self.enc_int_positive_integer_const_size(int_val, 8)
 
-    def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 16, False)
+    # def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 16, False)
+    #
+    # def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 32, False)
+    #
+    # def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit positive integer (big-endian)."""
+    #     return self._encode_integer_big_endian(int_val, 64, False)
 
-    def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 32, False)
-
-    def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit positive integer (big-endian)."""
-        return self._encode_integer_big_endian(int_val, 64, False)
-
-    def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 16, False)
-
-    def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 32, False)
-
-    def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit positive integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 64, False)
+    # def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
+    #     """Encode 16-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 16, False)
+    #
+    # def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
+    #     """Encode 32-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 32, False)
+    #
+    # def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
+    #     """Encode 64-bit positive integer (little-endian)."""
+    #     return self._encode_integer_little_endian(int_val, 64, False)
 
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
