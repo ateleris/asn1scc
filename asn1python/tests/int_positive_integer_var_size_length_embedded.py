@@ -2,10 +2,10 @@ import random
 
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
+from conftest import get_random_unsigned, get_unsigned_max
 
 def test_enc_dec_int_positive_integer_var_size_length_embedded_single_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    max_int_size = (2**bit)-1
-    input_number: int = random.randint(1, max_int_size)
+    input_number: int = get_random_unsigned(bit)
 
     encoded_res = acn_encoder.enc_int_positive_integer_var_size_length_embedded(input_number)
     assert encoded_res.success
@@ -18,10 +18,9 @@ def test_enc_dec_int_positive_integer_var_size_length_embedded_single_value(acn_
     assert input_number == decoded_res.decoded_value
 
 def test_enc_dec_int_positive_integer_var_size_length_embedded_multiple_values(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    max_int_size = (2 ** bit) - 1
     input_numbers: list[int] = []
     for i in range(random.randint(3, 10)):
-        input_numbers.append(random.randint(0, max_int_size))
+        input_numbers.append(get_random_unsigned(bit))
     for i in input_numbers:
         encoded_res = acn_encoder.enc_int_positive_integer_var_size_length_embedded(i,)
         assert encoded_res.success
@@ -48,7 +47,7 @@ def test_enc_dec_enc_dec_int_positive_integer_var_size_length_embedded_zero(acn_
     assert input_number == decoded_res.decoded_value
 
 def test_enc_dec_enc_dec_int_positive_integer_var_size_length_embedded_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = (2 ** bit) - 1
+    input_number: int = get_unsigned_max(bit)
 
     encoded_res = acn_encoder.enc_int_positive_integer_var_size_length_embedded(input_number)
     assert encoded_res.success
@@ -59,7 +58,7 @@ def test_enc_dec_enc_dec_int_positive_integer_var_size_length_embedded_max_value
     assert input_number == decoded_res.decoded_value
 
 def test_enc_dec_enc_dec_int_positive_integer_var_size_length_embedded_exceed_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = (2 ** bit)
+    input_number: int = get_unsigned_max(bit) + 1
     encoded_res = acn_encoder.enc_int_positive_integer_var_size_length_embedded(input_number)
     # Should still work, it has variable size!
     assert encoded_res.success

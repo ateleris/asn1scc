@@ -113,8 +113,7 @@ class ACNEncoder(Encoder):
         """Encode signed integer using two's complement with constant size."""
         min_val = -(1 << (format_bit_length - 1))
         max_val = (1 << (format_bit_length - 1)) - 1
-        return self.encode_integer(int_val, min_val=min_val, max_val=max_val, 
-                                  size_in_bits=format_bit_length)
+        return self.encode_integer(int_val, min_val=min_val, max_val=max_val, size_in_bits=format_bit_length)
 
     # def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
     #     """Encode 8-bit signed integer."""
