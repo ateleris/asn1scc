@@ -1,14 +1,20 @@
+from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from asn1python import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from . import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
+from .decoder import Decoder
 
-class Encoder(Codec):
+
+class Encoder(Codec, ABC):
 
     def __init__(self, buffer_bit_size: int = 0 * 1024 * 1024) -> None:
         super().__init__(buffer_bit_size=buffer_bit_size)
 
+    @abstractmethod
+    def get_decoder(self) -> Decoder:
+        pass
 
     def encode_boolean(self, value: bool) -> EncodeResult:
         """Encode a boolean value"""
