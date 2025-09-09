@@ -14,12 +14,12 @@ def _encode_and_decode_single_float(acn_encoder: ACNEncoder, input_number: float
     Returns:
         Tuple of (success, decoded_value)
     """
-    encoded_res = acn_encoder.enc_real_ieee754_32_big_endian(input_number)
+    encoded_res = acn_encoder.enc_real_ieee754_32_little_endian(input_number)
     if not encoded_res.success:
         return False, 0
 
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
-    decoded_res = acn_decoder.dec_real_ieee754_32_big_endian()
+    decoded_res = acn_decoder.dec_real_ieee754_32_little_endian()
 
     if not decoded_res.success:
         return False, 0
@@ -35,7 +35,7 @@ def _encode_and_decode_multiple_floats(acn_encoder: ACNEncoder, input_numbers: l
     """
     # Encode all values first
     for input_number in input_numbers:
-        encoded_res = acn_encoder.enc_real_ieee754_32_big_endian(input_number)
+        encoded_res = acn_encoder.enc_real_ieee754_32_little_endian(input_number)
         if not encoded_res.success:
             return False, []
 
@@ -44,7 +44,7 @@ def _encode_and_decode_multiple_floats(acn_encoder: ACNEncoder, input_numbers: l
     decoded_values = []
 
     for _ in range(len(input_numbers)):
-        decoded_res = acn_decoder.dec_real_ieee754_32_big_endian()
+        decoded_res = acn_decoder.dec_real_ieee754_32_little_endian()
         if not decoded_res.success:
             return False, []
         decoded_values.append(decoded_res.decoded_value)
@@ -76,12 +76,12 @@ def _test_multiple_floats(acn_encoder: ACNEncoder, input_numbers: list[float]) -
     assert input_numbers == decoded_values
 
 
-def test_enc_dec_real_ieee754_32_big_endian_single_value(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_real_ieee754_32__endian_single_value(acn_encoder: ACNEncoder, seed: int) -> None:
     input_number: float = get_random_float(precision="single")
     _test_single_float(acn_encoder, input_number)
 
 
-def test_enc_dec_real_ieee754_32_big_endian_multiple_values(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_real_ieee754_32_little_endian_multiple_values(acn_encoder: ACNEncoder, seed: int) -> None:
     input_numbers: list[float] = []
     for i in range(random.randint(3, 10)):
         input_numbers.append(get_random_float(precision="single"))
@@ -89,20 +89,20 @@ def test_enc_dec_real_ieee754_32_big_endian_multiple_values(acn_encoder: ACNEnco
     _test_multiple_floats(acn_encoder, input_numbers)
 
 
-def test_enc_dec_real_ieee754_32_big_endian_zeros(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_real_ieee754_32_little_endian_zeros(acn_encoder: ACNEncoder, seed: int) -> None:
     input_number: list[float] = get_zero_and_special_floats()
     _test_multiple_floats(acn_encoder, input_number)
 
 
-def test_enc_dec_real_ieee754_32_big_endian_max_value(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_real_ieee754_32_little_endian_max_value(acn_encoder: ACNEncoder, seed: int) -> None:
     input_number: list[float] = [get_big_float(precision="single", positive=True), get_big_float(precision="single", positive=False)]
     _test_multiple_floats(acn_encoder, input_number)
 
-def test_enc_dec_real_ieee754_32_big_endian_exceed_max_value(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_real_ieee754_32_little_endian_exceed_max_value(acn_encoder: ACNEncoder, seed: int) -> None:
     input_number: float = get_big_float(precision="single", positive=True) + 1
-    encoded_res = acn_encoder.enc_real_ieee754_32_big_endian(input_number)
+    encoded_res = acn_encoder.enc_real_ieee754_32_little_endian(input_number)
     assert encoded_res.success
 
     input_number: float = get_big_float(precision="single", positive=False) - 1
-    encoded_res = acn_encoder.enc_real_ieee754_32_big_endian(input_number)
+    encoded_res = acn_encoder.enc_real_ieee754_32_little_endian(input_number)
     assert encoded_res.success
