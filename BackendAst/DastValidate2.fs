@@ -222,7 +222,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
 
     let alphaFuncName = ToC (((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
-        let valToStrFunc1 v = v.ToString().ISQ
+        let valToStrFunc1 v = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "ord(" + v.ToString().ISQ + ")" | _ -> v.ToString().ISQ
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
             (fun _ (v:string)  s  -> (fun p -> VCBExpression (stringContainsChar v (p.arg.joined lm.lg))) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -566,7 +566,8 @@ let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (typeDefinition:Type
 
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    ({CallerScope.modName = typeid.ModName; arg = (Selection.emptyPath "str" FixArray).append (ArrayAccess ("i", Value))})
+    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self" | _ -> "str"
+    ({CallerScope.modName = typeid.ModName; arg = (Selection.emptyPath prefix FixArray).append (ArrayAccess ("i", Value))})
 
 type IsValidAux = {
     isValidStatement  : CallerScope -> ValidationStatement

@@ -138,7 +138,7 @@ class <td.typeName>(Asn1Base):
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
-<prTd.typeName> = <td.typeName> # header_python.stg 125
+class <prTd.typeName>(<td.typeName>): # header_python.stg 125
 >>
 
 Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
@@ -150,11 +150,11 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-<td.typeName> = List[int] # header_python.stg 137
+class <td.typeName>(List[int]): # header_python.stg 137
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-<prTd.typeName> = <td.typeName> # header_python.stg 141
+class <prTd.typeName>(<td.typeName>): # header_python.stg 141
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -176,14 +176,14 @@ class <td.typeName>:
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-<prTd.typeName> = <td.typeName> # header_python.stg 164
+class <prTd.typeName>(<td.typeName>): # header_python.stg 164
 >>
 
 /***********************************       BIT STRING    ************************************************************/
 
 Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
 # TODO: Unclear what to do here
-#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
+<td.typeName>_<sTargetLangBitName> = 0x<sHexValue>  /*<sComment>*/
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
@@ -204,7 +204,7 @@ class <td.typeName>:
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-<prTd.typeName> = <td.typeName> # header_python.stg 194
+class <prTd.typeName>(<td.typeName>): # header_python.stg 194
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -225,7 +225,7 @@ class <td.typeName>:
     
     <if(arrsSizeObjDefinition)>
 # TODO is this required?
-object <td.typeName>:
+# object <td.typeName>:
     # <arrsSizeObjDefinition; separator="\n\n">
     <endif>
 >>
@@ -234,7 +234,7 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 # header_python.stg 222
 <soChildDefinition>
 
-type <prTd.typeName> <td.typeName>
+class <prTd.typeName>(<td.typeName>):
 >>
 
 
