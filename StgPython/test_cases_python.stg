@@ -137,6 +137,7 @@ flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* file
     ByteStream bitStrm;
     flag ret = TRUE;
 
+    # todo: change initialization of bytestream
     ByteStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
     <sNestedStatements>
     # test_cases_python.stg 133
