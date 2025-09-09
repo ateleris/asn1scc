@@ -11,12 +11,12 @@ def _encode_and_decode_single_bcd(acn_encoder: ACNEncoder, input_number: int) ->
     Returns:
         Tuple of (success, decoded_value)
     """
-    encoded_res = acn_encoder.enc_int_bcd_var_size_length_embedded(input_number)
+    encoded_res = acn_encoder.enc_int_bcd_var_size_null_terminated(input_number)
     if not encoded_res.success:
         return False, 0
 
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
-    decoded_res = acn_decoder.dec_int_bcd_var_size_length_embedded()
+    decoded_res = acn_decoder.dec_int_bcd_var_size_null_terminated()
 
     if not decoded_res.success:
         return False, 0
@@ -32,7 +32,7 @@ def _encode_and_decode_multiple_bcd(acn_encoder: ACNEncoder, input_numbers: list
     """
     # Encode all values first
     for input_number in input_numbers:
-        encoded_res = acn_encoder.enc_int_bcd_var_size_length_embedded(input_number)
+        encoded_res = acn_encoder.enc_int_bcd_var_size_null_terminated(input_number)
         if not encoded_res.success:
             return False, []
 
@@ -41,7 +41,7 @@ def _encode_and_decode_multiple_bcd(acn_encoder: ACNEncoder, input_numbers: list
     decoded_values = []
 
     for _ in range(len(input_numbers)):
-        decoded_res = acn_decoder.dec_int_bcd_var_size_length_embedded()
+        decoded_res = acn_decoder.dec_int_bcd_var_size_null_terminated()
         if not decoded_res.success:
             return False, []
         decoded_values.append(decoded_res.decoded_value)
@@ -63,12 +63,12 @@ def _test_multiple_bcd_values(acn_encoder: ACNEncoder, input_numbers: list[int],
     assert input_numbers == decoded_values
 
 
-def test_enc_dec_int_bcd_var_size_length_embedded_single_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
+def test_enc_dec_int_bcd_var_size_null_terminated_single_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
     input_number: int = get_random_max_length_digits(nibble)
     _test_single_bcd_value(acn_encoder, input_number, nibble)
 
 
-def test_enc_dec_int_bcd_var_size_length_embedded_multiple_values(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
+def test_enc_dec_int_bcd_var_size_null_terminated_multiple_values(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
     input_numbers: list[int] = []
     for i in range(random.randint(3, 10)):
         input_numbers.append(get_random_max_length_digits(nibble))
@@ -76,17 +76,17 @@ def test_enc_dec_int_bcd_var_size_length_embedded_multiple_values(acn_encoder: A
     _test_multiple_bcd_values(acn_encoder, input_numbers, nibble)
 
 
-def test_enc_dec_int_bcd_var_size_length_embedded_zero(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
+def test_enc_dec_int_bcd_var_size_null_terminated_zero(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
     input_number: int = 0
     _test_single_bcd_value(acn_encoder, input_number, nibble)
 
 
-def test_enc_dec_int_bcd_var_size_length_embedded_max_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
+def test_enc_dec_int_bcd_var_size_null_terminated_max_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
     input_number: int = get_nibble_max_digit(nibble)
     _test_single_bcd_value(acn_encoder, input_number, nibble)
 
 
-def test_enc_dec_int_bcd_var_size_length_embedded_exceed_max_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
+def test_enc_dec_int_bcd_var_size_null_terminated_exceed_max_value(acn_encoder: ACNEncoder, seed: int, nibble: int) -> None:
     input_number: int = get_nibble_max_digit(nibble) + 1
-    encoded_res = acn_encoder.enc_int_bcd_var_size_length_embedded(input_number)
+    encoded_res = acn_encoder.enc_int_bcd_var_size_null_terminated(input_number)
     assert encoded_res.success
