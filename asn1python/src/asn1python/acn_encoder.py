@@ -316,7 +316,11 @@ class ACNEncoder(Encoder):
     # ============================================================================
 
     def enc_real_ieee754_32_big_endian(self, real_val: float) -> EncodeResult:
-        """Encode 32-bit IEEE 754 float (big-endian)."""
+        """Encode 32-bit IEEE 754 float (big-endian).
+        
+        Args:
+            real_val: Single-precision float (32-bit) - Python will truncate from double precision
+        """
         try:
             packed = struct.pack('>f', real_val)
             for byte in packed:
@@ -336,7 +340,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_32_little_endian(self, real_val: float) -> EncodeResult:
-        """Encode 32-bit IEEE 754 float (little-endian)."""
+        """Encode 32-bit IEEE 754 float (little-endian).
+        
+        Args:
+            real_val: Single-precision float (32-bit) - Python will truncate from double precision
+        """
         try:
             packed = struct.pack('<f', real_val)
             for byte in packed:
@@ -356,7 +364,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_64_big_endian(self, real_val: float) -> EncodeResult:
-        """Encode 64-bit IEEE 754 double (big-endian)."""
+        """Encode 64-bit IEEE 754 double (big-endian).
+        
+        Args:
+            real_val: Double-precision float (64-bit) - Python's native float precision
+        """
         try:
             packed = struct.pack('>d', real_val)
             for byte in packed:
@@ -376,7 +388,11 @@ class ACNEncoder(Encoder):
             )
 
     def enc_real_ieee754_64_little_endian(self, real_val: float) -> EncodeResult:
-        """Encode 64-bit IEEE 754 double (little-endian)."""
+        """Encode 64-bit IEEE 754 double (little-endian).
+        
+        Args:
+            real_val: Double-precision float (64-bit) - Python's native float precision
+        """
         try:
             packed = struct.pack('<d', real_val)
             for byte in packed:

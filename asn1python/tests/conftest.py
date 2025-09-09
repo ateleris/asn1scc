@@ -1,3 +1,4 @@
+import math
 import pytest
 import random
 from asn1python.acn_encoder import ACNEncoder
@@ -42,6 +43,115 @@ def get_random_unsigned(bits: int) -> int:
 def get_random_signed(bits: int) -> int:
     """Get random signed integer for given bit size."""
     return random.randint(get_signed_min(bits), get_signed_max(bits))
+
+def get_random_float(precision: str = "double", positive_only: bool = False, negative_only: bool = False) -> float:
+    """Get random IEEE 754 floating-point number for testing (normal values only).
+    
+    Args:
+        precision: "single" for 32-bit or "double" for 64-bit precision testing
+        positive_only: If True, return only positive values
+        negative_only: If True, return only negative values
+        
+    Returns:
+        Random normal float value (positive, negative, or both based on parameters)
+    """
+    # Define ranges based on precision
+    if precision == "single":
+        # IEEE 754 single precision ranges
+        min_normal = 1.175494e-38
+        max_normal = 3.402823e+38
+    else:  # double precision (default)
+        # IEEE 754 double precision ranges  
+        min_normal = 2.2250738585072014e-308
+        max_normal = 1.7976931348623157e+308
+    
+    # Generate positive value
+    value = random.uniform(min_normal, max_normal / 1e100)
+    
+    # Apply sign based on parameters
+    if negative_only:
+        return -value
+    elif positive_only:
+        return value
+    else:
+        # Random sign
+        return value if random.choice([True, False]) else -value
+
+def get_small_float(precision: str = "double", positive_only: bool = False, negative_only: bool = False) -> float:
+    """Get random small IEEE 754 floating-point number (near zero).
+    
+    Args:
+        precision: "single" for 32-bit or "double" for 64-bit precision testing
+        positive_only: If True, return only positive values
+        negative_only: If True, return only negative values
+        
+    Returns:
+        Random small float value (positive, negative, or both based on parameters)
+    """
+    # Define ranges based on precision
+    if precision == "single":
+        # IEEE 754 single precision ranges
+        min_normal = 1.175494e-38
+        min_subnormal = 1.401298e-45
+    else:  # double precision (default)
+        # IEEE 754 double precision ranges  
+        min_normal = 2.2250738585072014e-308
+        min_subnormal = 5e-324
+    
+    # Generate positive small value
+    small_value = random.uniform(min_subnormal, min_normal)
+    
+    # Apply sign based on parameters
+    if negative_only:
+        return -small_value
+    elif positive_only:
+        return small_value
+    else:
+        # Random sign
+        return small_value if random.choice([True, False]) else -small_value
+
+def get_big_float(precision: str = "double", positive: bool = True) -> float:
+    """Get random large IEEE 754 floating-point number (near limits).
+    
+    Args:
+        precision: "single" for 32-bit or "double" for 64-bit precision testing
+        positive: If True, return only positive values
+        
+    Returns:
+        Random large float value (positive, negative, or both based on parameters)
+    """
+    # Define ranges based on precision
+    if precision == "single":
+        # IEEE 754 single precision ranges
+        max_normal = 3.402823e+38
+    else:  # double precision (default)
+        # IEEE 754 double precision ranges  
+        max_normal = 1.7976931348623157e+308
+    
+    # Generate positive large value
+    large_value = random.uniform(max_normal / 1e10, max_normal)
+    
+    # Apply sign based on parameters
+
+    if positive:
+        return large_value
+    else:
+        return -large_value
+
+def get_zero_and_special_floats() -> list[float]:
+    """Get zero or special IEEE 754 floating-point values.
+    
+    Returns:
+        Random special float value (±0, ±∞, NaN, unity values, constants)
+    """
+    return [
+        0.0, -0.0,              # Positive and negative zero
+        float('inf'),           # Positive infinity
+        float('-inf'),          # Negative infinity
+        1.0, -1.0,             # Simple unity values
+        math.pi, -math.pi,      # Mathematical constants
+        math.e, -math.e
+    ]
 
 def get_random_max_length_digits(length: int) -> int:
     """Get random integer between 0 and maximum value with given number of digits.
