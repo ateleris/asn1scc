@@ -80,7 +80,7 @@ __all__ = [
 
     # Codecs
     "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
-    "UPERCodec", "ACNCodec", #"XERCodec", "BERCodec", "PERCodec",
+    "UPERCodec", "ACNDecoder", "ACNEncoder", #"XERCodec", "BERCodec", "PERCodec",
 
     # Constants
     "ENCODE_OK", "DECODE_OK", "ERROR_INSUFFICIENT_DATA",
