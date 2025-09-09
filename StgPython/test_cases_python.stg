@@ -100,8 +100,6 @@ JoinItems(sPart, soNestedPart) ::= <<
 <endif>
 >>
 
-
-// todo: check if enc dec variables are declared correctly
 Codec_declare_EncInDecOut_variable(sPrmName, sType, sPrmValue) ::= <<
 # test_cases_python.stg:116
 <sType> enc_<sPrmName> = <sPrmValue>;
@@ -129,7 +127,8 @@ def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
 >>
 
 PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
-# test_cases_python.stg:142 TODO: unclear where flag comes from and what to do with that
+# test_cases_python.stg:142
+# TODO: unclear where flag comes from and what to do with that
 flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename)
 {
     static <sTasName> decodedPDU;
