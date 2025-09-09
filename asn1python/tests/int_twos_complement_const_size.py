@@ -4,8 +4,6 @@ from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 from conftest import get_random_signed, get_signed_max, get_signed_min
 
-# TODO: we have always to test positive and negative numbers in each pass.
-
 def test_enc_dec_int_twos_complement_const_size_single_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
     input_number: int = get_random_signed(bit)
     encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
@@ -30,7 +28,9 @@ def test_enc_dec_int_twos_complement_const_size_multiple_values(acn_encoder: ACN
 
     decoded_res = []
     for _ in range(len(input_numbers)):
-        decoded_res.append(acn_decoder.dec_int_twos_complement_const_size(bit).decoded_value)
+        res = acn_decoder.dec_int_twos_complement_const_size(bit)
+        assert res.success
+        decoded_res.append(res.decoded_value)
     print(f"Input: {input_numbers}, decoded {decoded_res}, Passed: {input_numbers == decoded_res}")
     assert input_numbers == decoded_res
 
@@ -45,19 +45,27 @@ def test_enc_dec_int_twos_complement_const_size_zero(acn_encoder: ACNEncoder, se
     assert input_number == decoded_res.decoded_value
 
 def test_enc_dec_int_twos_complement_const_size_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = get_signed_max(bit)
+    input_numbers: list[int] = [get_signed_max(bit), get_signed_min(bit)]
 
-    encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
-    assert encoded_res.success
+    for inp_num in input_numbers:
+        encoded_res = acn_encoder.enc_int_twos_complement_const_size(inp_num, bit)
+        assert encoded_res.success
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
-    decoded_res = acn_decoder.dec_int_twos_complement_const_size(bit)
-    print(f"Input: {input_number}, decoded {decoded_res.decoded_value}, Passed: {input_number == decoded_res.decoded_value}")
-    assert input_number == decoded_res.decoded_value
-    ## TODO: add - case
+
+    decoded_res: list[int]= []
+    for _ in range(len(input_numbers)):
+        res = acn_decoder.dec_int_twos_complement_const_size(bit)
+        assert res.success
+        decoded_res.append(res.decoded_value)
+
+    print(f"Input: {input_numbers}, decoded {decoded_res}, Passed: {input_numbers == decoded_res}")
+    assert input_numbers == decoded_res
 
 def test_enc_dec_int_twos_complement_const_size_exceed_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
     input_number: int = get_signed_max(bit) + 1
     encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
     assert not encoded_res.success
 
-    ## TODO: add - case
+    input_number: int = get_signed_min(bit) - 1
+    encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
+    assert not encoded_res.success
