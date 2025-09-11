@@ -918,7 +918,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  [] us
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "" codec
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "" codec
 
     match o.encodingOptions with
     | None          ->

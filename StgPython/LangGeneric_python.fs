@@ -203,6 +203,9 @@ type LangGeneric_python() =
     override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
         ch.typeDef[Python].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
 
+    override this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        baseTypeDefinitionName + "." + methodSuffix
+
     override this.getFuncNameGeneric (typeDefinition:TypeDefinitionOrReference) (nameSuffix: string): string option  =
         match typeDefinition with
         | ReferenceToExistingDefinition  refEx  -> None
@@ -216,19 +219,8 @@ type LangGeneric_python() =
         | []    ->
             match t.id.tasInfo with
             | None -> None
-            | Some _ -> 
-                match codec with
-                | Encode -> Some "encode"
-                | Decode -> Some "decode"
+            | Some _ -> Some codec.suffix
         | _     -> None
-
-    override this.getConstraintValidFuncName (baseTypeDefinitionName: string) (moduleName: string) (t: Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType): string =
-        match this.hasModules with
-        | false     -> "is_constraint_valid"
-        | true   ->
-            match t.id.ModName = o.modName.Value with
-            | true  -> "is_constraint_valid"
-            | false -> moduleName + "." + "is_constraint_valid"
 
     override this.getRtlFiles (encodings:Asn1Encoding list) (_ :string list) =
         let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []

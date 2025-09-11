@@ -242,12 +242,12 @@ type ILangGeneric () =
     abstract member isCaseSensitive : bool
     abstract member isFilenameCaseSensitive : bool
 
+    abstract member constructFuncName           : string -> string -> string -> string
     abstract member getFuncNameGeneric          : TypeDefinitionOrReference -> string -> string option
     abstract member getFuncNameGeneric2         : TypeDefinitionOrReference -> string option
     abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
     abstract member getACNFuncName              : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
-    abstract member getConstraintValidFuncName  : string -> string -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.ReferenceType -> string
-
+    
     abstract member RtlFuncNames : string list
     abstract member AlwaysPresentRtlFuncNames : string list
 
@@ -381,6 +381,9 @@ type ILangGeneric () =
 
     default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""
         
+    default this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        baseTypeDefinitionName + codecName + methodSuffix
+
     default this.getFuncNameGeneric (typeDefinition: TypeDefinitionOrReference) (nameSuffix: string): string option  =
         match typeDefinition with
         | ReferenceToExistingDefinition  refEx  -> None
@@ -403,14 +406,6 @@ type ILangGeneric () =
             | None -> None
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
         | _     -> None
-
-    default this.getConstraintValidFuncName (baseTypeDefinitionName: string) (moduleName: string) (t: Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType): string =
-        match this.hasModules with
-        | false     -> baseTypeDefinitionName + "_IsConstraintValid"
-        | true   ->
-            match t.id.ModName = o.modName.Value with
-            | true  -> baseTypeDefinitionName + "_IsConstraintValid"
-            | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
 
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []

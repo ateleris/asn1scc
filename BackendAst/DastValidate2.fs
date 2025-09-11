@@ -1000,7 +1000,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
 
-    let moduleName, typeDefinitionName, baseTypeDefinitionName =
+    let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
@@ -1022,7 +1022,8 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | false -> Some typeDefinitionName
         | _         -> None
 
-    let baseFncName = l.lg.getConstraintValidFuncName baseTypeDefinitionName moduleName t o
+    let baseTypeDefinitionName: string = getBaseTypeDefName l typeDefinitionName0 moduleName t o 
+    let baseFncName = l.lg.constructFuncName baseTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 
     let ns =
         match resolvedType.isValidFunction with
