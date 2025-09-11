@@ -59,7 +59,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
+def <sFuncName>(cls, codec: ACNCodec) -> Union['<sTypeDefName>', Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -79,7 +79,7 @@ def <sFuncName>(cls, codec: ACNCodec) -> Union[<sTypeDefName>, Asn1SccError]:
     <endif>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[<sTypeDefName>, Asn1SccError]]:
+def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union['<sTypeDefName>', Asn1SccError]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sTypeDefName>.<sFuncName>(cpy)
