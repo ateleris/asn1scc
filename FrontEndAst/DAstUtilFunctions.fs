@@ -1010,17 +1010,6 @@ let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) =
     } |> Seq.toList
 
 
-let getFuncNameGeneric (typeDefinition:TypeDefinitionOrReference) nameSuffix  =
-    match typeDefinition with
-    | ReferenceToExistingDefinition  refEx  -> None
-    | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
-
-let getFuncNameGeneric2 (typeDefinition:TypeDefinitionOrReference) =
-    match typeDefinition with
-    | ReferenceToExistingDefinition  refEx  -> None
-    | TypeDefinition   td                   -> Some (td.typedefName)
-
-
 let nestItems joinItems2 children =
     let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with

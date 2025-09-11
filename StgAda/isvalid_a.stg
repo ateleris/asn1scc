@@ -1,7 +1,7 @@
 group a_isvalid;
 
 rtlModuleName() ::= "adaasn1rtl"
-
+methodNameSuffix() ::= "_IsConstraintValid"
 
 always_true_statement ()::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);

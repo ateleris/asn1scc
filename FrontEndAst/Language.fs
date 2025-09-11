@@ -242,6 +242,12 @@ type ILangGeneric () =
     abstract member isCaseSensitive : bool
     abstract member isFilenameCaseSensitive : bool
 
+    abstract member getFuncNameGeneric          : TypeDefinitionOrReference -> string -> string option
+    abstract member getFuncNameGeneric2         : TypeDefinitionOrReference -> string option
+    abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    abstract member getACNFuncName              : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    abstract member getConstraintValidFuncName  : string -> string -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.ReferenceType -> string
+
     abstract member RtlFuncNames : string list
     abstract member AlwaysPresentRtlFuncNames : string list
 
@@ -341,7 +347,7 @@ type ILangGeneric () =
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> Selection -> Codec -> string
@@ -375,6 +381,36 @@ type ILangGeneric () =
 
     default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""
         
+    default this.getFuncNameGeneric (typeDefinition: TypeDefinitionOrReference) (nameSuffix: string): string option  =
+        match typeDefinition with
+        | ReferenceToExistingDefinition  refEx  -> None
+        | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
+
+    default this.getFuncNameGeneric2 (typeDefinition: TypeDefinitionOrReference): string option=
+        match typeDefinition with
+        | ReferenceToExistingDefinition  refEx  -> None
+        | TypeDefinition   td                   -> Some td.typedefName
+
+    default this.getUPerFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option =
+        match t.id.tasInfo with
+        | None -> None
+        | Some _ -> Some (td.typeName + codec.suffix)
+
+    default this.getACNFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option = 
+        match t.acnParameters with
+        | []    ->
+            match t.id.tasInfo with
+            | None -> None
+            | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+        | _     -> None
+
+    default this.getConstraintValidFuncName (baseTypeDefinitionName: string) (moduleName: string) (t: Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType): string =
+        match this.hasModules with
+        | false     -> baseTypeDefinitionName + "_IsConstraintValid"
+        | true   ->
+            match t.id.ModName = o.modName.Value with
+            | true  -> baseTypeDefinitionName + "_IsConstraintValid"
+            | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
 
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
@@ -389,7 +425,7 @@ type ILangGeneric () =
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
     default this.generatePrecond _ _ _ _ = []
-    default this.generatePostcond _ _ _ _ _ _ = None
+    default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ _ _ = []
     default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt

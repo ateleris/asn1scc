@@ -1,7 +1,7 @@
 group init_python;
 
 rtlModuleName() ::= "pythonasn1rtl"
-methodNameSuffix() ::= "_Initialize"
+methodNameSuffix() ::= "__init__"
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 

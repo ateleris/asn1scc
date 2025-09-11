@@ -166,7 +166,7 @@ let rec anyConstraint2GenericSet (r:Asn1AcnAst.AstRoot)  (erLoc:SrcLoc) (t:Asn1T
 
 
 let getFuncName2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (typeDefinition:TypeDefinitionOrReference) =
-    getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+    lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
 
 
 let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: Asn1AcnAst.Asn1Type)
@@ -174,7 +174,7 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
         automaticTestCases (initExpressionFnc: unit -> string) (initExpressionGlobalFnc: unit -> string) (nonEmbeddedChildrenFuncs: InitFunction list) (user_aux_functions: (string*string) list) (funcDefAnnots: string list) =
 
     let funcName            = getFuncName2 r lm typeDefinition
-    let globalName = getFuncNameGeneric typeDefinition "_constant"
+    let globalName = lm.lg.getFuncNameGeneric typeDefinition "_constant"
     let p = lm.lg.getParamType o CommonTypes.Codec.Decode
     let initTypeAssignment      = lm.init.initTypeAssignment
     let initTypeAssignment_def  = lm.init.initTypeAssignment_def
@@ -551,7 +551,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             ret, ret.Head.initTestCaseFunc
 
     let user_aux_functions =
-        let funcName            = getFuncNameGeneric typeDefinition ""
+        let funcName            = lm.lg.getFuncNameGeneric2 typeDefinition
         let p = lm.lg.getParamType t CommonTypes.Codec.Decode
         let varName = p.arg.receiverId
         let sStar = lm.lg.getStar p.arg

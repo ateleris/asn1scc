@@ -44,7 +44,7 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, bCheckConstraints: bool
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if bCheckConstraints:
-        res = <soIValidFuncName>(<sVarName>)
+        res = <sVarName>.<soIValidFuncName>()
         if isinstance(res, Asn1SccError):
             # uper_python.stg 49
             return res
@@ -71,15 +71,16 @@ def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
     <sContent>
 
     <if(soIValidFuncName)>
-    if isinstance(<soIValidFuncName>(pVal), Asn1SccError): # uper:68
+    res = <sVarName>.<soIValidFuncName>()
+    if isinstance(res, Asn1SccError):
         # uper_python.stg 75
-        return Asn1SccError(l)
+        return res
     else: 
         # uper_python.stg 78
-        return pVal
+        return <sVarName>
     <else>
     # uper_python.stg 81
-    return pVal
+    return <sVarName>
     <endif>
 
 # @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">

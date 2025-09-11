@@ -1,7 +1,7 @@
 ﻿group c_isvalid;
 
 rtlModuleName() ::= ""
-
+methodNameSuffix() ::= "_IsConstraintValid"
 
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>

@@ -112,7 +112,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
 
 let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (typeDefinition:TypeDefinitionOrReference) =
     //getFuncNameGeneric r "_Equal" tasInfo inhInfo typeKind typeDefinition
-    getFuncNameGeneric  typeDefinition "_Equal"
+    lm.lg.getFuncNameGeneric  typeDefinition "_Equal"
 
 let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) isEqualBody  =
     let equalTypeAssignment      = lm.equal.equalTypeAssignment

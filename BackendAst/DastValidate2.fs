@@ -561,9 +561,6 @@ let hasValidationFunc allCons =
     | []      -> false
     | _       -> true
 
-let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) =
-    getFuncNameGeneric  typeDefinition "_IsConstraintValid"
-
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
     let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self" | _ -> "str"
@@ -595,7 +592,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let emitTasFncDef = lm.isvalid.EmitTypeAssignment_composite_def
     let defErrCode    = lm.isvalid.EmitTypeAssignment_composite_def_err_code
 
-    let funcName            = getFuncName r lm typeDefinition
+    let funcName            = lm.lg.getFuncNameGeneric typeDefinition  (lm.isvalid.methodNameSuffix())
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName errorCodeComment
 
@@ -1025,14 +1022,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | false -> Some typeDefinitionName
         | _         -> None
 
-    let baseFncName =
-        match l.lg.hasModules with
-        | false     -> baseTypeDefinitionName + "_IsConstraintValid"
-        | true   ->
-            match t.id.ModName = o.modName.Value with
-            | true  -> baseTypeDefinitionName + "_IsConstraintValid"
-            | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
-
+    let baseFncName = l.lg.getConstraintValidFuncName baseTypeDefinitionName moduleName t o
 
     let ns =
         match resolvedType.isValidFunction with

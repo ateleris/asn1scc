@@ -1,6 +1,7 @@
 group isvalid_python;
 
 rtlModuleName() ::= ""
+methodNameSuffix() ::= "is_constraint_valid"
 
 JoinItems(sPart, soNestedPart) ::= <<
 # isvalid_python.stg 6
@@ -79,7 +80,7 @@ class ErrorCodes:
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 # isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
-def is_constraint_valid(self) -> bool:
+def <sFuncName>(self) -> bool:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85

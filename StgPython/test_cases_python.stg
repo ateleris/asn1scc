@@ -57,7 +57,7 @@ elif res == pVal:
 
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 # test_cases_python.stg:80
-res = decodedPDU.is_constraint_valid()
+res = decodedPDU.<sFuncName>()
 
 if isinstance(res, Asn1SccError):
     # test_cases_python.stg 68
