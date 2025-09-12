@@ -105,4 +105,5 @@ def test_enc_dec_string_ascii_external_field_determinant_too_long(acn_encoder: A
     n = random.randint(1, max_length)
     input_string: str = get_random_string(max_length + n)
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length)
-    assert not success, f"Encoding for {input_string} and max_length {max_length} should not be possible!"
+    assert success
+    assert input_string[:max_length] == decoded_value
