@@ -611,6 +611,7 @@ class ACNEncoder(Encoder):
             
             # Write string characters until null terminator (0) or max_len
             for i in range(min(len(str_bytes), max_len)):
+                # TODO: we should not stop at the null character, we should stop at the null_character sequence!
                 if str_bytes[i] == 0:  # Stop at first null character
                     break
                 self._bitstream.write_bits(str_bytes[i], 8)

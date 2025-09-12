@@ -22,6 +22,8 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("nibble", [1, 2, 3, 4, 5, 6])
     if "max_length" in metafunc.fixturenames:
         metafunc.parametrize("max_length", [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024])
+    if "null_characters" in metafunc.fixturenames:
+        metafunc.parametrize("null_characters", [bytes(1), bytes(2), bytes(4), bytes(8)])
 
 # Utility functions for integer range calculations
 def get_unsigned_max(bits: int) -> int:
