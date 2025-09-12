@@ -3,7 +3,8 @@ import random
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 
-from tests.conftest import get_random_string, get_null_terminator_string, get_random_string_random_length
+from tests.conftest import get_random_string, get_null_terminator_string, get_random_string_random_length, \
+    get_null_terminator_string_random_size
 
 
 def _encode_and_decode_single_string_null_terminated(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> tuple[bool, str]:
@@ -86,7 +87,7 @@ def test_enc_dec_string_ascii_null_terminated_zero_length(acn_encoder: ACNEncode
     _test_single_string_null_terminated(acn_encoder, input_string, 0)
 
 def test_enc_dec_string_ascii_null_terminated_null_terminator_symbol(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
-    input_string: str = get_null_terminator_string(max_length)
+    input_string: str = get_null_terminator_string_random_size(max_length)
     success, decoded_value = _encode_and_decode_single_string_null_terminated(acn_encoder, input_string, max_length)
     assert success, f"Encoding/decoding failed for input {input_string}"
     assert input_string != decoded_value

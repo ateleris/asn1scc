@@ -190,5 +190,8 @@ def get_random_string(length: int) -> str:
     # Excludes control characters for easier debugging
     return ''.join(choice(printable.rstrip()) for _ in range(length))
 
-def get_null_terminator_string(length: int) -> str:
+def get_null_terminator_string_random_size(length: int) -> str:
     return ''.join('\0' for _ in range(random.randint(1, length)))
+
+def get_null_terminator_string(length: int) -> str:
+    return ''.join('\0' for _ in range(length))
