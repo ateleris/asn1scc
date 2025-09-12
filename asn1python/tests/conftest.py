@@ -1,6 +1,8 @@
 import math
 import pytest
 import random
+from random import choice
+from string import printable
 from asn1python.acn_encoder import ACNEncoder
 
 @pytest.fixture
@@ -18,6 +20,8 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("bit", [1, 2, 3, 4, 6, 8, 10, 12, 16, 32, 48, 64])
     if "nibble" in metafunc.fixturenames:
         metafunc.parametrize("nibble", [1, 2, 3, 4, 5, 6])
+    if "max_length" in metafunc.fixturenames:
+        metafunc.parametrize("max_length", [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024])
 
 # Utility functions for integer range calculations
 def get_unsigned_max(bits: int) -> int:
@@ -177,3 +181,14 @@ def get_nibble_max_digit(length: int) -> int:
         raise ValueError("Length must be positive")
 
     return (10 ** length) - 1
+
+def get_random_string_random_length(max_length: int) -> str:
+    return get_random_string(random.randint(1, max_length))
+
+def get_random_string(length: int) -> str:
+    # Use printable ASCII characters (letters, digits, punctuation, whitespace)
+    # Excludes control characters for easier debugging
+    return ''.join(choice(printable.rstrip()) for _ in range(length))
+
+def get_null_terminator_string(length: int) -> str:
+    return ''.join('\0' for _ in range(random.randint(1, length)))

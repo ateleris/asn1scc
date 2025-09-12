@@ -6,6 +6,7 @@ that match the behavior of the C and Scala runtime libraries.
 """
 
 import ctypes
+from codecs import Codec
 from typing import List
 from enum import Enum
 import abc

@@ -452,24 +452,314 @@ class ACNEncoder(Encoder):
     # ============================================================================
 
     def enc_string_ascii_fix_size(self, max_len: int, str_val: str) -> EncodeResult:
-        """Encode ASCII string with fixed size."""
-        raise NotImplementedError("enc_string_ascii_fix_size not yet implemented")
+        """Encode ASCII string with fixed size.
+        
+        Encodes exactly max_len characters, padding with nulls if necessary.
+        
+        Args:
+            max_len: Number of characters to encode (fixed size)
+            str_val: String value to encode
+        """
+        if not isinstance(str_val, str):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="String value must be a string"
+            )
+            
+        try:
+            # Convert string to bytes using ASCII encoding
+            str_bytes = str_val.encode('ascii')
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        
+        if len(str_bytes) > max_len:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String length {len(str_bytes)} exceeds max_len {max_len}"
+            )
+            
+        try:
+            bits_encoded = 0
+            # Write exactly max_len bytes
+            for i in range(max_len):
+                if i < len(str_bytes):
+                    self._bitstream.write_bits(str_bytes[i], 8)
+                else:
+                    # Pad with null bytes if string is shorter than max_len
+                    self._bitstream.write_bits(0, 8)
+                bits_encoded += 8
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_ascii_null_terminated(self, max_len: int, null_character: int, str_val: str) -> EncodeResult:
-        """Encode ASCII string with null termination."""
-        raise NotImplementedError("enc_string_ascii_null_terminated not yet implemented")
+        """Encode ASCII string with null termination.
+        
+        Encodes string characters up to null terminator or max_len, then appends null_character.
+        
+        Args:
+            max_len: Maximum number of characters to encode from string
+            null_character: Null termination character (0-255)
+            str_val: String value to encode
+        """
+        if not isinstance(str_val, str):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="String value must be a string"
+            )
+            
+        if not (0 <= null_character <= 255):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Null character must be 0-255, got {null_character}"
+            )
+            
+        try:
+            # Convert string to bytes using ASCII encoding
+            str_bytes = str_val.encode('ascii')
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+            
+        try:
+            bits_encoded = 0
+            chars_written = 0
+            
+            # Write string characters until null terminator (0) or max_len
+            for i in range(min(len(str_bytes), max_len)):
+                if str_bytes[i] == 0:  # Stop at first null character
+                    break
+                self._bitstream.write_bits(str_bytes[i], 8)
+                bits_encoded += 8
+                chars_written += 1
+                
+            # Append the null termination character
+            self._bitstream.write_bits(null_character, 8)
+            bits_encoded += 8
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytes, str_val: str) -> EncodeResult:
-        """Encode ASCII string with multiple null characters."""
-        raise NotImplementedError("enc_string_ascii_null_terminated_mult not yet implemented")
+        """Encode ASCII string with multiple null characters.
+        
+        Encodes string characters up to null terminator or max_len, then appends null_characters sequence.
+        
+        Args:
+            max_len: Maximum number of characters to encode from string
+            null_characters: Null termination byte sequence
+            str_val: String value to encode
+        """
+        if not isinstance(str_val, str):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="String value must be a string"
+            )
+            
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+            
+        try:
+            # Convert string to bytes using ASCII encoding
+            str_bytes = str_val.encode('ascii')
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+            
+        try:
+            bits_encoded = 0
+            chars_written = 0
+            
+            # Write string characters until null terminator (0) or max_len
+            for i in range(min(len(str_bytes), max_len)):
+                if str_bytes[i] == 0:  # Stop at first null character
+                    break
+                self._bitstream.write_bits(str_bytes[i], 8)
+                bits_encoded += 8
+                chars_written += 1
+                
+            # Append the null termination character sequence
+            for null_byte in null_characters:
+                self._bitstream.write_bits(null_byte, 8)
+                bits_encoded += 8
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_ascii_external_field_determinant(self, max_len: int, str_val: str) -> EncodeResult:
-        """Encode ASCII string with external field determinant."""
-        raise NotImplementedError("enc_string_ascii_external_field_determinant not yet implemented")
+        """Encode ASCII string with external field determinant.
+        
+        Encodes string characters without length prefix (length determined externally).
+        Stops at null terminator or max_len.
+        
+        Args:
+            max_len: Maximum number of characters to encode from string
+            str_val: String value to encode
+        """
+        if not isinstance(str_val, str):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="String value must be a string"
+            )
+            
+        try:
+            # Convert string to bytes using ASCII encoding
+            str_bytes = str_val.encode('ascii')
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+            
+        try:
+            bits_encoded = 0
+            chars_written = 0
+            
+            # Write string characters until null terminator (0) or max_len
+            for i in range(min(len(str_bytes), max_len)):
+                if str_bytes[i] == 0:  # Stop at first null character
+                    break
+                self._bitstream.write_bits(str_bytes[i], 8)
+                bits_encoded += 8
+                chars_written += 1
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_ascii_internal_field_determinant(self, max_len: int, min_len: int, str_val: str) -> EncodeResult:
-        """Encode ASCII string with internal field determinant."""
-        raise NotImplementedError("enc_string_ascii_internal_field_determinant not yet implemented")
+        """Encode ASCII string with internal field determinant.
+        
+        Encodes the string length first as a constrained integer, then the string characters.
+        
+        Args:
+            max_len: Maximum string length
+            min_len: Minimum string length
+            str_val: String value to encode
+        """
+        if not isinstance(str_val, str):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="String value must be a string"
+            )
+            
+        if min_len > max_len:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+            
+        try:
+            # Convert string to bytes using ASCII encoding
+            str_bytes = str_val.encode('ascii')
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+            
+        # Calculate effective string length (up to first null or max_len)
+        effective_len = 0
+        for i in range(min(len(str_bytes), max_len)):
+            if str_bytes[i] == 0:  # Stop at first null character
+                break
+            effective_len += 1
+            
+        if effective_len < min_len:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String length {effective_len} is less than min_len {min_len}"
+            )
+            
+        try:
+            # Encode length as constrained integer
+            length_result = self.encode_integer(effective_len, min_val=min_len, max_val=max_len)
+            if not length_result.success:
+                return length_result
+                
+            bits_encoded = length_result.bits_encoded
+            
+            # Write string characters (up to effective_len)
+            for i in range(effective_len):
+                self._bitstream.write_bits(str_bytes[i], 8)
+                bits_encoded += 8
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
         """Encode string using character index with fixed size."""
