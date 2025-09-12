@@ -133,10 +133,11 @@ initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefi
 <sResVar> = [0] * <nMaxSizePlusOne>
 <else>
 <if(bAlpha)>
+# todo: maybe we need to wrap all hex numbers in chr()
 allowed_char_set = [<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
-<sResVar> = [(0 if <i> == <nMaxSizePlusOne> - 1 else allowed_char_set[<i> % <nAlphabetLength>]) for <i> in range(<nSize>)] + [0]
+<sResVar> = <td.asn1name>([(0 if <i> == <nMaxSizePlusOne> - 1 else allowed_char_set[<i> % <nAlphabetLength>]) for <i> in range(<nSize>)] + [0])
 <else>
-<sResVar> = [(0 if <i> == <nMaxSizePlusOne> - 1 else (ord('A') if <i> % 128 == 0 else <i> % 128)) for <i> in range(<nSize>)] + [0]
+<sResVar> = <td.asn1name>([(0 if <i> == <nMaxSizePlusOne> - 1 else (ord('A') if <i> % 128 == 0 else <i> % 128)) for <i> in range(<nSize>)] + [0])
 <endif>
 <endif>
 >>
