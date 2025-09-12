@@ -485,14 +485,12 @@ class ACNEncoder(Encoder):
             )
             
         try:
-            bits_encoded = 0
-            # Write exactly max_len bytes
-            for i in range(max_len):
-                if i < len(str_bytes):
-                    self._bitstream.write_bits(str_bytes[i], 8)
-                else:
-                    # Pad with null bytes if string is shorter than max_len
-                    self._bitstream.write_bits(0, 8)
+            # Use common string writing logic
+            chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
+            
+            # Pad remaining bytes with null terminators (fixed size specific behavior)
+            for i in range(chars_written, max_len):
+                self._bitstream.write_bits(0, 8)
                 bits_encoded += 8
                 
             return EncodeResult(
@@ -500,6 +498,12 @@ class ACNEncoder(Encoder):
                 error_code=ENCODE_OK,
                 encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
             )
         except BitStreamError as e:
             return EncodeResult(
@@ -533,28 +537,10 @@ class ACNEncoder(Encoder):
             )
             
         try:
-            # Convert string to bytes using ASCII encoding
-            str_bytes = str_val.encode('ascii')
-        except UnicodeEncodeError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"String contains non-ASCII characters: {e}"
-            )
+            # Use common string writing logic
+            chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
             
-        try:
-            bits_encoded = 0
-            chars_written = 0
-            
-            # Write string characters until null terminator (0) or max_len
-            for i in range(min(len(str_bytes), max_len)):
-                if str_bytes[i] == 0:  # Stop at first null character
-                    break
-                self._bitstream.write_bits(str_bytes[i], 8)
-                bits_encoded += 8
-                chars_written += 1
-                
-            # Append the null termination character
+            # Append the null termination character (null terminated specific behavior)
             self._bitstream.write_bits(null_character, 8)
             bits_encoded += 8
                 
@@ -563,6 +549,12 @@ class ACNEncoder(Encoder):
                 error_code=ENCODE_OK,
                 encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
             )
         except BitStreamError as e:
             return EncodeResult(
@@ -596,29 +588,10 @@ class ACNEncoder(Encoder):
             )
             
         try:
-            # Convert string to bytes using ASCII encoding
-            str_bytes = str_val.encode('ascii')
-        except UnicodeEncodeError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"String contains non-ASCII characters: {e}"
-            )
+            # Use common string writing logic
+            chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
             
-        try:
-            bits_encoded = 0
-            chars_written = 0
-            
-            # Write string characters until null terminator (0) or max_len
-            for i in range(min(len(str_bytes), max_len)):
-                # TODO: we should not stop at the null character, we should stop at the null_character sequence!
-                if str_bytes[i] == 0:  # Stop at first null character
-                    break
-                self._bitstream.write_bits(str_bytes[i], 8)
-                bits_encoded += 8
-                chars_written += 1
-                
-            # Append the null termination character sequence
+            # Append the null termination character sequence (multi-byte null terminated specific behavior)
             for null_byte in null_characters:
                 self._bitstream.write_bits(null_byte, 8)
                 bits_encoded += 8
@@ -628,6 +601,12 @@ class ACNEncoder(Encoder):
                 error_code=ENCODE_OK,
                 encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
             )
         except BitStreamError as e:
             return EncodeResult(
@@ -654,32 +633,20 @@ class ACNEncoder(Encoder):
             )
             
         try:
-            # Convert string to bytes using ASCII encoding
-            str_bytes = str_val.encode('ascii')
-        except UnicodeEncodeError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"String contains non-ASCII characters: {e}"
-            )
-            
-        try:
-            bits_encoded = 0
-            chars_written = 0
-            
-            # Write string characters until null terminator (0) or max_len
-            for i in range(min(len(str_bytes), max_len)):
-                if str_bytes[i] == 0:  # Stop at first null character
-                    break
-                self._bitstream.write_bits(str_bytes[i], 8)
-                bits_encoded += 8
-                chars_written += 1
+            # Use common string writing logic (external field determinant has no additional behavior)
+            chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
                 
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
                 encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
             )
         except BitStreamError as e:
             return EncodeResult(
@@ -744,10 +711,9 @@ class ACNEncoder(Encoder):
                 
             bits_encoded = length_result.bits_encoded
             
-            # Write string characters (up to effective_len)
-            for i in range(effective_len):
-                self._bitstream.write_bits(str_bytes[i], 8)
-                bits_encoded += 8
+            # Use common string writing logic
+            chars_written, string_bits = self._enc_string_ascii_private(max_len, str_val)
+            bits_encoded += string_bits
                 
             return EncodeResult(
                 success=True,
@@ -817,6 +783,41 @@ class ACNEncoder(Encoder):
     # ============================================================================
     # HELPER METHODS
     # ============================================================================
+
+    def _enc_string_ascii_private(self, max_len: int, str_val: str) -> tuple[int, int]:
+        """Private helper method to encode string characters until null terminator or max_len.
+        
+        This method implements the common logic used by all string ASCII encoding methods:
+        - Converts string to ASCII bytes
+        - Writes characters until first null terminator (0) or max_len is reached
+        - Returns the number of characters written and bits encoded
+        
+        Args:
+            max_len: Maximum number of characters to write
+            str_val: String value to encode
+            
+        Returns:
+            Tuple of (characters_written, bits_encoded)
+            
+        Raises:
+            UnicodeEncodeError: If string contains non-ASCII characters
+            BitStreamError: If bitstream write fails
+        """
+        # Convert string to bytes using ASCII encoding (may raise UnicodeEncodeError)
+        str_bytes = str_val.encode('ascii')
+        
+        bits_encoded = 0
+        chars_written = 0
+        
+        # Write string characters until null terminator (0) or max_len
+        for i in range(min(len(str_bytes), max_len)):
+            if str_bytes[i] == 0:  # Stop at first null character
+                break
+            self._bitstream.write_bits(str_bytes[i], 8)
+            bits_encoded += 8
+            chars_written += 1
+            
+        return chars_written, bits_encoded
 
     def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in big-endian format."""

@@ -74,33 +74,33 @@ def _test_multiple_strings(acn_encoder: ACNEncoder, input_numbers: list[str], ma
     print(f"Input: {input_numbers}, decoded {decoded_values}, Passed: {input_numbers == decoded_values}")
     assert input_numbers == decoded_values
 
-def test_enc_dec_string_ascii_single_value(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+def test_enc_dec_string_ascii_fix_size_single_value(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_random_string(max_length)
     _test_single_string(acn_encoder, input_string, max_length)
 
-def test_enc_dec_string_ascii_single_value_var_length(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+def test_enc_dec_string_ascii_fix_size_single_value_var_length(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_random_string_random_length(max_length)
     _test_single_string_starts_with(acn_encoder, input_string, max_length)
 
-def test_enc_dec_string_ascii_multiple_values(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+def test_enc_dec_string_ascii_fix_size_multiple_values(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_strings: list[str] = []
     for i in range(random.randint(3, 10)):
         input_strings.append(get_random_string(max_length))
 
     _test_multiple_strings(acn_encoder, input_strings, max_length)
 
-def test_enc_dec_string_ascii_zero_length(acn_encoder: ACNEncoder, seed: int) -> None:
+def test_enc_dec_string_ascii_fix_size_zero_length(acn_encoder: ACNEncoder, seed: int) -> None:
     # TODO: not working, it is not possible to generate a Decoder with empty bitstream!
     input_string: str = ""
     _test_single_string(acn_encoder, input_string, 0)
 
-def test_enc_dec_string_ascii_null_terminator_symbol(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+def test_enc_dec_string_ascii_fix_size_null_terminator_symbol(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_null_terminator_string(max_length)
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length)
     assert success, f"Encoding/decoding failed for input {input_string}"
     assert input_string == decoded_value
 
-def test_enc_dec_string_ascii_too_long(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+def test_enc_dec_string_ascii_fix_size_too_long(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     n = random.randint(1, max_length)
     input_string: str = get_random_string(max_length + n)
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length)
