@@ -10,6 +10,7 @@ from typing import List
 from enum import Enum
 import abc
 from dataclasses import dataclass
+from functools import total_ordering
 
 # Error classes
 class Asn1Error(Exception):
@@ -46,21 +47,6 @@ class Asn1Base(abc.ABC):
         pass
 
 
-@dataclass(frozen=True)
-class Asn1ConstraintValidResult:
-    is_valid: bool
-    error_code: int = 0
-
-    def __bool__(self):
-        return self.is_valid
-
-    def __post_init__(self):
-        if not self.is_valid and self.error_code <= 0:
-            raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
-
-        if self.is_valid and self.error_code > 0:
-            raise Exception("No error code must be set if the constraint is valid.")
-
 # Integer types using ctypes for automatic range validation and conversion
 
 # Unsigned integer types
@@ -94,17 +80,111 @@ Asn1SccSint = int
 Asn1Real = float
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
+@total_ordering
 class Asn1Boolean(Asn1Base):
-    # todo: implement bool logic
-    # internal state vom typ bool
-    # methods:
-    # __eq__, __init__, __getattr__ -> maybe we can do this generically?
-    pass
+    """
+    ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
+    """
+    __slots__ = ("_val",)
 
-# ASN.1 NULL type - matches C "typedef char NullType" and Scala "type NullType = Byte"
+    def __init__(self, val):
+        self._val = bool(val)
+
+    # --- Core protocol ---
+    def __bool__(self):
+        return self._val
+
+    def __repr__(self):
+        return f"Asn1Boolean({self._val})"
+
+    def __str__(self):
+        return str(self._val)
+
+    # --- Equality / ordering ---
+    def __eq__(self, other):
+        return self._val == bool(other)
+
+    def __lt__(self, other):
+        return self._val < bool(other)
+
+    def __hash__(self):
+        return hash(self._val)
+
+    # --- Boolean operators ---
+    def __and__(self, other):
+        return Asn1Boolean(self._val & bool(other))
+
+    def __or__(self, other):
+        return Asn1Boolean(self._val | bool(other))
+
+    def __xor__(self, other):
+        return Asn1Boolean(self._val ^ bool(other))
+
+    def __invert__(self):
+        return Asn1Boolean(not self._val)
+
+    # --- Attribute delegation (for any method/properties bool has) ---
+    def __getattr__(self, name):
+        return getattr(self._val, name)
+
+    # --- Conversion helpers ---
+    @property
+    def value(self) -> bool:
+        """Explicit access to the inner bool."""
+        return self._val
+
+    # --- Stub-Implementations of Asn1Base Methods ---
+    def is_constraint_valid(self):
+        raise NotImplementedError()
+
+    def encode(self, codec: Codec):
+        raise NotImplementedError()
+
 class NullType(Asn1Base):
-    # todo: implement None logic
-    pass
+    """
+    ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
+    Always falsy, always equal to None, singleton instance.
+    """
+    __slots__ = ()
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    # --- Core protocol ---
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return "None"
+
+    def __str__(self):
+        return "None"
+
+    # --- Equality ---
+    def __eq__(self, other):
+        return other is None or isinstance(other, NullType)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(None)
+
+    # --- Pickling / copy compatibility ---
+    def __reduce__(self):
+        return (NullType, ())
+
+    # --- Prevent accidental mutation / attributes ---
+    def __setattr__(self, name, value):
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
+
+    def __delattr__(self, name):
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
+
 
 # Floating point types for different precisions
 Asn1Real32 = float  # matches C typedef float asn1Real32
