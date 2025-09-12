@@ -496,6 +496,7 @@ class ACNDecoder(Decoder):
             end_reached = False
             i = 0
             
+            # Read characters until null terminator or max_len (null terminated specific logic)
             while i <= max_len and not end_reached:
                 if self._bitstream.bits_remaining() < 8:
                     return DecodeResult(
@@ -513,22 +514,9 @@ class ACNDecoder(Decoder):
                 else:
                     end_reached = True
                     
-            # Convert bytes to string
-            try:
-                result_str = bytes(chars).decode('ascii')
-            except UnicodeDecodeError as e:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Non-ASCII character encountered: {e}"
-                )
+            # Convert bytes to ASCII string using common helper
+            return self._bytes_to_ascii_string(chars, bits_consumed)
                 
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=result_str,
-                bits_consumed=bits_consumed
-            )
         except BitStreamError as e:
             return DecodeResult(
                 success=False,
@@ -596,22 +584,8 @@ class ACNDecoder(Decoder):
                 tmp[null_size - 1] = self._bitstream.read_bits(8)
                 bits_consumed += 8
                 
-            # Convert bytes to string
-            try:
-                result_str = bytes(chars).decode('ascii')
-            except UnicodeDecodeError as e:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Non-ASCII character encountered: {e}"
-                )
-                
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=result_str,
-                bits_consumed=bits_consumed
-            )
+            # Convert bytes to ASCII string using common helper
+            return self._bytes_to_ascii_string(chars, bits_consumed)
         except BitStreamError as e:
             return DecodeResult(
                 success=False,
@@ -836,26 +810,38 @@ class ACNDecoder(Decoder):
                 bits_consumed += 8
                 
             # Convert bytes to ASCII string
-            try:
-                result_str = bytes(chars).decode('ascii')
-            except UnicodeDecodeError as e:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Non-ASCII character encountered: {e}"
-                )
+            return self._bytes_to_ascii_string(chars, bits_consumed)
                 
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+    
+    def _bytes_to_ascii_string(self, chars: list[int], bits_consumed: int) -> DecodeResult[str]:
+        """Convert list of byte values to ASCII string with proper error handling.
+        
+        Args:
+            chars: List of byte values (0-255)
+            bits_consumed: Number of bits consumed to read these characters
+            
+        Returns:
+            DecodeResult with ASCII string or error
+        """
+        try:
+            result_str = bytes(chars).decode('ascii')
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
                 decoded_value=result_str,
                 bits_consumed=bits_consumed
             )
-        except BitStreamError as e:
+        except UnicodeDecodeError as e:
             return DecodeResult(
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
+                error_message=f"Non-ASCII character encountered: {e}"
             )
 
     def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult[int]:
