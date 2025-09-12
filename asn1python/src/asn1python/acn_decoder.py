@@ -656,25 +656,110 @@ class ACNDecoder(Decoder):
             bits_consumed=length_result.bits_consumed + string_result.bits_consumed
         )
 
-    def dec_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes) -> DecodeResult:
-        """Decode string using character index with fixed size."""
-        raise NotImplementedError("dec_string_char_index_fix_size not yet implemented")
+    def dec_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes) -> DecodeResult[str]:
+        """Decode string using character index with fixed size.
+        
+        Decodes exactly max_len characters from character indices.
+        
+        Args:
+            max_len: Number of characters to decode (fixed size)
+            allowed_char_set: Bytes containing allowed characters
+        """
+        return self._dec_string_char_index_private(max_len, allowed_char_set, max_len)
 
-    def dec_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, ext_size_determinant_fld: int) -> DecodeResult:
-        """Decode string using character index with external field determinant."""
-        raise NotImplementedError("dec_string_char_index_external_field_determinant not yet implemented")
+    def dec_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, ext_size_determinant_fld: int) -> DecodeResult[str]:
+        """Decode string using character index with external field determinant.
+        
+        Uses an external field value to determine string length, capped at max_len.
+        
+        Args:
+            max_len: Maximum allowed string length
+            allowed_char_set: Bytes containing allowed characters
+            ext_size_determinant_fld: External field determining actual string length
+        """
+        if ext_size_determinant_fld < 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"External size determinant cannot be negative: {ext_size_determinant_fld}"
+            )
+            
+        # Use external field value, capped at max_len
+        characters_to_decode = min(ext_size_determinant_fld, max_len)
+        return self._dec_string_char_index_private(max_len, allowed_char_set, characters_to_decode)
 
-    def dec_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int) -> DecodeResult:
-        """Decode string using character index with internal field determinant."""
-        raise NotImplementedError("dec_string_char_index_internal_field_determinant not yet implemented")
+    def dec_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int) -> DecodeResult[str]:
+        """Decode string using character index with internal field determinant.
+        
+        Decodes a constrained integer first to determine the string length,
+        then decodes the string from character indices.
+        
+        Args:
+            max_len: Maximum string length
+            allowed_char_set: Bytes containing allowed characters
+            min_len: Minimum string length
+        """
+        if min_len > max_len:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+            
+        # Decode constrained integer to get string length
+        length_result = self.decode_integer(min_val=min_len, max_val=max_len)
+        if not length_result.success:
+            return DecodeResult(
+                success=False,
+                error_code=length_result.error_code,
+                error_message=f"Failed to decode string length: {length_result.error_message}"
+            )
+            
+        assert isinstance(length_result.decoded_value, int)
+        n_count = length_result.decoded_value
+        
+        # Use decoded length, capped at max_len
+        characters_to_decode = min(n_count, max_len)
+        
+        string_result = self._dec_string_char_index_private(max_len, allowed_char_set, characters_to_decode)
+        if not string_result.success:
+            return string_result
+            
+        # Combine bits consumed from length and string decoding
+        return DecodeResult(
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=string_result.decoded_value,
+            bits_consumed=length_result.bits_consumed + string_result.bits_consumed
+        )
 
-    def dec_ia5_string_char_index_external_field_determinant(self, max_len: int, ext_size_determinant_fld: int) -> DecodeResult:
-        """Decode IA5 string using character index with external field determinant."""
-        raise NotImplementedError("dec_ia5_string_char_index_external_field_determinant not yet implemented")
+    def dec_ia5_string_char_index_external_field_determinant(self, max_len: int, ext_size_determinant_fld: int) -> DecodeResult[str]:
+        """Decode IA5 string using character index with external field determinant.
+        
+        IA5 (International Alphabet No. 5) is equivalent to 7-bit ASCII (0-127).
+        Uses the full IA5 character set for character index decoding.
+        
+        Args:
+            max_len: Maximum allowed string length
+            ext_size_determinant_fld: External field determining actual string length
+        """
+        # IA5 character set is all 7-bit ASCII characters (0-127)
+        ia5_char_set = bytes(range(128))
+        return self.dec_string_char_index_external_field_determinant(max_len, ia5_char_set, ext_size_determinant_fld)
 
-    def dec_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult:
-        """Decode IA5 string using character index with internal field determinant."""
-        raise NotImplementedError("dec_ia5_string_char_index_internal_field_determinant not yet implemented")
+    def dec_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult[str]:
+        """Decode IA5 string using character index with internal field determinant.
+        
+        IA5 (International Alphabet No. 5) is equivalent to 7-bit ASCII (0-127).
+        Uses the full IA5 character set for character index decoding.
+        
+        Args:
+            max_len: Maximum string length
+            min_len: Minimum string length
+        """
+        # IA5 character set is all 7-bit ASCII characters (0-127)
+        ia5_char_set = bytes(range(128))
+        return self.dec_string_char_index_internal_field_determinant(max_len, ia5_char_set, min_len)
 
     # ============================================================================
     # ASCII INTEGER DECODING - SIGNED
@@ -929,3 +1014,105 @@ class ACNDecoder(Decoder):
     def milbus_decode(self, val: int) -> int:
         """Decode value using MILBUS encoding."""
         raise NotImplementedError("milbus_decode not yet implemented")
+
+    # ============================================================================
+    # CHARACTER INDEX STRING DECODING HELPER METHODS
+    # ============================================================================
+
+    def _dec_string_char_index_private(self, max_len: int, allowed_char_set: bytes, characters_to_decode: int) -> DecodeResult[str]:
+        """Private helper method to decode a specific number of characters from character indices.
+        
+        Args:
+            max_len: Maximum allowed string length (for validation)
+            allowed_char_set: Bytes containing allowed characters
+            characters_to_decode: Actual number of characters to decode
+        """
+        if not isinstance(allowed_char_set, (bytes, bytearray)):
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set must be bytes or bytearray"
+            )
+            
+        if len(allowed_char_set) == 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set cannot be empty"
+            )
+            
+        if characters_to_decode < 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Characters to decode cannot be negative: {characters_to_decode}"
+            )
+            
+        if characters_to_decode > max_len:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Characters to decode {characters_to_decode} exceeds max_len {max_len}"
+            )
+            
+        try:
+            # Calculate bits needed per character index
+            char_set_size = len(allowed_char_set)
+            bits_per_char = self._get_bits_per_char_decode(char_set_size)
+            
+            chars = []
+            bits_consumed = 0
+            
+            for i in range(characters_to_decode):
+                if self._bitstream.bits_remaining() < bits_per_char:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Insufficient data: need {characters_to_decode - i} more character indices"
+                    )
+                    
+                # Read character index as constrained integer (0 to char_set_size-1)
+                char_index = self._bitstream.read_bits(bits_per_char)
+                
+                # Validate index is within allowed range
+                if char_index >= char_set_size:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Character index {char_index} exceeds allowed range 0-{char_set_size-1}"
+                    )
+                    
+                # Map index back to character
+                char_byte = allowed_char_set[char_index]
+                chars.append(char_byte)
+                bits_consumed += bits_per_char
+                
+            # Convert bytes to ASCII string using common helper
+            return self._bytes_to_ascii_string(chars, bits_consumed)
+                
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+    
+    def _get_bits_per_char_decode(self, char_set_size: int) -> int:
+        """Calculate minimum bits needed to represent indices in a character set (decoder version).
+        
+        Args:
+            char_set_size: Size of the character set
+            
+        Returns:
+            Number of bits needed per character index
+        """
+        if char_set_size <= 1:
+            return 1  # Special case: need at least 1 bit
+        
+        # Calculate ceil(log2(char_set_size))
+        bits_needed = 0
+        temp = char_set_size - 1
+        while temp > 0:
+            bits_needed += 1
+            temp >>= 1
+        return bits_needed

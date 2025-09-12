@@ -81,7 +81,6 @@ def test_enc_dec_string_ascii_null_terminated_multiple_values(acn_encoder: ACNEn
 
     _test_multiple_strings_null_terminated(acn_encoder, input_strings, max_length)
 
-
 def test_enc_dec_string_ascii_null_terminated_zero_length(acn_encoder: ACNEncoder, seed: int) -> None:
     input_string: str = ""
     _test_single_string_null_terminated(acn_encoder, input_string, 0)

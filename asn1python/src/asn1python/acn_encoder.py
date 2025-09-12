@@ -729,24 +729,231 @@ class ACNEncoder(Encoder):
             )
 
     def enc_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
-        """Encode string using character index with fixed size."""
-        raise NotImplementedError("enc_string_char_index_fix_size not yet implemented")
+        """Encode string using character index with fixed size.
+        
+        Each character is encoded as its index position in the allowed_char_set,
+        using the minimum bits needed to represent all possible indices.
+        Encodes exactly max_len characters, padding with index 0 if needed.
+        
+        Args:
+            max_len: Number of characters to encode (fixed size)
+            allowed_char_set: Bytes containing allowed characters
+            str_val: String value to encode
+        """
+        if not isinstance(allowed_char_set, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set must be bytes or bytearray"
+            )
+            
+        if len(allowed_char_set) == 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set cannot be empty"
+            )
+            
+        try:
+            # Fixed size method: encode exactly max_len characters (do NOT stop at null terminators)
+            str_bytes = str_val.encode('ascii')
+            char_set_size = len(allowed_char_set)
+            bits_per_char = self._get_bits_per_char(char_set_size)
+            bits_encoded = 0
+            
+            # Always encode exactly max_len characters
+            for i in range(max_len):
+                if i < len(str_bytes):
+                    # Find character index in allowed set (including null terminators if they exist)
+                    char_index = self._get_char_index(str_bytes[i], allowed_char_set)
+                    if char_index == -1:
+                        return EncodeResult(
+                            success=False,
+                            error_code=ERROR_INVALID_VALUE,
+                            error_message=f"Character '{chr(str_bytes[i])}' (0x{str_bytes[i]:02x}) not found in allowed character set"
+                        )
+                else:
+                    # Pad with index 0 (first character in set)
+                    char_index = 0
+                
+                # Encode index as constrained integer (0 to char_set_size-1)
+                self._bitstream.write_bits(char_index, bits_per_char)
+                bits_encoded += bits_per_char
+                    
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
-        """Encode string using character index with external field determinant."""
-        raise NotImplementedError("enc_string_char_index_external_field_determinant not yet implemented")
+        """Encode string using character index with external field determinant.
+        
+        Each character is encoded as its index position in the allowed_char_set.
+        Length is determined externally (no length encoding, no padding).
+        
+        Args:
+            max_len: Maximum number of characters to encode
+            allowed_char_set: Bytes containing allowed characters
+            str_val: String value to encode
+        """
+        if not isinstance(allowed_char_set, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set must be bytes or bytearray"
+            )
+            
+        if len(allowed_char_set) == 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set cannot be empty"
+            )
+            
+        try:
+            # Use common character index encoding logic (external field determinant has no additional behavior)
+            chars_written, bits_encoded = self._enc_string_char_index_private(max_len, allowed_char_set, str_val)
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int, str_val: str) -> EncodeResult:
-        """Encode string using character index with internal field determinant."""
-        raise NotImplementedError("enc_string_char_index_internal_field_determinant not yet implemented")
+        """Encode string using character index with internal field determinant.
+        
+        Encodes the string length first as a constrained integer, then each character
+        as its index position in the allowed_char_set.
+        
+        Args:
+            max_len: Maximum string length
+            allowed_char_set: Bytes containing allowed characters
+            min_len: Minimum string length
+            str_val: String value to encode
+        """
+        if not isinstance(allowed_char_set, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set must be bytes or bytearray"
+            )
+            
+        if len(allowed_char_set) == 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Allowed character set cannot be empty"
+            )
+            
+        if min_len > max_len:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+            
+        try:
+            # Calculate effective string length (up to first null or max_len) for validation
+            str_bytes = str_val.encode('ascii')
+            effective_len = 0
+            for i in range(min(len(str_bytes), max_len)):
+                if str_bytes[i] == 0:  # Stop at first null character
+                    break
+                effective_len += 1
+                
+            if effective_len < min_len:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"String length {effective_len} is less than min_len {min_len}"
+                )
+                
+            # Encode length as constrained integer (internal field determinant specific behavior)
+            length_result = self.encode_integer(effective_len, min_val=min_len, max_val=max_len)
+            if not length_result.success:
+                return length_result
+                
+            bits_encoded = length_result.bits_encoded
+            
+            # Use common character index encoding logic
+            chars_written, string_bits = self._enc_string_char_index_private(max_len, allowed_char_set, str_val)
+            bits_encoded += string_bits
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_ia5_string_char_index_external_field_determinant(self, max_len: int, str_val: str) -> EncodeResult:
-        """Encode IA5 string using character index with external field determinant."""
-        raise NotImplementedError("enc_ia5_string_char_index_external_field_determinant not yet implemented")
+        """Encode IA5 string using character index with external field determinant.
+        
+        IA5 (International Alphabet No. 5) is equivalent to 7-bit ASCII (0-127).
+        Uses the full IA5 character set for character index encoding.
+        
+        Args:
+            max_len: Maximum number of characters to encode
+            str_val: String value to encode
+        """
+        # IA5 character set is all 7-bit ASCII characters (0-127)
+        ia5_char_set = bytes(range(128))
+        return self.enc_string_char_index_external_field_determinant(max_len, ia5_char_set, str_val)
 
     def enc_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int, str_val: str) -> EncodeResult:
-        """Encode IA5 string using character index with internal field determinant."""
-        raise NotImplementedError("enc_ia5_string_char_index_internal_field_determinant not yet implemented")
+        """Encode IA5 string using character index with internal field determinant.
+        
+        IA5 (International Alphabet No. 5) is equivalent to 7-bit ASCII (0-127).
+        Uses the full IA5 character set for character index encoding.
+        
+        Args:
+            max_len: Maximum string length
+            min_len: Minimum string length
+            str_val: String value to encode
+        """
+        # IA5 character set is all 7-bit ASCII characters (0-127)
+        ia5_char_set = bytes(range(128))
+        return self.enc_string_char_index_internal_field_determinant(max_len, ia5_char_set, min_len, str_val)
 
     # ============================================================================
     # ASCII INTEGER ENCODING - SIGNED
@@ -818,6 +1025,90 @@ class ACNEncoder(Encoder):
             chars_written += 1
             
         return chars_written, bits_encoded
+
+    def _enc_string_char_index_private(self, max_len: int, allowed_char_set: bytes, str_val: str) -> tuple[int, int]:
+        """Private helper method to encode string using character indices until null terminator or max_len.
+        
+        This method implements the common logic for character index string encoding:
+        - Converts string to ASCII bytes
+        - Maps each character to its index in the allowed_char_set
+        - Writes character indices using minimum bits needed
+        - Stops at first null terminator (0) or max_len
+        
+        Args:
+            max_len: Maximum number of characters to encode
+            allowed_char_set: Bytes containing allowed characters
+            str_val: String value to encode
+            
+        Returns:
+            Tuple of (characters_written, bits_encoded)
+            
+        Raises:
+            UnicodeEncodeError: If string contains non-ASCII characters
+            ValueError: If string contains characters not in allowed_char_set
+            BitStreamError: If bitstream write fails
+        """
+        # Convert string to bytes using ASCII encoding (may raise UnicodeEncodeError)
+        str_bytes = str_val.encode('ascii')
+        
+        # Calculate bits needed per character index
+        char_set_size = len(allowed_char_set)
+        bits_per_char = self._get_bits_per_char(char_set_size)
+        
+        bits_encoded = 0
+        chars_written = 0
+        
+        # Write string characters as indices until null terminator (0) or max_len
+        for i in range(min(len(str_bytes), max_len)):
+            if str_bytes[i] == 0:  # Stop at first null character
+                break
+                
+            # Find character index in allowed set
+            char_index = self._get_char_index(str_bytes[i], allowed_char_set)
+            if char_index == -1:
+                raise ValueError(f"Character '{chr(str_bytes[i])}' (0x{str_bytes[i]:02x}) not found in allowed character set")
+                
+            # Encode index as constrained integer (0 to char_set_size-1)
+            self._bitstream.write_bits(char_index, bits_per_char)
+            bits_encoded += bits_per_char
+            chars_written += 1
+            
+        return chars_written, bits_encoded
+
+    def _get_char_index(self, char_byte: int, allowed_char_set: bytes) -> int:
+        """Get the index of a character byte in the allowed character set.
+        
+        Args:
+            char_byte: Byte value of the character (0-255)
+            allowed_char_set: Bytes containing allowed characters
+            
+        Returns:
+            Index position in allowed_char_set, or -1 if not found
+        """
+        try:
+            return allowed_char_set.index(char_byte)
+        except ValueError:
+            return -1
+    
+    def _get_bits_per_char(self, char_set_size: int) -> int:
+        """Calculate minimum bits needed to represent indices in a character set.
+        
+        Args:
+            char_set_size: Size of the character set
+            
+        Returns:
+            Number of bits needed per character index
+        """
+        if char_set_size <= 1:
+            return 1  # Special case: need at least 1 bit
+        
+        # Calculate ceil(log2(char_set_size))
+        bits_needed = 0
+        temp = char_set_size - 1
+        while temp > 0:
+            bits_needed += 1
+            temp >>= 1
+        return bits_needed
 
     def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
         """Helper method to encode integer in big-endian format."""

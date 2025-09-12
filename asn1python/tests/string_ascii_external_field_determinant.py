@@ -1,4 +1,5 @@
 import random
+import pytest
 
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
@@ -90,9 +91,12 @@ def test_enc_dec_string_ascii_external_field_determinant_multiple_values(acn_enc
     _test_multiple_strings(acn_encoder, input_strings, max_length)
 
 def test_enc_dec_string_ascii_external_field_determinant_zero_length(acn_encoder: ACNEncoder, seed: int) -> None:
-    # TODO: not working, it is not possible to generate a Decoder with empty bitstream!
     input_string: str = ""
-    _test_single_string(acn_encoder, input_string, 0)
+    encoded_res = acn_encoder.enc_string_ascii_external_field_determinant(0, input_string)
+    assert encoded_res.success
+    with pytest.raises(AssertionError) as excinfo:
+        acn_decoder: ACNDecoder = acn_encoder.get_decoder()
+    assert "Codec buffer_size must be greater than zero" in str(excinfo.value)
 
 def test_enc_dec_string_ascii_external_field_determinant_null_terminator_symbol(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_null_terminator_string(max_length)

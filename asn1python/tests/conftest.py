@@ -24,6 +24,30 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("max_length", [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024])
     if "null_characters" in metafunc.fixturenames:
         metafunc.parametrize("null_characters", [bytes(1), bytes(2), bytes(4), bytes(8)])
+    if "charset" in metafunc.fixturenames:
+        metafunc.parametrize("charset", [
+            BINARY_CHARSET,
+            NUMERIC_CHARSET, 
+            HEX_CHARSET,
+            ALPHA_UPPERCASE_CHARSET,
+            ALPHA_LOWERCASE_CHARSET,
+            DNA_CHARSET,
+            MORSE_CHARSET,
+            BOOLEAN_CHARSET
+        ])
+    if "test_charset" in metafunc.fixturenames:
+        metafunc.parametrize("test_charset", [
+            (BINARY_CHARSET, "binary"),
+            (NUMERIC_CHARSET, "numeric"), 
+            (HEX_CHARSET, "hex_upper"),
+            (HEX_LOWERCASE_CHARSET, "hex_lower"),
+            (ALPHA_UPPERCASE_CHARSET, "alpha_upper"),
+            (ALPHA_LOWERCASE_CHARSET, "alpha_lower"),
+            (DNA_CHARSET, "dna"),
+            (RNA_CHARSET, "rna"),
+            (MORSE_CHARSET, "morse"),
+            (BOOLEAN_CHARSET, "boolean")
+        ])
 
 # Utility functions for integer range calculations
 def get_unsigned_max(bits: int) -> int:
@@ -197,3 +221,47 @@ def get_null_terminator_string_random_size(length: int) -> str:
 
 def get_null_terminator_string(length: int) -> str:
     return ''.join('\0' for _ in range(length))
+
+# ============================================================================
+# CHARACTER SET DEFINITIONS FOR ACN STRING TESTING
+# ============================================================================
+
+# Common character sets for ACN string encoding tests
+BINARY_CHARSET = "01"
+NUMERIC_CHARSET = "0123456789"
+HEX_CHARSET = "0123456789ABCDEF"
+HEX_LOWERCASE_CHARSET = "0123456789abcdef"
+ALPHA_UPPERCASE_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ALPHA_LOWERCASE_CHARSET = "abcdefghijklmnopqrstuvwxyz"
+ALPHA_CHARSET = ALPHA_UPPERCASE_CHARSET + ALPHA_LOWERCASE_CHARSET
+ALPHANUMERIC_CHARSET = ALPHA_CHARSET + NUMERIC_CHARSET
+ASCII_PRINTABLE_CHARSET = "".join(chr(i) for i in range(32, 127))  # Space to ~
+DNA_CHARSET = "ATCG"
+RNA_CHARSET = "AUCG"
+
+# Specialized character sets
+MORSE_CHARSET = ".-/ "  # Morse code characters
+BOOLEAN_CHARSET = "TF"  # True/False
+YESNO_CHARSET = "YN"   # Yes/No
+
+def get_charset_bits_per_char(charset: str) -> int:
+    """Calculate minimum bits needed per character for given charset."""
+    import math
+    return math.ceil(math.log2(len(charset))) if len(charset) > 1 else 1
+
+def generate_test_string_random_length(charset: str, length: int) -> str:
+    """Generate random test string from given character set."""
+    return generate_test_string(charset, random.randint(1, length))
+
+def generate_test_string(charset: str, length: int) -> str:
+    """Generate random test string from given character set."""
+    return ''.join(random.choice(charset) for _ in range(length))
+
+def generate_test_string_with_null(charset: str, max_length: int) -> str:
+    """Generate test string that ends with null terminator."""
+    length = random.randint(1, max_length - 1)
+    return generate_test_string(charset, length) + '\0'
+
+def charset_to_bytes(charset: str) -> bytes:
+    """Convert character set string to bytes object for ACN encoding."""
+    return charset.encode('ascii')
