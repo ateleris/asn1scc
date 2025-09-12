@@ -4,7 +4,7 @@ import pytest
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 
-from tests.conftest import get_random_string, get_null_terminator_string, generate_test_string, \
+from conftest import get_random_string, get_null_terminator_string, generate_test_string, \
     generate_test_string_random_length, charset_to_bytes
 
 

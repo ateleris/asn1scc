@@ -4,7 +4,7 @@ import pytest
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 
-from tests.conftest import get_random_string, get_null_terminator_string, get_random_string_random_length
+from conftest import get_random_string, get_null_terminator_string, get_random_string_random_length
 
 
 def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> tuple[bool, str]:

@@ -5,7 +5,7 @@ from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 
 from conftest import get_big_float, get_zero_and_special_floats
-from tests.conftest import get_random_float
+from conftest import get_random_float
 
 
 def _encode_and_decode_single_float(acn_encoder: ACNEncoder, input_number: float) -> tuple[bool, float]:

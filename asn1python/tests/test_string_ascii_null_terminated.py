@@ -3,7 +3,7 @@ import random
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
 
-from tests.conftest import get_random_string, get_null_terminator_string, get_random_string_random_length, \
+from conftest import get_random_string, get_null_terminator_string, get_random_string_random_length, \
     get_null_terminator_string_random_size
 
 
