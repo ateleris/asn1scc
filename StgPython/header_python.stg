@@ -83,8 +83,8 @@ Declare_RealNoRTL() ::= "RealNoRTL"
 
 Declare_Null() ::= "NullType"
 Declare_NullNoRTL() ::= "NullType"
-Declare_ObjectIdentifier() ::= "Asn1ObjectIdentifier"
-Declare_ObjectIdentifierNoRTL() ::= "Asn1ObjectIdentifier"
+Declare_ObjectIdentifier() ::= "INVALID_Asn1ObjectIdentifier"
+Declare_ObjectIdentifierNoRTL() ::= "INVALID_Asn1ObjectIdentifier"
 
 Declare_Asn1LocalTime                 	()::= "Asn1LocalTime"
 Declare_Asn1UtcTime                   	()::= "Asn1UtcTime"

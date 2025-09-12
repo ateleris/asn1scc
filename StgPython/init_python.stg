@@ -6,11 +6,7 @@ methodNameSuffix() ::= "__init__"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
-# todo: this should probably not be a standalone function but added as default
-# todo: values to the dataclass instead? -> static for the moment
-def <sFuncName>(self):
-    # init_python.stg 10
-    return <sDefaultInitValue>
+# python init is done by the dataclass
 >>
 
 initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
@@ -243,6 +239,11 @@ initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExp
 
 initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
 # init_python.stg 243
+# sAcc = <sAcc>
+# sChName = <sChName>
+# sChildTypedef = <sChildTypedef>
+# sResVar = <sResVar>
+# todo: fix .None generation
 <sResVar>: Optional[<sChildTypedef>] = None
 >>
 
