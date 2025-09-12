@@ -19,6 +19,8 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
     decoded_res = acn_decoder.dec_string_ascii_fix_size(max_length)
 
+    assert decoded_res.bits_consumed == 8*max_length
+
     if not decoded_res.success:
         return False, ""
 
@@ -57,7 +59,12 @@ def _test_single_string(acn_encoder: ACNEncoder, input_string: str, max_length: 
     print(f"Input: {input_string}, decoded {decoded_value}, Passed: {input_string == decoded_value}")
     assert input_string == decoded_value
 
-
+def _test_single_string_starts_with(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> None:
+    """Helper function to test encoding/decoding of a single positive integer value."""
+    success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length)
+    assert success, f"Encoding/decoding failed for input {input_string}"
+    print(f"Input: {input_string}, decoded {decoded_value}, Passed: {input_string == decoded_value}")
+    assert decoded_value.startswith(input_string)
 
 def _test_multiple_strings(acn_encoder: ACNEncoder, input_numbers: list[str], max_length: int) -> None:
     """Helper function to test encoding/decoding of multiple positive integer values."""
@@ -67,11 +74,13 @@ def _test_multiple_strings(acn_encoder: ACNEncoder, input_numbers: list[str], ma
     print(f"Input: {input_numbers}, decoded {decoded_values}, Passed: {input_numbers == decoded_values}")
     assert input_numbers == decoded_values
 
-
 def test_enc_dec_string_ascii_single_value(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_random_string(max_length)
     _test_single_string(acn_encoder, input_string, max_length)
 
+def test_enc_dec_string_ascii_single_value_var_length(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
+    input_string: str = get_random_string_random_length(max_length)
+    _test_single_string_starts_with(acn_encoder, input_string, max_length)
 
 def test_enc_dec_string_ascii_multiple_values(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_strings: list[str] = []
