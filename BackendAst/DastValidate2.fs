@@ -222,7 +222,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
 
     let alphaFuncName = ToC (((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
-        let valToStrFunc1 v = v.ToString().ISQ
+        let valToStrFunc1 v = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "ord(" + v.ToString().ISQ + ")" | _ -> v.ToString().ISQ
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
             (fun _ (v:string)  s  -> (fun p -> VCBExpression (stringContainsChar v (p.arg.joined lm.lg))) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -561,12 +561,10 @@ let hasValidationFunc allCons =
     | []      -> false
     | _       -> true
 
-let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) =
-    getFuncNameGeneric  typeDefinition "_IsConstraintValid"
-
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    ({CallerScope.modName = typeid.ModName; arg = (Selection.emptyPath "str" FixArray).append (ArrayAccess ("i", Value))})
+    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self" | _ -> "str"
+    ({CallerScope.modName = typeid.ModName; arg = (Selection.emptyPath prefix FixArray).append (ArrayAccess ("i", Value))})
 
 type IsValidAux = {
     isValidStatement  : CallerScope -> ValidationStatement
@@ -594,7 +592,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let emitTasFncDef = lm.isvalid.EmitTypeAssignment_composite_def
     let defErrCode    = lm.isvalid.EmitTypeAssignment_composite_def_err_code
 
-    let funcName            = getFuncName r lm typeDefinition
+    let funcName            = lm.lg.getFuncNameGeneric typeDefinition  (lm.isvalid.methodNameSuffix())
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName errorCodeComment
 
@@ -1002,7 +1000,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
 
-    let moduleName, typeDefinitionName, baseTypeDefinitionName =
+    let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
@@ -1024,14 +1022,8 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | false -> Some typeDefinitionName
         | _         -> None
 
-    let baseFncName =
-        match l.lg.hasModules with
-        | false     -> baseTypeDefinitionName + "_IsConstraintValid"
-        | true   ->
-            match t.id.ModName = o.modName.Value with
-            | true  -> baseTypeDefinitionName + "_IsConstraintValid"
-            | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
-
+    let baseTypeDefinitionName: string = getBaseTypeDefName l typeDefinitionName0 moduleName t o 
+    let baseFncName = l.lg.constructFuncName baseTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 
     let ns =
         match resolvedType.isValidFunction with

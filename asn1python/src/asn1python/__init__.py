@@ -11,8 +11,8 @@ from .asn1_types import (
     Int8, Int16, Int32, Int64,
 
     # ASN.1 semantic types
-    Asn1Real, Asn1Boolean, NullType,
-    Asn1ObjectIdentifier,
+    Asn1Real, Asn1Boolean, NullType, Asn1Base,
+    # Asn1ObjectIdentifier,
 
     # Time types
     Asn1Date, Asn1LocalTime, Asn1UtcTime,
@@ -21,8 +21,6 @@ from .asn1_types import (
 
     # Error handling
     Asn1Error, Asn1ValueError, Asn1OverflowError,
-
-    Asn1Base
 )
 
 from .bitstream import BitStream, BitStreamError
@@ -64,7 +62,7 @@ __all__ = [
     "UInt8", "UInt16", "UInt32", "UInt64",
     "Int8", "Int16", "Int32", "Int64",
     "Asn1Real", "Asn1Boolean", "NullType",
-    "Asn1ObjectIdentifier",
+    # "Asn1ObjectIdentifier",
     "Asn1Date", "Asn1LocalTime", "Asn1UtcTime",
     "Asn1TimeWithTimeZone", "Asn1DateLocalTime",
     "Asn1DateUtcTime", "Asn1DateTimeWithTimeZone",
@@ -80,7 +78,7 @@ __all__ = [
 
     # Codecs
     "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
-    "UPERCodec", "ACNCodec", #"XERCodec", "BERCodec", "PERCodec",
+    "UPERCodec", "ACNDecoder", "ACNEncoder", #"XERCodec", "BERCodec", "PERCodec",
 
     # Constants
     "ENCODE_OK", "DECODE_OK", "ERROR_INSUFFICIENT_DATA",

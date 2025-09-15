@@ -67,7 +67,7 @@ let getMaxSizeInBytesForXER  (xmlTag:XerTag) (contentSize:BigInteger) : BigInteg
 
 
 let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (codec:CommonTypes.Codec) (typeDefinition:TypeDefinitionOrReference) =
-    getFuncNameGeneric  typeDefinition ("_XER" + codec.suffix)
+    lm.lg.getFuncNameGeneric  typeDefinition ("_XER" + codec.suffix)
 
 let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) xerFuncBody_e  soSparkAnnotations (us:State)  =
     let emitTypeAssignment      = lm.xer.EmitTypeAssignment

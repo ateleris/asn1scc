@@ -1,7 +1,6 @@
 from typing import List, Optional
 
-from asn1python import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
-    ERROR_CONSTRAINT_VIOLATION
+from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 
 
 class Decoder(Codec):

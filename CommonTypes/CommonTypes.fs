@@ -361,9 +361,11 @@ type Codec =
     |Decode
  with
     member this.suffix =
-        match this with
-        | Encode    -> "_Encode"
-        | Decode    -> "_Decode"
+        match ProgrammingLanguage.ActiveLanguages.Head, this with
+        | Python, Encode -> "encode"
+        | Python, Decode -> "decode"
+        | _, Encode      -> "_Encode"
+        | _, Decode      -> "_Decode"
 
 
 type ObjectIdentifierValueComponent =

@@ -6,10 +6,12 @@ that match the behavior of the C and Scala runtime libraries.
 """
 
 import ctypes
+from codecs import Codec
 from typing import List
 from enum import Enum
 import abc
 from dataclasses import dataclass
+from functools import total_ordering
 
 # Error classes
 class Asn1Error(Exception):
@@ -46,21 +48,6 @@ class Asn1Base(abc.ABC):
         pass
 
 
-@dataclass(frozen=True)
-class Asn1ConstraintValidResult:
-    is_valid: bool
-    error_code: int = 0
-
-    def __bool__(self):
-        return self.is_valid
-
-    def __post_init__(self):
-        if not self.is_valid and self.error_code <= 0:
-            raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
-
-        if self.is_valid and self.error_code > 0:
-            raise Exception("No error code must be set if the constraint is valid.")
-
 # Integer types using ctypes for automatic range validation and conversion
 
 # Unsigned integer types
@@ -94,10 +81,111 @@ Asn1SccSint = int
 Asn1Real = float
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
-Asn1Boolean = bool
+@total_ordering
+class Asn1Boolean(Asn1Base):
+    """
+    ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
+    """
+    __slots__ = ("_val",)
 
-# ASN.1 NULL type - matches C "typedef char NullType" and Scala "type NullType = Byte"
-NullType: type = type(None)
+    def __init__(self, val):
+        self._val = bool(val)
+
+    # --- Core protocol ---
+    def __bool__(self):
+        return self._val
+
+    def __repr__(self):
+        return f"Asn1Boolean({self._val})"
+
+    def __str__(self):
+        return str(self._val)
+
+    # --- Equality / ordering ---
+    def __eq__(self, other):
+        return self._val == bool(other)
+
+    def __lt__(self, other):
+        return self._val < bool(other)
+
+    def __hash__(self):
+        return hash(self._val)
+
+    # --- Boolean operators ---
+    def __and__(self, other):
+        return Asn1Boolean(self._val & bool(other))
+
+    def __or__(self, other):
+        return Asn1Boolean(self._val | bool(other))
+
+    def __xor__(self, other):
+        return Asn1Boolean(self._val ^ bool(other))
+
+    def __invert__(self):
+        return Asn1Boolean(not self._val)
+
+    # --- Attribute delegation (for any method/properties bool has) ---
+    def __getattr__(self, name):
+        return getattr(self._val, name)
+
+    # --- Conversion helpers ---
+    @property
+    def value(self) -> bool:
+        """Explicit access to the inner bool."""
+        return self._val
+
+    # --- Stub-Implementations of Asn1Base Methods ---
+    def is_constraint_valid(self):
+        raise NotImplementedError()
+
+    def encode(self, codec: Codec):
+        raise NotImplementedError()
+
+class NullType(Asn1Base):
+    """
+    ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
+    Always falsy, always equal to None, singleton instance.
+    """
+    __slots__ = ()
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    # --- Core protocol ---
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return "None"
+
+    def __str__(self):
+        return "None"
+
+    # --- Equality ---
+    def __eq__(self, other):
+        return other is None or isinstance(other, NullType)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(None)
+
+    # --- Pickling / copy compatibility ---
+    def __reduce__(self):
+        return (NullType, ())
+
+    # --- Prevent accidental mutation / attributes ---
+    def __setattr__(self, name, value):
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
+
+    def __delattr__(self, name):
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
+
 
 # Floating point types for different precisions
 Asn1Real32 = float  # matches C typedef float asn1Real32
@@ -114,11 +202,6 @@ NO_OF_BITS_IN_BYTE = 8
 NO_OF_BITS_IN_SHORT = 16
 NO_OF_BITS_IN_INT = 32
 NO_OF_BITS_IN_LONG = 64
-NO_OF_BYTES_IN_JVM_SHORT = 2
-NO_OF_BYTES_IN_JVM_INT = 4
-NO_OF_BYTES_IN_JVM_LONG = 8
-NO_OF_BYTES_IN_JVM_FLOAT = 4
-NO_OF_BYTES_IN_JVM_DOUBLE = 8
 
 # Error codes to match C implementation
 ERR_INSUFFICIENT_DATA = 101
@@ -137,109 +220,16 @@ FAILED_READ_ERR_CODE = 5400
 # Utility functions to match C and Scala implementations
 def int2uint(v: int) -> int:
     """Convert signed integer to unsigned (matches C and Scala function)"""
-    if v < 0:
-        return (~(-v - 1)) & 0xFFFFFFFFFFFFFFFF
-    else:
-        return v & 0xFFFFFFFFFFFFFFFF
+    return ctypes.c_uint64(v).value
 
 def uint2int(v: int, uint_size_in_bytes: int) -> int:
     """Convert unsigned integer to signed (matches C and Scala function)"""
-    if uint_size_in_bytes < 1 or uint_size_in_bytes > 8:
-        raise Asn1ValueError(f"Invalid uint_size_in_bytes: {uint_size_in_bytes}")
-    
-    # Check if the value has the sign bit set
-    sign_bit = 1 << (uint_size_in_bytes * 8 - 1)
-    if v & sign_bit:
-        # Convert from unsigned to signed using two's complement
-        return v - (1 << (uint_size_in_bytes * 8))
-    else:
-        return v
-
-def null_type_initialize() -> None:
-    """Initialize NullType (matches C function)"""
-    return None
-
-def asn1_real_initialize() -> float:
-    """Initialize Asn1Real (matches Scala function)"""
-    return 0.0
-
-def asn1_real_equal(left: float, right: float) -> bool:
-    """Compare two Asn1Real values for equality (matches C and Scala function)"""
-    if left == right:
-        return True
-    elif left == 0.0:
-        return right == 0.0
-    elif (left > 0.0 and right < 0.0) or (left < 0.0 and right > 0.0):
-        return False
-    elif abs(left) > abs(right):
-        return abs(right) / abs(left) >= 0.99999
-    else:
-        return abs(left) / abs(right) >= 0.99999
-
-
-class Asn1ObjectIdentifier:
-    """
-    ASN.1 OBJECT IDENTIFIER type
-    
-    Matches C struct:
-    typedef struct {
-        int nCount;
-        asn1SccUint values[OBJECT_IDENTIFIER_MAX_LENGTH];
-    } Asn1ObjectIdentifier;
-    
-    And Scala case class:
-    case class Asn1ObjectIdentifier (
-        var nCount: Int,
-        values: Array[Long]
-    )
-    """
-    __slots__ = ('nCount', 'values')
-
-    def __init__(self, n_count: int, values: List[int]):
-        """
-        Initialize ObjectIdentifier with count and values array.
-        
-        Args:
-            n_count: Number of valid values in the array
-            values: Array of arc values (fixed size OBJECT_IDENTIFIER_MAX_LENGTH)
-        """
-        # Basic validation to match Scala's require() statements
-        if len(values) != OBJECT_IDENTIFIER_MAX_LENGTH:
-            raise Asn1ValueError(f"values array must have exactly {OBJECT_IDENTIFIER_MAX_LENGTH} elements")
-        if n_count < 0:
-            raise Asn1ValueError(f"nCount must be non-negative, got {n_count}")
-        
-        self.nCount = n_count
-        self.values = values
-
-
-# Standalone functions to match C and Scala implementations
-def ObjectIdentifier_Init() -> Asn1ObjectIdentifier:
-    """Initialize ObjectIdentifier (matches C and Scala function)"""
-    values = [0] * OBJECT_IDENTIFIER_MAX_LENGTH
-    return Asn1ObjectIdentifier(0, values)
-
-
-def ObjectIdentifier_isValid(pVal: Asn1ObjectIdentifier) -> bool:
-    """Check if ObjectIdentifier is valid (matches C and Scala function)"""
-    return (pVal.nCount >= 2) and (pVal.values[0] <= 2) and (pVal.values[1] <= 39)
-
-
-def RelativeOID_isValid(pVal: Asn1ObjectIdentifier) -> bool:
-    """Check if RelativeOID is valid (matches C and Scala function)"""
-    return pVal.nCount > 0
-
-
-def ObjectIdentifier_equal(pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdentifier) -> bool:
-    """Compare two ObjectIdentifiers for equality (matches C and Scala function)"""
-    if pVal1.nCount != pVal2.nCount or pVal1.nCount > OBJECT_IDENTIFIER_MAX_LENGTH:
-        return False
-    
-    for i in range(pVal1.nCount):
-        if pVal1.values[i] != pVal2.values[i]:
-            return False
-    
-    return True
+    match uint_size_in_bytes:
+        case 1: return ctypes.c_int8(v).value
+        case 2: return ctypes.c_int16(v).value
+        case 4: return ctypes.c_int32(v).value
+        case 8: return ctypes.c_int64(v).value
+        case _: raise ValueError(f"Unsupported size: {uint_size_in_bytes}")
 
 # TODO: OctetString_equal might be required for isvalid_python:394
 # def OctetString_equal(...):
@@ -248,7 +238,7 @@ def ObjectIdentifier_equal(pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdentif
 # def BitString_equal(...):
 
 
-# Time types - matching C and Scala struct-like implementations
+# Time types
 class Asn1TimeZone:
     """ASN.1 timezone information"""
     __slots__ = ('sign', 'hours', 'mins')

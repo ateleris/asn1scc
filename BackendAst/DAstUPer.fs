@@ -12,12 +12,6 @@ open DAst
 open DAstUtilFunctions
 open Language
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId :ReferenceToType) (td:FE_TypeDefinition) =
-    match typeId.tasInfo with
-    | None -> None
-    | Some _ -> Some (td.typeName + codec.suffix)
-
-
 let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
 
 let sparkAnnotations (lm:LanguageMacros)  = lm.uper.sparkAnnotations
@@ -74,10 +68,10 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                                 (funcDefAnnots: string list)
                                 (us:State)  =
     let typeDef = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let funcName = getFuncName r lm codec t.id typeDef
+    let funcName = lm.lg.getUPerFuncName r codec t typeDef
     let errCodeName = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
-    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+    let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment = lm.uper.EmitTypeAssignment
     let EmitTypeAssignment_def = lm.uper.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code = lm.uper.EmitTypeAssignment_def_err_code
@@ -101,7 +95,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
-                let postcondAnnots = lm.lg.generatePostcond r UPER typeDef.typeName p t codec
+                let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
                 let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
@@ -924,7 +918,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  [] us
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "" codec
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "" codec
 
     match o.encodingOptions with
     | None          ->

@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from . import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
 from .decoder import Decoder
@@ -78,7 +78,11 @@ class Encoder(Codec, ABC):
                     bits_needed = value.bit_length() if value > 0 else 1
 
             # Encode the value
-            self._bitstream.write_bits(value, bits_needed)
+            if value < 0:
+                unsigned_value = (1 << bits_needed) + value  # Two's complement conversion
+            else:
+                unsigned_value = value
+            self._bitstream.write_bits(unsigned_value, bits_needed)
 
             return EncodeResult(
                 success=True,
@@ -93,7 +97,6 @@ class Encoder(Codec, ABC):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-        # TODO: Is this only for List[int] or other lists as well?
 
     def encode_enumerated(self, value: int, enum_values: List[int]) -> EncodeResult:
         """Encode an enumerated value"""

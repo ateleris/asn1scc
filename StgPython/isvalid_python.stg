@@ -1,6 +1,7 @@
 group isvalid_python;
 
 rtlModuleName() ::= ""
+methodNameSuffix() ::= "is_constraint_valid"
 
 JoinItems(sPart, soNestedPart) ::= <<
 # isvalid_python.stg 6
@@ -79,7 +80,7 @@ class ErrorCodes:
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 # isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
-def is_constraint_valid(self) -> bool:
+def <sFuncName>(self) -> bool:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
@@ -206,16 +207,14 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def <sFuncName>(str0: Vector[UByte]): Boolean =
-{
-    str_ = str0.toVectorRaws
+def chars_are_valid(self) -> Boolean:
     valid: bool = True
     i: int = 0
-    while valid and i \< str_.length and str_[i] != CHAR_0000:
-        valid = valid and (<arrsAlphaConBody; separator=" and ">);
+    while valid and i \< len(self) and self[i] != CHAR_0000:
+        valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
     return valid
-}
+
 >>
 
 
@@ -243,7 +242,7 @@ AllExceptConstraint(sCon)  ::= "(not <sCon>)"
 
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
 
-callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
+callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 
@@ -253,8 +252,8 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>)"
-call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
+call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 
 /* SEQUENCE start*/

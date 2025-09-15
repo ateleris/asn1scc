@@ -210,7 +210,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                                 | Boolean _
                                 | NullType _ -> true
                                 | _     -> false
-                            getFuncNameGeneric2 t.typeDefinitionOrReference) |>
+                            lm.lg.getFuncNameGeneric2 t.typeDefinitionOrReference) |>
                             //getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitive t.typeDefinitionOrReference) |>
                         List.map(fun td -> (ToC ts.modName) + "." + td) |> List.distinct
 
