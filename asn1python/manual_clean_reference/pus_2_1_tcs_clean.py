@@ -5,25 +5,15 @@ from manual_clean_reference.general import Asn1ConstraintValidResult
 
 
 def DeviceAddress_ACN_enc_dec(pVal: DeviceAddress, filename: str) -> Union[int, Asn1SccError]:
-    codec = ACNCodec(int(DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING))
+    codec = ACNCodec(int(DeviceAddress.ErrorCodes.REQUIRED_BYTES_FOR_ACN_ENCODING))
 
-    res = pVal.encode(codec)
-    if not res:
-        return res
-
+    pVal.encode(codec)
     codec.reset_bitstream()
 
     # Decode value
     decodedPDU = DeviceAddress.decode(codec)
-    if not decodedPDU:
-        return decodedPDU
-
-    res = decodedPDU.is_constraint_valid()
-    if not res:
-        return res
 
     if pVal != decodedPDU:
-        # test_cases_python.stg 74
         return Asn1ConstraintValidResult(False, 4)
 
     codec.reset_bitstream()
@@ -38,6 +28,8 @@ def DeviceAddress_ACN_enc_dec_nice(pVal: DeviceAddress, filename: str) -> Union[
 
     pVal.encode(codec)
     codec.reset_bitstream()
+    
+    # Decode value
     decodedPDU = DeviceAddress.decode(codec)
 
     if pVal != decodedPDU:

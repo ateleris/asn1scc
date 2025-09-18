@@ -3,16 +3,20 @@ import abc
 
 class Asn1Base(abc.ABC):
     @abc.abstractmethod
-    def is_constraint_valid(self):
-        pass
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        raise NotImplementedException()
 
     @abc.abstractmethod
-    def encode(self, codec: Codec):
-        pass
+    def encode(self, codec: Codec, check_constraints: bool = True):
+        raise NotImplementedException()
 
     @classmethod
     def decode(cls, codec: Codec):
-        pass
+        raise NotImplementedException()
+    
+    @staticmethod
+    def decode_pure(codec: Codec):
+        raise NotImplementedException()
 
 @dataclass(frozen=True)
 class Asn1ConstraintValidResult:
