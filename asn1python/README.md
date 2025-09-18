@@ -78,7 +78,6 @@ The library follows the same architectural patterns as the C, Ada, and Scala run
 - **bitstream.py**: Bit-level operations
 - **codec*.py**: Encoding/decoding for different ASN.1 encoding rules
 - **helper.py**: Utility functions
-- **vector.py**: Array/vector operations
 - **verification.py**: Constraint validation
 
 ## License

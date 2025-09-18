@@ -7,7 +7,6 @@ This module provides constraint validation functions for ASN.1 types.
 from typing import Union, Optional, List, Any, Callable
 import re
 from .asn1_types import Asn1Error
-from .vector import Asn1Vector
 
 
 class ConstraintError(Asn1Error):
@@ -280,7 +279,7 @@ def validate_enumerated_constraints(value: Union[int, str],
     return True
 
 
-def validate_sequence_of_constraints(value: Union[List[Any], Asn1Vector],
+def validate_sequence_of_constraints(value: List[Any],
                                     min_size: Optional[int] = None,
                                     max_size: Optional[int] = None,
                                     element_validator: Optional[Callable[[Any], bool]] = None) -> bool:
@@ -317,7 +316,7 @@ def validate_sequence_of_constraints(value: Union[List[Any], Asn1Vector],
     return True
 
 
-def validate_set_of_constraints(value: Union[List[Any], Asn1Vector],
+def validate_set_of_constraints(value: List[Any],
                                min_size: Optional[int] = None,
                                max_size: Optional[int] = None,
                                element_validator: Optional[Callable[[Any], bool]] = None) -> bool:

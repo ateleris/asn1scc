@@ -166,7 +166,6 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
             writeResource di "codec.py" None
             writeResource di "helper.py" None
             writeResource di "verification.py" None
-            writeResource di "vector.py" None
             writeResource di "codec_uper.py" None
             // writeResource di "codec.py" None
             writeResource di "decoder.py" None
