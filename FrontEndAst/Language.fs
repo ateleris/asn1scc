@@ -243,6 +243,7 @@ type ILangGeneric () =
     abstract member isFilenameCaseSensitive : bool
 
     abstract member constructFuncName           : string -> string -> string -> string
+    abstract member constructReferenceFuncName  : string -> string -> string -> string
     abstract member getFuncNameGeneric          : TypeDefinitionOrReference -> string -> string option
     abstract member getFuncNameGeneric2         : TypeDefinitionOrReference -> string option
     abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
@@ -383,6 +384,9 @@ type ILangGeneric () =
         
     default this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         baseTypeDefinitionName + codecName + methodSuffix
+
+    default this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        this.constructFuncName baseTypeDefinitionName codecName methodSuffix
 
     default this.getFuncNameGeneric (typeDefinition: TypeDefinitionOrReference) (nameSuffix: string): string option  =
         match typeDefinition with

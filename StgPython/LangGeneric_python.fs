@@ -203,6 +203,9 @@ type LangGeneric_python() =
     override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
         ch.typeDef[Python].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
 
+    override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        methodSuffix
+
     override this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         baseTypeDefinitionName + "." + methodSuffix
 

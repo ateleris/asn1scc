@@ -1023,7 +1023,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         | _         -> None
 
     let baseTypeDefinitionName: string = getBaseTypeDefName l typeDefinitionName0 moduleName t o 
-    let baseFncName = l.lg.constructFuncName baseTypeDefinitionName "" (l.isvalid.methodNameSuffix())
+    let baseFncName = l.lg.constructReferenceFuncName baseTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 
     let ns =
         match resolvedType.isValidFunction with
