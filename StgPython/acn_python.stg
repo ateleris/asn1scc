@@ -34,14 +34,14 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
-def <sFuncName>(self, codec: ACNCodec, bCheckConstraints: bool) -> Union[int, Asn1SccError]:
+def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> Union[int, Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    res = <sVarName>.<soIValidFuncName>()
-    if isinstance(res, Asn1SccError):
-        # acn_python.stg 43
-        return res
+    if check_constraints:
+        res = <sVarName>.<soIValidFuncName>()
+        if isinstance(res, Asn1SccError):
+            return res
     
     <sContent>
     <else>
@@ -59,7 +59,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNCodec) -> Union['<sTypeDefName>', Asn1SccError]:
+def <sFuncName>(cls, codec: ACNDecoder) -> Union['<sTypeDefName>', Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -79,7 +79,7 @@ def <sFuncName>(cls, codec: ACNCodec) -> Union['<sTypeDefName>', Asn1SccError]:
     <endif>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union['<sTypeDefName>', Asn1SccError]]:
+def <sFuncName>_pure(codec: ACNDecoder) -> Tuple[ACNDecoder, Union['<sTypeDefName>', Asn1SccError]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sTypeDefName>.<sFuncName>(cpy)
