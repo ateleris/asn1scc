@@ -5,7 +5,7 @@ import BasicTypes
 from enum import Enum
 from dataclasses import dataclass, field
 
-from manual_clean_reference.general import Asn1Base
+from manual_clean_reference.general import Asn1Base, Asn1ConstraintValidResult
 from src.asn1python import Codec
 
 class DeviceAddress_Enum(Enum):
@@ -46,7 +46,7 @@ class DeviceAddress(Asn1Base):
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Union[Codec, 'DeviceAddress']:
+    def decode_pure(codec: Codec) -> Tuple[Codec, 'DeviceAddress']:
         cpy = codec.copy()
         res = DeviceAddress.decode(cpy)
         return cpy, res
@@ -94,8 +94,8 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
             raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
-    @classmethod
-    def decode_pure(cls, codec: Codec) -> Union[Codec, 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses']:
+    @staticmethod
+    def decode_pure(codec: Codec) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses']:
         cpy = codec.copy()
         res = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(cpy)
         return cpy, res
@@ -134,7 +134,7 @@ class TC_2_1_DistributeOnOffDeviceCommands:
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Union[Codec, 'TC_2_1_DistributeOnOffDeviceCommands']:
+    def decode_pure(codec: Codec) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands']:
         cpy = codec.copy()
         res = TC_2_1_DistributeOnOffDeviceCommands.decode(cpy)
         return cpy, res
