@@ -19,6 +19,8 @@ def seed() -> int:
 def pytest_generate_tests(metafunc):
     if "bit" in metafunc.fixturenames:
         metafunc.parametrize("bit", [1, 2, 3, 4, 6, 8, 10, 12, 16, 32, 48, 64])
+    if "byte" in metafunc.fixturenames:
+        metafunc.parametrize("byte", [1, 2, 3, 4, 6, 8, 10, 12, 16, 32, 48, 64])
     if "nibble" in metafunc.fixturenames:
         metafunc.parametrize("nibble", [1, 2, 3, 4, 5, 6])
     if "max_length" in metafunc.fixturenames:
@@ -274,3 +276,82 @@ def generate_ia5_string_random_length(length: int) -> str:
 def charset_to_bytes(charset: str) -> bytes:
     """Convert character set string to bytes object for ACN encoding."""
     return charset.encode('ascii')
+
+def get_min_sint_ascii(byte: int) -> int:
+    """Get minimum signed integer value that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (includes 1 byte for sign)
+        
+    Returns:
+        Minimum negative value that can be represented
+        
+    Examples:
+        get_min_sint_ascii(2) -> -9 (sign + 1 digit)
+        get_min_sint_ascii(3) -> -99 (sign + 2 digits)
+        get_min_sint_ascii(4) -> -999 (sign + 3 digits)
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1 for sign character")
+    
+    # One byte is reserved for sign character ('+' or '-')
+    # Remaining bytes can hold decimal digits
+    digit_bytes = byte - 1
+    
+    if digit_bytes == 0:
+        return 0  # Only sign, no digits possible
+    
+    # Maximum magnitude is 10^digit_bytes - 1
+    # Return negative of this value
+    max_magnitude = (10 ** digit_bytes) - 1
+    return -max_magnitude
+
+def get_max_sint_ascii(byte: int) -> int:
+    """Get maximum signed integer value that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (includes 1 byte for sign)
+        
+    Returns:
+        Maximum positive value that can be represented
+        
+    Examples:
+        get_max_sint_ascii(2) -> 9 (sign + 1 digit)
+        get_max_sint_ascii(3) -> 99 (sign + 2 digits)
+        get_max_sint_ascii(4) -> 999 (sign + 3 digits)
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1 for sign character")
+    
+    # One byte is reserved for sign character ('+' or '-')
+    # Remaining bytes can hold decimal digits
+    digit_bytes = byte - 1
+    
+    if digit_bytes == 0:
+        return 0  # Only sign, no digits possible
+    
+    # Maximum positive value is 10^digit_bytes - 1
+    max_value = (10 ** digit_bytes) - 1
+    return max_value
+
+def get_random_sint_ascii(byte: int) -> int:
+    """Get random signed integer that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (includes 1 byte for sign)
+        
+    Returns:
+        Random signed integer within the valid range
+        
+    Examples:
+        get_random_sint_ascii(2) -> random int between -9 and 9
+        get_random_sint_ascii(3) -> random int between -99 and 99  
+        get_random_sint_ascii(4) -> random int between -999 and 999
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1 for sign character")
+    
+    min_val = get_min_sint_ascii(byte)
+    max_val = get_max_sint_ascii(byte)
+    
+    return random.randint(min_val, max_val)
