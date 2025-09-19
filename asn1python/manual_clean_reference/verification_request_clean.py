@@ -32,9 +32,9 @@ class VerificationRequest_ID_packet_ID(Asn1Base):
             if not res:
                 raise Asn1Error("Constraint validation failed. Encoding failed.")
 
-        self.packetType.encode(codec)
-        self.secondaryHeaderFlag.encode(codec)
-        self.applicationProcess_ID.encode(codec)
+        self.packetType.encode(codec, check_constraints)
+        self.secondaryHeaderFlag.encode(codec, check_constraints)
+        self.applicationProcess_ID.encode(codec, check_constraints)
     
     @classmethod
     def decode(cls, codec: Codec, check_constraints: bool = True) -> 'VerificationRequest_ID_packet_ID':
@@ -97,9 +97,9 @@ class VerificationRequest_ID(Asn1Base):
             res = self.is_constraint_valid()
             if not res:
                 raise Asn1Error("Constraint validation failed. Encoding failed.")
-        self.packetVersionNumber.encode(codec)
-        self.packet_ID.encode(codec)
-        self.packetSequenceControl.encode(codec)
+        self.packetVersionNumber.encode(codec, check_constraints)
+        self.packet_ID.encode(codec, check_constraints)
+        self.packetSequenceControl.encode(codec, check_constraints)
         
 
     @classmethod
