@@ -29,22 +29,23 @@ class Asn1OverflowError(Asn1Error):
     pass
 
 class Asn1Base(abc.ABC):
-    from .codec import Codec
+    from .encoder import Encoder
+    from .decoder import Decoder
 
     @abc.abstractmethod
     def is_constraint_valid(self):
         pass
 
     @abc.abstractmethod
-    def encode(self, codec: Codec):
+    def encode(self, codec: Encoder, check_constraints: bool = True):
         pass
 
     @classmethod
-    def decode(cls, codec: Codec):
+    def decode(cls, codec: Decoder, check_constraints: bool = True):
         pass
 
     @staticmethod
-    def decode_pure(cls, codec: Codec):
+    def decode_pure(codec: Decoder, check_constraints: bool = True):
         pass
 
 
@@ -185,6 +186,19 @@ class NullType(Asn1Base):
 
     def __delattr__(self, name):
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
+    
+    def is_constraint_valid(self):
+        # todo: evaluate if NullType.is_constraint_valid should return True or False
+        return False
+    
+    def encode(self, codec: Codec):
+        return
+    
+    def decode(cls, codec: Codec):
+        return NullType()
+    
+    def decode_pure(cls, codec: Codec):
+        return NullType()
 
 
 # Floating point types for different precisions
