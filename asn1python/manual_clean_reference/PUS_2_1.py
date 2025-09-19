@@ -36,19 +36,20 @@ class DeviceAddress(Asn1Base):
         codec.encode_integer(self.val.value, 0, 0)
 
     @classmethod
-    def decode(cls, codec: Codec) -> 'DeviceAddress':
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'DeviceAddress':
         int_val = codec.decodeConstrainedPosWholeNumber(0,0)
         v = DeviceAddress_Enum(int_val)
         instance = cls(val=v)
-        res = instance.is_constraint_valid()
-        if not res:
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+        if check_constraints:
+            res = instance.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'DeviceAddress']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'DeviceAddress']:
         cpy = codec.copy()
-        res = DeviceAddress.decode(cpy)
+        res = DeviceAddress.decode(cpy, check_constraints)
         return cpy, res
 
 
@@ -83,21 +84,22 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
             val.encode(codec)
 
     @classmethod
-    def decode(cls, codec: Codec) -> 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses':
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses':
         nCount_val = codec.decode_constraint_whole_number(1, 63)
         vals = []
         for _ in range(nCount_val):
-            vals.append(DeviceAddress.decode(codec))
+            vals.append(DeviceAddress.decode(codec, check_constraints))
         instance = cls(nCount=nCount_val, arr=vals)
-        ret = instance.is_constraint_valid()
-        if not ret:
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+        if check_constraints:
+            ret = instance.is_constraint_valid()
+            if not ret:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses']:
         cpy = codec.copy()
-        res = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(cpy)
+        res = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(cpy, check_constraints)
         return cpy, res
 
 @dataclass(frozen=True)
@@ -125,16 +127,17 @@ class TC_2_1_DistributeOnOffDeviceCommands:
         self.onOffDeviceAddresses.encode(codec)
 
     @classmethod
-    def decode(cls, codec: Codec) -> 'TC_2_1_DistributeOnOffDeviceCommands':
-        addrs = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(codec)
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TC_2_1_DistributeOnOffDeviceCommands':
+        addrs = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(codec, check_constraints)
         instance = cls(onOffDeviceAddresses=addrs)
-        ret = instance.is_constraint_valid()
-        if not ret:
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+        if check_constraints:
+            ret = instance.is_constraint_valid()
+            if not ret:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands']:
         cpy = codec.copy()
-        res = TC_2_1_DistributeOnOffDeviceCommands.decode(cpy)
+        res = TC_2_1_DistributeOnOffDeviceCommands.decode(cpy, check_constraints)
         return cpy, res

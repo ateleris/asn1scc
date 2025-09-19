@@ -27,16 +27,17 @@ class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
         self.request_ID.encode(codec)            
 
     @classmethod
-    def decode(cls, codec: Codec) -> 'TM_1_1_SuccessfulAcceptanceVerificationReport':
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TM_1_1_SuccessfulAcceptanceVerificationReport':
         request_ID = VerificationRequest.VerificationRequest_ID.decode(codec)
         instance = cls(request_ID=request_ID)
-        res = instance.is_constraint_valid()
-        if not res:
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+        if check_constraints:
+            res = instance.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'TM_1_1_SuccessfulAcceptanceVerificationReport']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TM_1_1_SuccessfulAcceptanceVerificationReport']:
         cpy = codec.copy()
-        res = TM_1_1_SuccessfulAcceptanceVerificationReport.decode(cpy)
+        res = TM_1_1_SuccessfulAcceptanceVerificationReport.decode(cpy, check_constraints)
         return cpy, res

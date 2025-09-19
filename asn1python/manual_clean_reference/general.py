@@ -11,11 +11,11 @@ class Asn1Base(abc.ABC):
         raise NotImplementedException()
 
     @classmethod
-    def decode(cls, codec: Codec):
+    def decode(cls, codec: Codec, check_constraints: bool = True):
         raise NotImplementedException()
     
     @staticmethod
-    def decode_pure(codec: Codec):
+    def decode_pure(codec: Codec, check_constraints: bool = True):
         raise NotImplementedException()
 
 @dataclass(frozen=True)

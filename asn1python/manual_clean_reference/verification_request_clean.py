@@ -37,29 +37,25 @@ class VerificationRequest_ID_packet_ID(Asn1Base):
         self.applicationProcess_ID.encode(codec)
     
     @classmethod
-    def decode(cls, codec: Codec) -> 'VerificationRequest_ID_packet_ID':
-        packetType = TC_Packet.TC_PacketType.decode(codec)
-        if not packetType.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
-        secondaryHeaderFlag = PacketTypes.SecondaryHeaderFlag.decode(codec)
-        if not secondaryHeaderFlag.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Encoding failed.")
-        applicationProcess_ID = ApplicationProcess.ApplicationProcess_ID.decode(codec)
-        if not applicationProcess_ID.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Encoding failed.")
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'VerificationRequest_ID_packet_ID':
+        packetType = TC_Packet.TC_PacketType.decode(codec, check_constraints)
+        secondaryHeaderFlag = PacketTypes.SecondaryHeaderFlag.decode(codec, check_constraints)
+        applicationProcess_ID = ApplicationProcess.ApplicationProcess_ID.decode(codec, check_constraints)
         
         instance = cls(packetType=packetType, 
                        secondaryHeaderFlag=secondaryHeaderFlag, 
                        applicationProcess_ID=applicationProcess_ID)
-        if not instance.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Encoding failed.")
+        
+        if check_constraints:
+            if not instance.is_constraint_valid():
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
         
         return instance
     
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'VerificationRequest_ID_packet_ID']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'VerificationRequest_ID_packet_ID']:
         cpy = codec.copy()
-        res = VerificationRequest_ID_packet_ID.decode(cpy)
+        res = VerificationRequest_ID_packet_ID.decode(cpy, check_constraints)
         return cpy, res
 
 @dataclass(frozen=True)
@@ -107,26 +103,22 @@ class VerificationRequest_ID(Asn1Base):
         
 
     @classmethod
-    def decode(cls, codec: Codec):
-        packetVersionNumber = PacketTypes.PacketVersionNumberValue.decode(codec)
-        if not packetVersionNumber.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
-        packet_ID = VerificationRequest_ID_packet_ID.decode(codec)
-        if not packet_ID.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
-        packetSequenceControl = PacketTypes.PacketSequenceControl.decode(codec)
-        if not packetSequenceControl.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+    def decode(cls, codec: Codec, check_constraints: bool = True):
+        packetVersionNumber = PacketTypes.PacketVersionNumberValue.decode(codec, check_constraints)
+        packet_ID = VerificationRequest_ID_packet_ID.decode(codec, check_constraints)
+        packetSequenceControl = PacketTypes.PacketSequenceControl.decode(codec, check_constraints)
         
         instance = cls(packetVersionNumber=packetVersionNumber,
                        packet_ID=packet_ID,
                        packetSequenceControl=packetSequenceControl)
-        if not instance.is_constraint_valid():
-            raise Asn1Error("Constraint validation failed. Decoding failed.")
+        
+        if check_constraints:
+            if not instance.is_constraint_valid():
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
-    def decode_pure(codec: Codec) -> Tuple[Codec, 'VerificationRequest_ID']:
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'VerificationRequest_ID']:
         cpy = codec.copy()
-        res = VerificationRequest_ID.decode(cpy)
+        res = VerificationRequest_ID.decode(cpy, check_constraints)
         return cpy, res
