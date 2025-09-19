@@ -1479,85 +1479,85 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-        """Helper method to encode integer in big-endian format."""
-        if signed:
-            min_val = -(1 << (bits - 1))
-            max_val = (1 << (bits - 1)) - 1
-        else:
-            min_val = 0
-            max_val = (1 << bits) - 1
+    # def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
+    #     """Helper method to encode integer in big-endian format."""
+    #     if signed:
+    #         min_val = -(1 << (bits - 1))
+    #         max_val = (1 << (bits - 1)) - 1
+    #     else:
+    #         min_val = 0
+    #         max_val = (1 << bits) - 1
+    #
+    #     if int_val < min_val or int_val > max_val:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
+    #         )
+    #
+    #     try:
+    #         if signed and int_val < 0:
+    #             unsigned_val = (1 << bits) + int_val
+    #         else:
+    #             unsigned_val = int_val
+    #
+    #         bytes_count = bits // 8
+    #         for i in range(bytes_count - 1, -1, -1):
+    #             byte_val = (unsigned_val >> (i * 8)) & 0xFF
+    #             self._bitstream.write_bits(byte_val, 8)
+    #
+    #         return EncodeResult(
+    #             success=True,
+    #             error_code=ENCODE_OK,
+    #             encoded_data=self._bitstream.get_data_copy(),
+    #             bits_encoded=bits
+    #         )
+    #     except BitStreamError as e:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=str(e)
+    #         )
 
-        if int_val < min_val or int_val > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-            )
-
-        try:
-            if signed and int_val < 0:
-                unsigned_val = (1 << bits) + int_val
-            else:
-                unsigned_val = int_val
-
-            bytes_count = bits // 8
-            for i in range(bytes_count - 1, -1, -1):
-                byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
-
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=bits
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-        """Helper method to encode integer in little-endian format."""
-        if signed:
-            min_val = -(1 << (bits - 1))
-            max_val = (1 << (bits - 1)) - 1
-        else:
-            min_val = 0
-            max_val = (1 << bits) - 1
-
-        if int_val < min_val or int_val > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-            )
-
-        try:
-            if signed and int_val < 0:
-                unsigned_val = (1 << bits) + int_val
-            else:
-                unsigned_val = int_val
-
-            bytes_count = bits // 8
-            for i in range(bytes_count):
-                byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
-
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=bits
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
+    # def encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
+    #     """Helper method to encode integer in little-endian format."""
+    #     if signed:
+    #         min_val = -(1 << (bits - 1))
+    #         max_val = (1 << (bits - 1)) - 1
+    #     else:
+    #         min_val = 0
+    #         max_val = (1 << bits) - 1
+    #
+    #     if int_val < min_val or int_val > max_val:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
+    #         )
+    #
+    #     try:
+    #         if signed and int_val < 0:
+    #             unsigned_val = (1 << bits) + int_val
+    #         else:
+    #             unsigned_val = int_val
+    #
+    #         bytes_count = bits // 8
+    #         for i in range(bytes_count):
+    #             byte_val = (unsigned_val >> (i * 8)) & 0xFF
+    #             self._bitstream.write_bits(byte_val, 8)
+    #
+    #         return EncodeResult(
+    #             success=True,
+    #             error_code=ENCODE_OK,
+    #             encoded_data=self._bitstream.get_data_copy(),
+    #             bits_encoded=bits
+    #         )
+    #     except BitStreamError as e:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=str(e)
+    #         )
 
     # ============================================================================
     # MILBUS FUNCTIONS
