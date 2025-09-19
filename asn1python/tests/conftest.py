@@ -3,7 +3,8 @@ import pytest
 import random
 from random import choice
 from string import printable
-from asn1python.acn_encoder import ACNEncoder
+from asn1python.acn_encoder import ACNEncoder, IA5_CHAR_SET
+
 
 @pytest.fixture
 def acn_encoder() -> ACNEncoder:
@@ -261,6 +262,14 @@ def generate_test_string_with_null(charset: str, max_length: int) -> str:
     """Generate test string that ends with null terminator."""
     length = random.randint(1, max_length - 1)
     return generate_test_string(charset, length) + '\0'
+
+def generate_ia5_string(length: int) -> str:
+    """Generate test string with IA5 charset."""
+    return ''.join(random.choice(str(IA5_CHAR_SET)) for _ in range (length))
+
+def generate_ia5_string_random_length(length: int) -> str:
+    """Generate test string with IA5 charset."""
+    return generate_ia5_string(random.randint(1, length))
 
 def charset_to_bytes(charset: str) -> bytes:
     """Convert character set string to bytes object for ACN encoding."""

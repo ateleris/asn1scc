@@ -743,9 +743,19 @@ class ACNDecoder(Decoder):
             max_len: Maximum allowed string length
             ext_size_determinant_fld: External field determining actual string length
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.dec_string_char_index_external_field_determinant(max_len, ia5_char_set, ext_size_determinant_fld)
+        # Import IA5 character set from encoder to ensure consistency
+        from .acn_encoder import IA5_CHAR_SET
+        
+        if ext_size_determinant_fld < 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"External size determinant cannot be negative: {ext_size_determinant_fld}"
+            )
+            
+        # Use external field value, capped at max_len (matches C/Scala pattern)
+        characters_to_decode = min(ext_size_determinant_fld, max_len)
+        return self._dec_string_char_index_private(max_len, IA5_CHAR_SET, characters_to_decode)
 
     def dec_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult[str]:
         """Decode IA5 string using character index with internal field determinant.
@@ -757,9 +767,42 @@ class ACNDecoder(Decoder):
             max_len: Maximum string length
             min_len: Minimum string length
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.dec_string_char_index_internal_field_determinant(max_len, ia5_char_set, min_len)
+        # Import IA5 character set from encoder to ensure consistency
+        from .acn_encoder import IA5_CHAR_SET
+        
+        if min_len > max_len:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+        
+        # Decode length as constrained integer
+        length_result = self.decode_integer(min_val=min_len, max_val=max_len)
+        if not length_result.success:
+            return DecodeResult(
+                success=False,
+                error_code=length_result.error_code,
+                error_message=f"Failed to decode string length: {length_result.error_message}",
+                bits_consumed=length_result.bits_consumed
+            )
+        
+        n_count = length_result.decoded_value
+        
+        # Use decoded length, capped at max_len (matches C/Scala pattern)
+        characters_to_decode = min(n_count, max_len)
+        
+        string_result = self._dec_string_char_index_private(max_len, IA5_CHAR_SET, characters_to_decode)
+        if not string_result.success:
+            return string_result
+            
+        # Combine bits consumed from length and string decoding
+        return DecodeResult(
+            success=True,
+            error_code=string_result.error_code,
+            decoded_value=string_result.decoded_value,
+            bits_consumed=length_result.bits_consumed + string_result.bits_consumed
+        )
 
     # ============================================================================
     # ASCII INTEGER DECODING - SIGNED
