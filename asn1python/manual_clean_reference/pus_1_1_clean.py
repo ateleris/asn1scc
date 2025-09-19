@@ -24,11 +24,11 @@ class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
             res = self.is_constraint_valid()
             if not res:
                 raise Asn1Error("Constraint validation failed.")
-        self.request_ID.encode(codec)            
+        self.request_ID.encode(codec, check_constraints)            
 
     @classmethod
     def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TM_1_1_SuccessfulAcceptanceVerificationReport':
-        request_ID = VerificationRequest.VerificationRequest_ID.decode(codec)
+        request_ID = VerificationRequest.VerificationRequest_ID.decode(codec, check_constraints)
         instance = cls(request_ID=request_ID)
         if check_constraints:
             res = instance.is_constraint_valid()
