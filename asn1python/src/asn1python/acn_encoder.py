@@ -1161,15 +1161,156 @@ class ACNEncoder(Encoder):
 
     def enc_uint_ascii_const_size(self, int_val: int, encoded_size_in_bytes: int) -> EncodeResult:
         """Encode unsigned integer as ASCII with constant size."""
-        raise NotImplementedError("enc_uint_ascii_const_size not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+        
+        if encoded_size_in_bytes < 1:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        # Check if value fits in the available digits
+        max_value = (10 ** encoded_size_in_bytes) - 1
+        if int_val > max_value:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value {int_val} exceeds maximum {max_value} for {encoded_size_in_bytes} bytes"
+            )
+
+        try:
+            # Extract digits in reverse order (like C implementation)
+            digits = []
+            temp_val = int_val
+            
+            if temp_val == 0:
+                digits.append(0)
+            else:
+                while temp_val > 0:
+                    digits.append(temp_val % 10)
+                    temp_val //= 10
+            
+            # Pad with leading zeros if needed
+            while len(digits) < encoded_size_in_bytes:
+                digits.append(0)
+            
+            # Encode digits from most significant to least significant (reverse order)
+            bits_encoded = 0
+            for i in range(encoded_size_in_bytes - 1, -1, -1):
+                digit_char = ord('0') + digits[i]
+                self._bitstream.write_bits(digit_char, 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_uint_ascii_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode unsigned integer as ASCII with variable size (length embedded)."""
-        raise NotImplementedError("enc_uint_ascii_var_size_length_embedded not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+
+        try:
+            # Get digits for the value
+            if int_val == 0:
+                digits_str = "0"
+            else:
+                digits_str = str(int_val)
+            
+            # Total length is just the number of digits (no sign character)
+            total_length = len(digits_str)
+            
+            # Encode length first (1 byte)
+            self._bitstream.write_bits(total_length, 8)
+            bits_encoded = 8
+            
+            # Encode digits
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_uint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
         """Encode unsigned integer as ASCII with null termination."""
-        raise NotImplementedError("enc_uint_ascii_var_size_null_terminated not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+        
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            # Get digits for the value
+            if int_val == 0:
+                digits_str = "0"
+            else:
+                digits_str = str(int_val)
+            
+            bits_encoded = 0
+            
+            # Encode digits (no sign character needed)
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            # Append null termination characters
+            for null_byte in null_characters:
+                self._bitstream.write_bits(null_byte, 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # HELPER METHODS

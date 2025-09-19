@@ -941,15 +941,92 @@ class ACNDecoder(Decoder):
 
     def dec_uint_ascii_const_size(self, encoded_size_in_bytes: int) -> DecodeResult:
         """Decode unsigned integer from ASCII with constant size."""
-        raise NotImplementedError("dec_uint_ascii_const_size not yet implemented")
+        if encoded_size_in_bytes < 1:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        try:
+            # Use the helper method to decode unsigned integer directly
+            uint_result = self._dec_uint_ascii_const_size_impl(encoded_size_in_bytes)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=uint_result.bits_consumed
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_uint_ascii_var_size_length_embedded(self) -> DecodeResult:
         """Decode unsigned integer from ASCII with variable size (length embedded)."""
-        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded not yet implemented")
+        try:
+            # Read length first (1 byte)
+            total_length = self._bitstream.read_bits(8)
+            if total_length < 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid length: {total_length}"
+                )
+            
+            # Decode the unsigned integer with the specified length
+            uint_result = self._dec_uint_ascii_const_size_impl(total_length)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=8 + uint_result.bits_consumed  # length byte + integer bytes
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_uint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
         """Decode unsigned integer from ASCII with null termination."""
-        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated not yet implemented")
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            # Use the helper method to decode unsigned integer with null termination
+            uint_result = self._dec_uint_ascii_var_size_null_terminated_impl(null_characters)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=uint_result.bits_consumed
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # TYPED INTEGER DECODING FUNCTIONS (C Type Compatibility)

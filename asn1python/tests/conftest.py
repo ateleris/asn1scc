@@ -355,3 +355,64 @@ def get_random_sint_ascii(byte: int) -> int:
     max_val = get_max_sint_ascii(byte)
     
     return random.randint(min_val, max_val)
+
+def get_min_uint_ascii(byte: int) -> int:
+    """Get minimum unsigned integer value that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (all bytes for digits)
+        
+    Returns:
+        Always returns 0 (minimum unsigned value)
+        
+    Examples:
+        get_min_uint_ascii(1) -> 0
+        get_min_uint_ascii(3) -> 0
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1")
+    
+    return 0
+
+def get_max_uint_ascii(byte: int) -> int:
+    """Get maximum unsigned integer value that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (all bytes for digits)
+        
+    Returns:
+        Maximum positive value that can be represented
+        
+    Examples:
+        get_max_uint_ascii(1) -> 9 (1 digit)
+        get_max_uint_ascii(2) -> 99 (2 digits)
+        get_max_uint_ascii(3) -> 999 (3 digits)
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1")
+    
+    # All bytes can be used for decimal digits (no sign character)
+    max_value = (10 ** byte) - 1
+    return max_value
+
+def get_random_uint_ascii(byte: int) -> int:
+    """Get random unsigned integer that can be encoded in ASCII with given byte size.
+    
+    Args:
+        byte: Number of bytes available for ASCII encoding (all bytes for digits)
+        
+    Returns:
+        Random unsigned integer within the valid range
+        
+    Examples:
+        get_random_uint_ascii(1) -> random int between 0 and 9
+        get_random_uint_ascii(2) -> random int between 0 and 99  
+        get_random_uint_ascii(3) -> random int between 0 and 999
+    """
+    if byte < 1:
+        raise ValueError("Byte size must be at least 1")
+    
+    min_val = get_min_uint_ascii(byte)
+    max_val = get_max_uint_ascii(byte)
+    
+    return random.randint(min_val, max_val)
