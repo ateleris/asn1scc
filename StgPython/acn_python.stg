@@ -378,7 +378,7 @@ else:
     <p> = <sErrCode>
 >>
 
-Null_declare(p) ::= "<p>: NullType = None"
+Null_declare(p) ::= "<p>: NullType = NullType()"
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 387
@@ -912,7 +912,7 @@ ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIn
 # acn_python.stg 914
 if <p> == <nChildIndex>:
     <sChildContent>
-    <sChildID>(<sChildName>)
+    instance = cls(kind=<sChoiceTypeName>InUse(instance), data=<sChildName>)
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
