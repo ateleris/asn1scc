@@ -104,7 +104,10 @@ type TypeDefinitionOrReference with
             match ref.programUnit with
             | Some pu ->
                 match bHasModules with
-                | true   -> pu + "." + ref.typedefName
+                | true   ->
+                    match pu with
+                    | "" -> ref.typedefName
+                    | _ -> pu + "." + ref.typedefName
                 | false     -> ref.typedefName
             | None    -> ref.typedefName
 
