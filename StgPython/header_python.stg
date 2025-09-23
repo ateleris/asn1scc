@@ -299,7 +299,7 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 <arrsChildrenDefinitions; separator= "\n">
 
 class <td.typeName>InUse(Enum):
-    <arrsPresent:{ch|<ch> = <i0>}; separator=",\n">
+    <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
 class <td.typeName>(Asn1Base):
     # which selection element is in use
