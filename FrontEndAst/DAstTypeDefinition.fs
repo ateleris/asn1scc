@@ -665,7 +665,6 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         let define_subType_choice         = lm.typeDef.Define_subType_choice
 
         let td = lm.lg.getChoiceTypeDefinition typeDef
-        let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinitionOnly (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
         let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
         let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) (lm.lg.presentWhenName0 None o))
         let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren

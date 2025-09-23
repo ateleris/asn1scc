@@ -151,6 +151,7 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
+# todo: maybe ia5 string needs to inherit from Asn1Base as well?
 class <td.typeName>(List[int]): # header_python.stg 137
 >>
 
@@ -166,10 +167,9 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 # nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)
 
 <endif>
-from typing import List
 
 @dataclass(frozen=True)
-class <td.typeName>:
+class <td.typeName>(Asn1Base):
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
@@ -197,7 +197,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <endif>
 
 @dataclass(frozen=True)
-class <td.typeName>:
+class <td.typeName>(Asn1Base):
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
@@ -216,7 +216,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 <soChildDefinition>
 
 @dataclass(frozen=True)
-class <td.typeName>:
+class <td.typeName>(Asn1Base):
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
@@ -267,7 +267,7 @@ class <td.extension_function_positions>:
 <endif>
 
 @dataclass(frozen=True)
-class <td.typeName>:
+class <td.typeName>(Asn1Base):
     <arrsChildren:{ch|<ch>}; separator="\n">
     <arrsInvariants; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
@@ -277,7 +277,8 @@ Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceType
 # header_python.stg 268
 <td.typeName> = <prTd.typeName>
 
-class <td.typeName>:
+@dataclass
+class <td.typeName>(Asn1Base):
     <arrsExtraDefs; separator="\n">
 
 <if (arrsNullFieldsSavePos)>
@@ -289,16 +290,23 @@ class <td.typeName>:
 
 
 Define_new_choice_child(sName, sType, sPresent) ::=<<
-<sName>: <sType> # header_python.stg 285
+<sType>
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildrenTypes, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
 # header_python.stg 289
 #-- <td.typeName> --------------------------------------------
 <arrsChildrenDefinitions; separator= "\n">
-from enum import Enum
-class <td.typeName>(Enum):
-    <arrsCombined:{ch|case <ch>}; separator="\n">
+
+class <td.typeName>InUse(Enum):
+    <arrsPresent:{ch|<ch> = <i0>}; separator=",\n">
+
+class <td.typeName>(Asn1Base):
+    # which selection element is in use
+    kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>
+    
+    # actual selection element
+    data: Union[<arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
 
     <arrsSizeDefinition; separator="\n\n">
 >>

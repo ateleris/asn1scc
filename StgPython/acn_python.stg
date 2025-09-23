@@ -416,10 +416,8 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 >>
 
 Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
-# acn_python.stg 422
 if <p> == <sName>:
-    # acn_python.stg 424
-    return <sItemVal>
+    <sIntVal> = <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 # acn_python.stg 428
@@ -439,8 +437,10 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-# acn_python.stg 445
-<sIntVal> = <arrsItem; separator="\n">
+<sIntVal>: int = 0
+
+<arrsItem; separator="\n">
+
 <sActualCodecFunc>
 >>
 
@@ -902,8 +902,9 @@ if <p> == <nChildIndex>:
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
-if <p> == <sChildID>(<sChildName>):
-    codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+
+if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
+    codec.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
@@ -922,7 +923,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
-<p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<p> = codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931
