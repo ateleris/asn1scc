@@ -9,7 +9,7 @@ from conftest import get_null_terminator_string, generate_test_string, \
 
 
 def _encode_and_decode_single_ia5_string(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> tuple[bool, str]:
-    """Helper function to encode and decode a ia5 string.
+    """Helper function to encode and decode an ia5 string.
 
     Returns:
         Tuple of (success, decoded_value)

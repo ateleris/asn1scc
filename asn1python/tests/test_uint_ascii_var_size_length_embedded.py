@@ -6,7 +6,7 @@ from conftest import get_min_uint_ascii, get_max_uint_ascii, get_random_uint_asc
 
 
 def _encode_and_decode_unsigned_integer_as_ascii(acn_encoder: ACNEncoder, input_number: int) -> tuple[bool, int]:
-    """Helper function to encode and decode a unsigned integer value as ascii.
+    """Helper function to encode and decode an unsigned integer value as ascii.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -50,7 +50,7 @@ def _encode_and_decode_multiple_unsigned_integers_as_ascii(acn_encoder: ACNEncod
 
 
 def _test_single_unsigned_integer(acn_encoder: ACNEncoder, input_number: int) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single unsigned integer value."""
     success, decoded_value = _encode_and_decode_unsigned_integer_as_ascii(acn_encoder, input_number)
     assert success, f"Encoding/decoding failed for input {input_number}"
 
@@ -59,7 +59,7 @@ def _test_single_unsigned_integer(acn_encoder: ACNEncoder, input_number: int) ->
 
 
 def _test_multiple_unsigned_integers(acn_encoder: ACNEncoder, input_numbers: list[int]) -> None:
-    """Helper function to test encoding/decoding of multiple positive integer values."""
+    """Helper function to test encoding/decoding of multiple unsigned integer values."""
     success, decoded_values = _encode_and_decode_multiple_unsigned_integers_as_ascii(acn_encoder, input_numbers)
     assert success, f"Encoding/decoding failed for input {input_numbers}"
 

@@ -8,7 +8,7 @@ from conftest import get_random_uint_ascii, \
 
 
 def _encode_and_decode_unsigned_integer_as_ascii(acn_encoder: ACNEncoder, input_number: int, null_characters: bytes) -> tuple[bool, int]:
-    """Helper function to encode and decode a unsigned integer value as ascii.
+    """Helper function to encode and decode an unsigned integer value as ascii.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -27,7 +27,7 @@ def _encode_and_decode_unsigned_integer_as_ascii(acn_encoder: ACNEncoder, input_
 
 
 def _encode_and_decode_multiple_unsigned_integers_as_ascii(acn_encoder: ACNEncoder, input_numbers: list[int], null_characters: bytes) -> tuple[bool, list[int]]:
-    """Helper function to encode and decode multiple ununsigned integer values as ascii.
+    """Helper function to encode and decode multiple unsigned integer values as ascii.
 
     Returns:
         Tuple of (success, decoded_values_list)
@@ -52,7 +52,7 @@ def _encode_and_decode_multiple_unsigned_integers_as_ascii(acn_encoder: ACNEncod
 
 
 def _test_single_unsigned_integer(acn_encoder: ACNEncoder, input_number: int, null_characters: bytes) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single unsigned integer value."""
     success, decoded_value = _encode_and_decode_unsigned_integer_as_ascii(acn_encoder, input_number, null_characters)
     assert success, f"Encoding/decoding failed for input {input_number}"
 
@@ -61,7 +61,7 @@ def _test_single_unsigned_integer(acn_encoder: ACNEncoder, input_number: int, nu
 
 
 def _test_multiple_unsigned_integers(acn_encoder: ACNEncoder, input_numbers: list[int], null_characters: bytes) -> None:
-    """Helper function to test encoding/decoding of multiple positive integer values."""
+    """Helper function to test encoding/decoding of multiple unsigned integer values."""
     success, decoded_values = _encode_and_decode_multiple_unsigned_integers_as_ascii(acn_encoder, input_numbers, null_characters)
     assert success, f"Encoding/decoding failed for input {input_numbers}"
 

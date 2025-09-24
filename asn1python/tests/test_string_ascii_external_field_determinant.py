@@ -20,8 +20,6 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
     decoded_res = acn_decoder.dec_string_ascii_external_field_determinant(max_length, len(input_string))
 
-    # assert decoded_res.bits_consumed == 8*len(input_string)
-
     if not decoded_res.success:
         return False, ""
 
@@ -61,7 +59,7 @@ def _test_single_string(acn_encoder: ACNEncoder, input_string: str, max_length: 
     assert input_string == decoded_value
 
 def _test_single_string_starts_with(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single positive integer value, where the decoded value starts with the input string."""
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length)
     assert success, f"Encoding/decoding failed for input {input_string}"
     print(f"Input: {input_string}, decoded {decoded_value}, Passed: {input_string == decoded_value}")

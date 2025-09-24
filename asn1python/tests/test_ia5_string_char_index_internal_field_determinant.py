@@ -8,7 +8,7 @@ from conftest import get_null_terminator_string, generate_ia5_string, generate_i
 
 
 def _encode_and_decode_single_ia5_string(acn_encoder: ACNEncoder, input_string: str, max_length: int) -> tuple[bool, str]:
-    """Helper function to encode and decode a single string.
+    """Helper function to encode and decode a single ia5 string.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -27,7 +27,7 @@ def _encode_and_decode_single_ia5_string(acn_encoder: ACNEncoder, input_string: 
 
 
 def _encode_and_decode_multiple_ia5_strings(acn_encoder: ACNEncoder, input_strings: list[str], max_length: int) -> tuple[bool, list[str]]:
-    """Helper function to encode and decode multiple strings.
+    """Helper function to encode and decode multiple ia5 strings.
 
     Returns:
         Tuple of (success, decoded_values_list)

@@ -56,34 +56,6 @@ class ACNEncoder(Encoder):
         return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
                                   size_in_bits=encoded_size_in_bits)
 
-    # def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
-    #     """Encode 8-bit positive integer."""
-    #     return self.enc_int_positive_integer_const_size(int_val, 8)
-
-    # def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 16, False)
-    #
-    # def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 32, False)
-    #
-    # def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 64, False)
-
-    # def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 16, False)
-    #
-    # def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 32, False)
-    #
-    # def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 64, False)
-
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
         if int_val < 0:
@@ -1400,7 +1372,8 @@ class ACNEncoder(Encoder):
             
         return chars_written, bits_encoded
 
-    def _get_char_index(self, char_byte: int, allowed_char_set: bytes) -> int:
+    @staticmethod
+    def _get_char_index(char_byte: int, allowed_char_set: bytes) -> int:
         """Get the index of a character byte in the allowed character set.
         
         Args:
@@ -1415,7 +1388,8 @@ class ACNEncoder(Encoder):
         except ValueError:
             return -1
     
-    def _get_bits_per_char(self, char_set_size: int) -> int:
+    @staticmethod
+    def _get_bits_per_char(char_set_size: int) -> int:
         """Calculate minimum bits needed to represent indices in a character set.
         
         Args:
@@ -1478,87 +1452,6 @@ class ACNEncoder(Encoder):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-
-    # def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-    #     """Helper method to encode integer in big-endian format."""
-    #     if signed:
-    #         min_val = -(1 << (bits - 1))
-    #         max_val = (1 << (bits - 1)) - 1
-    #     else:
-    #         min_val = 0
-    #         max_val = (1 << bits) - 1
-    #
-    #     if int_val < min_val or int_val > max_val:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-    #         )
-    #
-    #     try:
-    #         if signed and int_val < 0:
-    #             unsigned_val = (1 << bits) + int_val
-    #         else:
-    #             unsigned_val = int_val
-    #
-    #         bytes_count = bits // 8
-    #         for i in range(bytes_count - 1, -1, -1):
-    #             byte_val = (unsigned_val >> (i * 8)) & 0xFF
-    #             self._bitstream.write_bits(byte_val, 8)
-    #
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-    #     """Helper method to encode integer in little-endian format."""
-    #     if signed:
-    #         min_val = -(1 << (bits - 1))
-    #         max_val = (1 << (bits - 1)) - 1
-    #     else:
-    #         min_val = 0
-    #         max_val = (1 << bits) - 1
-    #
-    #     if int_val < min_val or int_val > max_val:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-    #         )
-    #
-    #     try:
-    #         if signed and int_val < 0:
-    #             unsigned_val = (1 << bits) + int_val
-    #         else:
-    #             unsigned_val = int_val
-    #
-    #         bytes_count = bits // 8
-    #         for i in range(bytes_count):
-    #             byte_val = (unsigned_val >> (i * 8)) & 0xFF
-    #             self._bitstream.write_bits(byte_val, 8)
-    #
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
     # ============================================================================
     # MILBUS FUNCTIONS
     # ============================================================================
