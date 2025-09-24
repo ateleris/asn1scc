@@ -5,12 +5,8 @@ import BasicTypes
 from enum import Enum
 from dataclasses import dataclass, field
 
-from manual_clean_reference.general import Asn1Base
+from manual_clean_reference.general import Asn1Base, Asn1ConstraintValidResult
 from src.asn1python import Codec
-
-ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES: int = 4126  # (SIZE(1 .. maxTC-2-1-OnOffDeviceAdressesCount))
-DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 0
-DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
 
 class DeviceAddress_Enum(Enum):
     addr0 = 1
@@ -18,127 +14,130 @@ class DeviceAddress_Enum(Enum):
 @dataclass(frozen=True)
 class DeviceAddress(Asn1Base):
     val: DeviceAddress_Enum = DeviceAddress_Enum.addr0
+    
+    class ErrorCodes:
+        ERR_DEVICEADDRESS: int = 4111
+        ERR_ACN_ENCODE_DEVICEADDRESS: int = 4114
+        DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 0
+        DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
+        ERR_ACN_DECODE_DEVICEADDRESS: int = 4115
 
-    def is_constraint_valid(self):
-        return isinstance(val, DeviceAddress_Enum)
-        # ODER: return val == DeviceAddress_Enum.addr0
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        is_valid = self.val == DeviceAddress_Enum.addr0
+        if is_valid:
+            return Asn1ConstraintValidResult(is_valid=True)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.ERR_DEVICEADDRESS)
 
-    def encode(self, codec: Codec):
-        res = self.is_constraint_valid()
-        if res:
-            codec.encode_integer(self.val.value, 0, 0)
-        return res
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            res = self.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed.")
+        codec.encode_integer(self.val.value, 0, 0)
 
     @classmethod
-    def decode(cls, codec: Codec):
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'DeviceAddress':
         int_val = codec.decodeConstrainedPosWholeNumber(0,0)
         v = DeviceAddress_Enum(int_val)
         instance = cls(val=v)
-        res = instance.is_constraint_valid()
-        if res:
-            return instance
-        return res
+        if check_constraints:
+            res = instance.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
+        return instance
 
-    @classmethod
-    def decode_pure(cls, codec: Codec):
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'DeviceAddress']:
         cpy = codec.copy()
-        return DeviceAddress.decode(cpy)
+        res = DeviceAddress.decode(cpy, check_constraints)
+        return cpy, res
 
-
-# ERR_DEVICEADDRESS: int = 4111  # addr0
-#
-#
-# ERR_ACN_ENCODE_DEVICEADDRESS: int = 4114  #
-# DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 0
-# DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
-#
-# ERR_ACN_DECODE_DEVICEADDRESS: int = 4115  #
 
 @dataclass(frozen=True)
 class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
-    nCount: int = 0  # remnant from C -> we don't need nCount actually. -> len(arr)
-    arr: List[DeviceAddress] = field(default_factory=list)  # todo: type is generated as int...
+    nCount: int = 0
+    arr: List[DeviceAddress] = field(default_factory=list)
 
-    def __post_init__(self):
-        if self.nCount > 63 or self.nCount < 1 or self.nCount < len(arr):
-            raise ValueError("Something Error!")
+    class ErrorCodes:
+        ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES: int = 4126  # (SIZE(1 .. maxTC-2-1-OnOffDeviceAdressesCount))
+        DeviceAddress_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 0
+        DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
 
-    def is_constraint_valid(self):
-        ret = self.nCount <= 63 and self.nCount >= 1
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        ret = self.nCount <= 63 and self.nCount >= 1        
         if ret:
             for i in range(self.nCount):
-                ret = self.arr[i].is_constraint_valid()  # todo: call on int -> unclear
+                ret = self.arr[i].is_constraint_valid()
                 if not ret:
                     break
         else:
-            ret = Asn1ConstraintValidResult(is_valid=False, error_code=ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES)
+            ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES)
         return ret
 
-    def encode(self, codec: Codec):
-        ret = self.is_constraint_valid()
-        if ret:
-            ret = codec.encode_constraint_whole_number(self.nCount, 1, 63)
-            for val in self.arr:
-                ret = val.encode(codec)
-        return ret
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            ret = self.is_constraint_valid()
+            if not ret:
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
+        codec.encode_constraint_whole_number(self.nCount, 1, 63)
+        for val in self.arr:
+            val.encode(codec)
 
     @classmethod
-    def decode(cls, codec: Codec):
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses':
         nCount_val = codec.decode_constraint_whole_number(1, 63)
         vals = []
-        for i in range(nCount_val):
-            vals.append(DeviceAddress.decode(codec))
+        for _ in range(nCount_val):
+            vals.append(DeviceAddress.decode(codec, check_constraints))
         instance = cls(nCount=nCount_val, arr=vals)
-        ret = instance.is_constraint_valid()
-        if ret:
-            return instance
-        return ret
+        if check_constraints:
+            ret = instance.is_constraint_valid()
+            if not ret:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
+        return instance
 
-    @classmethod
-    def decode_pure(cls, codec: Codec):
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses']:
         cpy = codec.copy()
-        return TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(cpy)
-
+        res = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(cpy, check_constraints)
+        return cpy, res
 
 @dataclass(frozen=True)
 class TC_2_1_DistributeOnOffDeviceCommands:
     onOffDeviceAddresses: TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses
 
-    #
-    # ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES_ELM_2: int = 4121  #
-    #
-    # ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS: int = 4131  #
-    #
-    # TC_2_1_DistributeOnOffDeviceCommands_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 1
-    # TC_2_1_DistributeOnOffDeviceCommands_REQUIRED_BITS_FOR_ACN_ENCODING: int = 6
-    #
-    # ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS: int = 4135  #
-    #
-    # ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES: int = 4130  #
-    #
-    # ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES_ELM_2: int = 4125  #
-    #
-    # maxTC_2_1_OnOffDeviceAdressesCount: int = 63 # variables:172# variables_python PrintValueAssignment
+    class ErrorCodes:
+        ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES_ELM_2: int = 4121
+        ERR_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS: int = 4131
+        TC_2_1_DistributeOnOffDeviceCommands_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 1
+        TC_2_1_DistributeOnOffDeviceCommands_REQUIRED_BITS_FOR_ACN_ENCODING: int = 6
+        ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS: int = 4135
+        ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES: int = 4130
+        ERR_ACN_DECODE_TC_2_1_DISTRIBUTEONOFFDEVICECOMMANDS_ONOFFDEVICEADDRESSES_ELM_2: int = 4125
+        maxTC_2_1_OnOffDeviceAdressesCount: int = 63
 
-    def is_constraint_valid(self) -> Union[int, Asn1SccError]:
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         return self.onOffDeviceAddresses.is_constraint_valid()
 
-    def encode(self, codec: Codec):
-        res = self.is_constraint_valid()
-        if res:
-            res = self.onOffDeviceAddresses.encode(codec)
-        return res
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            res = self.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
+        self.onOffDeviceAddresses.encode(codec)
 
     @classmethod
-    def decode(cls, codec: Codec):
-        addrs = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(codec)
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TC_2_1_DistributeOnOffDeviceCommands':
+        addrs = TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses.decode(codec, check_constraints)
         instance = cls(onOffDeviceAddresses=addrs)
-        ret = instance.is_constraint_valid()
-        if ret:
-            return instance
-        return ret
+        if check_constraints:
+            ret = instance.is_constraint_valid()
+            if not ret:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
+        return instance
 
-    @classmethod
-    def decode_pure(cls, codec: Codec):
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TC_2_1_DistributeOnOffDeviceCommands']:
         cpy = codec.copy()
-        return TC_2_1_DistributeOnOffDeviceCommands.decode(cpy)
+        res = TC_2_1_DistributeOnOffDeviceCommands.decode(cpy, check_constraints)
+        return cpy, res

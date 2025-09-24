@@ -1,4 +1,5 @@
 module LangGeneric_python
+open Asn1AcnAst
 open CommonTypes
 open System.Numerics
 open DAst
@@ -129,7 +130,7 @@ type LangGeneric_python() =
 
     override this.getPointer (sel: Selection) = sel.joined this
 
-    override this.getValue (sel: Selection) = sel.joined this
+    override this.getValue (sel: Selection) = sel.joined this        
     override this.getValueUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
     override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
     override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
@@ -201,7 +202,10 @@ type LangGeneric_python() =
     override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
     override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
     override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
-        ch.typeDef[Python].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
+        ch.typeDef[Python].typeName + "." + (ToC c.present_when_name)
+
+    override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        methodSuffix
 
     override this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         baseTypeDefinitionName + "." + methodSuffix
@@ -282,7 +286,7 @@ type LangGeneric_python() =
                         | ReferenceToExistingDefinition b -> b.typedefName + "."
                         | TypeDefinition c -> c.typedefName + "."
             | None -> ""
-        parentName + (ToC ch._present_when_name_private) + "_PRESENT"
+        parentName + (ToC ch._present_when_name_private)
 
     override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
         let parentName =
@@ -291,7 +295,7 @@ type LangGeneric_python() =
                         | ReferenceToExistingDefinition b -> b.typedefName + "."
                         | TypeDefinition c -> c.typedefName + "."
             | None -> ""
-        parentName + (ToC ch.present_when_name) + "_PRESENT"
+        parentName + (ToC ch.present_when_name)
 
     override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
         let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
@@ -308,9 +312,12 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> Pointer
-        let recvId = match t.Kind with
-                        | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
-                        | _ -> "self"                           // For class methods, the receiver is always "self"
+        let recvId = match c with
+                        | Decode -> "instance"
+                        | Encode ->
+                            match t.Kind with
+                            | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
+                            | _ -> "self"                           // For class methods, the receiver is always "self"
         {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
 
     override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =

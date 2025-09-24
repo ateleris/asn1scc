@@ -39,7 +39,6 @@
     <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />
-    <EmbeddedResource Include="..\asn1python\src\asn1python\vector.py" Link="vector.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\__init__.py" Link="__init__.py" />
     
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />

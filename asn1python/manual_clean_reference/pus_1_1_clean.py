@@ -8,36 +8,36 @@ from dataclasses import dataclass, field
 from src.asn1python import Asn1Error
 from src.asn1python.asn1_types import Asn1Base
 
+import VerificationRequest
+
 
 @dataclass(frozen=True)
 class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
 
-    request_ID: VerificationRequest.VerificationRequest_ID = VerificationRequest.VerificationRequest_ID()
+    request_ID: VerificationRequest.VerificationRequest_ID
 
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         return self.request_ID.is_constraint_valid()
 
-    def encode(self, codec: Codec):
-        res = self.is_constraint_valid()
-        if res:
-            self.request_ID.encode(codec)
-        else:
-            pass
-            # todo: what do we do if constraint is valid?
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            res = self.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed.")
+        self.request_ID.encode(codec, check_constraints)            
 
     @classmethod
-    def decode(cls, codec: Codec):
-        request_ID = VerificationRequest.VerificationRequest_ID.decode(codec)
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TM_1_1_SuccessfulAcceptanceVerificationReport':
+        request_ID = VerificationRequest.VerificationRequest_ID.decode(codec, check_constraints)
         instance = cls(request_ID=request_ID)
-        res = instance.is_constraint_valid()
-        if res:
-            return instance
-        else:
-            pass
-            # todo: raise error?
+        if check_constraints:
+            res = instance.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
+        return instance
 
-
-    def TM_1_1_SuccessfulAcceptanceVerificationReport_ACN_Decode_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union[TM_1_1_SuccessfulAcceptanceVerificationReport, Asn1SccError]]:
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'TM_1_1_SuccessfulAcceptanceVerificationReport']:
         cpy = codec.copy()
-        res = TM_1_1_SuccessfulAcceptanceVerificationReport_ACN_Decode(cpy)
+        res = TM_1_1_SuccessfulAcceptanceVerificationReport.decode(cpy, check_constraints)
         return cpy, res

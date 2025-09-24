@@ -13,6 +13,25 @@ from .codec import EncodeResult, ENCODE_OK, ERROR_INVALID_VALUE
 from .encoder import Encoder
 
 
+# Global IA5 character set (International Alphabet No. 5 - 7-bit ASCII 0-127)
+# Defined with individual byte values to match Scala reference implementation
+IA5_CHAR_SET = bytes([
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
+    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+    0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31,
+    0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+    0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+    0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
+    0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+    0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
+])
+
+
 class ACNEncoder(Encoder):
     """
     ACN (ASN.1 Control Notation) encoder implementation.
@@ -36,34 +55,6 @@ class ACNEncoder(Encoder):
         """Encode positive integer with constant size in bits."""
         return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
                                   size_in_bits=encoded_size_in_bits)
-
-    # def enc_int_positive_integer_const_size_8(self, int_val: int) -> EncodeResult:
-    #     """Encode 8-bit positive integer."""
-    #     return self.enc_int_positive_integer_const_size(int_val, 8)
-
-    # def enc_int_positive_integer_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 16, False)
-    #
-    # def enc_int_positive_integer_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 32, False)
-    #
-    # def enc_int_positive_integer_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit positive integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 64, False)
-
-    # def enc_int_positive_integer_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 16, False)
-    #
-    # def enc_int_positive_integer_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 32, False)
-    #
-    # def enc_int_positive_integer_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit positive integer (little-endian)."""
-    #     return self.encode_integer_little_endian(int_val, 64, False)
 
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
@@ -936,9 +927,27 @@ class ACNEncoder(Encoder):
             max_len: Maximum number of characters to encode
             str_val: String value to encode
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.enc_string_char_index_external_field_determinant(max_len, ia5_char_set, str_val)
+        try:
+            chars_written, bits_encoded = self._enc_string_char_index_private(max_len, IA5_CHAR_SET, str_val)
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        except (ValueError, BitStreamError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int, str_val: str) -> EncodeResult:
         """Encode IA5 string using character index with internal field determinant.
@@ -951,9 +960,57 @@ class ACNEncoder(Encoder):
             min_len: Minimum string length
             str_val: String value to encode
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.enc_string_char_index_internal_field_determinant(max_len, ia5_char_set, min_len, str_val)
+        if min_len > max_len:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+            
+        try:
+            str_bytes = str_val.encode('ascii')
+            effective_len = 0
+            for i in range(min(len(str_bytes), max_len)):
+                if str_bytes[i] == 0:  # Stop at first null character
+                    break
+                effective_len += 1
+                
+            if effective_len < min_len:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"String length {effective_len} is less than min_len {min_len}"
+                )
+                
+            # Encode length as constrained integer (internal field determinant specific behavior)
+            length_result = self.encode_integer(effective_len, min_val=min_len, max_val=max_len)
+            if not length_result.success:
+                return length_result
+                
+            bits_encoded = length_result.bits_encoded
+            
+            # Call private method directly (matches C/Scala implementation pattern)
+            chars_written, string_bits = self._enc_string_char_index_private(max_len, IA5_CHAR_SET, str_val)
+            bits_encoded += string_bits
+                
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except UnicodeEncodeError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"String contains non-ASCII characters: {e}"
+            )
+        except (ValueError, BitStreamError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # ASCII INTEGER ENCODING - SIGNED
@@ -961,15 +1018,114 @@ class ACNEncoder(Encoder):
 
     def enc_sint_ascii_const_size(self, int_val: int, encoded_size_in_bytes: int) -> EncodeResult:
         """Encode signed integer as ASCII with constant size."""
-        raise NotImplementedError("enc_sint_ascii_const_size not yet implemented")
+        if encoded_size_in_bytes < 1:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        try:
+            # Encode sign
+            sign_char = ord('+') if int_val >= 0 else ord('-')
+            self._bitstream.write_bits(sign_char, 8)
+            
+            # Encode absolute value with remaining bytes
+            abs_val = abs(int_val)
+            remaining_bytes = encoded_size_in_bytes - 1
+            
+            # Use the unsigned ASCII encoding for the absolute value
+            return self._enc_uint_ascii_const_size_impl(abs_val, remaining_bytes, total_bits=encoded_size_in_bytes * 8)
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_sint_ascii_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode signed integer as ASCII with variable size (length embedded)."""
-        raise NotImplementedError("enc_sint_ascii_var_size_length_embedded not yet implemented")
+        try:
+            # Get digits for absolute value
+            abs_val = abs(int_val)
+            digits_str = str(abs_val)
+            
+            # Total length includes sign character + digits
+            total_length = len(digits_str) + 1
+            
+            # Encode length first (1 byte)
+            self._bitstream.write_bits(total_length, 8)
+            bits_encoded = 8
+            
+            # Encode sign
+            sign_char = ord('+') if int_val >= 0 else ord('-')
+            self._bitstream.write_bits(sign_char, 8)
+            bits_encoded += 8
+            
+            # Encode digits
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_sint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
         """Encode signed integer as ASCII with null termination."""
-        raise NotImplementedError("enc_sint_ascii_var_size_null_terminated not yet implemented")
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            bits_encoded = 0
+            
+            # Encode sign
+            sign_char = ord('+') if int_val >= 0 else ord('-')
+            self._bitstream.write_bits(sign_char, 8)
+            bits_encoded += 8
+            
+            # Encode absolute value using unsigned null terminated encoding
+            abs_val = abs(int_val)
+            digits_str = str(abs_val)
+            
+            # Encode digits
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            # Append null termination characters
+            for null_byte in null_characters:
+                self._bitstream.write_bits(null_byte, 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # ASCII INTEGER ENCODING - UNSIGNED
@@ -977,15 +1133,156 @@ class ACNEncoder(Encoder):
 
     def enc_uint_ascii_const_size(self, int_val: int, encoded_size_in_bytes: int) -> EncodeResult:
         """Encode unsigned integer as ASCII with constant size."""
-        raise NotImplementedError("enc_uint_ascii_const_size not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+        
+        if encoded_size_in_bytes < 1:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        # Check if value fits in the available digits
+        max_value = (10 ** encoded_size_in_bytes) - 1
+        if int_val > max_value:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value {int_val} exceeds maximum {max_value} for {encoded_size_in_bytes} bytes"
+            )
+
+        try:
+            # Extract digits in reverse order (like C implementation)
+            digits = []
+            temp_val = int_val
+            
+            if temp_val == 0:
+                digits.append(0)
+            else:
+                while temp_val > 0:
+                    digits.append(temp_val % 10)
+                    temp_val //= 10
+            
+            # Pad with leading zeros if needed
+            while len(digits) < encoded_size_in_bytes:
+                digits.append(0)
+            
+            # Encode digits from most significant to least significant (reverse order)
+            bits_encoded = 0
+            for i in range(encoded_size_in_bytes - 1, -1, -1):
+                digit_char = ord('0') + digits[i]
+                self._bitstream.write_bits(digit_char, 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_uint_ascii_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode unsigned integer as ASCII with variable size (length embedded)."""
-        raise NotImplementedError("enc_uint_ascii_var_size_length_embedded not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+
+        try:
+            # Get digits for the value
+            if int_val == 0:
+                digits_str = "0"
+            else:
+                digits_str = str(int_val)
+            
+            # Total length is just the number of digits (no sign character)
+            total_length = len(digits_str)
+            
+            # Encode length first (1 byte)
+            self._bitstream.write_bits(total_length, 8)
+            bits_encoded = 8
+            
+            # Encode digits
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_uint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
         """Encode unsigned integer as ASCII with null termination."""
-        raise NotImplementedError("enc_uint_ascii_var_size_null_terminated not yet implemented")
+        if int_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Value must be non-negative for unsigned encoding, got {int_val}"
+            )
+        
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            # Get digits for the value
+            if int_val == 0:
+                digits_str = "0"
+            else:
+                digits_str = str(int_val)
+            
+            bits_encoded = 0
+            
+            # Encode digits (no sign character needed)
+            for digit_char in digits_str:
+                self._bitstream.write_bits(ord(digit_char), 8)
+                bits_encoded += 8
+            
+            # Append null termination characters
+            for null_byte in null_characters:
+                self._bitstream.write_bits(null_byte, 8)
+                bits_encoded += 8
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+            
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # HELPER METHODS
@@ -1075,7 +1372,8 @@ class ACNEncoder(Encoder):
             
         return chars_written, bits_encoded
 
-    def _get_char_index(self, char_byte: int, allowed_char_set: bytes) -> int:
+    @staticmethod
+    def _get_char_index(char_byte: int, allowed_char_set: bytes) -> int:
         """Get the index of a character byte in the allowed character set.
         
         Args:
@@ -1090,7 +1388,8 @@ class ACNEncoder(Encoder):
         except ValueError:
             return -1
     
-    def _get_bits_per_char(self, char_set_size: int) -> int:
+    @staticmethod
+    def _get_bits_per_char(char_set_size: int) -> int:
         """Calculate minimum bits needed to represent indices in a character set.
         
         Args:
@@ -1110,86 +1409,49 @@ class ACNEncoder(Encoder):
             temp >>= 1
         return bits_needed
 
-    def encode_integer_big_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-        """Helper method to encode integer in big-endian format."""
-        if signed:
-            min_val = -(1 << (bits - 1))
-            max_val = (1 << (bits - 1)) - 1
-        else:
-            min_val = 0
-            max_val = (1 << bits) - 1
-
-        if int_val < min_val or int_val > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-            )
-
+    def _enc_uint_ascii_const_size_impl(self, int_val: int, encoded_size_in_bytes: int, total_bits: int) -> EncodeResult:
+        """Helper method to encode unsigned integer as ASCII with constant size."""
+        # Based on C implementation in asn1crt_encoding_acn.c:646-667
         try:
-            if signed and int_val < 0:
-                unsigned_val = (1 << bits) + int_val
-            else:
-                unsigned_val = int_val
-
-            bytes_count = bits // 8
-            for i in range(bytes_count - 1, -1, -1):
-                byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
-
+            bits_encoded = 8  # Already encoded sign in calling function
+            
+            # Extract digits in reverse order (like C implementation)
+            digits = []
+            temp_val = int_val
+            while temp_val > 0:
+                digits.append(temp_val % 10)
+                temp_val //= 10
+            
+            # Pad with zeros if needed
+            while len(digits) < encoded_size_in_bytes:
+                digits.append(0)
+                
+            if len(digits) > encoded_size_in_bytes:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {int_val} requires {len(digits)} digits but only {encoded_size_in_bytes} bytes available"
+                )
+            
+            # Encode digits from most significant to least significant (reverse order)
+            for i in range(encoded_size_in_bytes - 1, -1, -1):
+                digit_char = ord('0') + digits[i]
+                self._bitstream.write_bits(digit_char, 8)
+                bits_encoded += 8
+            
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
                 encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=bits
+                bits_encoded=bits_encoded
             )
+            
         except BitStreamError as e:
             return EncodeResult(
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-
-    def encode_integer_little_endian(self, int_val: int, bits: int, signed: bool) -> EncodeResult:
-        """Helper method to encode integer in little-endian format."""
-        if signed:
-            min_val = -(1 << (bits - 1))
-            max_val = (1 << (bits - 1)) - 1
-        else:
-            min_val = 0
-            max_val = (1 << bits) - 1
-
-        if int_val < min_val or int_val > max_val:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=f"Value {int_val} out of range [{min_val}, {max_val}]"
-            )
-
-        try:
-            if signed and int_val < 0:
-                unsigned_val = (1 << bits) + int_val
-            else:
-                unsigned_val = int_val
-
-            bytes_count = bits // 8
-            for i in range(bytes_count):
-                byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
-
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=bits
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
     # ============================================================================
     # MILBUS FUNCTIONS
     # ============================================================================

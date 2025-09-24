@@ -520,7 +520,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
         let arrsNullFieldsSavePos =
             let getBackendName ci =
                 match ci with
-                | Asn1AcnAst.AcnChild z    -> z.c_name
+                | Asn1AcnAst.AcnChild z    -> ToC (z.Name.Value)   //z.c_name
                 | Asn1AcnAst.Asn1Child z   -> lm.lg.getAsn1ChildBackendName0 z
 
             match acnProperties.postEncodingFunction.IsNone && acnProperties.preDecodingFunction.IsNone with
@@ -665,7 +665,6 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         let define_subType_choice         = lm.typeDef.Define_subType_choice
 
         let td = lm.lg.getChoiceTypeDefinition typeDef
-        let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinitionOnly (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
         let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
         let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) (lm.lg.presentWhenName0 None o))
         let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren

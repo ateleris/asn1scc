@@ -8,7 +8,7 @@ from conftest import get_random_string, get_null_terminator_string, get_random_s
 
 
 def _encode_and_decode_single_string_null_terminated(acn_encoder: ACNEncoder, input_string: str, max_length: int, null_characters: bytes) -> tuple[bool, str]:
-    """Helper function to encode and decode a single positive integer value.
+    """Helper function to encode and decode a single string.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -31,7 +31,7 @@ def _encode_and_decode_single_string_null_terminated(acn_encoder: ACNEncoder, in
     return True, decoded_res.decoded_value
 
 def _encode_and_decode_single_string_null_terminated_without_checks(acn_encoder: ACNEncoder, input_string: str, max_length: int, null_characters: bytes) -> tuple[bool, str]:
-    """Helper function to encode and decode a single positive integer value.
+    """Helper function to encode and decode a single string without adding any assertions.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -51,7 +51,7 @@ def _encode_and_decode_single_string_null_terminated_without_checks(acn_encoder:
 
 
 def _encode_and_decode_multiple_strings_null_terminated(acn_encoder: ACNEncoder, input_strings: list[str], max_length: int, null_characters: bytes) -> tuple[bool, list[str]]:
-    """Helper function to encode and decode multiple positive integer values.
+    """Helper function to encode and decode multiple strings.
 
     Returns:
         Tuple of (success, decoded_values_list)
@@ -76,7 +76,7 @@ def _encode_and_decode_multiple_strings_null_terminated(acn_encoder: ACNEncoder,
 
 
 def _test_single_string_null_terminated(acn_encoder: ACNEncoder, input_string: str, max_length: int, null_characters: bytes) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single string."""
     success, decoded_value = _encode_and_decode_single_string_null_terminated(acn_encoder, input_string, max_length, null_characters)
     assert success, f"Encoding/decoding failed for input {input_string}"
 
@@ -85,7 +85,7 @@ def _test_single_string_null_terminated(acn_encoder: ACNEncoder, input_string: s
 
 
 def _test_multiple_strings_null_terminated(acn_encoder: ACNEncoder, input_numbers: list[str], max_length: int, null_characters: bytes) -> None:
-    """Helper function to test encoding/decoding of multiple positive integer values."""
+    """Helper function to test encoding/decoding of multiple strings."""
     success, decoded_values = _encode_and_decode_multiple_strings_null_terminated(acn_encoder, input_numbers, max_length, null_characters)
     assert success, f"Encoding/decoding failed for input {input_numbers}"
 

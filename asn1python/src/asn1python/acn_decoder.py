@@ -743,9 +743,19 @@ class ACNDecoder(Decoder):
             max_len: Maximum allowed string length
             ext_size_determinant_fld: External field determining actual string length
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.dec_string_char_index_external_field_determinant(max_len, ia5_char_set, ext_size_determinant_fld)
+        # Import IA5 character set from encoder to ensure consistency
+        from .acn_encoder import IA5_CHAR_SET
+        
+        if ext_size_determinant_fld < 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"External size determinant cannot be negative: {ext_size_determinant_fld}"
+            )
+            
+        # Use external field value, capped at max_len (matches C/Scala pattern)
+        characters_to_decode = min(ext_size_determinant_fld, max_len)
+        return self._dec_string_char_index_private(max_len, IA5_CHAR_SET, characters_to_decode)
 
     def dec_ia5_string_char_index_internal_field_determinant(self, max_len: int, min_len: int) -> DecodeResult[str]:
         """Decode IA5 string using character index with internal field determinant.
@@ -757,9 +767,42 @@ class ACNDecoder(Decoder):
             max_len: Maximum string length
             min_len: Minimum string length
         """
-        # IA5 character set is all 7-bit ASCII characters (0-127)
-        ia5_char_set = bytes(range(128))
-        return self.dec_string_char_index_internal_field_determinant(max_len, ia5_char_set, min_len)
+        # Import IA5 character set from encoder to ensure consistency
+        from .acn_encoder import IA5_CHAR_SET
+        
+        if min_len > max_len:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"min_len {min_len} cannot exceed max_len {max_len}"
+            )
+        
+        # Decode length as constrained integer
+        length_result = self.decode_integer(min_val=min_len, max_val=max_len)
+        if not length_result.success:
+            return DecodeResult(
+                success=False,
+                error_code=length_result.error_code,
+                error_message=f"Failed to decode string length: {length_result.error_message}",
+                bits_consumed=length_result.bits_consumed
+            )
+        
+        n_count = length_result.decoded_value
+        
+        # Use decoded length, capped at max_len (matches C/Scala pattern)
+        characters_to_decode = min(n_count, max_len)
+        
+        string_result = self._dec_string_char_index_private(max_len, IA5_CHAR_SET, characters_to_decode)
+        if not string_result.success:
+            return string_result
+            
+        # Combine bits consumed from length and string decoding
+        return DecodeResult(
+            success=True,
+            error_code=string_result.error_code,
+            decoded_value=string_result.decoded_value,
+            bits_consumed=length_result.bits_consumed + string_result.bits_consumed
+        )
 
     # ============================================================================
     # ASCII INTEGER DECODING - SIGNED
@@ -767,15 +810,130 @@ class ACNDecoder(Decoder):
 
     def dec_sint_ascii_const_size(self, encoded_size_in_bytes: int) -> DecodeResult:
         """Decode signed integer from ASCII with constant size."""
-        raise NotImplementedError("dec_sint_ascii_const_size not yet implemented")
+        if encoded_size_in_bytes < 1:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        try:
+            # Read sign character first
+            sign_char = self._bitstream.read_bits(8)
+            if sign_char == ord('+'):
+                sign = 1
+            elif sign_char == ord('-'):
+                sign = -1
+            else:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid sign character: {chr(sign_char)}"
+                )
+            
+            # Decode remaining bytes as unsigned integer
+            remaining_bytes = encoded_size_in_bytes - 1
+            uint_result = self._dec_uint_ascii_const_size_impl(remaining_bytes)
+            if not uint_result.success:
+                return uint_result
+            
+            # Apply sign
+            value = sign * uint_result.decoded_value
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=encoded_size_in_bytes * 8
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_sint_ascii_var_size_length_embedded(self) -> DecodeResult:
         """Decode signed integer from ASCII with variable size (length embedded)."""
-        raise NotImplementedError("dec_sint_ascii_var_size_length_embedded not yet implemented")
+        try:
+            # Read length first (1 byte)
+            total_length = self._bitstream.read_bits(8)
+            if total_length < 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid length: {total_length}"
+                )
+            
+            # Decode the signed integer with the specified length
+            sint_result = self.dec_sint_ascii_const_size(total_length)
+            if not sint_result.success:
+                return sint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=sint_result.decoded_value,
+                bits_consumed=8 + sint_result.bits_consumed  # length byte + integer bytes
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_sint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
         """Decode signed integer from ASCII with null termination."""
-        raise NotImplementedError("dec_sint_ascii_var_size_null_terminated not yet implemented")
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            bits_decoded = 0
+            
+            # Read sign character first
+            sign_char = self._bitstream.read_bits(8)
+            bits_decoded += 8
+            if sign_char == ord('+'):
+                is_negative = False
+            elif sign_char == ord('-'):
+                is_negative = True
+            else:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid sign character: {chr(sign_char)}"
+                )
+            
+            # Decode unsigned integer part using null termination
+            uint_result = self._dec_uint_ascii_var_size_null_terminated_impl(null_characters)
+            if not uint_result.success:
+                return uint_result
+            
+            bits_decoded += uint_result.bits_consumed
+            
+            # Apply sign
+            value = -uint_result.decoded_value if is_negative else uint_result.decoded_value
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=bits_decoded
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # ASCII INTEGER DECODING - UNSIGNED
@@ -783,15 +941,92 @@ class ACNDecoder(Decoder):
 
     def dec_uint_ascii_const_size(self, encoded_size_in_bytes: int) -> DecodeResult:
         """Decode unsigned integer from ASCII with constant size."""
-        raise NotImplementedError("dec_uint_ascii_const_size not yet implemented")
+        if encoded_size_in_bytes < 1:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Encoded size must be at least 1 byte, got {encoded_size_in_bytes}"
+            )
+
+        try:
+            # Use the helper method to decode unsigned integer directly
+            uint_result = self._dec_uint_ascii_const_size_impl(encoded_size_in_bytes)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=uint_result.bits_consumed
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_uint_ascii_var_size_length_embedded(self) -> DecodeResult:
         """Decode unsigned integer from ASCII with variable size (length embedded)."""
-        raise NotImplementedError("dec_uint_ascii_var_size_length_embedded not yet implemented")
+        try:
+            # Read length first (1 byte)
+            total_length = self._bitstream.read_bits(8)
+            if total_length < 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid length: {total_length}"
+                )
+            
+            # Decode the unsigned integer with the specified length
+            uint_result = self._dec_uint_ascii_const_size_impl(total_length)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=8 + uint_result.bits_consumed  # length byte + integer bytes
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def dec_uint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
         """Decode unsigned integer from ASCII with null termination."""
-        raise NotImplementedError("dec_uint_ascii_var_size_null_terminated not yet implemented")
+        if not isinstance(null_characters, (bytes, bytearray)):
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Null characters must be bytes or bytearray"
+            )
+        
+        try:
+            # Use the helper method to decode unsigned integer with null termination
+            uint_result = self._dec_uint_ascii_var_size_null_terminated_impl(null_characters)
+            if not uint_result.success:
+                return uint_result
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=uint_result.decoded_value,
+                bits_consumed=uint_result.bits_consumed
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # TYPED INTEGER DECODING FUNCTIONS (C Type Compatibility)
@@ -1116,3 +1351,91 @@ class ACNDecoder(Decoder):
             bits_needed += 1
             temp >>= 1
         return bits_needed
+
+    def _dec_uint_ascii_const_size_impl(self, encoded_size_in_bytes: int) -> DecodeResult:
+        """Helper method to decode unsigned integer from ASCII with constant size."""
+        # Based on C implementation in asn1crt_encoding_acn.c:684-704
+        try:
+            value = 0
+            
+            # Read each digit character and convert to integer
+            for _ in range(encoded_size_in_bytes):
+                digit_char = self._bitstream.read_bits(8)
+                
+                # Validate digit character is in valid range '0'-'9'
+                if digit_char < ord('0') or digit_char > ord('9'):
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Invalid digit character: {chr(digit_char)}"
+                    )
+                
+                # Convert to digit and accumulate value
+                digit = digit_char - ord('0')
+                value = value * 10 + digit
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=encoded_size_in_bytes * 8
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def _dec_uint_ascii_var_size_null_terminated_impl(self, null_characters: bytes) -> DecodeResult:
+        """Helper method to decode unsigned integer from ASCII with null termination."""
+        # Based on C implementation sliding window approach
+        try:
+            value = 0
+            bits_decoded = 0
+            null_size = len(null_characters)
+            
+            # Read initial buffer to match null terminator size
+            buffer = []
+            for _ in range(null_size):
+                byte_val = self._bitstream.read_bits(8)
+                buffer.append(byte_val)
+                bits_decoded += 8
+            
+            # Process digits until null terminator pattern is found
+            while bytes(buffer) != null_characters:
+                # First byte in buffer is a digit
+                digit_char = buffer[0]
+                
+                # Validate digit character
+                if digit_char < ord('0') or digit_char > ord('9'):
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Invalid digit character: {chr(digit_char)}"
+                    )
+                
+                # Convert to digit and accumulate value
+                digit = digit_char - ord('0')
+                value = value * 10 + digit
+                
+                # Shift buffer left and read next byte
+                buffer = buffer[1:]
+                byte_val = self._bitstream.read_bits(8)
+                buffer.append(byte_val)
+                bits_decoded += 8
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=bits_decoded
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )

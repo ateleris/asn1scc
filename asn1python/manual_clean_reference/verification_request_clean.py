@@ -10,17 +10,53 @@ import BasicTypes
 from enum import Enum
 from dataclasses import dataclass, field
 
+import TC_Packet
+import PacketTypes
+import ApplicationProcess
+
 @dataclass(frozen=True)
 class VerificationRequest_ID_packet_ID(Asn1Base):
     packetType: TC_Packet.TC_PacketType = 0
     secondaryHeaderFlag: PacketTypes.SecondaryHeaderFlag = 0
     applicationProcess_ID: ApplicationProcess.ApplicationProcess_ID = 0
 
-    def is_constraint_valid(self) -> Union[int, Asn1SccError]:
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         ret = self.secondaryHeaderFlag.is_constraint_valid()
         if ret:
             ret = self.applicationProcess_ID.is_constraint_valid()
         return ret
+    
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            res = self.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
+
+        self.packetType.encode(codec, check_constraints)
+        self.secondaryHeaderFlag.encode(codec, check_constraints)
+        self.applicationProcess_ID.encode(codec, check_constraints)
+    
+    @classmethod
+    def decode(cls, codec: Codec, check_constraints: bool = True) -> 'VerificationRequest_ID_packet_ID':
+        packetType = TC_Packet.TC_PacketType.decode(codec, check_constraints)
+        secondaryHeaderFlag = PacketTypes.SecondaryHeaderFlag.decode(codec, check_constraints)
+        applicationProcess_ID = ApplicationProcess.ApplicationProcess_ID.decode(codec, check_constraints)
+        
+        instance = cls(packetType=packetType, 
+                       secondaryHeaderFlag=secondaryHeaderFlag, 
+                       applicationProcess_ID=applicationProcess_ID)
+        
+        if check_constraints:
+            if not instance.is_constraint_valid():
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
+        
+        return instance
+    
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'VerificationRequest_ID_packet_ID']:
+        cpy = codec.copy()
+        res = VerificationRequest_ID_packet_ID.decode(cpy, check_constraints)
+        return cpy, res
 
 @dataclass(frozen=True)
 class VerificationRequest_ID(Asn1Base):
@@ -28,49 +64,61 @@ class VerificationRequest_ID(Asn1Base):
     packet_ID: VerificationRequest_ID_packet_ID = VerificationRequest_ID_packet_ID()
     packetSequenceControl: PacketTypes.PacketSequenceControl = PacketTypes.PacketSequenceControl()
 
-    ERR_VERIFICATIONREQUEST_ID_PACKET_ID: int = 178  #
-    ERR_VERIFICATIONREQUEST_ID_PACKET_ID_PACKETTYPE: int = 153  #
-    ERR_VERIFICATIONREQUEST_ID_PACKET_ID_SECONDARYHEADERFLAG_2: int = 163  #
-    ERR_VERIFICATIONREQUEST_ID_PACKET_ID_APPLICATIONPROCESS_ID_2: int = 173  #
+    class ErrorCodes:
+        ERR_VERIFICATIONREQUEST_ID_PACKET_ID: int = 178
+        ERR_VERIFICATIONREQUEST_ID_PACKET_ID_PACKETTYPE: int = 153
+        ERR_VERIFICATIONREQUEST_ID_PACKET_ID_SECONDARYHEADERFLAG_2: int = 163
+        ERR_VERIFICATIONREQUEST_ID_PACKET_ID_APPLICATIONPROCESS_ID_2: int = 173
+    
+        ERR_VERIFICATIONREQUEST_ID: int = 188
+        ERR_VERIFICATIONREQUEST_ID_PACKETVERSIONNUMBER: int = 144
+        ERR_VERIFICATIONREQUEST_ID_PACKETSEQUENCECONTROL: int = 183
+    
+        VerificationRequest_ID_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 4
+        VerificationRequest_ID_REQUIRED_BITS_FOR_ACN_ENCODING: int = 26
+    
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID: int = 192
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKETVERSIONNUMBER_2: int = 148
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID: int = 182
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_PACKETTYPE_2: int = 157
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_SECONDARYHEADERFLAG_2: int = 167
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_APPLICATIONPROCESS_ID_2: int = 177
+        ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKETSEQUENCECONTROL: int = 187
 
-    ERR_VERIFICATIONREQUEST_ID: int = 188  #
-    ERR_VERIFICATIONREQUEST_ID_PACKETVERSIONNUMBER: int = 144  #
-    ERR_VERIFICATIONREQUEST_ID_PACKETSEQUENCECONTROL: int = 183  #
 
-    VerificationRequest_ID_REQUIRED_BYTES_FOR_ACN_ENCODING: int = 4
-    VerificationRequest_ID_REQUIRED_BITS_FOR_ACN_ENCODING: int = 26
-
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID: int = 192  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKETVERSIONNUMBER_2: int = 148  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID: int = 182  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_PACKETTYPE_2: int = 157  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_SECONDARYHEADERFLAG_2: int = 167  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKET_ID_APPLICATIONPROCESS_ID_2: int = 177  #
-    ERR_ACN_DECODE_VERIFICATIONREQUEST_ID_PACKETSEQUENCECONTROL: int = 187  #
-
-
-    def is_constraint_valid(self) -> Union[int, Asn1SccError]:
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         ret = self.packet_ID.is_constraint_valid()
         if ret:
             ret = self.packetSequenceControl.is_constraint_valid()
         return ret
 
-    def encode(self, codec: Codec):
-        res = self.is_constraint_valid()
-        if res:
-            pass
-            # todo: encode
-        else:
-            pass
-            # todo: error?
+    def encode(self, codec: Codec, check_constraints: bool = True) -> None:
+        if check_constraints:
+            res = self.is_constraint_valid()
+            if not res:
+                raise Asn1Error("Constraint validation failed. Encoding failed.")
+        self.packetVersionNumber.encode(codec, check_constraints)
+        self.packet_ID.encode(codec, check_constraints)
+        self.packetSequenceControl.encode(codec, check_constraints)
+        
 
     @classmethod
-    def decode(cls, codec: Codec):
-        request_ID = codec.decode_integer(100, 116, 4) # todo
-        instance = cls(...) #todo
-        res = instance.is_constraint_valid()
-        if res:
-            return instance
-        else:
-            pass
-            # todo: raise error?
+    def decode(cls, codec: Codec, check_constraints: bool = True):
+        packetVersionNumber = PacketTypes.PacketVersionNumberValue.decode(codec, check_constraints)
+        packet_ID = VerificationRequest_ID_packet_ID.decode(codec, check_constraints)
+        packetSequenceControl = PacketTypes.PacketSequenceControl.decode(codec, check_constraints)
+        
+        instance = cls(packetVersionNumber=packetVersionNumber,
+                       packet_ID=packet_ID,
+                       packetSequenceControl=packetSequenceControl)
+        
+        if check_constraints:
+            if not instance.is_constraint_valid():
+                raise Asn1Error("Constraint validation failed. Decoding failed.")
+        return instance
+
+    @staticmethod
+    def decode_pure(codec: Codec, check_constraints: bool = True) -> Tuple[Codec, 'VerificationRequest_ID']:
+        cpy = codec.copy()
+        res = VerificationRequest_ID.decode(cpy, check_constraints)
+        return cpy, res

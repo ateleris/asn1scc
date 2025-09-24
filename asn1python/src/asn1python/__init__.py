@@ -46,7 +46,6 @@ from .helper import (
     Asn1SccError,
 )
 
-from .vector import Asn1Vector
 from .verification import (
     validate_integer_constraints,
     validate_string_constraints,
@@ -92,7 +91,6 @@ __all__ = [
     "Asn1SccError",
 
     # Vector and validation
-    "Asn1Vector",
     "validate_integer_constraints",
     "validate_string_constraints",
     "validate_sequence_constraints",

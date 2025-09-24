@@ -9,7 +9,7 @@ from conftest import get_random_string, get_null_terminator_string, generate_tes
 
 
 def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str, max_length: int, charset: str) -> tuple[bool, str]:
-    """Helper function to encode and decode a single positive integer value.
+    """Helper function to encode and decode a single string.
 
     Returns:
         Tuple of (success, decoded_value)
@@ -28,7 +28,7 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
 
 
 def _encode_and_decode_multiple_strings(acn_encoder: ACNEncoder, input_strings: list[str], max_length: int, charset: str) -> tuple[bool, list[str]]:
-    """Helper function to encode and decode multiple positive integer values.
+    """Helper function to encode and decode multiple strings.
 
     Returns:
         Tuple of (success, decoded_values_list)
@@ -53,21 +53,21 @@ def _encode_and_decode_multiple_strings(acn_encoder: ACNEncoder, input_strings: 
 
 
 def _test_single_string(acn_encoder: ACNEncoder, input_string: str, max_length: int, charset: str) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single string."""
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length, charset)
     assert success, f"Encoding/decoding failed for input {input_string}"
     print(f"Input: {input_string}, decoded {decoded_value}, Passed: {input_string == decoded_value}")
     assert input_string == decoded_value
 
 def _test_single_string_starts_with(acn_encoder: ACNEncoder, input_string: str, max_length: int, charset: str) -> None:
-    """Helper function to test encoding/decoding of a single positive integer value."""
+    """Helper function to test encoding/decoding of a single string, where the decoded value starts with the input_string provided."""
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, max_length, charset)
     assert success, f"Encoding/decoding failed for input {input_string}"
     print(f"Input: {input_string}, decoded {decoded_value}, Passed: {input_string == decoded_value}")
     assert decoded_value.startswith(input_string)
 
 def _test_multiple_strings(acn_encoder: ACNEncoder, input_numbers: list[str], max_length: int, charset: str) -> None:
-    """Helper function to test encoding/decoding of multiple positive integer values."""
+    """Helper function to test encoding/decoding of multiple strings."""
     success, decoded_values = _encode_and_decode_multiple_strings(acn_encoder, input_numbers, max_length, charset)
     assert success, f"Encoding/decoding failed for input {input_numbers}"
 

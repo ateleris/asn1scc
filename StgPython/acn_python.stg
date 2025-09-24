@@ -34,14 +34,14 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
-def <sFuncName>(self, codec: ACNCodec, bCheckConstraints: bool) -> Union[int, Asn1SccError]:
+def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> Union[int, Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    res = <sVarName>.<soIValidFuncName>()
-    if isinstance(res, Asn1SccError):
-        # acn_python.stg 43
-        return res
+    if check_constraints:
+        res = <sVarName>.<soIValidFuncName>()
+        if isinstance(res, Asn1SccError):
+            return res
     
     <sContent>
     <else>
@@ -59,30 +59,26 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNCodec) -> Union['<sTypeDefName>', Asn1SccError]:
+def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True) -> Union['<sTypeDefName>', Asn1SccError]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
 
     <if(soIValidFuncName)>
-    res = <sVarName>.<soIValidFuncName>()
-    if isinstance(res, Asn1SccError):
-        # acn_python.stg 70
-        return res
-    else:
-        # acn_python.stg 73
-        return <sVarName>
-    <else>
-    # acn_python.stg 76
-    return <sVarName>
+    if check_constraints:
+        res = <sVarName>.<soIValidFuncName>()
+        if isinstance(res, Asn1SccError):
+            # acn_python.stg 70
+            return res
     <endif>
+    return <sVarName>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNCodec) -> Tuple[ACNCodec, Union['<sTypeDefName>', Asn1SccError]]:
+def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True) -> Tuple[ACNDecoder, Union['<sTypeDefName>', Asn1SccError]]:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
-    res = <sTypeDefName>.<sFuncName>(cpy)
+    res = <sTypeDefName>.<sFuncName>(cpy, check_constraints)
     # acn_python.stg 84
     return cpy, res
 >>
@@ -382,7 +378,7 @@ else:
     <p> = <sErrCode>
 >>
 
-Null_declare(p) ::= "<p>: NullType = None"
+Null_declare(p) ::= "<p>: NullType = NullType()"
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 387
@@ -420,10 +416,8 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 >>
 
 Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
-# acn_python.stg 422
 if <p> == <sName>:
-    # acn_python.stg 424
-    return <sItemVal>
+    <sIntVal> = <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 # acn_python.stg 428
@@ -443,8 +437,10 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-# acn_python.stg 445
-<sIntVal> = <arrsItem; separator="\n">
+<sIntVal>: int = 0
+
+<arrsItem; separator="\n">
+
 <sActualCodecFunc>
 >>
 
@@ -906,8 +902,9 @@ if <p> == <nChildIndex>:
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
-if <p> == <sChildID>(<sChildName>):
-    codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+
+if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
+    codec.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
@@ -915,7 +912,7 @@ ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIn
 # acn_python.stg 914
 if <p> == <nChildIndex>:
     <sChildContent>
-    <sChildID>(<sChildName>)
+    instance = cls(kind=<sChoiceTypeName>InUse(instance), data=<sChildName>)
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
@@ -926,7 +923,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
-<p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<p> = codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931

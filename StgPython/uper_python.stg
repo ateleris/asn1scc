@@ -4,18 +4,13 @@ rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= <<
 # uper_python.stg 6
-result = <sFuncName>(<p>, codec, False)
-if isinstance(result, Asn1SccError):
-    # uper_python.stg 9
+result = <p>.encode(codec, check_constraints)
+if not result:
     return result
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13
-result = <sFuncName>(codec)
-if isinstance(result, Asn1SccError):
-    # uper_python.stg 16
-    return result
-<p> = result
+<p> = <sFuncName>(codec, check_constraints)
 >>
 
 /*******************************************************/
@@ -39,11 +34,11 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # uper_python.stg 40
 
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, bCheckConstraints: bool):
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, check_constraints: bool = True):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    if bCheckConstraints:
+    if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
         if isinstance(res, Asn1SccError):
             # uper_python.stg 49
@@ -63,7 +58,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
+def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefName>, Asn1SccError]: # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -71,23 +66,19 @@ def <sFuncName>(codec: UPER): Union[<sTypeDefName>, Asn1SccError]: # uper:58
     <sContent>
 
     <if(soIValidFuncName)>
-    res = <sVarName>.<soIValidFuncName>()
-    if isinstance(res, Asn1SccError):
-        # uper_python.stg 75
-        return res
-    else: 
-        # uper_python.stg 78
-        return <sVarName>
-    <else>
-    # uper_python.stg 81
-    return <sVarName>
+    if check_constraints:
+        res = <sVarName>.<soIValidFuncName>()
+        if isinstance(res, Asn1SccError):
+            # uper_python.stg 75
+            return res
     <endif>
+    return <sVarName>
 
 # @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>_pure(codec: UPER): (UPER, Union[<sTypeDefName>, Asn1SccError]):
+def <sFuncName>_pure(codec: UPER, check_constraints: bool = True): (UPER, Union[<sTypeDefName>, Asn1SccError]):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     cpy = codec.copy()
-    res = <sFuncName>(cpy)
+    res = <sFuncName>(cpy, check_constraints)
     # uper_python.stg 90
     return cpy, res
 >>
@@ -440,11 +431,7 @@ else:
 
 sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 # uper_python.stg 441
-<if(!bIsOptional)>
-<p> = <sTypeDefName>(<arrsChildren; separator=", ">)
-<else>
-<p>: OptionMut[<sTypeDefName>] = SomeMut(<sTypeDefName>(<arrsChildren; separator=", ">))
-<endif>
+<p> = cls(<arrsChildren; separator=", ">)
 >>
 
 
@@ -936,7 +923,7 @@ sparkAnnotations_decode(sTypeDefName) ::= <<
 # uper_python.stg 935
 >>
 
-Null_declare(p) ::= "<p>: NullType = 0"
+Null_declare(p) ::= "<p>: NullType = NullType()"
 
 decode_nullType(p) ::= <<
 # uper_python.stg 941
