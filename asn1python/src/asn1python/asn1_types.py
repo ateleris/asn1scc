@@ -28,6 +28,22 @@ class Asn1OverflowError(Asn1Error):
     """Raised when an arithmetic operation would cause overflow"""
     pass
 
+@dataclass(frozen=True)
+class Asn1ConstraintValidResult:
+    is_valid: bool
+    error_code: int = 0
+    message: str = ""
+
+    def __bool__(self):
+        return self.is_valid
+
+    def __post_init__(self):
+        if not self.is_valid and self.error_code <= 0:
+            raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
+
+        if self.is_valid and self.error_code > 0:
+            raise Exception("No error code must be set if the constraint is valid.")
+
 class Asn1Base(abc.ABC):
     from .encoder import Encoder
     from .decoder import Decoder

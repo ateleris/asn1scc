@@ -43,6 +43,9 @@ class ACNEncoder(Encoder):
     def __init__(self, buffer_bit_size: int = 8 * 1024 * 1024) -> None:
         super().__init__(buffer_bit_size=buffer_bit_size)
 
+    def _construct(self, buffer_bit_size: int) -> 'ACNEncoder':
+        return ACNEncoder(buffer_bit_size)
+
     def get_decoder(self) -> ACNDecoder:
         return ACNDecoder(self.get_bitstream_buffer())
 
