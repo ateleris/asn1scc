@@ -40,7 +40,7 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, check_constraints: bool
     <if(soIValidFuncName)>
     if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
-        if isinstance(res, Asn1SccError):
+        if not res:
             # uper_python.stg 49
             return res
     # @ghost val oldCdc = snapshot(codec)
@@ -68,7 +68,7 @@ def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefNam
     <if(soIValidFuncName)>
     if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
-        if isinstance(res, Asn1SccError):
+        if not res:
             # uper_python.stg 75
             return res
     <endif>
