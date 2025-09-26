@@ -31,28 +31,26 @@ class BitStream:
 
     @Predicate
     def bitstream_invariant(self) -> bool:
-        return (Acc(self._buffer) and Acc(self._size_in_bits) and
-                Acc(self._current_bit) and Acc(self._current_byte) and
-                BitStream.position_invariant(self._current_bit, self._current_byte, self._size_in_bits))
+        return (Acc(self._buffer) and Acc(self._current_bit) and Acc(self._current_byte) and
+                bytearray_pred(self._buffer) and
+                BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
 
-    def __init__(self, data: Optional[bytearray] = None, size_in_bits: Optional[int] = None):
+    def __init__(self, data: Optional[bytearray] = None, size_in_bytes: Optional[int] = None):
         Requires(Implies(data is not None, bytearray_pred(data)))
-        Requires(Implies(size_in_bits is not None, 0 <= size_in_bits))
-        Requires(Implies((data is not None) and (size_in_bits is not None), size_in_bits >= len(data)))
+        Requires(Implies(size_in_bytes is not None, 0 <= size_in_bytes))
+        Requires(Implies((data is not None) and (size_in_bytes is not None), size_in_bytes >= len(data)))
         Ensures(self.bitstream_invariant())
         """
         Initialize a BitStream.
 
         Args:
             data: Initial data buffer (optional)
-            size_in_bits: Size of the buffer in bits (optional)
+            size_in_bytes: Size of the buffer in bytes (optional)
         """
         if data is None:
             self._buffer = bytearray()
-            self._size_in_bits = 0
         else:
             self._buffer = bytearray(data)
-            self._size_in_bits = size_in_bits if size_in_bits is not None else len(data) * 8
 
         self._current_bit = 0  # Current bit within byte (0-7)
         self._current_byte = 0  # Current byte position (0-based)
@@ -73,31 +71,32 @@ class BitStream:
     def current_byte_position(self) -> int:
         """Get the current bit position"""
         Requires(self.bitstream_invariant())
-        Ensures(Unfolding(self.bitstream_invariant(), 0 <= Result() and ((Result() < self._size_in_bits) or (self._current_bit == 0 and Result() == self._size_in_bits))))
+        Ensures(Unfolding(self.bitstream_invariant(), 0 <= Result() and ((Result() < len(self._buffer)) or (self._current_bit == 0 and Result() == len(self._buffer)))))
         # Unfold(self.bitstream_invariant())
         # return self._current_byte
         return Unfolding(self.bitstream_invariant(), self._current_byte)
     
     @property
-    def size_in_bits(self) -> int:
-        """Get the total size in bits"""
+    def buffer_size(self) -> int:
+        """Get the buffer size in bytes"""
         Requires(self.bitstream_invariant())
-        # Unfold(self.bitstream_invariant())
-        # return self._size_in_bits
-        return Unfolding(self.bitstream_invariant(), self._size_in_bits)
-
-    @property
-    def size_in_bytes(self) -> int:
-        """Get the total size in bytes"""
-        Requires(self.bitstream_invariant())
-        return (self.size_in_bits + 7) // 8
+        return Unfolding(self.bitstream_invariant(), len(self._buffer))
 
     @property
     def buffer(self) -> bytearray:
         """Get the internal buffer"""
         Requires(self.bitstream_invariant())
         return Unfolding(self.bitstream_invariant(), self._buffer)
-
+    
+    @property
+    def current_used_bytes(self) -> int:
+        """ Get the count of bytes that got already fully or partially written """
+        Requires(self.bitstream_invariant())
+        ret = self.current_byte_position
+        if self.current_bit_position > 0:
+            ret += 1
+        return ret
+    
     def reset(self) -> None:
         """Reset the bit position to the beginning"""
         Requires(self.bitstream_invariant())
@@ -108,14 +107,20 @@ class BitStream:
         self._current_byte = 0
         Fold(self.bitstream_invariant())
 
-    # def set_bit_position(self, bit_position: int) -> None:
-    #     """Set the current bit position"""
-    #     if bit_position < 0 or bit_position > self._size_in_bits:
-    #         raise BitStreamError(f"Bit position {bit_position} out of range [0, {self._size_in_bits}]")
-
-    #     self._current_bit = bit_position
-    #     self._current_byte = bit_position // 8
-    #     self._bit_in_byte = bit_position % 8
+    def set_position(self, byte_position: int, bit_position: int) -> None:
+        """Set the current bit and byte position"""
+        Requires(self.bitstream_invariant())
+        Requires(BitStream.position_invariant(bit_position, byte_position, self.buffer_size))
+        Ensures(self.bitstream_invariant())
+        
+        if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
+            raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
+        
+        Unfold(self.bitstream_invariant())
+        self._current_bit = bit_position
+        self._current_byte = byte_position
+        
+        Fold(self.bitstream_invariant())
 
     # def _ensure_capacity(self, required_bits: int) -> None:
     #     """Ensure the buffer has enough capacity for the required bits"""

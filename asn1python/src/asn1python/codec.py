@@ -72,7 +72,7 @@ class Codec(Generic[T]):
 
         assert buffer_bit_size > 0, "Codec buffer_size must be greater than zero"
         self._max_bits = buffer_bit_size  # 1MB default max size
-        self._bitstream = BitStream(size_in_bits=self._max_bits, data=buffer)
+        self._bitstream = BitStream(size_in_bytes=self._max_bits, data=buffer)
 
     def copy(self) -> T:
         """Creates and returns a copy of this codec instance"""
