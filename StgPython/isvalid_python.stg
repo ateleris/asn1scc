@@ -68,12 +68,12 @@ ret = Asn1SccError(<sErrCode>)
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
 # isvalid_python.stg 69
-<sErrCode>: int = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = ", ">
+<sErrCode> = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = ", ">
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 # isvalid_python.stg 74
-class ErrorCodes:
+class ErrorCodes(IntEnum):
     <arrsErrcodes; separator="\n">
 >>
 

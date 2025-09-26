@@ -4,7 +4,8 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from typing import Optional, TypeVar, Generic, List
+from abc import abstractmethod
+from typing import Optional, Type, TypeVar, Generic, List
 from dataclasses import dataclass
 from enum import IntEnum
 from .bitstream import BitStream, BitStreamError
@@ -56,8 +57,8 @@ class CodecError(Asn1Error):
     """Base class for codec errors"""
     pass
 
-
-class Codec:
+T = TypeVar('T', bound='Codec')
+class Codec(Generic[T]):
     """
     Base class for ASN.1 codecs.
 
@@ -65,7 +66,7 @@ class Codec:
     including UPER, ACN, XER, and BER.
     """
 
-    def __init__(self, buffer_bit_size: int = 8 * 1024 * 1024, buffer: bytearray = None) -> None:
+    def __init__(self, buffer_bit_size: int = 8 * 1024 * 1024, buffer: Optional[bytearray] = None) -> None:
         if buffer is not None:
             buffer_bit_size = len(buffer) * 8
 
@@ -73,18 +74,22 @@ class Codec:
         self._max_bits = buffer_bit_size  # 1MB default max size
         self._bitstream = BitStream(size_in_bits=self._max_bits, data=buffer)
 
-    def copy(self) -> 'Codec':
+    def copy(self) -> T:
         """Creates and returns a copy of this codec instance"""
         current_data = self._bitstream.get_data_copy()
         curret_position = self._bitstream.current_bit_position
 
-        new_codec = Codec(buffer_bit_size=self._max_bits)
+        new_codec = self._construct(self._max_bits)
         new_codec._bitstream.reset()
         if len(current_data) > 0:
             new_codec._bitstream.write_bytes(current_data)
         new_codec._bitstream.set_bit_position(curret_position)
 
         return new_codec
+
+    @abstractmethod
+    def _construct(self, buffer_bit_size: int) -> T:
+        pass
 
     def reset_bitstream(self):
         self._bitstream.reset()

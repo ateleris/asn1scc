@@ -40,7 +40,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> Unio
     <if(soIValidFuncName)>
     if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
-        if isinstance(res, Asn1SccError):
+        if not res:
             return res
     
     <sContent>
@@ -68,7 +68,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True) -> Union
     <if(soIValidFuncName)>
     if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
-        if isinstance(res, Asn1SccError):
+        if not res:
             # acn_python.stg 70
             return res
     <endif>
@@ -877,7 +877,7 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 # acn_python.stg 881
 res = <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 884
     return res
 >>
@@ -1177,7 +1177,7 @@ if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
             bitStrm.buf = arr
 
     res = <sFuncName>(<p>, bitStrm)
-    if isinstance(res, Asn1SccError):
+    if not res:
         # acn_python.stg 1183
         return res
 >>
@@ -1193,7 +1193,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 # encode to a temporary bitstream
 bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 res = <sFuncName>(<p>, bitStrm, false)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 1199
     return res
     
@@ -1241,7 +1241,7 @@ else:
 
 <endif>
 res =  <sFuncName>(<p>, &bitStrm)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 1247
     return res
 >>
@@ -1254,7 +1254,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
 res = <sFuncName>(<p>, bitStrm, false)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 1260
     return res
 
@@ -1285,7 +1285,7 @@ else:
     bitStrm.buf = arr
 
 res = <sFuncName>(<p>, bitStrm)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 1291
     return res
 
@@ -1306,7 +1306,7 @@ else:
     bitStrm.buf = arr
 
 res = <sFuncName>(<p>, bitStrm)
-if isinstance(res, Asn1SccError):
+if not res:
     # acn_python.stg 1312
     return res
 
