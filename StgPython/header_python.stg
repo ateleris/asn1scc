@@ -17,7 +17,7 @@ from ..asn1python import *
 from typing import *
 # todo: find ways to import basic types everywhere except in basic types
 # from .BasicTypes import *
-from enum import Enum
+from enum import Enum, IntEnum
 from dataclasses import dataclass, field
 
 <if(arrsIncludedModules)>

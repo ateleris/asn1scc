@@ -73,7 +73,7 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComm
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 # isvalid_python.stg 74
-class ErrorCodes:
+class ErrorCodes(IntEnum):
     <arrsErrcodes; separator="\n">
 >>
 
