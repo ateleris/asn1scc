@@ -252,14 +252,14 @@ def int2uint(v: int) -> int:
     """Convert signed integer to unsigned (matches C and Scala function)"""
     return ctypes.c_uint64(v).value
 
-def uint2int(v: int, uint_size_in_bytes: int) -> int:
-    """Convert unsigned integer to signed (matches C and Scala function)"""
-    match uint_size_in_bytes:
-        case 1: return ctypes.c_int8(v).value
-        case 2: return ctypes.c_int16(v).value
-        case 4: return ctypes.c_int32(v).value
-        case 8: return ctypes.c_int64(v).value
-        case _: raise ValueError(f"Unsupported size: {uint_size_in_bytes}")
+# def uint2int(v: int, uint_size_in_bytes: int) -> int:
+#     """Convert unsigned integer to signed (matches C and Scala function)"""
+#     match uint_size_in_bytes:
+#         case 1: return ctypes.c_int8(v).value
+#         case 2: return ctypes.c_int16(v).value
+#         case 4: return ctypes.c_int32(v).value
+#         case 8: return ctypes.c_int64(v).value
+#         case _: raise ValueError(f"Unsupported size: {uint_size_in_bytes}")
 
 # TODO: OctetString_equal might be required for isvalid_python:394
 # def OctetString_equal(...):
