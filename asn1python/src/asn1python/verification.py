@@ -5,45 +5,9 @@ This module provides constraint validation functions for ASN.1 types.
 """
 
 from nagini_contracts.contracts import *
-from typing import Final, Union, Optional, List, Any, Callable
+from typing import Final, Tuple, Union, Optional, List, Any, Callable
 # import re
 # from .asn1_types import Asn1Error
-
-
-MASK_B: List[int]  = [
-    0x00, #   0 / 0000 0000 / x00
-    0x01, #   1 / 0000 0001 / x01
-    0x03, #   3 / 0000 0011 / x03
-    0x07, #   7 / 0000 0111 / x07
-    0x0F, #  15 / 0000 1111 / x0F
-    0x1F, #  31 / 0001 1111 / x1F
-    0x3F, #  63 / 0011 1111 / x3F
-    0x7F, # 127 / 0111 1111 / x7F
-    0xFF, # 255 / 1111 1111 / xFF
-]
-
-MASK_C: List[int] = [
-    0x00,  #  / 0000 0000 /
-    0x80,  #  / 1000 0000 /
-    0xC0,  #  / 1100 0000 /
-    0xE0,  #  / 1110 0000 /
-    0xF0,  #  / 1111 0000 /
-    0xF8,  #  / 1111 1000 /
-    0xFC,  #  / 1111 1100 /
-    0xFE,  #  / 1111 1110 /
-    0xFF,  #  / 1111 1111 /
-]
-
-BIT_ACCESS_MASK: List[int]  = [
-    0x80,  #  128 / 1000 0000 / x80
-    0x40,  #   64 / 0100 0000 / x40
-    0x20,  #   32 / 0010 0000 / x20
-    0x10,  #   16 / 0001 0000 / x10
-    0x08,  #    8 / 0000 1000 / x08
-    0x04,  #    4 / 0000 0100 / x04
-    0x02,  #    2 / 0000 0010 / x02
-    0x01,  #    1 / 0000 0001 / x01
-]
 
 
 # class ConstraintError(Asn1Error):
@@ -51,31 +15,55 @@ BIT_ACCESS_MASK: List[int]  = [
 #     pass
 
 @Pure
-def byte_ranges_eq(b1: int, b2: int, start: int, end: int) -> bool:
-    Requires(0 <= b1 and b1 < 0xFF)
-    Requires(0 <= b2 and b2 < 0xFF)
+def get_bitmask(start: int, end: int) -> int:
     Requires(0 <= start and start <= end and end <= 8)
-    Requires(Acc(list_pred(MASK_B), Wildcard))
-    Requires(Acc(list_pred(MASK_C), Wildcard))
-    return start == end or ((b1 & MASK_C[end] & MASK_B[8 - start])) == ((b2 & MASK_C[end] & MASK_B[8-start]))
+    return 0xFF >> (8 - end + start) << (8 - end)
 
-# @Pure
-# def bytearray_bit_ranges_eq(array: bytearray, other: bytearray, start_bit: int, end_bit: int) -> bool:
-#     Requires(Acc(bytearray_pred(array), Wildcard))
-#     Requires(Acc(bytearray_pred(other), Wildcard))
-#     Requires(len(array) <= len(other))
-#     Requires(0 <= start_bit and start_bit <= end_bit and end_bit <= len(array) * 8)
-#     if start_bit < end_bit:
+@Pure
+def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
+    """Compares if the two bytes b1 and b2 are equal in the range [start, end["""
+    Requires(0 <= b1 and b1 <= 0xFF)
+    Requires(0 <= b2 and b2 <= 0xFF)
+    Requires(0 <= start and start <= end and end <= 8)
+    mask = get_bitmask(start, end)
 
-b1 = 0b0010_0000
-b2 = 0b0011_0000
+    return start == end or (b1 & mask) == (b2 & mask)
 
-start = 0
-end = 3
+@Pure
+def bytearray_range_eq(b1: bytearray, b2: bytearray, start: int, end: int) -> bool:
+    """Compares if the two bytearrays b1 and b2 are equal in the range [start, end["""
+    Requires(Rd(bytearray_pred(b1)))
+    Requires(Rd(bytearray_pred(b2)))
+    Requires(len(b1) <= len(b2))
+    Requires(0 <= start and start <= end and end <= len(b1))
+    Decreases(end - start)
+    return start == end or (b1[start] == b2[start] and bytearray_range_eq(b1, b2, start + 1, end))
 
-assert(byte_ranges_eq(b1, b2, start, end))
+@Pure
+def bytearray_bit_range_eq(b1: bytearray, b2: bytearray, start_bit: int, end_bit: int) -> bool:
+    Requires(Rd(bytearray_pred(b1)))
+    Requires(Rd(bytearray_pred(b2)))
+    Requires(len(b1) <= len(b2))
+    Requires(0 <= start_bit and start_bit <= end_bit and end_bit <= len(b1) * 8)
 
+    if start_bit == end_bit:
+        return True
+    
+    full_byte_start = start_bit // 8 + (start_bit % 8 == 0)
+    full_byte_end = end_bit // 8
+    rest_start_byte = start_bit // 8
+    rest_from = start_bit % 8
+    rest_end_byte = end_bit // 8
+    rest_end = end_bit % 8
 
+    return (Implies(full_byte_start < full_byte_end, 
+                    bytearray_range_eq(b1, b2, full_byte_start, full_byte_end)) and
+            Implies(rest_start_byte == rest_end_byte, 
+                    byte_range_eq(b1[rest_start_byte], b2[rest_start_byte], rest_from, rest_end)) and
+            Implies(rest_start_byte < rest_end_byte, 
+                    byte_range_eq(b1[rest_start_byte], b2[rest_start_byte], rest_from, 8) and
+                    Implies(rest_end != 0, byte_range_eq(b1[rest_end_byte], b2[rest_end_byte], 0, rest_end)))
+            )
 
 # def validate_integer_constraints(value: int,
 #                                 min_val: Optional[int] = None,

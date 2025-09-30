@@ -46,11 +46,4 @@ where = ["src"]
 "" = "src"
 
 [tool.mypy]
-python_version = "3.10"
-mypy_path = "src"
-namespace_packages = true
-explicit_package_bases = true
-
-[[tool.mypy.overrides]]
-module = "nagini_contracts.*"
-ignore_missing_imports = true
+python_version = "3.9"

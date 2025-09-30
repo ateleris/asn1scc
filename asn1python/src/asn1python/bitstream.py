@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from .verification import *
+from verification import bytearray_bit_range_eq
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -23,6 +23,7 @@ class BitStream:
     This class provides precise bit manipulation capabilities required for
     ASN.1 encoding rules like UPER and ACN.
     """
+    #region Pure
 
     @Pure
     @staticmethod
@@ -32,6 +33,7 @@ class BitStream:
 
     @Pure
     def validate_offset(self, bit_offset: int) -> bool:
+        Requires(Rd(self.bitstream_invariant()))
         return 0 <= self.current_used_bits + bit_offset and self.current_used_bits + bit_offset <= self.buffer_size_bits
 
     @Pure
@@ -48,32 +50,21 @@ class BitStream:
     
     @Pure
     def is_prefix_of(self, other: 'BitStream') -> bool:
-        Requires(self.bitstream_invariant(), Wildcard)
-        Requires(other.bitstream_invariant(), Wildcard)
-        return (self.buffer_size == other.buffer_size and
-                self.current_used_bits <= other.current_used_bits and
-                Implies(self.buffer_size != 0, bytearray_bit_ranges_eq(self.buffer, other.buffer, 0, self.current_used_bits)))
-
-    @Pure
-    def read_bit_pure(self, bit_position: int, byte_position: int) -> bool:
-        Requires(self.bitstream_invariant(), Wildcard)
-        Requires(BitStream.to_bit_index(bit_position, byte_position) < self.buffer_size_bits)
-        """Read a single bit"""
-        return bool(self.buffer[byte_position] & (1 << (7 - bit_position)))
-
-    @Pure
-    def read_bit_pure(self, bit_index) -> bool:
-        Requires(self.bitstream_invariant(), Wildcard)
-        Requires(self.bit_index < self.buffer_size_bits)
-        """Read a single bit"""
-        bit_position, byte_position = BitStream.from_bit_index(bit_index)
-        return bool(self.buffer[byte_position] & (1 << (7 - bit_position)))
+        Requires(Rd(self.bitstream_invariant()))
+        Requires(Rd(other.bitstream_invariant()))
+        return self.buffer_size == other.buffer_size # CRASHES other.buffer_size
+    
+        # return (self.buffer_size == other.buffer_size and
+        #         self.current_used_bits <= other.current_used_bits and
+        #         Implies(self.buffer_size != 0, bytearray_bit_range_eq(self.buffer, other.buffer, 0, self.current_used_bits)))
 
     @Predicate
     def bitstream_invariant(self) -> bool:
         return (Acc(self._buffer) and Acc(self._current_bit) and Acc(self._current_byte) and
                 bytearray_pred(self._buffer) and
-                BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
+                BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))        
+
+    #endregion
 
     def __init__(self, data: Optional[bytearray] = None, size_in_bytes: Optional[int] = None):
         Requires(Implies(data is not None, bytearray_pred(data)))
@@ -97,13 +88,12 @@ class BitStream:
         Fold(self.bitstream_invariant())
         Unfold(self.bitstream_invariant())
         Fold(self.bitstream_invariant())
-
+    
     #region Properties
-
     @property
     def current_bit_position(self) -> int:
         """Get the current bit position"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         Ensures(0 <= Result() and Result() < NO_OF_BITS_IN_BYTE)
         # Unfold(self.bitstream_invariant())
         # return self._current_bit
@@ -112,7 +102,7 @@ class BitStream:
     @property
     def current_byte_position(self) -> int:
         """Get the current bit position"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         Ensures(Unfolding(self.bitstream_invariant(), 0 <= Result() and ((Result() < len(self._buffer)) or (self._current_bit == 0 and Result() == len(self._buffer)))))
         # Unfold(self.bitstream_invariant())
         # return self._current_byte
@@ -121,25 +111,31 @@ class BitStream:
     @property
     def buffer_size(self) -> int:
         """Get the buffer size in bytes"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         return Unfolding(self.bitstream_invariant(), len(self._buffer))
+    
+    @property
+    def buffer_size_in_bits(self) -> int:
+        """Get the buffer size in bits"""
+        Requires(Rd(self.bitstream_invariant()))
+        return self.buffer_size * NO_OF_BITS_IN_BYTE
 
     @property
     def buffer_size_bits(self) -> int:
         """Get the buffer size in bits"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         return self.buffer_size * NO_OF_BITS_IN_BYTE
 
     @property
     def buffer(self) -> bytearray:
         """Get the internal buffer"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         return Unfolding(self.bitstream_invariant(), self._buffer)
     
     @property
     def current_used_bytes(self) -> int:
         """Get the count of bytes that got already fully or partially written """
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         ret = self.current_byte_position
         if self.current_bit_position > 0:
             ret += 1
@@ -147,12 +143,16 @@ class BitStream:
     
     @property
     def current_used_bits(self) -> int:
-        """Get the count of bits that got already written"""
-        Requires(self.bitstream_invariant(), Wildcard)
+        Requires(Rd(self.bitstream_invariant()))
         return self.current_byte_position * NO_OF_BITS_IN_BYTE + self.current_bit_position
     
-    #endregion
-
+    @property
+    def remaining_bits(self) -> int:
+        Requires(Rd(self.bitstream_invariant()))
+        return self.buffer_size_in_bits - self.current_used_bits
+    
+    #endregion    
+    
     def reset(self) -> None:
         """Reset the bit position to the beginning"""
         Requires(self.bitstream_invariant())
@@ -198,24 +198,32 @@ class BitStream:
     
     #region Read
 
+    # def read_bit_pure(self, bit_position: int, byte_position: int) -> bool:
+    #     Requires(Rd(self.bitstream_invariant()))
+    #     Requires(BitStream.to_bit_index(bit_position, byte_position) < self.buffer_size_bits)
+    #     """Read a single bit"""
+    #     # assert byte_position < self.buffer_size
+    #     return bool(self.buffer[byte_position] & (1 << (7 - bit_position)))
+
     #endregion
 
     #region Write
 
-    def write_bit(self, bit: bool) -> None:
-        Requires(self.bitstream_invariant())
-        Requires(self.validate_offset(1))
-        Ensures(self.bitstream_invariant())
-        Ensures(self.current_used_bits == Old(self.current_used_bits) + 1)
-        Ensures()
-        """Write a single bit"""
+    # def write_bit(self, bit: bool) -> None:
+    #     Requires(self.bitstream_invariant())
+    #     Requires(self.validate_offset(1))
+    #     Ensures(self.bitstream_invariant())
+    #     Ensures(self.current_used_bits == Old(self.current_used_bits) + 1)
+    #     Ensures(verification.bytearray_bit_range_eq(self.buffer, Old(self.buffer), 0, Old(self.current_used_bits)))
+    #     Ensures(self.read_bit_pure(self.current_bit_position, self.current_byte_position) == bit)
+    #     """Write a single bit"""
 
-        if bit:
-            self._buffer[self._current_byte] |= (1 << (7 - self._bit_in_byte))
-        else:
-            self._buffer[self._current_byte] &= ~(1 << (7 - self._bit_in_byte))
+    #     if bit:
+    #         self._buffer[self._current_byte] |= (1 << (7 - self._current_bit))
+    #     else:
+    #         self._buffer[self._current_byte] &= ~(1 << (7 - self._current_bit))
 
-        self._shift_bit_index(1)
+    #     self._shift_bit_index(1)
 
     #endregion
 
