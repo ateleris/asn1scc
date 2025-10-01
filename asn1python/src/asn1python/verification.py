@@ -54,7 +54,7 @@ def bytearray_bit_range_eq(b1: bytearray, b2: bytearray, start_bit: int, end_bit
     if start_bit == end_bit:
         return True
     
-    full_byte_start = start_bit // 8 + (start_bit % 8 == 0)
+    full_byte_start = start_bit // 8 + (start_bit % 8 != 0)
     full_byte_end = end_bit // 8
     rest_start_byte = start_bit // 8
     rest_from = start_bit % 8
