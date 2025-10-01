@@ -354,3 +354,142 @@ class Decoder(Codec):
             DecodeResult containing decoded value
         """
         return self.decode_integer(min_val=min_val, max_val=max_val)
+
+    def decode_semi_constrained_whole_number(self, min_val: int) -> DecodeResult[int]:
+        """
+        Decode semi-constrained whole number (signed, only lower bound).
+
+        Matches Scala: Codec.decodeSemiConstrainedWholeNumber(min: Long)
+        Used by: UPER, PER for integers with only minimum constraint
+
+        Decodes as: length byte + value bytes (MSB first)
+        - Reads length as single byte
+        - Reads value in big-endian byte order
+        - Adds min_val offset
+
+        Args:
+            min_val: Minimum allowed value
+        """
+        try:
+            # Read length byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            num_bytes = result.decoded_value
+
+            if num_bytes == 0 or num_bytes > 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid length: {num_bytes} (must be 1-8)"
+                )
+
+            # Read value bytes
+            result = self.read_byte_array(num_bytes)
+            if not result.success:
+                return result
+            data_bytes = result.decoded_value
+
+            # Convert from big-endian
+            enc_value = 0
+            for byte_val in data_bytes:
+                enc_value = (enc_value << 8) | byte_val
+
+            # Add offset
+            value = enc_value + min_val
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=8 + num_bytes * 8
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def decode_semi_constrained_pos_whole_number(self, min_val: int) -> DecodeResult[int]:
+        """
+        Decode semi-constrained positive whole number (unsigned, only lower bound).
+
+        Matches Scala: Codec.decodeSemiConstrainedPosWholeNumber(min: ULong)
+        Used by: UPER, PER for non-negative integers with only minimum constraint
+
+        Args:
+            min_val: Minimum allowed value (non-negative)
+        """
+        if min_val < 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Minimum value must be non-negative for positive whole numbers"
+            )
+        return self.decode_semi_constrained_whole_number(min_val)
+
+    def decode_unconstrained_whole_number(self) -> DecodeResult[int]:
+        """
+        Decode unconstrained whole number (signed, no constraints).
+
+        Matches Scala: Codec.decodeUnconstrainedWholeNumber()
+        Used by: UPER, PER for integers without size constraints
+
+        Decodes as: length byte + value bytes (MSB first, two's complement for negative)
+        - Reads length as single byte
+        - Reads value in big-endian byte order
+        - Applies sign extension for negative numbers
+
+        Returns:
+            DecodeResult with decoded signed integer value
+        """
+        try:
+            # Read length byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            num_bytes = result.decoded_value
+
+            if num_bytes == 0 or num_bytes > 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Invalid length: {num_bytes} (must be 1-8)"
+                )
+
+            # Read value bytes
+            result = self.read_byte_array(num_bytes)
+            if not result.success:
+                return result
+            data_bytes = result.decoded_value
+
+            # Convert from big-endian
+            unsigned_value = 0
+            for byte_val in data_bytes:
+                unsigned_value = (unsigned_value << 8) | byte_val
+
+            # Apply sign extension for two's complement
+            num_bits = num_bytes * 8
+            sign_bit = 1 << (num_bits - 1)
+            if unsigned_value & sign_bit:
+                # Negative number - sign extend
+                value = unsigned_value - (1 << num_bits)
+            else:
+                # Positive number
+                value = unsigned_value
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=8 + num_bytes * 8
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )

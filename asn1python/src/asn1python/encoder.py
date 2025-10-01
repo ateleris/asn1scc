@@ -333,3 +333,161 @@ class Encoder(Codec, ABC):
             max_val: Maximum allowed value
         """
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
+
+    def encode_semi_constrained_whole_number(self, value: int, min_val: int) -> EncodeResult:
+        """
+        Encode semi-constrained whole number (signed, only lower bound).
+
+        Matches Scala: Codec.encodeSemiConstrainedWholeNumber(v: Long, min: Long)
+        Used by: UPER, PER for integers with only minimum constraint
+
+        Encodes as: length byte + value bytes (MSB first)
+        - Subtracts min_val from value
+        - Calculates bytes needed for unsigned representation
+        - Writes length as single byte
+        - Writes value in big-endian byte order
+
+        Args:
+            value: Value to encode (must be >= min_val)
+            min_val: Minimum allowed value
+        """
+        try:
+            if value < min_val:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_CONSTRAINT_VIOLATION,
+                    error_message=f"Value {value} below minimum {min_val}"
+                )
+
+            # Offset encoding: subtract minimum
+            enc_value = value - min_val
+
+            # Calculate bytes needed for unsigned representation
+            if enc_value == 0:
+                num_bytes = 1
+            else:
+                num_bytes = (enc_value.bit_length() + 7) // 8
+
+            # Encode length as single byte
+            result = self.append_byte(num_bytes)
+            if not result.success:
+                return result
+
+            bits_encoded = 8
+
+            # Encode value in big-endian byte order
+            for i in range(num_bytes - 1, -1, -1):
+                byte_val = (enc_value >> (i * 8)) & 0xFF
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+
+        except (BitStreamError, ValueError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def encode_semi_constrained_pos_whole_number(self, value: int, min_val: int) -> EncodeResult:
+        """
+        Encode semi-constrained positive whole number (unsigned, only lower bound).
+
+        Matches Scala: Codec.encodeSemiConstrainedPosWholeNumber(v: ULong, min: ULong)
+        Used by: UPER, PER for non-negative integers with only minimum constraint
+
+        Args:
+            value: Value to encode (must be >= min_val, non-negative)
+            min_val: Minimum allowed value (non-negative)
+        """
+        if value < 0 or min_val < 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message="Positive whole numbers must be non-negative"
+            )
+        return self.encode_semi_constrained_whole_number(value, min_val)
+
+    def encode_unconstrained_whole_number(self, value: int) -> EncodeResult:
+        """
+        Encode unconstrained whole number (signed, no constraints).
+
+        Matches Scala: Codec.encodeUnconstrainedWholeNumber(v: Long)
+        Used by: UPER, PER for integers without size constraints
+
+        Encodes as: length byte + value bytes (MSB first, two's complement for negative)
+        - Calculates bytes needed for signed representation
+        - Writes length as single byte
+        - Writes value in big-endian byte order with sign extension
+
+        Args:
+            value: Value to encode (any signed integer)
+        """
+        try:
+            # Calculate bytes needed for signed representation
+            if value >= 0:
+                # Positive: need enough bytes for value + sign bit
+                if value == 0:
+                    num_bytes = 1
+                else:
+                    # Need extra bit for sign, so check if MSB is set
+                    bits_needed = value.bit_length() + 1  # +1 for sign bit
+                    num_bytes = (bits_needed + 7) // 8
+            else:
+                # Negative: two's complement representation
+                # Find how many bits we need
+                if value == -1:
+                    num_bytes = 1
+                else:
+                    # For negative numbers, find the position of the highest 0 bit
+                    # (after which all bits are 1)
+                    bits_needed = (value + 1).bit_length() + 1  # +1 for sign bit
+                    num_bytes = (bits_needed + 7) // 8
+
+            # Maximum 8 bytes for a 64-bit integer
+            if num_bytes > 8:
+                num_bytes = 8
+
+            # Encode length as single byte
+            result = self.append_byte(num_bytes)
+            if not result.success:
+                return result
+
+            bits_encoded = 8
+
+            # Encode value in big-endian byte order
+            num_bits = num_bytes * 8
+            if value < 0:
+                # Two's complement for negative numbers
+                unsigned_value = (1 << num_bits) + value
+            else:
+                unsigned_value = value
+
+            for i in range(num_bytes - 1, -1, -1):
+                byte_val = (unsigned_value >> (i * 8)) & 0xFF
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+
+        except (BitStreamError, ValueError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
