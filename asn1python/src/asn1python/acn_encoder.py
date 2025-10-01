@@ -109,33 +109,33 @@ class ACNEncoder(Encoder):
         max_val = (1 << (format_bit_length - 1)) - 1
         return self.encode_integer(int_val, min_val=min_val, max_val=max_val, size_in_bits=format_bit_length)
 
-    # def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
-    #     """Encode 8-bit signed integer."""
-    #     return self.enc_int_twos_complement_const_size(int_val, 8)
-    #
-    # def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit signed integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 16, True)
-    #
-    # def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit signed integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 32, True)
-    #
-    # def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit signed integer (big-endian)."""
-    #     return self.encode_integer_big_endian(int_val, 64, True)
-    #
-    # def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-    #     """Encode 16-bit signed integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 16, True)
-    #
-    # def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-    #     """Encode 32-bit signed integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 32, True)
-    #
-    # def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-    #     """Encode 64-bit signed integer (little-endian)."""
-    #     return self._encode_integer_little_endian(int_val, 64, True)
+    def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
+        """Encode 8-bit signed integer."""
+        return self.enc_int_twos_complement_const_size(int_val, 8)
+
+    def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
+        """Encode 16-bit signed integer (big-endian)."""
+        return self.encode_integer_big_endian(int_val, 16, True)
+
+    def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
+        """Encode 32-bit signed integer (big-endian)."""
+        return self.encode_integer_big_endian(int_val, 32, True)
+
+    def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
+        """Encode 64-bit signed integer (big-endian)."""
+        return self.encode_integer_big_endian(int_val, 64, True)
+
+    def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
+        """Encode 16-bit signed integer (little-endian)."""
+        return self._encode_integer_little_endian(int_val, 16, True)
+
+    def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
+        """Encode 32-bit signed integer (little-endian)."""
+        return self._encode_integer_little_endian(int_val, 32, True)
+
+    def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
+        """Encode 64-bit signed integer (little-endian)."""
+        return self._encode_integer_little_endian(int_val, 64, True)
 
     def enc_int_twos_complement_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode signed integer with variable size (length embedded)."""
@@ -1458,6 +1458,132 @@ class ACNEncoder(Encoder):
     # ============================================================================
     # MILBUS FUNCTIONS
     # ============================================================================
+
+    def encode_integer_big_endian(self, int_val: int, num_bits: int, is_twos_complement: bool) -> EncodeResult:
+        """Encode integer in big-endian byte order.
+
+        Args:
+            int_val: Integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8)
+            is_twos_complement: True for signed two's complement, False for unsigned
+        """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+
+        num_bytes = num_bits // 8
+
+        # Validate range
+        if is_twos_complement:
+            min_val = -(1 << (num_bits - 1))
+            max_val = (1 << (num_bits - 1)) - 1
+            if not (min_val <= int_val <= max_val):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {int_val} out of range [{min_val}, {max_val}] for {num_bits}-bit signed integer"
+                )
+            # Convert to unsigned representation (two's complement)
+            if int_val < 0:
+                unsigned_val = (1 << num_bits) + int_val
+            else:
+                unsigned_val = int_val
+        else:
+            max_val = (1 << num_bits) - 1
+            if not (0 <= int_val <= max_val):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {int_val} out of range [0, {max_val}] for {num_bits}-bit unsigned integer"
+                )
+            unsigned_val = int_val
+
+        try:
+            # Encode bytes in big-endian order (most significant byte first)
+            bits_encoded = 0
+            for i in range(num_bytes - 1, -1, -1):
+                byte_val = (unsigned_val >> (i * 8)) & 0xFF
+                self._bitstream.write_bits(byte_val, 8)
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def _encode_integer_little_endian(self, int_val: int, num_bits: int, is_twos_complement: bool) -> EncodeResult:
+        """Encode integer in little-endian byte order.
+
+        Args:
+            int_val: Integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8)
+            is_twos_complement: True for signed two's complement, False for unsigned
+        """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+
+        num_bytes = num_bits // 8
+
+        # Validate range
+        if is_twos_complement:
+            min_val = -(1 << (num_bits - 1))
+            max_val = (1 << (num_bits - 1)) - 1
+            if not (min_val <= int_val <= max_val):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {int_val} out of range [{min_val}, {max_val}] for {num_bits}-bit signed integer"
+                )
+            # Convert to unsigned representation (two's complement)
+            if int_val < 0:
+                unsigned_val = (1 << num_bits) + int_val
+            else:
+                unsigned_val = int_val
+        else:
+            max_val = (1 << num_bits) - 1
+            if not (0 <= int_val <= max_val):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {int_val} out of range [0, {max_val}] for {num_bits}-bit unsigned integer"
+                )
+            unsigned_val = int_val
+
+        try:
+            # Encode bytes in little-endian order (least significant byte first)
+            bits_encoded = 0
+            for i in range(num_bytes):
+                byte_val = (unsigned_val >> (i * 8)) & 0xFF
+                self._bitstream.write_bits(byte_val, 8)
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def milbus_encode(self, val: int) -> int:
         """Encode value using MILBUS encoding."""
