@@ -210,3 +210,147 @@ class Decoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    # ============================================================================
+    # BASE BITSTREAM PRIMITIVES (matching Scala BitStream structure)
+    # ============================================================================
+
+    def read_byte(self) -> DecodeResult[int]:
+        """
+        Read a single byte from the bitstream.
+
+        Matches Scala: BitStream.readByte(): UByte
+        Used by: ACN, UPER, PER codecs
+
+        Returns:
+            DecodeResult containing byte value (0-255)
+        """
+        try:
+            if self._bitstream.bits_remaining() < 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message="Insufficient data to read byte"
+                )
+
+            value = self._bitstream.read_bits(8)
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=8
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def read_byte_array(self, num_bytes: int) -> DecodeResult[bytes]:
+        """
+        Read multiple bytes from the bitstream.
+
+        Matches Scala: BitStream.readByteArray(nBytes: Int): Array[UByte]
+        Used by: ACN, UPER for octet strings
+
+        Args:
+            num_bytes: Number of bytes to read
+
+        Returns:
+            DecodeResult containing bytes
+        """
+        try:
+            if self._bitstream.bits_remaining() < num_bytes * 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.bits_remaining()}"
+                )
+
+            result = bytearray()
+            bits_consumed = 0
+            for _ in range(num_bytes):
+                byte_val = self._bitstream.read_bits(8)
+                result.append(byte_val)
+                bits_consumed += 8
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bytes(result),
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def decode_unsigned_integer(self, num_bits: int) -> DecodeResult[int]:
+        """
+        Decode unsigned integer with specified number of bits.
+
+        Matches Scala: Codec.decodeUnsignedInteger(nBits: Int): ULong
+        Used by: ACN, UPER, PER for constrained integers
+
+        Args:
+            num_bits: Number of bits to decode
+
+        Returns:
+            DecodeResult containing unsigned integer value
+        """
+        try:
+            if self._bitstream.bits_remaining() < num_bits:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.bits_remaining()}"
+                )
+
+            value = self._bitstream.read_bits(num_bits)
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=num_bits
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def decode_constrained_pos_whole_number(self, min_val: int, max_val: int) -> DecodeResult[int]:
+        """
+        Decode constrained positive whole number.
+
+        Matches Scala: Codec.decodeConstrainedPosWholeNumber(min: ULong, max: ULong): ULong
+        Used by: UPER, PER for constrained non-negative integers
+
+        Args:
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+
+        Returns:
+            DecodeResult containing decoded value
+        """
+        return self.decode_integer(min_val=min_val, max_val=max_val)
+
+    def decode_constrained_whole_number(self, min_val: int, max_val: int) -> DecodeResult[int]:
+        """
+        Decode constrained whole number (signed).
+
+        Matches Scala: Codec.decodeConstrainedWholeNumber(min: Long, max: Long): Long
+        Used by: UPER, PER for constrained signed integers
+
+        Args:
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+
+        Returns:
+            DecodeResult containing decoded value
+        """
+        return self.decode_integer(min_val=min_val, max_val=max_val)

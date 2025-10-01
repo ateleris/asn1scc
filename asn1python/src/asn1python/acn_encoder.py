@@ -81,9 +81,12 @@ class ACNEncoder(Encoder):
 
             bits_encoded = length_result.bits_encoded
 
+            # Use base append_byte method instead of direct bitstream access
             for i in range(bytes_needed - 1, -1, -1):
                 byte_val = (int_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
                 bits_encoded += 8
 
             return EncodeResult(
@@ -161,9 +164,12 @@ class ACNEncoder(Encoder):
             else:
                 twos_complement = (1 << (bytes_needed * 8)) + int_val
 
+            # Use base append_byte method
             for i in range(bytes_needed - 1, -1, -1):
                 byte_val = (twos_complement >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
                 bits_encoded += 8
 
             return EncodeResult(
@@ -211,7 +217,9 @@ class ACNEncoder(Encoder):
 
             bits_encoded = 0
             for i in range(encoded_size_in_nibbles - 1, -1, -1):
-                self._bitstream.write_bits(digits[i], 4)
+                result = self.encode_unsigned_integer(digits[i], 4)
+                if not result.success:
+                    return result
                 bits_encoded += 4
 
             return EncodeResult(
@@ -290,7 +298,9 @@ class ACNEncoder(Encoder):
             if not bcd_result.success:
                 return bcd_result
 
-            self._bitstream.write_bits(0xF, 4)
+            result = self.encode_unsigned_integer(0xF, 4)
+            if not result.success:
+                return result
 
             return EncodeResult(
                 success=True,
@@ -317,8 +327,10 @@ class ACNEncoder(Encoder):
         """
         try:
             packed = struct.pack('>f', real_val)
-            for byte in packed:
-                self._bitstream.write_bits(byte, 8)
+            # Use base append_byte_array method
+            result = self.append_byte_array(packed, len(packed))
+            if not result.success:
+                return result
 
             return EncodeResult(
                 success=True,
@@ -341,8 +353,10 @@ class ACNEncoder(Encoder):
         """
         try:
             packed = struct.pack('<f', real_val)
-            for byte in packed:
-                self._bitstream.write_bits(byte, 8)
+            # Use base append_byte_array method
+            result = self.append_byte_array(packed, len(packed))
+            if not result.success:
+                return result
 
             return EncodeResult(
                 success=True,
@@ -365,8 +379,10 @@ class ACNEncoder(Encoder):
         """
         try:
             packed = struct.pack('>d', real_val)
-            for byte in packed:
-                self._bitstream.write_bits(byte, 8)
+            # Use base append_byte_array method
+            result = self.append_byte_array(packed, len(packed))
+            if not result.success:
+                return result
 
             return EncodeResult(
                 success=True,
@@ -389,8 +405,10 @@ class ACNEncoder(Encoder):
         """
         try:
             packed = struct.pack('<d', real_val)
-            for byte in packed:
-                self._bitstream.write_bits(byte, 8)
+            # Use base append_byte_array method
+            result = self.append_byte_array(packed, len(packed))
+            if not result.success:
+                return result
 
             return EncodeResult(
                 success=True,
@@ -427,13 +445,7 @@ class ACNEncoder(Encoder):
             )
 
         try:
-            self._bitstream.write_bits(length_val, length_size_in_bits)
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=length_size_in_bits
-            )
+            return self.encode_unsigned_integer(length_val, length_size_in_bits)
         except BitStreamError as e:
             return EncodeResult(
                 success=False,
@@ -484,7 +496,9 @@ class ACNEncoder(Encoder):
             
             # Pad remaining bytes with null terminators (fixed size specific behavior)
             for i in range(chars_written, max_len):
-                self._bitstream.write_bits(0, 8)
+                result = self.append_byte(0)
+                if not result.success:
+                    return result
                 bits_encoded += 8
                 
             return EncodeResult(
@@ -535,7 +549,9 @@ class ACNEncoder(Encoder):
             chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
             
             # Append the null termination character (null terminated specific behavior)
-            self._bitstream.write_bits(null_character, 8)
+            result = self.append_byte(null_character)
+            if not result.success:
+                return result
             bits_encoded += 8
                 
             return EncodeResult(
@@ -586,9 +602,10 @@ class ACNEncoder(Encoder):
             chars_written, bits_encoded = self._enc_string_ascii_private(max_len, str_val)
             
             # Append the null termination character sequence (multi-byte null terminated specific behavior)
-            for null_byte in null_characters:
-                self._bitstream.write_bits(null_byte, 8)
-                bits_encoded += 8
+            result = self.append_byte_array(null_characters, len(null_characters))
+            if not result.success:
+                return result
+            bits_encoded += len(null_characters) * 8
                 
             return EncodeResult(
                 success=True,
@@ -771,7 +788,9 @@ class ACNEncoder(Encoder):
                     char_index = 0
                 
                 # Encode index as constrained integer (0 to char_set_size-1)
-                self._bitstream.write_bits(char_index, bits_per_char)
+                result = self.encode_unsigned_integer(char_index, bits_per_char)
+                if not result.success:
+                    return result
                 bits_encoded += bits_per_char
                     
             return EncodeResult(
@@ -1031,7 +1050,9 @@ class ACNEncoder(Encoder):
         try:
             # Encode sign
             sign_char = ord('+') if int_val >= 0 else ord('-')
-            self._bitstream.write_bits(sign_char, 8)
+            result = self.append_byte(sign_char)
+            if not result.success:
+                return result
             
             # Encode absolute value with remaining bytes
             abs_val = abs(int_val)
@@ -1058,17 +1079,23 @@ class ACNEncoder(Encoder):
             total_length = len(digits_str) + 1
             
             # Encode length first (1 byte)
-            self._bitstream.write_bits(total_length, 8)
+            result = self.append_byte(total_length)
+            if not result.success:
+                return result
             bits_encoded = 8
-            
+
             # Encode sign
             sign_char = ord('+') if int_val >= 0 else ord('-')
-            self._bitstream.write_bits(sign_char, 8)
+            result = self.append_byte(sign_char)
+            if not result.success:
+                return result
             bits_encoded += 8
-            
+
             # Encode digits
             for digit_char in digits_str:
-                self._bitstream.write_bits(ord(digit_char), 8)
+                result = self.append_byte(ord(digit_char))
+                if not result.success:
+                    return result
                 bits_encoded += 8
             
             return EncodeResult(
@@ -1099,22 +1126,27 @@ class ACNEncoder(Encoder):
             
             # Encode sign
             sign_char = ord('+') if int_val >= 0 else ord('-')
-            self._bitstream.write_bits(sign_char, 8)
+            result = self.append_byte(sign_char)
+            if not result.success:
+                return result
             bits_encoded += 8
-            
+
             # Encode absolute value using unsigned null terminated encoding
             abs_val = abs(int_val)
             digits_str = str(abs_val)
-            
+
             # Encode digits
             for digit_char in digits_str:
-                self._bitstream.write_bits(ord(digit_char), 8)
+                result = self.append_byte(ord(digit_char))
+                if not result.success:
+                    return result
                 bits_encoded += 8
-            
+
             # Append null termination characters
-            for null_byte in null_characters:
-                self._bitstream.write_bits(null_byte, 8)
-                bits_encoded += 8
+            result = self.append_byte_array(null_characters, len(null_characters))
+            if not result.success:
+                return result
+            bits_encoded += len(null_characters) * 8
             
             return EncodeResult(
                 success=True,
@@ -1179,7 +1211,9 @@ class ACNEncoder(Encoder):
             bits_encoded = 0
             for i in range(encoded_size_in_bytes - 1, -1, -1):
                 digit_char = ord('0') + digits[i]
-                self._bitstream.write_bits(digit_char, 8)
+                result = self.append_byte(digit_char)
+                if not result.success:
+                    return result
                 bits_encoded += 8
             
             return EncodeResult(
@@ -1216,12 +1250,16 @@ class ACNEncoder(Encoder):
             total_length = len(digits_str)
             
             # Encode length first (1 byte)
-            self._bitstream.write_bits(total_length, 8)
+            result = self.append_byte(total_length)
+            if not result.success:
+                return result
             bits_encoded = 8
-            
+
             # Encode digits
             for digit_char in digits_str:
-                self._bitstream.write_bits(ord(digit_char), 8)
+                result = self.append_byte(ord(digit_char))
+                if not result.success:
+                    return result
                 bits_encoded += 8
             
             return EncodeResult(
@@ -1265,13 +1303,16 @@ class ACNEncoder(Encoder):
             
             # Encode digits (no sign character needed)
             for digit_char in digits_str:
-                self._bitstream.write_bits(ord(digit_char), 8)
+                result = self.append_byte(ord(digit_char))
+                if not result.success:
+                    return result
                 bits_encoded += 8
-            
+
             # Append null termination characters
-            for null_byte in null_characters:
-                self._bitstream.write_bits(null_byte, 8)
-                bits_encoded += 8
+            result = self.append_byte_array(null_characters, len(null_characters))
+            if not result.success:
+                return result
+            bits_encoded += len(null_characters) * 8
             
             return EncodeResult(
                 success=True,
@@ -1320,7 +1361,9 @@ class ACNEncoder(Encoder):
         for i in range(min(len(str_bytes), max_len)):
             if str_bytes[i] == 0:  # Stop at first null character
                 break
-            self._bitstream.write_bits(str_bytes[i], 8)
+            result = self.append_byte(str_bytes[i])
+            if not result.success:
+                raise BitStreamError(result.error_message)
             bits_encoded += 8
             chars_written += 1
             
@@ -1369,7 +1412,9 @@ class ACNEncoder(Encoder):
                 raise ValueError(f"Character '{chr(str_bytes[i])}' (0x{str_bytes[i]:02x}) not found in allowed character set")
                 
             # Encode index as constrained integer (0 to char_set_size-1)
-            self._bitstream.write_bits(char_index, bits_per_char)
+            result = self.encode_unsigned_integer(char_index, bits_per_char)
+            if not result.success:
+                raise BitStreamError(result.error_message)
             bits_encoded += bits_per_char
             chars_written += 1
             
@@ -1439,7 +1484,9 @@ class ACNEncoder(Encoder):
             # Encode digits from most significant to least significant (reverse order)
             for i in range(encoded_size_in_bytes - 1, -1, -1):
                 digit_char = ord('0') + digits[i]
-                self._bitstream.write_bits(digit_char, 8)
+                result = self.append_byte(digit_char)
+                if not result.success:
+                    return result
                 bits_encoded += 8
             
             return EncodeResult(
@@ -1506,7 +1553,9 @@ class ACNEncoder(Encoder):
             bits_encoded = 0
             for i in range(num_bytes - 1, -1, -1):
                 byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
                 bits_encoded += 8
 
             return EncodeResult(
@@ -1569,7 +1618,9 @@ class ACNEncoder(Encoder):
             bits_encoded = 0
             for i in range(num_bytes):
                 byte_val = (unsigned_val >> (i * 8)) & 0xFF
-                self._bitstream.write_bits(byte_val, 8)
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
                 bits_encoded += 8
 
             return EncodeResult(

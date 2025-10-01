@@ -191,3 +191,145 @@ class Encoder(Codec, ABC):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    # ============================================================================
+    # BASE BITSTREAM PRIMITIVES (matching Scala BitStream structure)
+    # ============================================================================
+
+    def append_byte(self, byte_val: int) -> EncodeResult:
+        """
+        Append a single byte to the bitstream.
+
+        Matches Scala: BitStream.appendByte(v: UByte)
+        Used by: ACN, UPER, PER codecs
+
+        Args:
+            byte_val: Byte value (0-255)
+        """
+        try:
+            if not (0 <= byte_val <= 255):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Byte value must be 0-255, got {byte_val}"
+                )
+
+            self._bitstream.write_bits(byte_val, 8)
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=8
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def append_byte_array(self, data: bytes, num_bytes: int) -> EncodeResult:
+        """
+        Append multiple bytes to the bitstream.
+
+        Matches Scala: BitStream.appendByteArray(arr: Array[UByte], noOfBytes: Int)
+        Used by: ACN, UPER for octet strings
+
+        Args:
+            data: Bytes to write
+            num_bytes: Number of bytes to write from data
+        """
+        try:
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+                )
+
+            bits_encoded = 0
+            for i in range(num_bytes):
+                self._bitstream.write_bits(data[i], 8)
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def encode_unsigned_integer(self, value: int, num_bits: int) -> EncodeResult:
+        """
+        Encode unsigned integer with specified number of bits.
+
+        Matches Scala: Codec.encodeUnsignedInteger(v: ULong)
+        Used by: ACN, UPER, PER for constrained integers
+
+        Args:
+            value: Unsigned integer value
+            num_bits: Number of bits to encode
+        """
+        try:
+            if value < 0:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value must be non-negative, got {value}"
+                )
+
+            max_value = (1 << num_bits) - 1
+            if value > max_value:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {value} exceeds maximum {max_value} for {num_bits} bits"
+                )
+
+            self._bitstream.write_bits(value, num_bits)
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=num_bits
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def encode_constrained_pos_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
+        """
+        Encode constrained positive whole number.
+
+        Matches Scala: Codec.encodeConstrainedPosWholeNumber(v: ULong, min: ULong, max: ULong)
+        Used by: UPER, PER for constrained non-negative integers
+
+        Args:
+            value: Value to encode
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+        """
+        return self.encode_integer(value, min_val=min_val, max_val=max_val)
+
+    def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
+        """
+        Encode constrained whole number (signed).
+
+        Matches Scala: Codec.encodeConstrainedWholeNumber(v: Long, min: Long, max: Long)
+        Used by: UPER, PER for constrained signed integers
+
+        Args:
+            value: Value to encode
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+        """
+        return self.encode_integer(value, min_val=min_val, max_val=max_val)
