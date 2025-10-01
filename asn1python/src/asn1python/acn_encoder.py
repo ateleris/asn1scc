@@ -109,6 +109,12 @@ class ACNEncoder(Encoder):
             int_val: Unsigned integer value to encode
             num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
         """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
         return self.encode_integer_big_endian(int_val, num_bits, False)
 
     def enc_int_positive_integer_const_size_little_endian(self, int_val: int, num_bits: int) -> EncodeResult:
@@ -118,6 +124,12 @@ class ACNEncoder(Encoder):
             int_val: Unsigned integer value to encode
             num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
         """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
         return self._encode_integer_little_endian(int_val, num_bits, False)
 
     # ============================================================================
@@ -130,33 +142,35 @@ class ACNEncoder(Encoder):
         max_val = (1 << (format_bit_length - 1)) - 1
         return self.encode_integer(int_val, min_val=min_val, max_val=max_val, size_in_bits=format_bit_length)
 
-    def enc_int_twos_complement_const_size_8(self, int_val: int) -> EncodeResult:
-        """Encode 8-bit signed integer."""
-        return self.enc_int_twos_complement_const_size(int_val, 8)
+    def enc_int_twos_complement_const_size_big_endian(self, int_val: int, num_bits: int) -> EncodeResult:
+        """Encode signed integer (two's complement) with constant size in big-endian byte order.
 
-    def enc_int_twos_complement_const_size_big_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit signed integer (big-endian)."""
-        return self.encode_integer_big_endian(int_val, 16, True)
+        Args:
+            int_val: Signed integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self.encode_integer_big_endian(int_val, num_bits, True)
 
-    def enc_int_twos_complement_const_size_big_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit signed integer (big-endian)."""
-        return self.encode_integer_big_endian(int_val, 32, True)
+    def enc_int_twos_complement_const_size_little_endian(self, int_val: int, num_bits: int) -> EncodeResult:
+        """Encode signed integer (two's complement) with constant size in little-endian byte order.
 
-    def enc_int_twos_complement_const_size_big_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit signed integer (big-endian)."""
-        return self.encode_integer_big_endian(int_val, 64, True)
-
-    def enc_int_twos_complement_const_size_little_endian_16(self, int_val: int) -> EncodeResult:
-        """Encode 16-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 16, True)
-
-    def enc_int_twos_complement_const_size_little_endian_32(self, int_val: int) -> EncodeResult:
-        """Encode 32-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 32, True)
-
-    def enc_int_twos_complement_const_size_little_endian_64(self, int_val: int) -> EncodeResult:
-        """Encode 64-bit signed integer (little-endian)."""
-        return self._encode_integer_little_endian(int_val, 64, True)
+        Args:
+            int_val: Signed integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._encode_integer_little_endian(int_val, num_bits, True)
 
     def enc_int_twos_complement_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode signed integer with variable size (length embedded)."""

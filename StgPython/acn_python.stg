@@ -199,45 +199,44 @@ TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, 
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_
-complement_const_size_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)"
 TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 207
-<p> = codec.dec_int_twos_complement_const_size_big_endian_16<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(16)
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)"
 TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 213
-<p> = codec.dec_int_twos_complement_const_size_big_endian_32<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(32)
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)"
 TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 220
-<p> = codec.dec_int_twos_complement_const_size_big_endian_64<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(64)
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)"
 TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 227
-<p> = codec.dec_int_twos_complement_const_size_little_endian_16<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(16)
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)"
 TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 234
-<p> = codec.dec_int_twos_complement_const_size_little_endian_32<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(32)
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)"
 TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 241
-<p> = codec.dec_int_twos_complement_const_size_little_endian_64<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(64)
 <MF(soMF)>
 >>
 

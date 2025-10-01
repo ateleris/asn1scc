@@ -34,33 +34,33 @@ class ACNDecoder(Decoder):
         return self.decode_integer(min_val=0, max_val=(1 << encoded_size_in_bits) - 1,
                                   size_in_bits=encoded_size_in_bits)
 
-    def dec_int_positive_integer_const_size_8(self) -> DecodeResult:
-        """Decode 8-bit positive integer."""
-        return self.dec_int_positive_integer_const_size(8)
+    def dec_int_positive_integer_const_size_big_endian(self, num_bits: int) -> DecodeResult:
+        """Decode positive integer with constant size in big-endian byte order.
 
-    def dec_int_positive_integer_const_size_big_endian_16(self) -> DecodeResult:
-        """Decode 16-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(16, False)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_big_endian(num_bits, False)
 
-    def dec_int_positive_integer_const_size_big_endian_32(self) -> DecodeResult:
-        """Decode 32-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(32, False)
+    def dec_int_positive_integer_const_size_little_endian(self, num_bits: int) -> DecodeResult:
+        """Decode positive integer with constant size in little-endian byte order.
 
-    def dec_int_positive_integer_const_size_big_endian_64(self) -> DecodeResult:
-        """Decode 64-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(64, False)
-
-    def dec_int_positive_integer_const_size_little_endian_16(self) -> DecodeResult:
-        """Decode 16-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(16, False)
-
-    def dec_int_positive_integer_const_size_little_endian_32(self) -> DecodeResult:
-        """Decode 32-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(32, False)
-
-    def dec_int_positive_integer_const_size_little_endian_64(self) -> DecodeResult:
-        """Decode 64-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(64, False)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_little_endian(num_bits, False)
 
     def dec_int_positive_integer_var_size_length_embedded(self) -> DecodeResult:
         """Decode positive integer with variable size (length embedded)."""
@@ -140,33 +140,33 @@ class ACNDecoder(Decoder):
                 error_message=str(e)
             )
 
-    def dec_int_twos_complement_const_size_8(self) -> DecodeResult[int]:
-        """Decode 8-bit signed integer."""
-        return self.dec_int_twos_complement_const_size(8)
+    def dec_int_twos_complement_const_size_big_endian(self, num_bits: int) -> DecodeResult[int]:
+        """Decode signed integer (two's complement) with constant size in big-endian byte order.
 
-    def dec_int_twos_complement_const_size_big_endian_16(self) -> DecodeResult[int]:
-        """Decode 16-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(16, True)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_big_endian(num_bits, True)
 
-    def dec_int_twos_complement_const_size_big_endian_32(self) -> DecodeResult[int]:
-        """Decode 32-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(32, True)
+    def dec_int_twos_complement_const_size_little_endian(self, num_bits: int) -> DecodeResult[int]:
+        """Decode signed integer (two's complement) with constant size in little-endian byte order.
 
-    def dec_int_twos_complement_const_size_big_endian_64(self) -> DecodeResult[int]:
-        """Decode 64-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(64, True)
-
-    def dec_int_twos_complement_const_size_little_endian_16(self) -> DecodeResult[int]:
-        """Decode 16-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(16, True)
-
-    def dec_int_twos_complement_const_size_little_endian_32(self) -> DecodeResult[int]:
-        """Decode 32-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(32, True)
-
-    def dec_int_twos_complement_const_size_little_endian_64(self) -> DecodeResult[int]:
-        """Decode 64-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(64, True)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_little_endian(num_bits, True)
 
     def dec_int_twos_complement_var_size_length_embedded(self) -> DecodeResult[int]:
         """Decode signed integer with variable size (length embedded)."""
