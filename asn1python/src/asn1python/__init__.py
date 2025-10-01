@@ -20,7 +20,7 @@ from .asn1_types import (
     Asn1DateUtcTime, Asn1DateTimeWithTimeZone,
 
     # Error handling
-    Asn1Error, Asn1ValueError, Asn1OverflowError,
+    Asn1Exception, Asn1InvalidValueException, Asn1OverflowException,
 )
 
 from .bitstream import BitStream, BitStreamError
@@ -70,7 +70,7 @@ __all__ = [
     "Asn1Base",
 
     # Errors
-    "Asn1Error", "Asn1ValueError", "Asn1OverflowError",
+    "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException",
 
     # Bitstream
     "BitStream", "BitStreamError",

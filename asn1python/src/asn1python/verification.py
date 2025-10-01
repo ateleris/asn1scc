@@ -6,10 +6,10 @@ This module provides constraint validation functions for ASN.1 types.
 
 from typing import Union, Optional, List, Any, Callable
 import re
-from .asn1_types import Asn1Error
+from .asn1_types import Asn1Exception
 
 
-class ConstraintError(Asn1Error):
+class ConstraintError(Asn1Exception):
     """Raised when a constraint validation fails"""
     pass
 

@@ -9,7 +9,7 @@ from typing import Optional, Type, TypeVar, Generic, List
 from dataclasses import dataclass
 from enum import IntEnum
 from .bitstream import BitStream, BitStreamError
-from .asn1_types import Asn1Error
+from .asn1_types import Asn1Exception
 
 
 class ErrorCode(IntEnum):
@@ -53,7 +53,7 @@ class DecodeResult(Generic[TDVal]):
     error_message: Optional[str] = None
 
 
-class CodecError(Asn1Error):
+class CodecError(Asn1Exception):
     """Base class for codec errors"""
     pass
 
