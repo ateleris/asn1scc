@@ -372,7 +372,7 @@ BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 # acn_python.stg 374
 true_data = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
 false_data = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-boolean_result = codec.BitStream_DecodeTrueFalseBoolean(true_data, false_data, <nSize>)
+boolean_result = codec.decode_true_false_boolean(true_data, false_data, <nSize>)
 if boolean_result is not None:
     <p> = boolean_result
 else:
@@ -392,12 +392,12 @@ codec.bitStream.appendBitsMSBFirst(tmp, <nSize>)
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 395
 <if(bSavePosition)>
-    codec.BitStream_ReadBitPattern_ignore_value(<nSize>)
+    codec.read_bit_pattern_ignore_value(<nSize>)
     <p> = None
     <else>
     <if(arruNullValueAsByteArray)>
     tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-    if not codec.BitStream_ReadBitPattern(tmp, <nSize>):
+    if not codec.read_bit_pattern(tmp, <nSize>):
         # acn_python.stg 403
         return <sErrCode>
     
@@ -575,7 +575,7 @@ else:
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 # acn_python.stg 579
-codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 
 <soCallAux>
 >>
@@ -586,7 +586,7 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 codec_0_1 = codec.copy()
 <endif>
 
-<p>_nCount = int(codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>))
+<p>_nCount = int(codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>))
 # Bit validation would go here
 <soCallAux>
 >>
@@ -901,7 +901,7 @@ ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIn
 # acn_python.stg 907
 
 if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
-    codec.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+    codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
@@ -920,7 +920,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
-<p> = codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<p> = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931
@@ -1199,7 +1199,7 @@ nCount: int = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.curre
 codec.encodeOctetString_no_length(bitStrm.buf, nCount)
 
 <else>
-codec.encodeConstrainedWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)
 codec.encodeOctetString_no_length(bitStrm.buf, nCount)
 
 <endif>
@@ -1222,7 +1222,7 @@ else:
 <else>
 
 nCount: int = 0
-x = codec.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
+x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
 if x is None:
     # acn_python.stg 1232
     return Asn1SccError(pErrCode)
