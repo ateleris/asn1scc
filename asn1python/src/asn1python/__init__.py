@@ -2,6 +2,7 @@
 
 from .verification import (
     byte_range_eq,
+    bytearray_eq,
     bytearray_range_eq,
     bytearray_bit_range_eq
 )
