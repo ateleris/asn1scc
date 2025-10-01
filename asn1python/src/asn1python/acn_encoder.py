@@ -102,6 +102,24 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
+    def enc_int_positive_integer_const_size_big_endian(self, int_val: int, num_bits: int) -> EncodeResult:
+        """Encode positive integer with constant size in big-endian byte order.
+
+        Args:
+            int_val: Unsigned integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
+        """
+        return self.encode_integer_big_endian(int_val, num_bits, False)
+
+    def enc_int_positive_integer_const_size_little_endian(self, int_val: int, num_bits: int) -> EncodeResult:
+        """Encode positive integer with constant size in little-endian byte order.
+
+        Args:
+            int_val: Unsigned integer value to encode
+            num_bits: Number of bits to encode (must be multiple of 8: 16, 32, 64)
+        """
+        return self._encode_integer_little_endian(int_val, num_bits, False)
+
     # ============================================================================
     # INTEGER ENCODING - TWO'S COMPLEMENT
     # ============================================================================
