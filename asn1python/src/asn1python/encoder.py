@@ -16,23 +16,6 @@ class Encoder(Codec, ABC):
     def get_decoder(self) -> Decoder:
         pass
 
-    def encode_boolean(self, value: bool) -> EncodeResult:
-        """Encode a boolean value"""
-        try:
-            self._bitstream.write_bit(value)
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=1
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
     def encode_integer(self, value: int,
                        min_val: Optional[int] = None,
                        max_val: Optional[int] = None,
@@ -83,35 +66,6 @@ class Encoder(Codec, ABC):
             else:
                 unsigned_value = value
             self._bitstream.write_bits(unsigned_value, bits_needed)
-
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
-                bits_encoded=bits_needed
-            )
-
-        except (BitStreamError, ValueError) as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def encode_enumerated(self, value: int, enum_values: List[int]) -> EncodeResult:
-        """Encode an enumerated value"""
-        try:
-            if value not in enum_values:
-                return EncodeResult(
-                    success=False,
-                    error_code=ERROR_CONSTRAINT_VIOLATION,
-                    error_message=f"Value {value} not in enumerated list"
-                )
-
-            index = enum_values.index(value)
-            bits_needed = (len(enum_values) - 1).bit_length()
-
-            self._bitstream.write_bits(index, bits_needed)
 
             return EncodeResult(
                 success=True,

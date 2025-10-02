@@ -8,30 +8,6 @@ class Decoder(Codec):
     def __init__(self, buffer: bytearray) -> None:
         super().__init__(buffer=buffer)
 
-    def decode_boolean(self) -> DecodeResult[bool]:
-        """Decode a boolean value"""
-        try:
-            if self._bitstream.bits_remaining() < 1:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message="Insufficient data to decode boolean"
-                )
-
-            value = self._bitstream.read_bit()
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=value,
-                bits_consumed=1
-            )
-        except BitStreamError as e:
-            return DecodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
     def decode_integer(self,
                       min_val: Optional[int] = None,
                       max_val: Optional[int] = None,
@@ -86,43 +62,6 @@ class Decoder(Codec):
                     error_code=ERROR_CONSTRAINT_VIOLATION,
                     error_message=f"Decoded value {value} above maximum {max_val}"
                 )
-
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=value,
-                bits_consumed=bits_needed
-            )
-
-        except BitStreamError as e:
-            return DecodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
-
-    def decode_enumerated(self, enum_values: List[int]) -> DecodeResult:
-        """Decode an enumerated value"""
-        try:
-            bits_needed = (len(enum_values) - 1).bit_length()
-
-            if self._bitstream.bits_remaining() < bits_needed:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data for enumerated value"
-                )
-
-            index = self._bitstream.read_bits(bits_needed)
-
-            if index >= len(enum_values):
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_CONSTRAINT_VIOLATION,
-                    error_message=f"Enumerated index {index} out of range"
-                )
-
-            value = enum_values[index]
 
             return DecodeResult(
                 success=True,
