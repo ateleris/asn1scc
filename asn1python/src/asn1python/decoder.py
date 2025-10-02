@@ -359,6 +359,171 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    def decode_octet_string_no_length(self, num_bytes: int) -> DecodeResult[bytes]:
+        """
+        Decode octet string without length prefix.
+
+        Matches C: BitStream_DecodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches Scala: BitStream.readByteArray without length decoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
+
+        Args:
+            num_bytes: Number of bytes to decode
+
+        Returns:
+            DecodeResult containing decoded bytes
+        """
+        try:
+            if num_bytes < 0:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes must be non-negative, got {num_bytes}"
+                )
+
+            if num_bytes == 0:
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=b'',
+                    bits_consumed=0
+                )
+
+            if self._bitstream.bits_remaining() < num_bytes * 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.bits_remaining()}"
+                )
+
+            # Check if we're byte-aligned
+            if self._bitstream.current_bit == 0:
+                # Optimized path: byte-aligned, can read directly
+                result = bytearray()
+                for _ in range(num_bytes):
+                    byte_val = self._bitstream.read_bits(8)
+                    result.append(byte_val)
+
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=bytes(result),
+                    bits_consumed=num_bytes * 8
+                )
+            else:
+                # Not byte-aligned, use read_byte_array which handles bit offset
+                return self.read_byte_array(num_bytes)
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list]:
+        """
+        Decode octet string without length prefix, returning as list.
+
+        Matches Scala: BitStream.readByteArrayVec without length decoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
+
+        Args:
+            num_bytes: Number of bytes to decode
+
+        Returns:
+            DecodeResult containing list of byte values
+        """
+        result = self.decode_octet_string_no_length(num_bytes)
+        if result.success:
+            # Convert bytes to list
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=list(result.decoded_value),
+                bits_consumed=result.bits_consumed
+            )
+        else:
+            return DecodeResult(
+                success=False,
+                error_code=result.error_code,
+                error_message=result.error_message
+            )
+
+    def check_bit_pattern_present(self, pattern: bytes, num_bits: int) -> DecodeResult[int]:
+        """
+        Check if a bit pattern is present at the current position.
+
+        Matches C: BitStream_checkBitPatternPresent(pBitStrm, pattern, num_bits)
+        Used by: ACN for null-terminated strings and bit patterns
+
+        Args:
+            pattern: Bit pattern to check for
+            num_bits: Number of bits in the pattern
+
+        Returns:
+            DecodeResult containing:
+                0 - Insufficient data (cannot check pattern)
+                1 - Pattern not present (can continue reading)
+                2 - Pattern present (found terminator)
+
+        Note: This method does not advance the bitstream position
+        """
+        try:
+            # Check if we have enough bits to read the pattern
+            if self._bitstream.bits_remaining() < num_bits:
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=0,  # Insufficient data
+                    bits_consumed=0
+                )
+
+            # Save current position
+            saved_byte = self._bitstream.current_byte
+            saved_bit = self._bitstream.current_bit
+
+            # Calculate required bytes for pattern
+            num_pattern_bytes = (num_bits + 7) // 8
+            complete_bytes = num_bits // 8
+            remaining_bits = num_bits % 8
+
+            # Read and compare pattern
+            pattern_matches = True
+            for i in range(complete_bytes):
+                byte_val = self._bitstream.read_bits(8)
+                if byte_val != pattern[i]:
+                    pattern_matches = False
+                    break
+
+            # Check remaining bits if pattern still matches
+            if pattern_matches and remaining_bits > 0:
+                partial_byte = self._bitstream.read_bits(remaining_bits)
+                # Compare high-order bits
+                expected = pattern[complete_bytes] >> (8 - remaining_bits)
+                if partial_byte != expected:
+                    pattern_matches = False
+
+            # Restore position (this is a check, not a consume)
+            self._bitstream.current_byte = saved_byte
+            self._bitstream.current_bit = saved_bit
+
+            # Return result
+            result_value = 2 if pattern_matches else 1
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=result_value,
+                bits_consumed=0
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def decode_unsigned_integer(self, num_bits: int) -> DecodeResult[int]:
         """
         Decode unsigned integer with specified number of bits.

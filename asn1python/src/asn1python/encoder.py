@@ -332,6 +332,91 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
+    def encode_octet_string_no_length(self, data: bytes, num_bytes: int) -> EncodeResult:
+        """
+        Encode octet string without length prefix.
+
+        Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches Scala: BitStream.appendByteArray without length encoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
+
+        Args:
+            data: Bytes to encode
+            num_bytes: Number of bytes to encode from data
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            if num_bytes < 0:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes must be non-negative, got {num_bytes}"
+                )
+
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+                )
+
+            # Check if we're byte-aligned
+            if self._bitstream.current_bit == 0:
+                # Optimized path: byte-aligned, can write directly
+                for i in range(num_bytes):
+                    self._bitstream.write_bits(data[i], 8)
+            else:
+                # Not byte-aligned, use append_byte_array which handles bit offset
+                result = self.append_byte_array(data, num_bytes)
+                return result
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=num_bytes * 8
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def encode_octet_string_no_length_vec(self, data: list, num_bytes: int) -> EncodeResult:
+        """
+        Encode octet string from list/vector without length prefix.
+
+        Matches Scala: BitStream.appendByteArrayVec without length encoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
+
+        Args:
+            data: List of byte values (0-255) to encode
+            num_bytes: Number of bytes to encode from data
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+                )
+
+            # Convert list to bytes
+            byte_data = bytes(data[:num_bytes])
+            return self.encode_octet_string_no_length(byte_data, num_bytes)
+        except (ValueError, TypeError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"Invalid data for octet string: {e}"
+            )
+
     def encode_unsigned_integer(self, value: int, num_bits: int) -> EncodeResult:
         """
         Encode unsigned integer with specified number of bits.
