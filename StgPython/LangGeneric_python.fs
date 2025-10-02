@@ -275,7 +275,7 @@ type LangGeneric_python() =
         sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
 
     override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
-        Selection.emptyPath childName (if childTypeIsString then FixArray else Value)
+        sel.appendSelection "data" Value false
 
     override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) = ""
 
@@ -298,13 +298,8 @@ type LangGeneric_python() =
         parentName + (ToC ch.present_when_name)
 
     override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
-        let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
-            match kind with
-            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
-            | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
-            | _ -> Pointer
-        let recvId = "pVal" + suf
-        {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+        let p = this.getParamType t c
+        {p with arg.receiverId = p.arg.receiverId + suf}
     
     override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
@@ -318,6 +313,7 @@ type LangGeneric_python() =
                             match t.Kind with
                             | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
                             | _ -> "self"                           // For class methods, the receiver is always "self"
+        
         {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
 
     override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
@@ -434,6 +430,11 @@ type LangGeneric_python() =
 
     override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
         prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1)))
+        
+    override _.getTypeBasedSuffix (fType: FunctionType) (kind: Asn1AcnAst.Asn1TypeKind) =
+        match (kind, fType) with
+        | Asn1AcnAst.Asn1TypeKind.Choice _, IsValidFunctionType -> ""
+        | _ -> ""
 
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =

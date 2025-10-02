@@ -318,7 +318,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
     let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
 
-    let p : CallerScope = lm.lg.getParamType t codec
+    let sf = lm.lg.getTypeBasedSuffix FunctionType.AcnEncDecFunctionType t.Kind
+    let p : CallerScope = lm.lg.getParamTypeSuffix t sf codec
     let varName = p.arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let sInitialExp = ""

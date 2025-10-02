@@ -323,16 +323,16 @@ Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEn
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 # uper_python.stg 333
-case <sChildID>(<sChildName>):
+if <p>.kind == <sChoiceTypeName>InUse.<sChildID>:
     codec.base.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 # uper_python.stg 340
-case <nChildIndex>:
+if <sChoiceIndexName> == <nChildIndex>:
     <sChildContent>
-    <sChildID>(<sChildName>)
+    instance = cls(kind=<sChoiceTypeName>InUse.<sChildID>, data=<sChildName>)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
@@ -341,8 +341,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-match <p>: # uper:310
-    <arrsChildren: {ch|<ch>}; separator="\n">
+<arrsChildren: {ch|<ch>}; separator="\n">
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
@@ -351,12 +350,12 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-# TODO: <p> = ????
-match codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>): # uper:317
-    <arrsChildren: {ch|<ch>}; separator="\n">
-    case _:
-        # uper_python.stg 366
-        return Asn1SccError(<sErrCode>)
+<sChoiceIndexName> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>)
+<arrsChildren: {ch|<ch>}; separator="\n">
+else:
+    # uper_python.stg 366
+    return Asn1SccError(<sErrCode>)
+<p> = instance
 >>
 
 /* CHOICE END*/

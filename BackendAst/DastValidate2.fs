@@ -598,7 +598,8 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
 
     let funcBody = fncBodyE errCode
     let errCodes = errCode::childErrCodes
-    let p  = lm.lg.getParamType t Encode
+    let sf = lm.lg.getTypeBasedSuffix FunctionType.IsValidFunctionType t.Kind
+    let p  = lm.lg.getParamTypeSuffix t sf Encode
     let varName = p.arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let sPtrPrefix = lm.lg.getPtrPrefix p.arg

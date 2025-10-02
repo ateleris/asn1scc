@@ -27,7 +27,7 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
-ret: int = 0
+return Asn1ConstraintValidResult(True)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -252,7 +252,7 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "return <p>.<sFuncName>()"
 call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 
@@ -283,30 +283,32 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 # isvalid_python.stg 286
-if <p> == <sChPresent>:
+if self.kind == <sChPresent>:
     <sInnerStatement>
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
 # isvalid_python.stg 292
-<p> == <sChPresent>
+self.kind == <sChPresent>
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 # isvalid_python.stg 297
-<p> != <sChPresent>
+self.kind != <sChPresent>
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
 # isvalid_python.stg 302
-case <sChPresent>:
+if self.kind == <sChPresent>:
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
-match <p>:
-    <arrsChildren; separator="\n">
+<! todo: If the separator gets replaced by "\nel", the consecutive children will start with "elif" instead of "if" !>
+<arrsChildren; separator="\n">
+else:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/
