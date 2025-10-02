@@ -1260,7 +1260,7 @@ codec.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
 
 <else>
 codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)
-codec.appendBits(bitStrm.buf, nCount)
+codec.append_bits(bitStrm.buf, nCount)
 
 <endif>
 >>
