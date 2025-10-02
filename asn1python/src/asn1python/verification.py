@@ -30,12 +30,6 @@ def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
     return start == end or (b1 & mask) == (b2 & mask)
 
 @Pure
-def bytearray_eq(b1: bytearray, b2: bytearray) -> bool:
-    Requires(Rd(bytearray_pred(b1)))
-    Requires(Rd(bytearray_pred(b2)))
-    return len(b1) == len(b2) and (Forall(int, lambda i: (Implies(0 <= i and i < len(b1), b1[i] == b2[i]))))
-
-@Pure
 def bytearray_range_eq(b1: bytearray, b2: bytearray, start: int, end: int) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [start, end["""
     Requires(Rd(bytearray_pred(b1)))
@@ -43,6 +37,12 @@ def bytearray_range_eq(b1: bytearray, b2: bytearray, start: int, end: int) -> bo
     Requires(len(b1) <= len(b2))
     Requires(0 <= start and start <= end and end <= len(b1))
     return start == end or (Forall(int, lambda i: (Implies(start <= i and i < end, b1[i] == b2[i]))))
+
+@Pure
+def bytearray_eq(b1: bytearray, b2: bytearray) -> bool:
+    Requires(Rd(bytearray_pred(b1)))
+    Requires(Rd(bytearray_pred(b2)))
+    return len(b1) == len(b2) and bytearray_range_eq(b1, b2, 0, len(b1))
 
 @Pure
 def bytearray_bit_range_eq(b1: bytearray, b2: bytearray, start_bit: int, end_bit: int) -> bool:
