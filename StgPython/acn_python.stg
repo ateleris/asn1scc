@@ -192,10 +192,10 @@ TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, 
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)"
 TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 200
-<p> = codec.dec_int_twos_complement_const_size_8<sSsuffix>()
+<p> = codec.dec_int_twos_complement_const_size<sSsuffix>(8)
 <MF(soMF)>
 >>
 
@@ -354,7 +354,7 @@ tmp = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
 <else>
 tmp = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
 <endif>
-x = codec.BitStream_ReadBitPattern(tmp, <nSize>)
+x = codec.read_bit_pattern(tmp, <nSize>)
 <p> = <if(!bEncValIsTrue)>not x<else>x<endif>
 >>
 
@@ -1259,7 +1259,7 @@ nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
 codec.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
 
 <else>
-codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)
 codec.appendBits(bitStrm.buf, nCount)
 
 <endif>
@@ -1287,7 +1287,7 @@ if not res:
 
 <else>
 nCount: int = 0
-x = codec.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>):
+x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
 if x is None:
     # acn_python.stg 1298
     return Asn1SccError(pErrCode)

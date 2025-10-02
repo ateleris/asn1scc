@@ -265,6 +265,73 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
+    def append_bits(self, data: bytes, num_bits: int) -> EncodeResult:
+        """
+        Append arbitrary bits from a buffer to the bitstream.
+
+        Matches Scala: BitStream.appendBits(arr: Array[Byte], nBits: Int)
+        Used by: ACN for bit patterns and partial byte writes
+
+        Args:
+            data: Buffer containing bits to write
+            num_bits: Number of bits to write from the buffer
+        """
+        try:
+            if num_bits < 0:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bits must be non-negative, got {num_bits}"
+                )
+
+            if num_bits == 0:
+                return EncodeResult(
+                    success=True,
+                    error_code=ENCODE_OK,
+                    encoded_data=self._bitstream.get_data_copy(),
+                    bits_encoded=0
+                )
+
+            # Calculate required number of bytes
+            num_bytes = (num_bits + 7) // 8
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bits {num_bits} requires {num_bytes} bytes but data has {len(data)} bytes"
+                )
+
+            bits_encoded = 0
+
+            # Write complete bytes
+            complete_bytes = num_bits // 8
+            for i in range(complete_bytes):
+                self._bitstream.write_bits(data[i], 8)
+                bits_encoded += 8
+
+            # Write remaining bits from partial byte
+            remaining_bits = num_bits % 8
+            if remaining_bits > 0:
+                # Extract the high-order bits from the next byte
+                byte_val = data[complete_bytes]
+                # Shift to get only the desired high-order bits
+                shifted_val = byte_val >> (8 - remaining_bits)
+                self._bitstream.write_bits(shifted_val, remaining_bits)
+                bits_encoded += remaining_bits
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def encode_unsigned_integer(self, value: int, num_bits: int) -> EncodeResult:
         """
         Encode unsigned integer with specified number of bits.

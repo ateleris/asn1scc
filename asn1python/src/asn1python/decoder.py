@@ -288,6 +288,77 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    def read_bits(self, num_bits: int) -> DecodeResult[bytes]:
+        """
+        Read arbitrary bits from the bitstream into a buffer.
+
+        Matches Scala: BitStream.readBits(nBits: Long): Array[UByte]
+        Matches C: BitStream_ReadBits(pBitStrm, BuffToWrite, nbits)
+        Used by: ACN for bit patterns and partial byte reads
+
+        Args:
+            num_bits: Number of bits to read
+
+        Returns:
+            DecodeResult containing bytes with the read bits
+            (MSB-first, last byte may be partial)
+        """
+        try:
+            if num_bits < 0:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bits must be non-negative, got {num_bits}"
+                )
+
+            if num_bits == 0:
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=b'',
+                    bits_consumed=0
+                )
+
+            if self._bitstream.bits_remaining() < num_bits:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.bits_remaining()}"
+                )
+
+            # Calculate required buffer size
+            num_bytes = (num_bits + 7) // 8
+            result = bytearray(num_bytes)
+            bits_consumed = 0
+
+            # Read complete bytes
+            complete_bytes = num_bits // 8
+            for i in range(complete_bytes):
+                result[i] = self._bitstream.read_bits(8)
+                bits_consumed += 8
+
+            # Read remaining bits into partial byte
+            remaining_bits = num_bits % 8
+            if remaining_bits > 0:
+                # Read the remaining bits
+                partial_byte = self._bitstream.read_bits(remaining_bits)
+                # Shift to align to MSB (high-order bits)
+                result[complete_bytes] = partial_byte << (8 - remaining_bits)
+                bits_consumed += remaining_bits
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bytes(result),
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def decode_unsigned_integer(self, num_bits: int) -> DecodeResult[int]:
         """
         Decode unsigned integer with specified number of bits.
