@@ -1667,7 +1667,3 @@ class ACNEncoder(Encoder):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-
-    def milbus_encode(self, val: int) -> int:
-        """Encode value using MILBUS encoding."""
-        raise NotImplementedError("milbus_encode not yet implemented")

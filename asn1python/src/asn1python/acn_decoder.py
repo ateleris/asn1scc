@@ -1068,32 +1068,6 @@ class ACNDecoder(Decoder):
     # ============================================================================
     # TYPED INTEGER DECODING FUNCTIONS (C Type Compatibility)
     # ============================================================================
-
-    def dec_int_positive_integer_const_size_uint8(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint8 not yet implemented")
-
-    def dec_int_positive_integer_const_size_uint16(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint16."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint16 not yet implemented")
-
-    def dec_int_positive_integer_const_size_uint32(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint32."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint32 not yet implemented")
-
-    def dec_int_positive_integer_const_size_8_uint8(self) -> DecodeResult:
-        """Decode 8-bit positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_8_uint8 not yet implemented")
-
-    def dec_int_positive_integer_const_size_big_endian_16_uint16(self) -> DecodeResult:
-        """Decode 16-bit big-endian positive integer to uint16."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint16 not yet implemented")
-
-    def dec_int_positive_integer_const_size_big_endian_16_uint8(self) -> DecodeResult:
-        """Decode 16-bit big-endian positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint8 not yet implemented")
-
-    # ============================================================================
     # BOOLEAN DECODING
     # ============================================================================
 
@@ -1115,16 +1089,6 @@ class ACNDecoder(Decoder):
 
     # ============================================================================
     # IEEE 754 REAL DECODING WITH FLOAT PRECISION
-    # ============================================================================
-
-    def dec_real_ieee754_32_big_endian_fp32(self) -> DecodeResult:
-        """Decode 32-bit IEEE 754 float (big-endian) with float precision."""
-        raise NotImplementedError("dec_real_ieee754_32_big_endian_fp32 not yet implemented")
-
-    def dec_real_ieee754_32_little_endian_fp32(self) -> DecodeResult:
-        """Decode 32-bit IEEE 754 float (little-endian) with float precision."""
-        raise NotImplementedError("dec_real_ieee754_32_little_endian_fp32 not yet implemented")
-
     # ============================================================================
     # HELPER METHODS
     # ============================================================================
@@ -1290,12 +1254,6 @@ class ACNDecoder(Decoder):
 
     # ============================================================================
     # MILBUS FUNCTIONS
-    # ============================================================================
-
-    def milbus_decode(self, val: int) -> int:
-        """Decode value using MILBUS encoding."""
-        raise NotImplementedError("milbus_decode not yet implemented")
-
     # ============================================================================
     # CHARACTER INDEX STRING DECODING HELPER METHODS
     # ============================================================================

@@ -77,13 +77,13 @@ class Codec(Generic[T]):
     def copy(self) -> T:
         """Creates and returns a copy of this codec instance"""
         current_data = self._bitstream.get_data_copy()
-        curret_position = self._bitstream.current_bit_position
+        current_position = self._bitstream.current_bit_position
 
         new_codec = self._construct(self._max_bits)
         new_codec._bitstream.reset()
         if len(current_data) > 0:
             new_codec._bitstream.write_bytes(current_data)
-        new_codec._bitstream.set_bit_position(curret_position)
+        new_codec._bitstream.set_bit_position(current_position)
 
         return new_codec
 
