@@ -17,65 +17,55 @@ class Encoder(Codec, ABC):
         pass
 
     def encode_integer(self, value: int,
-                       min_val: Optional[int] = None,
-                       max_val: Optional[int] = None,
+                       min_val: int,
+                       max_val: int,
                        size_in_bits: Optional[int] = None) -> EncodeResult:
         """
-        Encode an integer value with optional constraints.
+        Encode a constrained integer value using offset encoding.
+
+        This method implements ASN.1 PER constrained integer encoding:
+        - Requires both min_val and max_val (range-based encoding)
+        - Uses offset encoding: encodes (value - min_val) as unsigned
+        - Calculates bits needed from range size
+
+        For unsigned integers without a range, use encode_unsigned_integer().
+        For signed integers with two's complement, use enc_int_twos_complement_*().
 
         Args:
             value: The integer value to encode
-            min_val: Minimum allowed value (optional)
-            max_val: Maximum allowed value (optional)
-            size_in_bits: Fixed size in bits (optional)
+            min_val: Minimum allowed value (required)
+            max_val: Maximum allowed value (required)
+            size_in_bits: Optional hint for bits needed (must match range calculation)
         """
         try:
             # Validate constraints
-            if min_val is not None and value < min_val:
+            if value < min_val:
                 return EncodeResult(
                     success=False,
                     error_code=ERROR_CONSTRAINT_VIOLATION,
                     error_message=f"Value {value} below minimum {min_val}"
                 )
 
-            if max_val is not None and value > max_val:
+            if value > max_val:
                 return EncodeResult(
                     success=False,
                     error_code=ERROR_CONSTRAINT_VIOLATION,
                     error_message=f"Value {value} above maximum {max_val}"
                 )
 
-            # Determine encoding approach
-            # NOTE: When both range (min/max) and size_in_bits are provided,
-            # prioritize range-based encoding (like C implementation)
-            if min_val is not None and max_val is not None:
-                # Range-based encoding: ALWAYS use offset encoding
-                range_size = max_val - min_val + 1
-                bits_needed = (range_size - 1).bit_length()
-                value = value - min_val  # Offset encoding - value is now non-negative
+            # Range-based encoding: ALWAYS use offset encoding
+            range_size = max_val - min_val + 1
+            bits_needed = (range_size - 1).bit_length()
+            offset_value = value - min_val  # Offset encoding - value is now non-negative
 
-                # If size_in_bits is also provided, validate it matches the range
-                if size_in_bits is not None and size_in_bits != bits_needed:
-                    # Note: In practice, callers ensure size_in_bits matches the range
-                    # If they don't match, use the range-calculated size (safer)
-                    pass
-            elif size_in_bits is not None:
-                # Fixed size encoding without range
-                bits_needed = size_in_bits
-            else:
-                # Default to minimum bits needed
-                if value < 0:
-                    # Two's complement encoding
-                    bits_needed = (abs(value) - 1).bit_length() + 1
-                else:
-                    bits_needed = value.bit_length() if value > 0 else 1
+            # If size_in_bits is also provided, validate it matches the range
+            if size_in_bits is not None and size_in_bits != bits_needed:
+                # Note: In practice, callers should ensure size_in_bits matches the range
+                # If they don't match, use the range-calculated size (safer)
+                pass
 
-            # Encode the value
-            if value < 0:
-                unsigned_value = (1 << bits_needed) + value  # Two's complement conversion
-            else:
-                unsigned_value = value
-            self._bitstream.write_bits(unsigned_value, bits_needed)
+            # Encode the offset value as unsigned
+            self._bitstream.write_bits(offset_value, bits_needed)
 
             return EncodeResult(
                 success=True,

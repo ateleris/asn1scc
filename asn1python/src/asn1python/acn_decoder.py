@@ -108,11 +108,26 @@ class ACNDecoder(Decoder):
 
     def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult:
         """Decode signed integer using two's complement with constant size."""
-        # Use decode_integer with only size_in_bits (no range)
-        # This triggers two's complement conversion based on the sign bit
-        min_val = -(2 ** (format_bit_length - 1))
-        max_val = (2 ** (format_bit_length - 1)) - 1
-        return self.decode_integer(min_val=min_val, max_val=max_val)
+        # Decode as unsigned first
+        result = self.decode_unsigned_integer(format_bit_length)
+        if not result.success:
+            return result
+
+        unsigned_val = result.decoded_value
+
+        # Convert from two's complement if sign bit is set
+        sign_bit = 1 << (format_bit_length - 1)
+        if unsigned_val & sign_bit:
+            signed_val = unsigned_val - (1 << format_bit_length)
+        else:
+            signed_val = unsigned_val
+
+        return DecodeResult(
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=signed_val,
+            bits_consumed=format_bit_length
+        )
 
     def dec_int_twos_complement_const_size_big_endian(self, num_bits: int) -> DecodeResult[int]:
         """Decode signed integer (two's complement) with constant size in big-endian byte order.

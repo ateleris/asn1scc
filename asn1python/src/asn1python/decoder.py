@@ -9,30 +9,35 @@ class Decoder(Codec):
         super().__init__(buffer=buffer)
 
     def decode_integer(self,
-                      min_val: Optional[int] = None,
-                      max_val: Optional[int] = None,
+                      min_val: int,
+                      max_val: int,
                       size_in_bits: Optional[int] = None) -> DecodeResult[int]:
         """
-        Decode an integer value with optional constraints.
+        Decode a constrained integer value using offset decoding.
+
+        This method implements ASN.1 PER constrained integer decoding:
+        - Requires both min_val and max_val (range-based decoding)
+        - Uses offset decoding: decodes unsigned value and adds min_val
+        - Calculates bits needed from range size
+
+        For unsigned integers without a range, use decode_unsigned_integer().
+        For signed integers with two's complement, use dec_int_twos_complement_*().
 
         Args:
-            min_val: Minimum allowed value (optional)
-            max_val: Maximum allowed value (optional)
-            size_in_bits: Fixed size in bits (optional)
+            min_val: Minimum allowed value (required)
+            max_val: Maximum allowed value (required)
+            size_in_bits: Optional hint for bits needed (must match range calculation)
         """
         try:
-            # Determine decoding size
-            if size_in_bits is not None:
-                bits_needed = size_in_bits
-            elif min_val is not None and max_val is not None:
-                range_size = max_val - min_val + 1
-                bits_needed = (range_size - 1).bit_length()
-            else:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message="Cannot determine integer size without constraints"
-                )
+            # Calculate bits needed from range
+            range_size = max_val - min_val + 1
+            bits_needed = (range_size - 1).bit_length()
+
+            # If size_in_bits is provided, validate it matches
+            if size_in_bits is not None and size_in_bits != bits_needed:
+                # Note: In practice, callers should ensure size_in_bits matches the range
+                # If they don't match, use the range-calculated size (safer)
+                pass
 
             if self._bitstream.bits_remaining() < bits_needed:
                 return DecodeResult(
@@ -41,31 +46,23 @@ class Decoder(Codec):
                     error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.bits_remaining()}"
                 )
 
-            # Decode the value
-            value = self._bitstream.read_bits(bits_needed)
+            # Decode the offset value as unsigned
+            offset_value = self._bitstream.read_bits(bits_needed)
 
-            # Apply offset decoding if range is specified
-            if min_val is not None and max_val is not None:
-                # Range-based encoding uses offset, not two's complement
-                value = value + min_val
-            else:
-                # When no range is specified (only size_in_bits), check for two's complement
-                # Check the sign bit (MSB) to determine if value is negative
-                sign_bit_mask = 1 << (bits_needed - 1)
-                if value & sign_bit_mask:
-                    # Value is negative in two's complement representation
-                    # Convert from two's complement to signed integer
-                    value = value - (1 << bits_needed)
+            print(f"READ VALUE {offset_value}")
 
-            # Validate result
-            if min_val is not None and value < min_val:
+            # Apply offset decoding: add min_val to get actual value
+            value = offset_value + min_val
+
+            # Validate result is within range
+            if value < min_val:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_CONSTRAINT_VIOLATION,
                     error_message=f"Decoded value {value} below minimum {min_val}"
                 )
 
-            if max_val is not None and value > max_val:
+            if value > max_val:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_CONSTRAINT_VIOLATION,

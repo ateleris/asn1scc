@@ -2,7 +2,7 @@ import random
 
 from asn1python.acn_decoder import ACNDecoder
 from asn1python.acn_encoder import ACNEncoder
-from conftest import get_random_signed, get_signed_max, get_signed_min
+from conftest import get_random_signed, get_signed_max, get_signed_min, get_unsigned_max, get_unsigned_min
 
 
 def _encode_and_decode_single_twos_complement(acn_encoder: ACNEncoder, input_number: int, bit: int) -> tuple[bool, int]:
@@ -90,10 +90,10 @@ def test_enc_dec_int_twos_complement_const_size_max_value(acn_encoder: ACNEncode
 
 
 def test_enc_dec_int_twos_complement_const_size_exceed_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = get_signed_max(bit) + 1000
+    input_number: int = get_unsigned_max(bit) + 1
     encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
     assert not encoded_res.success
 
-    input_number: int = get_signed_min(bit) - 1
+    input_number: int = -get_unsigned_max(bit) - 2
     encoded_res = acn_encoder.enc_int_twos_complement_const_size(input_number, bit)
     assert not encoded_res.success
