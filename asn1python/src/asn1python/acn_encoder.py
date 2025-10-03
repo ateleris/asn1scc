@@ -137,9 +137,9 @@ class ACNEncoder(Encoder):
 
     def enc_int_twos_complement_const_size(self, int_val: int, format_bit_length: int) -> EncodeResult:
         """Encode signed integer using two's complement with constant size."""
-        min_val = -(1 << (format_bit_length - 1))
-        max_val = (1 << (format_bit_length - 1)) - 1
-        return self.encode_integer(int_val, min_val=min_val, max_val=max_val, size_in_bits=format_bit_length)
+        min_val = -(2 ** (format_bit_length - 1))
+        max_val = (2 ** (format_bit_length - 1)) - 1
+        return self.encode_integer(int_val, min_val=min_val, max_val=max_val)
 
     def enc_int_twos_complement_const_size_big_endian(self, int_val: int, num_bits: int) -> EncodeResult:
         """Encode signed integer (two's complement) with constant size in big-endian byte order.

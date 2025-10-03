@@ -46,7 +46,16 @@ class Decoder(Codec):
 
             # Apply offset decoding if range is specified
             if min_val is not None and max_val is not None:
+                # Range-based encoding uses offset, not two's complement
                 value = value + min_val
+            else:
+                # When no range is specified (only size_in_bits), check for two's complement
+                # Check the sign bit (MSB) to determine if value is negative
+                sign_bit_mask = 1 << (bits_needed - 1)
+                if value & sign_bit_mask:
+                    # Value is negative in two's complement representation
+                    # Convert from two's complement to signed integer
+                    value = value - (1 << bits_needed)
 
             # Validate result
             if min_val is not None and value < min_val:

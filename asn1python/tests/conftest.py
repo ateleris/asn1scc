@@ -23,6 +23,8 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("byte", [1, 2, 3, 4, 6, 8, 10, 12, 16, 32, 48, 64])
     if "nibble" in metafunc.fixturenames:
         metafunc.parametrize("nibble", [1, 2, 3, 4, 5, 6])
+    if "signed" in metafunc.fixturenames:
+        metafunc.parametrize("signed", [True, False])
     if "max_length" in metafunc.fixturenames:
         metafunc.parametrize("max_length", [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024])
     if "null_characters" in metafunc.fixturenames:
