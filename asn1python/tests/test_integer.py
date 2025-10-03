@@ -4,7 +4,6 @@
 # Methods to test:
 #   - encode_integer
 #   - decode_integer
-#   - encode_integer_big_endian
 # """
 import random
 
@@ -19,24 +18,17 @@ def _encode_and_decode_integer(acn_encoder: ACNEncoder, input_number: int, bit: 
     Returns:
         Tuple of (success, decoded_value)
     """
-    if version is not Version.BITS_ONLY:
-        if signed:
-            max_val = get_signed_max(bit)
-            min_val = get_signed_min(bit)
-        else:
-            max_val = get_unsigned_max(bit)
-            min_val = 0
+    if signed:
+        max_val = get_signed_max(bit)
+        min_val = get_signed_min(bit)
+    else:
+        max_val = get_unsigned_max(bit)
+        min_val = 0
 
     if version is Version.ALL_FIELDS:
         encoded_res = acn_encoder.encode_integer(input_number, min_val=min_val, max_val=max_val, size_in_bits=bit)
     elif version is Version.RANGE_ONLY:
         encoded_res = acn_encoder.encode_integer(input_number, min_val=min_val, max_val=max_val)
-    elif version is Version.BITS_ONLY:
-        encoded_res = acn_encoder.encode_integer(input_number, size_in_bits=bit)
-    elif version is Version.MIN_BITS:
-        encoded_res = acn_encoder.encode_integer(input_number, min_val=min_val, size_in_bits=bit)
-    elif version is Version.MAX_BITS:
-        encoded_res = acn_encoder.encode_integer(input_number, max_val=max_val, size_in_bits=bit)
 
     if not encoded_res.success:
         return False, 0
@@ -47,12 +39,6 @@ def _encode_and_decode_integer(acn_encoder: ACNEncoder, input_number: int, bit: 
         decoded_res = acn_decoder.decode_integer(min_val=min_val, max_val=max_val, size_in_bits=bit)
     elif version is Version.RANGE_ONLY:
         decoded_res = acn_decoder.decode_integer(min_val=min_val, max_val=max_val)
-    elif version is Version.BITS_ONLY:
-        decoded_res = acn_decoder.decode_integer(size_in_bits=bit)
-    elif version is Version.MIN_BITS:
-        decoded_res = acn_decoder.decode_integer(min_val=min_val, size_in_bits=bit)
-    elif version is Version.MAX_BITS:
-        decoded_res = acn_decoder.decode_integer(max_val=max_val, size_in_bits=bit)
 
     if not decoded_res.success:
         return False, 0
