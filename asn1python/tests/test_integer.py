@@ -95,33 +95,35 @@ def test_enc_dec_integer_single_value_unsigned(acn_encoder: ACNEncoder, seed: in
         input_number: int = get_random_unsigned(bit)
     _test_single_integer(acn_encoder, input_number, bit, signed)
 
-def test_enc_dec_integer_single_value_signed(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number = get_random_signed(bit)
-    _test_single_integer(acn_encoder, input_number, bit, True)
-
-def test_enc_dec_integer_multiple_values(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
+def test_enc_dec_integer_multiple_values(acn_encoder: ACNEncoder, seed: int, bit: int, signed: bool) -> None:
     input_numbers: list[int] = []
     for i in range(random.randint(3, 10)):
-        input_numbers.append(get_random_unsigned(bit))
+        if signed:
+            input_numbers.append(get_random_signed(bit))
+        else:
+            input_numbers.append(get_random_unsigned(bit))
 
-    _test_multiple_integers(acn_encoder, input_numbers, bit, False)
+    _test_multiple_integers(acn_encoder, input_numbers, bit, signed)
 
 
-def test_enc_dec_integer_zero(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
+def test_enc_dec_integer_zero(acn_encoder: ACNEncoder, seed: int, bit: int, signed: bool) -> None:
     input_number: int = 0
-    _test_single_integer(acn_encoder, input_number, bit, False)
+    _test_single_integer(acn_encoder, input_number, bit, signed)
 
 
-def test_enc_dec_integer_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = get_unsigned_max(bit)
+def test_enc_dec_integer_max_value(acn_encoder: ACNEncoder, seed: int, bit: int, signed: bool) -> None:
+    if signed:
+        input_number: int = get_signed_max(bit)
+    else:
+        input_number: int = get_unsigned_max(bit)
     _test_single_integer(acn_encoder, input_number, bit, False)
 
 
 def test_enc_dec_integer_exceed_max_value(acn_encoder: ACNEncoder, seed: int, bit: int) -> None:
-    input_number: int = get_unsigned_max(bit) + 1
-    encoded_res = acn_encoder.encode_integer(input_number, 0, get_unsigned_max(bit), bit)
-    assert not encoded_res.success
+        input_number: int = get_unsigned_max(bit) + 1
+        encoded_res = acn_encoder.encode_integer(input_number, 0, get_unsigned_max(bit), bit)
+        assert not encoded_res.success
 
-    input_number: int = get_signed_max(bit) + 1
-    encoded_res = acn_encoder.encode_integer(input_number, 0, get_signed_max(bit), bit)
-    assert not encoded_res.success
+        input_number: int = get_signed_max(bit) + 1
+        encoded_res = acn_encoder.encode_integer(input_number, get_signed_min(bit), get_signed_max(bit), bit)
+        assert not encoded_res.success
