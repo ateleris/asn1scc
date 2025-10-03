@@ -328,7 +328,11 @@ type LangGeneric_python() =
                             | _ -> "self"                           // For class methods, the receiver is always "self"
         
         {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
-
+    
+    override this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+        let res = this.getParamType t c
+        {res with arg.receiverId = "input"}
+            
     override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
         p.joined this
 

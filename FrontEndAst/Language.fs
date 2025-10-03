@@ -298,7 +298,8 @@ type ILangGeneric () =
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
 
-    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
+    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope
+    abstract member getParamTypeAtc : Asn1AcnAst.Asn1Type -> Codec -> CallerScope
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -371,6 +372,9 @@ type ILangGeneric () =
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
+    
+    default this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+        this.getParamType t c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
