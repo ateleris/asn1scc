@@ -249,26 +249,26 @@ class BitStream:
     #
     # |x|x|x|b|?|?|?|?|
     #  0 1 2 3 4 5 6 7
-    # def write_bit(self, bit: bool) -> None:
-    #     Requires(self.bitstream_invariant())
-    #     Requires(self.validate_offset(1))
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
-    #     Ensures(Old(self).is_prefix_of(self))
-    #     Ensures(bit == self._read_bit_pure(
-    #         Old(Unfolding(self.bitstream_invariant(), self._current_bit)), 
-    #         Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
-    #     """Write a single bit"""
+    def write_bit(self, bit: bool) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(self.validate_offset(1))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
+        Ensures(Old(self).is_prefix_of(self))
+        Ensures(bit == self._read_bit_pure(
+            Old(Unfolding(self.bitstream_invariant(), self._current_bit)), 
+            Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
+        """Write a single bit"""
 
-    #     Unfold(self.bitstream_invariant())
-    #     if bit:
-    #         self._buffer[self._current_byte] |= (1 << (7 - self._current_bit))
-    #     else:
-    #         self._buffer[self._current_byte] &= ~(1 << (7 - self._current_bit))
+        Unfold(self.bitstream_invariant())
+        if bit:
+            self._buffer[self._current_byte] |= (1 << (7 - self._current_bit))
+        else:
+            self._buffer[self._current_byte] &= ~(1 << (7 - self._current_bit))
             
-    #     assert bool(self._buffer[self._current_byte] & (1 << (7 - self._current_bit))) == bit
-    #     Fold(self.bitstream_invariant())
-    #     self._shift_bit_index(1)
+        assert bool(self._buffer[self._current_byte] & (1 << (7 - self._current_bit))) == bit
+        Fold(self.bitstream_invariant())
+        self._shift_bit_index(1)
 
 
 def client() -> None:
@@ -298,6 +298,27 @@ def client2() -> None:
     res = bs.read_bit()
     assert res == False
     assert bs.remaining_bits == 22
+    
+def client3() -> None:
+    bs = BitStream(bytearray([0,0,0]))
+    bs.write_bit(True)
+    bs.set_position(0, 0)
+    res = bs.read_bit()
+    assert res == True
+
+# Prover does not finish
+# def client4() -> None:
+#     bs = BitStream(bytearray(8))
+#     bs.write_bit(True)
+#     bs.write_bit(False)
+#     bs.write_bit(True)
+#     bs.write_bit(False)
+#     bs.set_position(0, 0)
+    
+#     assert bs.read_bit() == True
+#     assert bs.read_bit() == False
+#     assert bs.read_bit() == True
+#     assert bs.read_bit() == False
 
 # client()
 
