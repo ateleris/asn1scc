@@ -157,8 +157,8 @@ res = codec.base.decodeUnconstrainedWholeNumber()
 if res is None:
     # uper_python.stg 166
     return Asn1SccError(<sErrCode>)
-elif:
- <p> = res
+else:
+    <p> = res
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
