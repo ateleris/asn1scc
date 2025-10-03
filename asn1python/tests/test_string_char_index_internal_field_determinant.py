@@ -16,13 +16,13 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
     """
     encoded_res = acn_encoder.enc_string_char_index_internal_field_determinant(max_length, charset_to_bytes(charset), min_length, input_string)
     if not encoded_res.success:
-        return False, ""
+        return False, encoded_res.error_message
 
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
     decoded_res = acn_decoder.dec_string_char_index_internal_field_determinant(max_length, charset_to_bytes(charset),min_length)
 
     if not decoded_res.success:
-        return False, ""
+        return False, decoded_res.error_message
 
     return True, decoded_res.decoded_value
 
@@ -112,8 +112,29 @@ def test_enc_dec_string_char_index_internal_field_determinant_null_terminator_sy
 def test_enc_dec_string_char_index_internal_field_determinant_too_long(acn_encoder: ACNEncoder, seed: int, max_length: int, charset: str) -> None:
     n = random.randint(1, max_length)
     input_string: str = generate_test_string(charset, max_length + n)
+    assert len(input_string) > max_length
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, 0, max_length, charset)
     assert success, f"Encoding for {input_string} and max_length {max_length} should be possible!"
     assert len(decoded_value) == max_length
     assert decoded_value == input_string[:max_length]
 
+def test_enc_dec_string_char_index_internal_field_determinant_too_short(acn_encoder: ACNEncoder, seed: int, max_length: int, charset: str) -> None:
+    if max_length > 1:
+        input_string: str = generate_test_string_random_length(charset, max_length-1)
+        min_val: int = len(input_string) + 1
+
+        assert len(input_string) < min_val <= max_length
+        success, error_msg = _encode_and_decode_single_string(acn_encoder, input_string, min_val, max_length, charset)
+        assert success == False
+        assert "is less than min_len" in error_msg
+
+def test_enc_dec_string_char_index_internal_field_determinant_wrong_range(acn_encoder: ACNEncoder, seed: int, max_length: int, charset: str) -> None:
+    input_string: str = generate_test_string_random_length(charset, max_length)
+    min_val: int = len(input_string) - random.randint(1, len(input_string))
+    max_val: int = len(input_string) + random.randint(0, max_length - len(input_string))
+
+    # Hand over max_val and min_val in the wrong order!
+    encoded_res = acn_encoder.enc_string_char_index_internal_field_determinant(min_val, charset_to_bytes(charset), max_val, input_string)
+
+    assert min_val < max_val
+    assert encoded_res.success == False

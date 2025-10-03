@@ -15,7 +15,7 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
     """
     encoded_res = acn_encoder.enc_string_ascii_internal_field_determinant(max_length, min_length, input_string)
     if not encoded_res.success:
-        return False, ""
+        return False, encoded_res.error_message
 
     acn_decoder: ACNDecoder = acn_encoder.get_decoder()
     decoded_res = acn_decoder.dec_string_ascii_internal_field_determinant(max_length, min_length)
@@ -23,7 +23,7 @@ def _encode_and_decode_single_string(acn_encoder: ACNEncoder, input_string: str,
     # assert decoded_res.bits_consumed == 8*len(input_string)
 
     if not decoded_res.success:
-        return False, ""
+        return False, decoded_res.error_message
 
     return True, decoded_res.decoded_value
 
@@ -116,3 +116,24 @@ def test_enc_dec_string_ascii_internal_field_determinant_too_long(acn_encoder: A
     success, decoded_value = _encode_and_decode_single_string(acn_encoder, input_string, 0, max_length)
     assert success
     assert input_string[:max_length] == decoded_value
+
+def test_enc_dec_string_ascii_internal_field_determinant_too_short(acn_encoder: ACNEncoder, seed: int, max_length: int, charset: str) -> None:
+    if max_length > 1:
+        input_string: str = get_random_string_random_length(max_length-1)
+        min_val: int = len(input_string) + 1
+
+        assert len(input_string) < min_val <= max_length
+        success, error_msg = _encode_and_decode_single_string(acn_encoder, input_string, min_val, max_length)
+        assert success == False
+        assert "is less than min_len" in error_msg
+
+def test_enc_dec_string_ascii_internal_field_determinant_wrong_range(acn_encoder: ACNEncoder, seed: int, max_length: int, charset: str) -> None:
+    input_string: str = get_random_string_random_length(max_length)
+    min_val: int = len(input_string) - random.randint(1, len(input_string))
+    max_val: int = len(input_string) + random.randint(0, max_length - len(input_string))
+
+    # Hand over max_val and min_val in the wrong order!
+    encoded_res = acn_encoder.enc_string_ascii_internal_field_determinant(min_val, max_val, input_string)
+
+    assert min_val < max_val
+    assert encoded_res.success == False
