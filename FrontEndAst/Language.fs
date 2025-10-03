@@ -282,7 +282,8 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
+    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection
+    abstract member getSeqChildDependingOnChoiceParent: parents: (CallerScope * Asn1AcnAst.Asn1Type) list -> sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection
     //return a string that contains code with a boolean expression that is true if the child is present
     abstract member getSeqChildIsPresent   : Selection -> string -> string
     abstract member getChChildIsPresent   : Selection -> string -> string-> string
@@ -412,6 +413,8 @@ type ILangGeneric () =
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
         | _     -> None
 
+    default this.getSeqChildDependingOnChoiceParent (parents: (CallerScope * Asn1AcnAst.Asn1Type) list) (p: Selection) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+        this.getSeqChild p childName childTypeIsString childIsOptional
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []

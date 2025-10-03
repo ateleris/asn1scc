@@ -1,4 +1,4 @@
-﻿module DAstACN
+module DAstACN
 
 open System
 open System.Numerics
@@ -2011,7 +2011,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
                 let childName = lm.lg.getAsn1ChildBackendName child
                 let chFunc = child.Type.getAcnFunction codec
-                let childSel = lm.lg.getSeqChild p.arg childName child.Type.isIA5String child.Optionality.IsSome
+                let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.arg childName child.Type.isIA5String child.Optionality.IsSome
                 let childP =
                     let newArg = if lm.lg.usesWrappedOptional && childSel.isOptional && codec = Encode then childSel.asLast else childSel
                     {p with arg = newArg}

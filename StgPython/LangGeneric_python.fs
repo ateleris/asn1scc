@@ -273,7 +273,20 @@ type LangGeneric_python() =
 
     override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
         sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
-
+    
+    override this.getSeqChildDependingOnChoiceParent (parents: (CallerScope * Asn1AcnAst.Asn1Type) list) (p: Selection) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+        // Check if parent is a Choice
+        let isParentChoice =
+            match parents with
+            | (_, parentType) :: _ ->
+                match parentType.Kind with
+                | Asn1AcnAst.Choice _ -> true
+                | _ -> false
+            | [] -> false
+        
+        // In python, if the parent is a Choice, we must not return the full name, because the accessor will be self.data
+        if isParentChoice then p else this.getSeqChild p childName childTypeIsString childIsOptional
+            
     override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
         sel.appendSelection "data" Value false
 
