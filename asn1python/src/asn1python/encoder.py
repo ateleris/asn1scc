@@ -90,7 +90,6 @@ class Encoder(Codec, ABC):
             bits_encoded=0
         )
 
-
     def encode_bit_string(self, value: str,
                          min_length: Optional[int] = None,
                          max_length: Optional[int] = None) -> EncodeResult:
