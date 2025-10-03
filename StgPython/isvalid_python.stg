@@ -272,7 +272,6 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-# isvalid_python.stg 276
 (<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
 >>
 
