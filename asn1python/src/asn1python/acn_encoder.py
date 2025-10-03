@@ -136,10 +136,29 @@ class ACNEncoder(Encoder):
     # ============================================================================
 
     def enc_int_twos_complement_const_size(self, int_val: int, format_bit_length: int) -> EncodeResult:
-        """Encode signed integer using two's complement with constant size."""
-        min_val = -(2 ** (format_bit_length - 1))
-        max_val = (2 ** (format_bit_length - 1)) - 1
-        return self.encode_integer(int_val, min_val=min_val, max_val=max_val)
+        """Encode signed integer using two's complement with constant size.
+
+        Based on C implementation (asn1crt_encoding_acn.c:316-328):
+        - For positive values: encode as unsigned with leading zeros
+        - For negative values: encode two's complement representation
+        """
+        try:
+            # Convert to two's complement representation for negative values
+            if int_val < 0:
+                # Two's complement: invert bits and add 1, but we can use modulo arithmetic
+                unsigned_val = (1 << format_bit_length) + int_val
+            else:
+                unsigned_val = int_val
+
+            # Encode as unsigned integer
+            return self.encode_unsigned_integer(unsigned_val, format_bit_length)
+
+        except Exception as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def enc_int_twos_complement_const_size_big_endian(self, int_val: int, num_bits: int) -> EncodeResult:
         """Encode signed integer (two's complement) with constant size in big-endian byte order.

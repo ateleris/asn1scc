@@ -1,4 +1,6 @@
 import math
+from enum import Enum
+
 import pytest
 import random
 from random import choice
@@ -16,6 +18,13 @@ def seed() -> int:
     random.seed(seed)
     return seed
 
+class Version(Enum):
+    ALL_FIELDS = 0
+    RANGE_ONLY = 1
+    BITS_ONLY = 2
+    MIN_BITS = 3
+    MAX_BITS = 4
+
 def pytest_generate_tests(metafunc):
     if "bit" in metafunc.fixturenames:
         metafunc.parametrize("bit", [1, 2, 3, 4, 6, 8, 10, 12, 16, 32, 48, 64])
@@ -27,6 +36,8 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("signed", [True, False])
     if "max_length" in metafunc.fixturenames:
         metafunc.parametrize("max_length", [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024])
+    if "version" in metafunc.fixturenames:
+        metafunc.parametrize("version", [Version.ALL_FIELDS, Version.RANGE_ONLY, Version.BITS_ONLY, Version.MIN_BITS, Version.MAX_BITS])
     if "null_characters" in metafunc.fixturenames:
         metafunc.parametrize("null_characters", [bytes(1), bytes(2), bytes(4), bytes(8)])
     if "charset" in metafunc.fixturenames:
