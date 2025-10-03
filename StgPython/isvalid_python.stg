@@ -207,7 +207,7 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> Boolean:
+def chars_are_valid(self) -> bool:
     valid: bool = True
     i: int = 0
     while valid and i \< len(self) and self[i] != CHAR_0000:
