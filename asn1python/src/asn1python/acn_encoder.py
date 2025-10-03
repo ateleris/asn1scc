@@ -56,8 +56,7 @@ class ACNEncoder(Encoder):
     def enc_int_positive_integer_const_size(self, int_val: int,
                                             encoded_size_in_bits: int) -> EncodeResult:
         """Encode positive integer with constant size in bits."""
-        return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, 
-                                  size_in_bits=encoded_size_in_bits)
+        return self.encode_integer(int_val, min_val=0, max_val=(1 << encoded_size_in_bits) - 1, size_in_bits=encoded_size_in_bits)
 
     def enc_int_positive_integer_var_size_length_embedded(self, int_val: int) -> EncodeResult:
         """Encode positive integer with variable size (length embedded)."""
