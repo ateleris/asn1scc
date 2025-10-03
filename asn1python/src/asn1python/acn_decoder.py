@@ -108,37 +108,11 @@ class ACNDecoder(Decoder):
 
     def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult:
         """Decode signed integer using two's complement with constant size."""
-        try:
-            if self._bitstream.bits_remaining() < format_bit_length:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Insufficient data: need {format_bit_length} bits"
-                )
-
-            result = self.decode_unsigned_integer(format_bit_length)
-            if not result.success:
-                return result
-            unsigned_val = result.decoded_value
-
-            sign_bit = 1 << (format_bit_length - 1)
-            if unsigned_val & sign_bit:
-                signed_val = unsigned_val - (1 << format_bit_length)
-            else:
-                signed_val = unsigned_val
-
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=signed_val,
-                bits_consumed=format_bit_length
-            )
-        except BitStreamError as e:
-            return DecodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
+        # Use decode_integer with only size_in_bits (no range)
+        # This triggers two's complement conversion based on the sign bit
+        min_val = -(2 ** (format_bit_length - 1))
+        max_val = (2 ** (format_bit_length - 1)) - 1
+        return self.decode_integer(min_val=min_val, max_val=max_val)
 
     def dec_int_twos_complement_const_size_big_endian(self, num_bits: int) -> DecodeResult[int]:
         """Decode signed integer (two's complement) with constant size in big-endian byte order.

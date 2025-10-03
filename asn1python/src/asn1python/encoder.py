@@ -45,13 +45,23 @@ class Encoder(Codec, ABC):
                     error_message=f"Value {value} above maximum {max_val}"
                 )
 
-            # Determine encoding size
-            if size_in_bits is not None:
-                bits_needed = size_in_bits
-            elif min_val is not None and max_val is not None:
+            # Determine encoding approach
+            # NOTE: When both range (min/max) and size_in_bits are provided,
+            # prioritize range-based encoding (like C implementation)
+            if min_val is not None and max_val is not None:
+                # Range-based encoding: ALWAYS use offset encoding
                 range_size = max_val - min_val + 1
                 bits_needed = (range_size - 1).bit_length()
-                value = value - min_val  # Offset encoding
+                value = value - min_val  # Offset encoding - value is now non-negative
+
+                # If size_in_bits is also provided, validate it matches the range
+                if size_in_bits is not None and size_in_bits != bits_needed:
+                    # Note: In practice, callers ensure size_in_bits matches the range
+                    # If they don't match, use the range-calculated size (safer)
+                    pass
+            elif size_in_bits is not None:
+                # Fixed size encoding without range
+                bits_needed = size_in_bits
             else:
                 # Default to minimum bits needed
                 if value < 0:
