@@ -528,20 +528,20 @@ Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, ar
 
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 # acn_python.stg 533
-bix = codec.bitStream.bitIndex
+bix = codec.bit_index()
 codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <p>)
-if codec.bitStream.bitIndex > bix + <nAsn1Max> * <nCharSize> or codec.bitStream.bitIndex != bix + 7 * <p>.indexOfOrLength(0.toByte):
+if codec.bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.bit_index() != bix + 7 * <p>.indexOfOrLength(0.toByte):
     # acn_python.stg 537
     return Asn1SccError(461)
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 # acn_python.stg 542
-bix = codec.bitStream.bitIndex
+bix = codec.bit_index()
 if <sExtFld> \< 0:
     <p> = Asn1SccError(464)
 <p> = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
-if codec.bitStream.bitIndex > bix + <nAsn1Max> * <nCharSize> or codec.bitStream.bitIndex != bix + 7 * <p>.indexOfOrLength(0):
+if codec.bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.bit_index() != bix + 7 * <p>.indexOfOrLength(0):
     <p> = Asn1SccError(470)
 >>
 

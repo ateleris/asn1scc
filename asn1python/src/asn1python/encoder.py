@@ -81,6 +81,19 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
+    def bit_index(self) -> int:
+        """
+        Get the current bit position in the bitstream.
+
+        Matches C: BitStream.currentBit + BitStream.currentByte * 8
+        Matches Scala: BitStream.bitIndex
+        Used by: ACN for tracking position, calculating sizes
+
+        Returns:
+            Current bit position (0-based index)
+        """
+        return self._bitstream.current_bit_position()
+
     def append_bit(self, bit_value: bool) -> EncodeResult:
         """
         Append a single bit to the bitstream.

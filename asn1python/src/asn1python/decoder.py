@@ -83,6 +83,19 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    def bit_index(self) -> int:
+        """
+        Get the current bit position in the bitstream.
+
+        Matches C: BitStream.currentBit + BitStream.currentByte * 8
+        Matches Scala: BitStream.bitIndex
+        Used by: ACN for tracking position, calculating sizes
+
+        Returns:
+            Current bit position (0-based index)
+        """
+        return self._bitstream.current_bit_position()
+
     def read_bit(self) -> DecodeResult[bool]:
         """
         Read a single bit from the bitstream.
