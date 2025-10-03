@@ -331,7 +331,7 @@ type LangGeneric_python() =
     
     override this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         let res = this.getParamType t c
-        {res with arg.receiverId = "input"}
+        {res with arg.receiverId = "inputVal"}
             
     override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
         p.joined this
