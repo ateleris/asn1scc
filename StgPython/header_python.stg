@@ -15,8 +15,6 @@ Header / Spec implementation
 """
 from ..asn1python import *
 from typing import *
-# todo: find ways to import basic types everywhere except in basic types
-# from .BasicTypes import *
 from enum import Enum, IntEnum
 from dataclasses import dataclass, field
 
@@ -107,7 +105,7 @@ Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange
 # header_python.stg 91
 # todo: should this be a dataclass? -> In C it was just a type alias, but with type alias we would need to not add the additional is_valid, initialize and other class functions
 @dataclass(frozen=True)
-class <sTypeDefinitionName>(<sParentType>):
+class <sTypeDefinitionName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType>):
     <soExtraDefs>
 >>
 
