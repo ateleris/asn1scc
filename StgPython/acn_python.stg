@@ -101,7 +101,7 @@ for <i> in range(int(<fixedSize>)):
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 105
 unaligned_codec = codec.copy()
-codec.bitStream.alignTo<sAlignmentValue>()
+codec.align_to_<sAlignmentValue; format="lower">()
 # BitStream validation would go here
 <sMainBody>
 >>
@@ -109,7 +109,7 @@ codec.bitStream.alignTo<sAlignmentValue>()
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 113
 unaligned_codec = codec.copy()
-codec.bitStream.alignTo<sAlignmentValue>()
+codec.align_to_<sAlignmentValue; format="lower">()
 # BitStream validation would go here
 <sMainBody>
 >>
@@ -363,7 +363,7 @@ BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 locally {
     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    codec.bitStream.append_bits_MSB_first(if <p> then true_data else false_data, <nSize>)
+    codec.append_bits(if <p> then true_data else false_data, <nSize>)
 }
 >>
 
@@ -624,7 +624,7 @@ else:
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 # acn_python.stg 628
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+codec.append_bits(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
@@ -649,7 +649,7 @@ elif checkBitPatternPresentResult == 2:
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 654
-codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>nCount)
+codec.append_bits(<p><sAcc>arr, <p><sAcc>nCount)
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -662,7 +662,7 @@ else:
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 667
-codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <nSizeMax>)
+codec.append_bits(<p><sAcc>arr, <nSizeMax>)
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -675,8 +675,8 @@ else:
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 684
-codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>arr.length*8)
-codec.bitStream.appendBitsMSBFirst(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+codec.append_bits(<p><sAcc>arr, <p><sAcc>arr.length*8)
+codec.append_bits(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
@@ -1155,7 +1155,7 @@ if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 # acn_python.stg 1163
-codec.bitStream.appendBitsMSBFirstVec(arr, int(<sExtField>))
+codec.append_bits(arr, int(<sExtField>))
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1256,7 +1256,7 @@ if not res:
 
 nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
 <if(bFixedSize)>
-codec.bitStream.appendBitsMSBFirst(bitStrm.buf, nCount)
+codec.append_bits(bitStrm.buf, nCount)
 
 <else>
 codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)

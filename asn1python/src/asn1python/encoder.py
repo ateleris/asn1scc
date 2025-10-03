@@ -94,6 +94,111 @@ class Encoder(Codec, ABC):
         """
         return self._bitstream.current_bit_position()
 
+    def align_to_byte(self) -> EncodeResult:
+        """
+        Align bitstream to next byte boundary.
+
+        Matches C: Acn_AlignToNextByte(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToByte()
+        Used by: ACN for byte-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+            self._bitstream.align_to_byte()
+            final_pos = self._bitstream.current_bit_position()
+            bits_encoded = final_pos - initial_pos
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def align_to_word(self) -> EncodeResult:
+        """
+        Align bitstream to next 16-bit word boundary.
+
+        Matches C: Acn_AlignToNextWord(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToWord()
+        Used by: ACN for word-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+
+            # First align to byte
+            self._bitstream.align_to_byte()
+
+            # Then align to 2-byte (16-bit) boundary
+            current_byte = self._bitstream.current_bit_position() // 8
+            if current_byte % 2 != 0:
+                # Need to skip to next word boundary
+                self._bitstream.write_bits(0, 8)
+
+            final_pos = self._bitstream.current_bit_position()
+            bits_encoded = final_pos - initial_pos
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def align_to_dword(self) -> EncodeResult:
+        """
+        Align bitstream to next 32-bit dword boundary.
+
+        Matches C: Acn_AlignToNextDWord(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToDWord()
+        Used by: ACN for dword-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+
+            # First align to byte
+            self._bitstream.align_to_byte()
+
+            # Then align to 4-byte (32-bit) boundary
+            current_byte = self._bitstream.current_bit_position() // 8
+            padding_bytes = (4 - (current_byte % 4)) % 4
+            for _ in range(padding_bytes):
+                self._bitstream.write_bits(0, 8)
+
+            final_pos = self._bitstream.current_bit_position()
+            bits_encoded = final_pos - initial_pos
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def append_bit(self, bit_value: bool) -> EncodeResult:
         """
         Append a single bit to the bitstream.

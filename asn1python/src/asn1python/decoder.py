@@ -96,6 +96,125 @@ class Decoder(Codec):
         """
         return self._bitstream.current_bit_position()
 
+    def align_to_byte(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next byte boundary.
+
+        Matches C: Acn_AlignToNextByte(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToByte()
+        Used by: ACN for byte-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+            self._bitstream.align_to_byte()
+            final_pos = self._bitstream.current_bit_position()
+            bits_consumed = final_pos - initial_pos
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=None,
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def align_to_word(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next 16-bit word boundary.
+
+        Matches C: Acn_AlignToNextWord(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToWord()
+        Used by: ACN for word-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+
+            # First align to byte
+            self._bitstream.align_to_byte()
+
+            # Then align to 2-byte (16-bit) boundary
+            current_byte = self._bitstream.current_bit_position() // 8
+            if current_byte % 2 != 0:
+                # Need to skip to next word boundary
+                if self._bitstream.bits_remaining() < 8:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INSUFFICIENT_DATA,
+                        error_message="Insufficient data for word alignment"
+                    )
+                self._bitstream.read_bits(8)
+
+            final_pos = self._bitstream.current_bit_position()
+            bits_consumed = final_pos - initial_pos
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=None,
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def align_to_dword(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next 32-bit dword boundary.
+
+        Matches C: Acn_AlignToNextDWord(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToDWord()
+        Used by: ACN for dword-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        try:
+            initial_pos = self._bitstream.current_bit_position()
+
+            # First align to byte
+            self._bitstream.align_to_byte()
+
+            # Then align to 4-byte (32-bit) boundary
+            current_byte = self._bitstream.current_bit_position() // 8
+            padding_bytes = (4 - (current_byte % 4)) % 4
+
+            if self._bitstream.bits_remaining() < padding_bytes * 8:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message="Insufficient data for dword alignment"
+                )
+
+            for _ in range(padding_bytes):
+                self._bitstream.read_bits(8)
+
+            final_pos = self._bitstream.current_bit_position()
+            bits_consumed = final_pos - initial_pos
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=None,
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def read_bit(self) -> DecodeResult[bool]:
         """
         Read a single bit from the bitstream.
