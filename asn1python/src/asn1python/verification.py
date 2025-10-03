@@ -36,7 +36,7 @@ def bytearray_range_eq(b1: bytearray, b2: bytearray, start: int, end: int) -> bo
     Requires(Rd(bytearray_pred(b2)))
     Requires(len(b1) <= len(b2))
     Requires(0 <= start and start <= end and end <= len(b1))
-    return start == end or (Forall(int, lambda i: (Implies(start <= i and i < end, b1[i] == b2[i]))))
+    return start == end or (Forall(int, lambda i: (Implies(start <= i and i < end, b1[i] == b2[i]), [[b1[i]], [b2[i]]])))
 
 @Pure
 def bytearray_eq(b1: bytearray, b2: bytearray) -> bool:
