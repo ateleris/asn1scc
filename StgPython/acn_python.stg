@@ -342,9 +342,9 @@ Real_64_little_endian_decode(p, sErrCode) ::= <<
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 # acn_python.stg 347
-true_data = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-false_data = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-codec.bitStream.append_bits_MSB_first(true_data if <p> else false_data, <nSize>)
+true_data = bytes([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+false_data = bytes([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+codec.append_bits(true_data if <p> else false_data, <nSize>)
 >>
 
 Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
@@ -383,8 +383,8 @@ Null_declare(p) ::= "<p>: NullType = NullType()"
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 387
 <if(arruNullValueAsByteArray)>
-tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-codec.bitStream.appendBitsMSBFirst(tmp, <nSize>)
+tmp = bytes([<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+codec.append_bits(tmp, <nSize>)
 <endif>
 >>
 
@@ -655,7 +655,7 @@ codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>nCount)
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 659
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
-    <p> = <sTypedefName>(<sExtFld>, codec.bitStream.readBits(<sExtFld>))
+    <p> = <sTypedefName>(<sExtFld>, codec.read_bits(<sExtFld>))
 else:
     <p> = Asn1SccError(<sErrCode>)
 >>
@@ -668,7 +668,7 @@ codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <nSizeMax>)
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 672
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
-    <p> = <sTypeDefName>(codec.bitStream.readBits(<nSizeMax>))
+    <p> = <sTypeDefName>(codec.read_bits(<nSizeMax>))
 else:
     <p> =  Asn1SccError(<sErrCode>)
 >>
@@ -713,12 +713,12 @@ if instanceof(res, Asn1SccError):
 
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 722
-codec.bitStream.appendBit(<p><sAcc><sChName>.isDefined)
+codec.append_bit(<p><sAcc><sChName>.isDefined)
 >>
 
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 727
-<soExistVar> = codec.bitStream.readBit()
+<soExistVar> = codec.read_bit()
 >>
 
 sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
@@ -1165,7 +1165,7 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 # decode to a temporary bitstream
 bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
-    match codec.bitStream.readBits((int)<sExtField>):
+    match codec.read_bits((int)<sExtField>):
         case NoneMut():
             # acn_python.stg 1176
             return Asn1SccError(<pErrCode>)
@@ -1273,7 +1273,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
 
 <if(bFixedSize)>
-arr = codec.bitStream.readBits(<nMinSize>):
+arr = codec.read_bits(<nMinSize>)
 if arr is None:
     # acn_python.stg 1284
     return Asn1SccError(pErrCode)
@@ -1294,7 +1294,7 @@ if x is None:
 else:
     nCount = x
 
-arr = codec.bitStream.readBits(nCount):
+arr = codec.read_bits(nCount)
 if arr is None:
     # acn_python.stg 1305
     return Asn1SccError(pErrCode)

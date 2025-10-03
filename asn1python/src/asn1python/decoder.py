@@ -83,6 +83,39 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    def read_bit(self) -> DecodeResult[bool]:
+        """
+        Read a single bit from the bitstream.
+
+        Matches C: BitStream_ReadBit(pBitStrm, pBit)
+        Matches Scala: BitStream.readBit(): Boolean
+        Used by: ACN for boolean decoding, optional field markers
+
+        Returns:
+            DecodeResult containing boolean value (True = 1, False = 0)
+        """
+        try:
+            if self._bitstream.bits_remaining() < 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message="Insufficient data to read bit"
+                )
+
+            bit_value = self._bitstream.read_bit()
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bit_value,
+                bits_consumed=1
+            )
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def decode_null(self) -> DecodeResult[None]:
         """Decode a NULL value (typically no bits)"""
         return DecodeResult(

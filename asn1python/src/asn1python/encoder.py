@@ -81,6 +81,35 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
+    def append_bit(self, bit_value: bool) -> EncodeResult:
+        """
+        Append a single bit to the bitstream.
+
+        Matches C: BitStream_AppendBit(pBitStrm, bit)
+        Matches Scala: BitStream.appendBit(b: Boolean)
+        Used by: ACN for boolean encoding, optional field markers
+
+        Args:
+            bit_value: Boolean value to append (True = 1, False = 0)
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        try:
+            self._bitstream.write_bit(bit_value)
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=1
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def encode_null(self) -> EncodeResult:
         """Encode a NULL value (typically no bits)"""
         return EncodeResult(
