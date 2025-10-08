@@ -137,6 +137,10 @@ flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* file
 /* Encode Decode End*/
 
 PrintMain(sTestSuiteFilename) ::= <<
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
+
 # test_cases_python.stg:164
 from testsuite import asn1scc_run_generated_testsuite, TestOutput
     

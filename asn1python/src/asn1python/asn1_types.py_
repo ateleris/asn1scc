@@ -5,26 +5,32 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
+import abc
 import ctypes
 from codecs import Codec
-from typing import List
-from enum import Enum
-import abc
 from dataclasses import dataclass
+from enum import Enum
 from functools import total_ordering
 
+
 # Error classes
-class Asn1Error(Exception):
+class Asn1Exception(Exception):
     """Base class for ASN.1 runtime errors"""
     pass
 
+class Asn1ValueOutOfRangeException(Asn1Exception):
+    """Exception raised when an ASN.1 value is out of range"""
+    pass
 
-class Asn1ValueError(Asn1Error):
+class Asn1ValueUnexpectedEndOfDataException(Asn1Exception):
+    """Exception raised when an ASN.1 value is out of range"""
+    pass
+
+class Asn1InvalidValueException(Asn1Exception):
     """Raised when a value is outside the valid range for a type"""
     pass
 
-
-class Asn1OverflowError(Asn1Error):
+class Asn1OverflowException(Asn1Exception):
     """Raised when an arithmetic operation would cause overflow"""
     pass
 
@@ -283,11 +289,11 @@ class Asn1TimeZone:
             mins: Minutes offset from UTC
         """
         if sign not in (-1, 1):
-            raise Asn1ValueError(f"Timezone sign must be -1 or +1, got {sign}")
+            raise Asn1InvalidValueException(f"Timezone sign must be -1 or +1, got {sign}")
         if not (0 <= hours <= 23):
-            raise Asn1ValueError(f"Timezone hours must be 0-23, got {hours}")
+            raise Asn1InvalidValueException(f"Timezone hours must be 0-23, got {hours}")
         if not (0 <= mins <= 59):
-            raise Asn1ValueError(f"Timezone minutes must be 0-59, got {mins}")
+            raise Asn1InvalidValueException(f"Timezone minutes must be 0-59, got {mins}")
         
         self.sign = sign
         self.hours = hours
@@ -320,9 +326,9 @@ class Asn1Date:
             days: Day value (1-31)
         """
         if not (1 <= months <= 12):
-            raise Asn1ValueError(f"Month must be 1-12, got {months}")
+            raise Asn1InvalidValueException(f"Month must be 1-12, got {months}")
         if not (1 <= days <= 31):
-            raise Asn1ValueError(f"Day must be 1-31, got {days}")
+            raise Asn1InvalidValueException(f"Day must be 1-31, got {days}")
         
         self.years = years
         self.months = months
@@ -355,13 +361,13 @@ class Asn1LocalTime:
             fraction: Fractional seconds (implementation-specific precision)
         """
         if not (0 <= hours <= 23):
-            raise Asn1ValueError(f"Hours must be 0-23, got {hours}")
+            raise Asn1InvalidValueException(f"Hours must be 0-23, got {hours}")
         if not (0 <= mins <= 59):
-            raise Asn1ValueError(f"Minutes must be 0-59, got {mins}")
+            raise Asn1InvalidValueException(f"Minutes must be 0-59, got {mins}")
         if not (0 <= secs <= 59):
-            raise Asn1ValueError(f"Seconds must be 0-59, got {secs}")
+            raise Asn1InvalidValueException(f"Seconds must be 0-59, got {secs}")
         if fraction < 0:
-            raise Asn1ValueError(f"Fraction must be non-negative, got {fraction}")
+            raise Asn1InvalidValueException(f"Fraction must be non-negative, got {fraction}")
         
         self.hours = hours
         self.mins = mins
@@ -399,13 +405,13 @@ class Asn1UtcTime:
             fraction: Fractional seconds (implementation-specific precision)
         """
         if not (0 <= hours <= 23):
-            raise Asn1ValueError(f"Hours must be 0-23, got {hours}")
+            raise Asn1InvalidValueException(f"Hours must be 0-23, got {hours}")
         if not (0 <= mins <= 59):
-            raise Asn1ValueError(f"Minutes must be 0-59, got {mins}")
+            raise Asn1InvalidValueException(f"Minutes must be 0-59, got {mins}")
         if not (0 <= secs <= 59):
-            raise Asn1ValueError(f"Seconds must be 0-59, got {secs}")
+            raise Asn1InvalidValueException(f"Seconds must be 0-59, got {secs}")
         if fraction < 0:
-            raise Asn1ValueError(f"Fraction must be non-negative, got {fraction}")
+            raise Asn1InvalidValueException(f"Fraction must be non-negative, got {fraction}")
         
         self.hours = hours
         self.mins = mins
@@ -444,13 +450,13 @@ class Asn1TimeWithTimeZone:
             tz: Timezone information
         """
         if not (0 <= hours <= 23):
-            raise Asn1ValueError(f"Hours must be 0-23, got {hours}")
+            raise Asn1InvalidValueException(f"Hours must be 0-23, got {hours}")
         if not (0 <= mins <= 59):
-            raise Asn1ValueError(f"Minutes must be 0-59, got {mins}")
+            raise Asn1InvalidValueException(f"Minutes must be 0-59, got {mins}")
         if not (0 <= secs <= 59):
-            raise Asn1ValueError(f"Seconds must be 0-59, got {secs}")
+            raise Asn1InvalidValueException(f"Seconds must be 0-59, got {secs}")
         if fraction < 0:
-            raise Asn1ValueError(f"Fraction must be non-negative, got {fraction}")
+            raise Asn1InvalidValueException(f"Fraction must be non-negative, got {fraction}")
         assert isinstance(tz, Asn1TimeZone)
         
         self.hours = hours

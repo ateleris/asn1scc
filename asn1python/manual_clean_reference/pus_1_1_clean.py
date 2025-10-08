@@ -5,7 +5,7 @@ import BasicTypes
 from enum import Enum
 from dataclasses import dataclass, field
 
-from src.asn1python import Asn1Error
+from src.asn1python import Asn1Exception
 from src.asn1python.asn1_types import Asn1Base
 
 import VerificationRequest
@@ -23,7 +23,7 @@ class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
         if check_constraints:
             res = self.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed.")
+                raise Asn1Exception("Constraint validation failed.")
         self.request_ID.encode(codec, check_constraints)            
 
     @classmethod
@@ -33,7 +33,7 @@ class TM_1_1_SuccessfulAcceptanceVerificationReport(Asn1Base):
         if check_constraints:
             res = instance.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed. Decoding failed.")
+                raise Asn1Exception("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod

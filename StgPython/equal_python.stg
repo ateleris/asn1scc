@@ -49,13 +49,14 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
 # equal_python.stg 51
-def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>) -> bool:
-    ret: bool = True
-    <arrsLocalVars; separator="\n">
-
-    <sContent>
-    # equal_python.stg 57
-    return ret
+# todo: probably is printing the equality composite unnecessary.
+# def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>) -> bool:
+#     ret: bool = True
+#     <arrsLocalVars; separator="\n">
+# 
+#     <sContent>
+#     # equal_python.stg 57
+#     return ret
 >>
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
@@ -178,17 +179,16 @@ while ret and <i> \< <nFixedSize>:
 >>
 
 call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
-# equal_python.stg 194
 <sFuncName>(<p1><if (bIsP1Option)> if <p1> is not None else None<endif>, <p2><if (bIsP2Option)> if <p2> is not None else None<endif>)
 >>
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 # equal_python.stg 199
-ret = <sIsValidExp>
+# ret = <sIsValidExp>
 >>
 
 
 callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
 # equal_python.stg 205
-ret = <sChildEqualFuncName>(<p1>, <p2>)
+# ret = <sChildEqualFuncName>(<p1>, <p2>)
 >>

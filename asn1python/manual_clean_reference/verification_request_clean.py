@@ -30,7 +30,7 @@ class VerificationRequest_ID_packet_ID(Asn1Base):
         if check_constraints:
             res = self.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed. Encoding failed.")
+                raise Asn1Exception("Constraint validation failed. Encoding failed.")
 
         self.packetType.encode(codec, check_constraints)
         self.secondaryHeaderFlag.encode(codec, check_constraints)
@@ -48,7 +48,7 @@ class VerificationRequest_ID_packet_ID(Asn1Base):
         
         if check_constraints:
             if not instance.is_constraint_valid():
-                raise Asn1Error("Constraint validation failed. Encoding failed.")
+                raise Asn1Exception("Constraint validation failed. Encoding failed.")
         
         return instance
     
@@ -96,7 +96,7 @@ class VerificationRequest_ID(Asn1Base):
         if check_constraints:
             res = self.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed. Encoding failed.")
+                raise Asn1Exception("Constraint validation failed. Encoding failed.")
         self.packetVersionNumber.encode(codec, check_constraints)
         self.packet_ID.encode(codec, check_constraints)
         self.packetSequenceControl.encode(codec, check_constraints)
@@ -114,7 +114,7 @@ class VerificationRequest_ID(Asn1Base):
         
         if check_constraints:
             if not instance.is_constraint_valid():
-                raise Asn1Error("Constraint validation failed. Decoding failed.")
+                raise Asn1Exception("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod

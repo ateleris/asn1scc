@@ -175,7 +175,8 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
 
     let funcName            = getFuncName2 r lm typeDefinition
     let globalName = lm.lg.getFuncNameGeneric typeDefinition "_constant"
-    let p = lm.lg.getParamType o CommonTypes.Codec.Decode
+    let sf = lm.lg.getTypeBasedSuffix FunctionType.InitFunctionType o.Kind
+    let p = lm.lg.getParamTypeSuffix o sf CommonTypes.Codec.Decode
     let initTypeAssignment      = lm.init.initTypeAssignment
     let initTypeAssignment_def  = lm.init.initTypeAssignment_def
     let varName = p.arg.receiverId

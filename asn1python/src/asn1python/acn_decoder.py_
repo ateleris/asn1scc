@@ -34,33 +34,33 @@ class ACNDecoder(Decoder):
         return self.decode_integer(min_val=0, max_val=(1 << encoded_size_in_bits) - 1,
                                   size_in_bits=encoded_size_in_bits)
 
-    def dec_int_positive_integer_const_size_8(self) -> DecodeResult:
-        """Decode 8-bit positive integer."""
-        return self.dec_int_positive_integer_const_size(8)
+    def dec_int_positive_integer_const_size_big_endian(self, num_bits: int) -> DecodeResult:
+        """Decode positive integer with constant size in big-endian byte order.
 
-    def dec_int_positive_integer_const_size_big_endian_16(self) -> DecodeResult:
-        """Decode 16-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(16, False)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_big_endian(num_bits, False)
 
-    def dec_int_positive_integer_const_size_big_endian_32(self) -> DecodeResult:
-        """Decode 32-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(32, False)
+    def dec_int_positive_integer_const_size_little_endian(self, num_bits: int) -> DecodeResult:
+        """Decode positive integer with constant size in little-endian byte order.
 
-    def dec_int_positive_integer_const_size_big_endian_64(self) -> DecodeResult:
-        """Decode 64-bit positive integer (big-endian)."""
-        return self._decode_integer_big_endian(64, False)
-
-    def dec_int_positive_integer_const_size_little_endian_16(self) -> DecodeResult:
-        """Decode 16-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(16, False)
-
-    def dec_int_positive_integer_const_size_little_endian_32(self) -> DecodeResult:
-        """Decode 32-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(32, False)
-
-    def dec_int_positive_integer_const_size_little_endian_64(self) -> DecodeResult:
-        """Decode 64-bit positive integer (little-endian)."""
-        return self._decode_integer_little_endian(64, False)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_little_endian(num_bits, False)
 
     def dec_int_positive_integer_var_size_length_embedded(self) -> DecodeResult:
         """Decode positive integer with variable size (length embedded)."""
@@ -82,7 +82,10 @@ class ACNDecoder(Decoder):
 
             value = 0
             for i in range(bytes_count):
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 value = (value << 8) | byte_val
                 bits_consumed += 8
 
@@ -105,62 +108,54 @@ class ACNDecoder(Decoder):
 
     def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult:
         """Decode signed integer using two's complement with constant size."""
-        try:
-            if self._bitstream.bits_remaining() < format_bit_length:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_INVALID_VALUE,
-                    error_message=f"Insufficient data: need {format_bit_length} bits"
-                )
+        # Decode as unsigned first
+        result = self.decode_unsigned_integer(format_bit_length)
+        if not result.success:
+            return result
 
-            unsigned_val = self._bitstream.read_bits(format_bit_length)
-            
-            sign_bit = 1 << (format_bit_length - 1)
-            if unsigned_val & sign_bit:
-                signed_val = unsigned_val - (1 << format_bit_length)
-            else:
-                signed_val = unsigned_val
+        unsigned_val = result.decoded_value
 
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=signed_val,
-                bits_consumed=format_bit_length
-            )
-        except BitStreamError as e:
+        # Convert from two's complement if sign bit is set
+        sign_bit = 1 << (format_bit_length - 1)
+        if unsigned_val & sign_bit:
+            signed_val = unsigned_val - (1 << format_bit_length)
+        else:
+            signed_val = unsigned_val
+
+        return DecodeResult(
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=signed_val,
+            bits_consumed=format_bit_length
+        )
+
+    def dec_int_twos_complement_const_size_big_endian(self, num_bits: int) -> DecodeResult[int]:
+        """Decode signed integer (two's complement) with constant size in big-endian byte order.
+
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
             return DecodeResult(
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
             )
+        return self._decode_integer_big_endian(num_bits, True)
 
-    def dec_int_twos_complement_const_size_8(self) -> DecodeResult[int]:
-        """Decode 8-bit signed integer."""
-        return self.dec_int_twos_complement_const_size(8)
+    def dec_int_twos_complement_const_size_little_endian(self, num_bits: int) -> DecodeResult[int]:
+        """Decode signed integer (two's complement) with constant size in little-endian byte order.
 
-    def dec_int_twos_complement_const_size_big_endian_16(self) -> DecodeResult[int]:
-        """Decode 16-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(16, True)
-
-    def dec_int_twos_complement_const_size_big_endian_32(self) -> DecodeResult[int]:
-        """Decode 32-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(32, True)
-
-    def dec_int_twos_complement_const_size_big_endian_64(self) -> DecodeResult[int]:
-        """Decode 64-bit signed integer (big-endian)."""
-        return self._decode_integer_big_endian(64, True)
-
-    def dec_int_twos_complement_const_size_little_endian_16(self) -> DecodeResult[int]:
-        """Decode 16-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(16, True)
-
-    def dec_int_twos_complement_const_size_little_endian_32(self) -> DecodeResult[int]:
-        """Decode 32-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(32, True)
-
-    def dec_int_twos_complement_const_size_little_endian_64(self) -> DecodeResult[int]:
-        """Decode 64-bit signed integer (little-endian)."""
-        return self._decode_integer_little_endian(64, True)
+        Args:
+            num_bits: Number of bits to decode (must be multiple of 8: 16, 32, 64)
+        """
+        if num_bits % 8 != 0:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bits must be multiple of 8, got {num_bits}"
+            )
+        return self._decode_integer_little_endian(num_bits, True)
 
     def dec_int_twos_complement_var_size_length_embedded(self) -> DecodeResult[int]:
         """Decode signed integer with variable size (length embedded)."""
@@ -182,7 +177,10 @@ class ACNDecoder(Decoder):
 
             twos_complement = 0
             for i in range(bytes_count):
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 twos_complement = (twos_complement << 8) | byte_val
                 bits_consumed += 8
 
@@ -223,7 +221,10 @@ class ACNDecoder(Decoder):
             bits_consumed = 0
 
             for i in range(encoded_size_in_nibbles):
-                digit = self._bitstream.read_bits(4)
+                result = self.decode_unsigned_integer(4)
+                if not result.success:
+                    return result
+                digit = result.decoded_value
                 if digit > 9:
                     return DecodeResult(
                         success=False,
@@ -287,7 +288,10 @@ class ACNDecoder(Decoder):
                         error_message="Unexpected end of data while reading BCD"
                     )
 
-                digit = self._bitstream.read_bits(4)
+                result = self.decode_unsigned_integer(4)
+                if not result.success:
+                    return result
+                digit = result.decoded_value
                 bits_consumed += 4
 
                 if digit == 0xF:
@@ -329,9 +333,10 @@ class ACNDecoder(Decoder):
                     error_message="Insufficient data for IEEE 754 float"
                 )
 
-            bytes_data = bytearray()
-            for i in range(4):
-                bytes_data.append(self._bitstream.read_bits(8))
+            result = self.read_byte_array(4)
+            if not result.success:
+                return result
+            bytes_data = result.decoded_value
 
             value: float = struct.unpack('>f', bytes_data)[0]
 
@@ -358,9 +363,10 @@ class ACNDecoder(Decoder):
                     error_message="Insufficient data for IEEE 754 float"
                 )
 
-            bytes_data = bytearray()
-            for i in range(4):
-                bytes_data.append(self._bitstream.read_bits(8))
+            result = self.read_byte_array(4)
+            if not result.success:
+                return result
+            bytes_data = result.decoded_value
 
             value: float = struct.unpack('<f', bytes_data)[0]
 
@@ -387,9 +393,10 @@ class ACNDecoder(Decoder):
                     error_message="Insufficient data for IEEE 754 double"
                 )
 
-            bytes_data = bytearray()
-            for i in range(8):
-                bytes_data.append(self._bitstream.read_bits(8))
+            result = self.read_byte_array(8)
+            if not result.success:
+                return result
+            bytes_data = result.decoded_value
 
             value: float = struct.unpack('>d', bytes_data)[0]
 
@@ -416,9 +423,10 @@ class ACNDecoder(Decoder):
                     error_message="Insufficient data for IEEE 754 double"
                 )
 
-            bytes_data = bytearray()
-            for i in range(8):
-                bytes_data.append(self._bitstream.read_bits(8))
+            result = self.read_byte_array(8)
+            if not result.success:
+                return result
+            bytes_data = result.decoded_value
 
             value: float = struct.unpack('<d', bytes_data)[0]
 
@@ -449,13 +457,7 @@ class ACNDecoder(Decoder):
                     error_message=f"Insufficient data for length: need {length_size_in_bits} bits"
                 )
 
-            length_val = self._bitstream.read_bits(length_size_in_bits)
-            return DecodeResult(
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=length_val,
-                bits_consumed=length_size_in_bits
-            )
+            return self.decode_unsigned_integer(length_size_in_bits)
         except BitStreamError as e:
             return DecodeResult(
                 success=False,
@@ -507,8 +509,11 @@ class ACNDecoder(Decoder):
                         error_code=ERROR_INVALID_VALUE,
                         error_message="Insufficient data for character"
                     )
-                    
-                decoded_char = self._bitstream.read_bits(8)
+
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                decoded_char = result.decoded_value
                 bits_consumed += 8
                 
                 if decoded_char != null_character:
@@ -564,7 +569,10 @@ class ACNDecoder(Decoder):
                         error_code=ERROR_INVALID_VALUE,
                         error_message="Insufficient data for initial characters"
                     )
-                tmp[j] = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                tmp[j] = result.decoded_value
                 bits_consumed += 8
                 
             i = 0
@@ -584,7 +592,10 @@ class ACNDecoder(Decoder):
                         error_code=ERROR_INVALID_VALUE,
                         error_message="Insufficient data for next character"
                     )
-                tmp[null_size - 1] = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                tmp[null_size - 1] = result.decoded_value
                 bits_consumed += 8
                 
             # Convert bytes to ASCII string using common helper
@@ -822,7 +833,10 @@ class ACNDecoder(Decoder):
 
         try:
             # Read sign character first
-            sign_char = self._bitstream.read_bits(8)
+            result = self.read_byte()
+            if not result.success:
+                return result
+            sign_char = result.decoded_value
             if sign_char == ord('+'):
                 sign = 1
             elif sign_char == ord('-'):
@@ -861,7 +875,10 @@ class ACNDecoder(Decoder):
         """Decode signed integer from ASCII with variable size (length embedded)."""
         try:
             # Read length first (1 byte)
-            total_length = self._bitstream.read_bits(8)
+            result = self.read_byte()
+            if not result.success:
+                return result
+            total_length = result.decoded_value
             if total_length < 1:
                 return DecodeResult(
                     success=False,
@@ -899,9 +916,12 @@ class ACNDecoder(Decoder):
         
         try:
             bits_decoded = 0
-            
+
             # Read sign character first
-            sign_char = self._bitstream.read_bits(8)
+            result = self.read_byte()
+            if not result.success:
+                return result
+            sign_char = result.decoded_value
             bits_decoded += 8
             if sign_char == ord('+'):
                 is_negative = False
@@ -975,7 +995,10 @@ class ACNDecoder(Decoder):
         """Decode unsigned integer from ASCII with variable size (length embedded)."""
         try:
             # Read length first (1 byte)
-            total_length = self._bitstream.read_bits(8)
+            result = self.read_byte()
+            if not result.success:
+                return result
+            total_length = result.decoded_value
             if total_length < 1:
                 return DecodeResult(
                     success=False,
@@ -1034,32 +1057,6 @@ class ACNDecoder(Decoder):
     # ============================================================================
     # TYPED INTEGER DECODING FUNCTIONS (C Type Compatibility)
     # ============================================================================
-
-    def dec_int_positive_integer_const_size_uint8(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint8 not yet implemented")
-
-    def dec_int_positive_integer_const_size_uint16(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint16."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint16 not yet implemented")
-
-    def dec_int_positive_integer_const_size_uint32(self, encoded_size_in_bits: int) -> DecodeResult:
-        """Decode positive integer to uint32."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_uint32 not yet implemented")
-
-    def dec_int_positive_integer_const_size_8_uint8(self) -> DecodeResult:
-        """Decode 8-bit positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_8_uint8 not yet implemented")
-
-    def dec_int_positive_integer_const_size_big_endian_16_uint16(self) -> DecodeResult:
-        """Decode 16-bit big-endian positive integer to uint16."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint16 not yet implemented")
-
-    def dec_int_positive_integer_const_size_big_endian_16_uint8(self) -> DecodeResult:
-        """Decode 16-bit big-endian positive integer to uint8."""
-        raise NotImplementedError("dec_int_positive_integer_const_size_big_endian_16_uint8 not yet implemented")
-
-    # ============================================================================
     # BOOLEAN DECODING
     # ============================================================================
 
@@ -1081,16 +1078,6 @@ class ACNDecoder(Decoder):
 
     # ============================================================================
     # IEEE 754 REAL DECODING WITH FLOAT PRECISION
-    # ============================================================================
-
-    def dec_real_ieee754_32_big_endian_fp32(self) -> DecodeResult:
-        """Decode 32-bit IEEE 754 float (big-endian) with float precision."""
-        raise NotImplementedError("dec_real_ieee754_32_big_endian_fp32 not yet implemented")
-
-    def dec_real_ieee754_32_little_endian_fp32(self) -> DecodeResult:
-        """Decode 32-bit IEEE 754 float (little-endian) with float precision."""
-        raise NotImplementedError("dec_real_ieee754_32_little_endian_fp32 not yet implemented")
-
     # ============================================================================
     # HELPER METHODS
     # ============================================================================
@@ -1127,8 +1114,11 @@ class ACNDecoder(Decoder):
                         error_code=ERROR_INVALID_VALUE,
                         error_message=f"Insufficient data: need {characters_to_decode - i} more characters"
                     )
-                    
-                char_byte = self._bitstream.read_bits(8)
+
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                char_byte = result.decoded_value
                 chars.append(char_byte)
                 bits_consumed += 8
                 
@@ -1180,7 +1170,10 @@ class ACNDecoder(Decoder):
             unsigned_val = 0
             bytes_count = bits // 8
             for i in range(bytes_count):
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 unsigned_val = (unsigned_val << 8) | byte_val
 
             if signed:
@@ -1219,7 +1212,10 @@ class ACNDecoder(Decoder):
             unsigned_val = 0
             bytes_count = bits // 8
             for i in range(bytes_count):
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 unsigned_val |= (byte_val << (i * 8))
 
             if signed:
@@ -1247,12 +1243,6 @@ class ACNDecoder(Decoder):
 
     # ============================================================================
     # MILBUS FUNCTIONS
-    # ============================================================================
-
-    def milbus_decode(self, val: int) -> int:
-        """Decode value using MILBUS encoding."""
-        raise NotImplementedError("milbus_decode not yet implemented")
-
     # ============================================================================
     # CHARACTER INDEX STRING DECODING HELPER METHODS
     # ============================================================================
@@ -1310,8 +1300,11 @@ class ACNDecoder(Decoder):
                     )
                     
                 # Read character index as constrained integer (0 to char_set_size-1)
-                char_index = self._bitstream.read_bits(bits_per_char)
-                
+                result = self.decode_unsigned_integer(bits_per_char)
+                if not result.success:
+                    return result
+                char_index = result.decoded_value
+
                 # Validate index is within allowed range
                 if char_index >= char_set_size:
                     return DecodeResult(
@@ -1360,11 +1353,14 @@ class ACNDecoder(Decoder):
         # Based on C implementation in asn1crt_encoding_acn.c:684-704
         try:
             value = 0
-            
+
             # Read each digit character and convert to integer
             for _ in range(encoded_size_in_bytes):
-                digit_char = self._bitstream.read_bits(8)
-                
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                digit_char = result.decoded_value
+
                 # Validate digit character is in valid range '0'-'9'
                 if digit_char < ord('0') or digit_char > ord('9'):
                     return DecodeResult(
@@ -1402,7 +1398,10 @@ class ACNDecoder(Decoder):
             # Read initial buffer to match null terminator size
             buffer = []
             for _ in range(null_size):
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 buffer.append(byte_val)
                 bits_decoded += 8
             
@@ -1425,7 +1424,10 @@ class ACNDecoder(Decoder):
                 
                 # Shift buffer left and read next byte
                 buffer = buffer[1:]
-                byte_val = self._bitstream.read_bits(8)
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                byte_val = result.decoded_value
                 buffer.append(byte_val)
                 bits_decoded += 8
             

@@ -27,7 +27,7 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
-ret: int = 0
+return Asn1ConstraintValidResult(True)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -207,7 +207,7 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> Boolean:
+def chars_are_valid(self) -> bool:
     valid: bool = True
     i: int = 0
     while valid and i \< len(self) and self[i] != CHAR_0000:
@@ -272,7 +272,6 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-# isvalid_python.stg 276
 (<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
 >>
 
@@ -283,30 +282,32 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 # isvalid_python.stg 286
-if <p> == <sChPresent>:
+if self.kind == <sChPresent>:
     <sInnerStatement>
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
 # isvalid_python.stg 292
-<p> == <sChPresent>
+self.kind == <sChPresent>
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 # isvalid_python.stg 297
-<p> != <sChPresent>
+self.kind != <sChPresent>
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
 # isvalid_python.stg 302
-case <sChPresent>:
+if self.kind == <sChPresent>:
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
-match <p>:
-    <arrsChildren; separator="\n">
+<! todo: If the separator gets replaced by "\nel", the consecutive children will start with "elif" instead of "if" !>
+<arrsChildren; separator="\n">
+else:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/

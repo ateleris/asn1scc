@@ -282,7 +282,8 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
+    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection
+    abstract member getSeqChildDependingOnChoiceParent: parents: (CallerScope * Asn1AcnAst.Asn1Type) list -> sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection
     //return a string that contains code with a boolean expression that is true if the child is present
     abstract member getSeqChildIsPresent   : Selection -> string -> string
     abstract member getChChildIsPresent   : Selection -> string -> string-> string
@@ -297,7 +298,8 @@ type ILangGeneric () =
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
 
-    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
+    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope
+    abstract member getParamTypeAtc : Asn1AcnAst.Asn1Type -> Codec -> CallerScope
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -366,9 +368,13 @@ type ILangGeneric () =
     abstract member generateSequenceOfSizeDefinitions: Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> BigInteger -> BigInteger-> SIZE -> Asn1AcnAst.SizeableAcnEncodingClass -> AcnGenericTypes.AcnAlignment option -> AcnGenericTypes.AcnAlignment option -> Asn1AcnAst.Asn1Type -> string list * string list
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
+    abstract member getTypeBasedSuffix: FunctionType -> Asn1AcnAst.Asn1TypeKind -> string
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
+    
+    default this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+        this.getParamType t c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
@@ -411,6 +417,8 @@ type ILangGeneric () =
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
         | _     -> None
 
+    default this.getSeqChildDependingOnChoiceParent (parents: (CallerScope * Asn1AcnAst.Asn1Type) list) (p: Selection) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+        this.getSeqChild p childName childTypeIsString childIsOptional
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
@@ -447,6 +455,7 @@ type ILangGeneric () =
     default _.isFilenameCaseSensitive = false
     default _.getBoardNames _ = []
     default _.getBoardDirs  _ = []
+    default _.getTypeBasedSuffix _ _ = ""
 
 
 type LanguageMacros = {

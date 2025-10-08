@@ -32,7 +32,7 @@ class DeviceAddress(Asn1Base):
         if check_constraints:
             res = self.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed.")
+                raise Asn1Exception("Constraint validation failed.")
         codec.encode_integer(self.val.value, 0, 0)
 
     @classmethod
@@ -43,7 +43,7 @@ class DeviceAddress(Asn1Base):
         if check_constraints:
             res = instance.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed. Decoding failed.")
+                raise Asn1Exception("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
@@ -78,7 +78,7 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
         if check_constraints:
             ret = self.is_constraint_valid()
             if not ret:
-                raise Asn1Error("Constraint validation failed. Encoding failed.")
+                raise Asn1Exception("Constraint validation failed. Encoding failed.")
         codec.encode_constraint_whole_number(self.nCount, 1, 63)
         for val in self.arr:
             val.encode(codec)
@@ -93,7 +93,7 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
         if check_constraints:
             ret = instance.is_constraint_valid()
             if not ret:
-                raise Asn1Error("Constraint validation failed. Decoding failed.")
+                raise Asn1Exception("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
@@ -123,7 +123,7 @@ class TC_2_1_DistributeOnOffDeviceCommands:
         if check_constraints:
             res = self.is_constraint_valid()
             if not res:
-                raise Asn1Error("Constraint validation failed. Encoding failed.")
+                raise Asn1Exception("Constraint validation failed. Encoding failed.")
         self.onOffDeviceAddresses.encode(codec)
 
     @classmethod
@@ -133,7 +133,7 @@ class TC_2_1_DistributeOnOffDeviceCommands:
         if check_constraints:
             ret = instance.is_constraint_valid()
             if not ret:
-                raise Asn1Error("Constraint validation failed. Decoding failed.")
+                raise Asn1Exception("Constraint validation failed. Decoding failed.")
         return instance
 
     @staticmethod
