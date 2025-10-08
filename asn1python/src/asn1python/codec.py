@@ -41,6 +41,10 @@ class EncodeResult:
     bits_encoded: int = 0
     error_message: Optional[str] = None
 
+    def __bool__(self) -> bool:
+        return self.success
+
+
 TDVal = TypeVar('TDVal')
 
 @dataclass
@@ -52,10 +56,14 @@ class DecodeResult(Generic[TDVal]):
     bits_consumed: int = 0
     error_message: Optional[str] = None
 
+    def __bool__(self) -> bool:
+        return self.success
+
 
 class CodecError(Asn1Exception):
     """Base class for codec errors"""
     pass
+
 
 T = TypeVar('T', bound='Codec')
 class Codec(Generic[T]):

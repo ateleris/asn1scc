@@ -16,7 +16,7 @@ int(<p><sAcc>nCount)
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
 # acn_python.stg 18
-<sErrCode>: int = <nErrValue>  # <soErrorCodeComment>
+<sErrCode> = <nErrValue>  # <soErrorCodeComment>
 >>
 
 EmitAcnParameter(sName, sType) ::= "<sName>: <sType>  # TODO acn:11"
@@ -27,9 +27,10 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 # acn_python.stg 29
-<arrsErrcodes; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: int = <nMaxBytesInACN>
-<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: int = <nMaxBitsInACN>
+class EncodeConstants:
+    <arrsErrcodes; separator="\n">
+    <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
+    <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
@@ -53,7 +54,8 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> Unio
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 # acn_python.stg 55
-<arrsErrcodes; separator="\n">
+class DecodeConstants:
+    <arrsErrcodes; separator="\n">
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
@@ -585,7 +587,7 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 codec_0_1 = codec.copy()
 <endif>
 
-<p>_nCount = int(codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>))
+<p>_nCount = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>).decoded_value
 # Bit validation would go here
 <soCallAux>
 >>
