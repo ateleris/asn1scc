@@ -30,25 +30,17 @@ def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
     return start == end or (b1 & mask) == (b2 & mask)
 
 @Pure
-def bytearray_range_eq(b1: bytearray, b2: bytearray, start: int, end: int) -> bool:
+def intseq_range_eq(b1: PIntSeq, b2: PIntSeq, start: int, end: int) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [start, end["""
-    Requires(Rd(bytearray_pred(b1)))
-    Requires(Rd(bytearray_pred(b2)))
     Requires(len(b1) <= len(b2))
     Requires(0 <= start and start <= end and end <= len(b1))
-    return start == end or (Forall(int, lambda i: (Implies(start <= i and i < end, b1[i] == b2[i]), [[b1[i]], [b2[i]]])))
+    return start == end or b1.range(start, end) == b2.range(start, end)
 
 @Pure
-def bytearray_eq(b1: bytearray, b2: bytearray) -> bool:
-    Requires(Rd(bytearray_pred(b1)))
-    Requires(Rd(bytearray_pred(b2)))
-    return len(b1) == len(b2) and bytearray_range_eq(b1, b2, 0, len(b1))
-
-@Pure
-def bytearray_bit_range_eq(b1: bytearray, b2: bytearray, start_bit: int, end_bit: int) -> bool:
-    Requires(Rd(bytearray_pred(b1)))
-    Requires(Rd(bytearray_pred(b2)))
+def intseq_bit_range_eq(b1: PIntSeq, b2: PIntSeq, start_bit: int, end_bit: int) -> bool:
     Requires(len(b1) <= len(b2))
+    Requires(Forall(b1, lambda b: 0 <= b and b <= 0xFF))
+    Requires(Forall(b2, lambda b: 0 <= b and b <= 0xFF))
     Requires(0 <= start_bit and start_bit <= end_bit and end_bit <= len(b1) * 8)
 
     if start_bit == end_bit:
@@ -62,7 +54,7 @@ def bytearray_bit_range_eq(b1: bytearray, b2: bytearray, start_bit: int, end_bit
     rest_end = end_bit % 8
 
     return (Implies(full_byte_start < full_byte_end, 
-                    bytearray_range_eq(b1, b2, full_byte_start, full_byte_end)) and
+                    intseq_range_eq(b1, b2, full_byte_start, full_byte_end)) and
             Implies(rest_start_byte == rest_end_byte, 
                     byte_range_eq(b1[rest_start_byte], b2[rest_start_byte], rest_from, rest_end)) and
             Implies(rest_start_byte < rest_end_byte, 
