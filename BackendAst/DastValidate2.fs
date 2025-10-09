@@ -220,7 +220,6 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
                 v.IDQ
         lm.isvalid.stringContainsChar newStr
 
-    let alphaFuncName = ToC (((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
         let valToStrFunc1 v = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "ord(" + v.ToString().ISQ + ")" | _ -> v.ToString().ISQ
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
@@ -232,6 +231,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
             c
             st
 
+    let typeName = typeId.AcnAbsPath |> Seq.last |> ToC
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
         (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) v.IDQ))  ,s)
         (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen (p.accessPath.joined lm.lg)) intCon s)
@@ -244,12 +244,12 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
                 | VCBTrue           -> "TRUE"
                 | VCBFalse          -> "FALSE"
 
-            let alphaFuncName = sprintf "%s_%d" alphaFuncName s.alphaIndex
+            let alphaFuncName = lm.isvalid.alphaFuncNameWithIndex typeName s.alphaIndex
             let funcBody p = print_AlphabetCheckFunc alphaFuncName [alphaBody p]
             let alphaFunc = {AlphaFunc.funcName = alphaFuncName; funcBody = funcBody }
 
             let newState = {s with alphaIndex = s.alphaIndex + 1; alphaFuncs = alphaFunc::s.alphaFuncs}
-            let retFnc p = VCBExpression (sprintf "%s(%s)" alphaFuncName (p.accessPath.joined lm.lg))
+            let retFnc p = VCBExpression (lm.isvalid.callAlphaFuncWithIndex typeName (p.accessPath.joined lm.lg) s.alphaIndex)
             retFnc, newState)
         c
         us0

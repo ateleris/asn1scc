@@ -243,6 +243,9 @@ AllExceptConstraint(sCon)  ::= "(not <sCon>)"
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
 
 callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
+callAlphaFuncWithIndex(sFuncName, p, idx) ::= "<p>.chars_are_valid()"
+alphaFuncBaseName(p) ::= "<p>.chars_are_valid"
+alphaFuncNameWithIndex(p, idx) ::= "<p>.chars_are_valid_<idx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 

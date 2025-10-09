@@ -25,8 +25,8 @@ from dataclasses import dataclass, field
 
 
 <if(arrsValueAssignments)>
-# Value Assignments:
-<arrsValueAssignments:{vas|<vas>}; separator="\n">
+# Value Assignments (currently not printed! Probably not necessary in Python?):
+<!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
 
