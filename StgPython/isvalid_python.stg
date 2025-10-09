@@ -15,8 +15,7 @@ if not isinstance(ret, Asn1SccError):
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 # isvalid_python.stg 15
 <sStr1>
-if ret:
-    <sStr2>
+<sStr2>
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
@@ -32,17 +31,21 @@ return Asn1ConstraintValidResult(True)
 
 always_false_statement(sErrorCodeName)::= <<
 # isvalid_python.stg 33
-ret = Asn1SccError(<sErrorCodeName>)
+return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
 ret = <sIsValidExp>
+if not ret:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=-1)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 # isvalid_python.stg 43
 ret = <sIsValidExp>
+if not ret:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
@@ -57,7 +60,7 @@ ret: int = 0
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
 # isvalid_python.stg 58
-ret = Asn1SccError(<sErrCode>)
+ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 /*
@@ -84,7 +87,7 @@ def <sFuncName>(self) -> Asn1ConstraintValidResult:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return ret
+    return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
@@ -210,7 +213,7 @@ Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 def chars_are_valid(self) -> bool:
     valid: bool = True
     i: int = 0
-    while valid and i \< len(self) and self[i] != CHAR_0000:
+    while valid and i \< len(self) and self[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
     return valid
@@ -225,7 +228,7 @@ SingleValConstraint(p, v) ::= "(<p> == <v>)"
 
 
 
-stringContainsChar(sStrVal, p) ::= "<sStrVal>.contains(<p>)"
+stringContainsChar(sStrVal, p) ::= "<p> in <sStrVal>"
 
 RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> and <p> \<<if(bMax)>=<endif> <v2>)"
 
@@ -243,9 +246,9 @@ AllExceptConstraint(sCon)  ::= "(not <sCon>)"
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
 
 callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
-callAlphaFuncWithIndex(sFuncName, p, idx) ::= "<p>.chars_are_valid()"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid()"
 alphaFuncBaseName(p) ::= "<p>.chars_are_valid"
-alphaFuncNameWithIndex(p, idx) ::= "<p>.chars_are_valid_<idx>"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>.chars_are_valid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 

@@ -228,9 +228,9 @@ AllExceptConstraint(sCon)  ::= "(!<sCon>)"
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> &&  !<sCon2>)"
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
-callAlphaFuncWithIndex(sFuncName, p, idx) ::= "<sFuncName>_CharsAreValid_<idx>(<p>)"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<sFuncName>_CharsAreValid_<nIdx>(<p>)"
 alphaFuncBaseName(p) ::= "<p>_CharsAreValid"
-alphaFuncNameWithIndex(p, idx) ::= "<p>_CharsAreValid_<idx>"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>_CharsAreValid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
 
