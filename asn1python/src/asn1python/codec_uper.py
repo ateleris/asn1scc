@@ -28,7 +28,7 @@ class UPERCodec(Codec):
         new_codec._bitstream.reset()
         if len(current_data) > 0:
             new_codec._bitstream.write_bytes(current_data)
-        new_codec._bitstream.set_bit_position(curret_position)
+        new_codec._bitstream.set_bit_index(curret_position)
 
         return new_codec
 
@@ -107,7 +107,7 @@ class UPERCodec(Codec):
             bits_consumed = length_result.bits_consumed
 
             # Decode the integer value from octets
-            if self._bitstream.bits_remaining() < octets_count * 8:
+            if self._bitstream.remaining_bits < octets_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -202,7 +202,7 @@ class UPERCodec(Codec):
             bits_consumed = length_result.bits_consumed
 
             # Decode the integer value from octets
-            if self._bitstream.bits_remaining() < octets_count * 8:
+            if self._bitstream.remaining_bits < octets_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -318,7 +318,7 @@ class UPERCodec(Codec):
                 )
 
             # Read IEEE 754 bytes
-            if self._bitstream.bits_remaining() < 64:
+            if self._bitstream.remaining_bits < 64:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -398,7 +398,7 @@ class UPERCodec(Codec):
     def _decode_length_determinant(self) -> DecodeResult[int]:
         """Decode a length determinant according to UPER rules"""
         try:
-            if self._bitstream.bits_remaining() < 8:
+            if self._bitstream.remaining_bits < 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -417,7 +417,7 @@ class UPERCodec(Codec):
                 )
             elif (first_byte & 0xC0) == 0x80:
                 # Medium form: 10xxxxxx xxxxxxxx
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,

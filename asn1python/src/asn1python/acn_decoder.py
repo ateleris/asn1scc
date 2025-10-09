@@ -22,8 +22,8 @@ class ACNDecoder(Decoder):
     def __init__(self, buffer: bytearray) -> None:
         super().__init__(buffer=buffer)
         
-    def _construct(self, buffer_bit_size: int) -> 'ACNDecoder':
-        return ACNDecoder(bytearray(buffer_bit_size))
+    def _construct(self, buffer: bytearray) -> 'ACNDecoder':
+        return ACNDecoder(buffer)
 
     # ============================================================================
     # INTEGER DECODING - POSITIVE INTEGER
@@ -73,7 +73,7 @@ class ACNDecoder(Decoder):
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
-            if self._bitstream.bits_remaining() < bytes_count * 8:
+            if self._bitstream.remaining_bits < bytes_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -168,7 +168,7 @@ class ACNDecoder(Decoder):
             bytes_count = length_result.decoded_value
             bits_consumed = length_result.bits_consumed
 
-            if self._bitstream.bits_remaining() < bytes_count * 8:
+            if self._bitstream.remaining_bits < bytes_count * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -210,7 +210,7 @@ class ACNDecoder(Decoder):
     def dec_int_bcd_const_size(self, encoded_size_in_nibbles: int) -> DecodeResult[int]:
         """Decode integer from BCD format with constant size in nibbles."""
         try:
-            if self._bitstream.bits_remaining() < encoded_size_in_nibbles * 4:
+            if self._bitstream.remaining_bits < encoded_size_in_nibbles * 4:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -281,7 +281,7 @@ class ACNDecoder(Decoder):
             bits_consumed = 0
 
             while True:
-                if self._bitstream.bits_remaining() < 4:
+                if self._bitstream.remaining_bits < 4:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
@@ -326,7 +326,7 @@ class ACNDecoder(Decoder):
     def dec_real_ieee754_32_big_endian(self) -> DecodeResult[float]:
         """Decode 32-bit IEEE 754 float (big-endian)."""
         try:
-            if self._bitstream.bits_remaining() < 32:
+            if self._bitstream.remaining_bits < 32:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -356,7 +356,7 @@ class ACNDecoder(Decoder):
     def dec_real_ieee754_32_little_endian(self) -> DecodeResult[float]:
         """Decode 32-bit IEEE 754 float (little-endian)."""
         try:
-            if self._bitstream.bits_remaining() < 32:
+            if self._bitstream.remaining_bits < 32:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -386,7 +386,7 @@ class ACNDecoder(Decoder):
     def dec_real_ieee754_64_big_endian(self) -> DecodeResult[float]:
         """Decode 64-bit IEEE 754 double (big-endian)."""
         try:
-            if self._bitstream.bits_remaining() < 64:
+            if self._bitstream.remaining_bits < 64:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -416,7 +416,7 @@ class ACNDecoder(Decoder):
     def dec_real_ieee754_64_little_endian(self) -> DecodeResult[float]:
         """Decode 64-bit IEEE 754 double (little-endian)."""
         try:
-            if self._bitstream.bits_remaining() < 64:
+            if self._bitstream.remaining_bits < 64:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -450,7 +450,7 @@ class ACNDecoder(Decoder):
     def dec_length(self, length_size_in_bits: int) -> DecodeResult[int]:
         """Decode length value with specified size in bits."""
         try:
-            if self._bitstream.bits_remaining() < length_size_in_bits:
+            if self._bitstream.remaining_bits < length_size_in_bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -503,7 +503,7 @@ class ACNDecoder(Decoder):
             
             # Read characters until null terminator or max_len (null terminated specific logic)
             while i <= max_len and not end_reached:
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
@@ -563,7 +563,7 @@ class ACNDecoder(Decoder):
             
             # Read initial null_size characters into tmp buffer
             for j in range(null_size):
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
@@ -586,7 +586,7 @@ class ACNDecoder(Decoder):
                     tmp[j] = tmp[j + 1]
                     
                 # Read next character into last position of tmp
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
@@ -1108,7 +1108,7 @@ class ACNDecoder(Decoder):
             bits_consumed = 0
             
             for i in range(characters_to_decode):
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,
@@ -1160,7 +1160,7 @@ class ACNDecoder(Decoder):
     def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult[int]:
         """Helper method to decode integer in big-endian format."""
         try:
-            if self._bitstream.bits_remaining() < bits:
+            if self._bitstream.remaining_bits < bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -1202,7 +1202,7 @@ class ACNDecoder(Decoder):
     def _decode_integer_little_endian(self, bits: int, signed: bool) -> DecodeResult[int]:
         """Helper method to decode integer in little-endian format."""
         try:
-            if self._bitstream.bits_remaining() < bits:
+            if self._bitstream.remaining_bits < bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -1292,7 +1292,7 @@ class ACNDecoder(Decoder):
             bits_consumed = 0
             
             for i in range(characters_to_decode):
-                if self._bitstream.bits_remaining() < bits_per_char:
+                if self._bitstream.remaining_bits < bits_per_char:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INVALID_VALUE,

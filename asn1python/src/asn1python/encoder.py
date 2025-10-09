@@ -9,8 +9,8 @@ from .decoder import Decoder
 
 class Encoder(Codec, ABC):
 
-    def __init__(self, buffer_bit_size: int = 0 * 1024 * 1024) -> None:
-        super().__init__(buffer_bit_size=buffer_bit_size)
+    def __init__(self, buffer_byte_size: int = 1024 * 1024) -> None:
+        super().__init__(bytearray(buffer_byte_size))
 
     @abstractmethod
     def get_decoder(self) -> Decoder:
