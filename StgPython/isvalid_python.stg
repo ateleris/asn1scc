@@ -38,7 +38,7 @@ makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
 ret = <sIsValidExp>
 if not ret:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=-1)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
