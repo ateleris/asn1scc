@@ -130,14 +130,13 @@ initNull(sVal, bIsOptional, sResVar) ::= <<
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
 # init_python.stg 133
 <if(bZero)>
-<sResVar> = [0] * <nMaxSizePlusOne>
+<sResVar> = [0] * (<nMaxSizePlusOne> - 1)
 <else>
 <if(bAlpha)>
-# todo: maybe we need to wrap all hex numbers in chr()
 allowed_char_set = [<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
-<sResVar> = <td.asn1name>([(0 if <i> == <nMaxSizePlusOne> - 1 else allowed_char_set[<i> % <nAlphabetLength>]) for <i> in range(<nSize>)] + [0])
+<sResVar> = <td.asn1name>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
 <else>
-<sResVar> = <td.asn1name>([(0 if <i> == <nMaxSizePlusOne> - 1 else (ord('A') if <i> % 128 == 0 else <i> % 128)) for <i> in range(<nSize>)] + [0])
+<sResVar> = <td.asn1name>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
 <endif>
 <endif>
 >>

@@ -96,20 +96,22 @@ if not codec.read_byte(<p><sAcc>arr(<i>)):
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
 # uper_python.stg 108
-allowedCharSet: List[Byte] = list(<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">)
+allowedCharSet: bytes = bytes([<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">])
 >>
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 # uper_python.stg 113
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-charIndex: int = GetCharIndex(<p>(<i>), allowedCharSet)
+charIndex: int = allowedCharSet.index(<p>[<i>])
 codec.encode_constrained_whole_number(charIndex, 0, <nLastItemIndex>)
 >>
 
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 # uper_python.stg 120
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-<p>_arr_<i>_ = allowedCharSet(int(codec.decode_constrained_whole_number(0, <nLastItemIndex>)))
+res = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
+if res.success:
+    <p>_arr.append(allowedCharSet[int(res.decoded_value)])
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -442,10 +444,8 @@ sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 # uper_python.stg 453
-<i>: int = 0
-while <i> \< int(<fixedSize>):
+for <i> in range(<fixedSize>):
     <sInternalItem>
-    <i> += 1
 >>
 
 
@@ -453,18 +453,20 @@ while <i> \< int(<fixedSize>):
 
 str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 464
-<if(bIntroSnap)>
-# @ghost val codec_0_1 = snapshot(codec)
-<endif>
+
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+
+# todo: replace with better call to:
+#codec.enc_string_char_index_external_field_determinant(<nIntItemMaxSize>, allowedCharSet, "".join([chr(k) for k in self]))
 
 <soCallAux>
 >>
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 473
-<if(bIntroSnap)>
-# @ghost val codec_0_1 = snapshot(codec)
-<endif>
+<p>_arr = []
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+<p> = cls(<p>_arr)
 
 <soCallAux>
 >>

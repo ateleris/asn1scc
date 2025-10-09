@@ -230,7 +230,7 @@ SingleValConstraint(p, v) ::= "(<p> == <v>)"
 
 
 
-stringContainsChar(sStrVal, p) ::= "<p> in <sStrVal>"
+stringContainsChar(sStrVal, p) ::= "chr(<p>) in <sStrVal>"
 
 RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> and <p> \<<if(bMax)>=<endif> <v2>)"
 

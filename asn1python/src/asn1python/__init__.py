@@ -19,6 +19,9 @@ from .asn1_types import (
     Asn1TimeWithTimeZone, Asn1DateLocalTime,
     Asn1DateUtcTime, Asn1DateTimeWithTimeZone,
 
+    # Constraint Validation
+    Asn1ConstraintValidResult,
+    
     # Error handling
     Asn1Exception, Asn1InvalidValueException, Asn1OverflowException, Asn1ValueOutOfRangeException, Asn1ValueUnexpectedEndOfDataException,
     
@@ -72,6 +75,9 @@ __all__ = [
     # Base Class
     "Asn1Base",
 
+    # Constraint Validation
+    "Asn1ConstraintValidResult",
+    
     # Errors
     "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException", "Asn1ValueOutOfRangeException", "Asn1ValueUnexpectedEndOfDataException",
 
