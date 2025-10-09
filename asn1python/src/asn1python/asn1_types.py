@@ -34,6 +34,26 @@ class Asn1OverflowException(Asn1Exception):
     """Raised when an arithmetic operation would cause overflow"""
     pass
 
+class Asn1TestcaseError(Asn1Exception):
+    """Base Class for Testcase Errors"""
+    pass
+
+class Asn1TestcaseEncodeFailedError(Asn1TestcaseError):
+    """Raised when the encoding fails in a testcase"""
+    pass
+
+class Asn1TestcaseDecodeFailedError(Asn1TestcaseError):
+    """Raised when the decoding fails in a testcase"""
+    pass
+
+class Asn1TestcaseConstraintFailedError(Asn1TestcaseError):
+    """Raised when the constraint validation fails in a testcase"""
+    pass
+
+class Asn1TestcaseDifferentResultError(Asn1TestcaseError):
+    """Raised when the decoding of the encoded object yields a different result in a testcase"""
+    pass
+
 @dataclass(frozen=True)
 class Asn1ConstraintValidResult:
     is_valid: bool

@@ -20,7 +20,10 @@ from .asn1_types import (
     Asn1DateUtcTime, Asn1DateTimeWithTimeZone,
 
     # Error handling
-    Asn1Exception, Asn1InvalidValueException, Asn1OverflowException,
+    Asn1Exception, Asn1InvalidValueException, Asn1OverflowException, Asn1ValueOutOfRangeException, Asn1ValueUnexpectedEndOfDataException,
+    
+    # Testcase Errors
+    Asn1TestcaseError, Asn1TestcaseEncodeFailedError, Asn1TestcaseDecodeFailedError, Asn1TestcaseConstraintFailedError, Asn1TestcaseDifferentResultError
 )
 
 from .bitstream import BitStream, BitStreamError
@@ -70,8 +73,11 @@ __all__ = [
     "Asn1Base",
 
     # Errors
-    "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException",
+    "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException", "Asn1ValueOutOfRangeException", "Asn1ValueUnexpectedEndOfDataException",
 
+    # Testcase Errors
+    "Asn1TestcaseError", "Asn1TestcaseEncodeFailedError", "Asn1TestcaseDecodeFailedError", "Asn1TestcaseConstraintFailedError", "Asn1TestcaseDifferentResultError",
+    
     # Bitstream
     "BitStream", "BitStreamError",
 
