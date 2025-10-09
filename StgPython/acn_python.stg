@@ -40,7 +40,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> None
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
-        res = <sVarName>.<soIValidFuncName>()
+        res = self.<soIValidFuncName>()
         if not res:
             raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
     <endif>

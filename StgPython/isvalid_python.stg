@@ -84,11 +84,10 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 # isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(self) -> Asn1ConstraintValidResult:
-    ret = Asn1ConstraintValidResult(is_valid=True)
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return ret
+    return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
