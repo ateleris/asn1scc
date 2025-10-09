@@ -21,10 +21,7 @@ from ..asn1python import *
 
 Codec_Encode(sModName, sFuncName, sVal) ::= <<
 # test_cases_python.stg:54
-res = <sVal>.encode(encoder, True)
-if not res:
-    # test_cases_python.stg 35
-    return res
+<sVal>.encode(encoder, True)
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
@@ -34,10 +31,6 @@ decoder = encoder.get_decoder()
 
 # Decode value
 res = <sTasName>.decode(decoder)
-
-if not res:
-    # test_cases_python.stg 45
-    return res
 decodedPDU = res
 >>
 
@@ -61,7 +54,7 @@ res = decodedPDU.<sFuncName>()
 
 if not res:
     # test_cases_python.stg 68
-    return res
+    raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
 >>
 
 Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<

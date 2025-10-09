@@ -139,7 +139,9 @@ IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
 # uper_python.stg 150
 <soRangeAssert>
-codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
+res = codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
+if not res:
+    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
