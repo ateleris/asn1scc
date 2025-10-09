@@ -128,14 +128,14 @@ type LangGeneric_python() =
 
     override _.supportsInitExpressions = true
 
-    override this.getPointer (sel: Selection) = sel.joined this
+    override this.getPointer (sel: AccessPath) = sel.joined this
 
-    override this.getValue (sel: Selection) = sel.joined this        
-    override this.getValueUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
-    override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
-    override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
-        let len = sel.path.Length
-        let receiverPrefix = if isClassVariable sel.receiverId then "self." else ""
+    override this.getValue (sel: AccessPath) = sel.joined this        
+    override this.getValueUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+    override this.getPointerUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+    override _.joinSelectionUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) =
+        let len = sel.steps.Length
+        let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
         List.fold (fun str (ix, accessor) ->
             let accStr =
                 match accessor with
@@ -145,11 +145,11 @@ type LangGeneric_python() =
                     if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
                 | ArrayAccess (ix, _) -> $"[{ix}]"
             $"{str}{accStr}"
-        ) (receiverPrefix + sel.receiverId) (List.indexed sel.path)
+        ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
     
-    override this.getAccess (sel: Selection) = "."
+    override this.getAccess (sel: AccessPath) = "."
 
-    override this.getAccess2 (acc: Accessor) =
+    override this.getAccess2 (acc: AccessStep) =
         match acc with
             | ValueAccess (sel, _, _) -> $".{sel}"
             | PointerAccess (sel, _, _) -> $".{sel}"
@@ -163,8 +163,8 @@ type LangGeneric_python() =
 
     override _.real_annotations = []
 
-    override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) = 
-        (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+    override this.getArrayItem (sel: AccessPath) (idx:string) (childTypeIsString: bool) = 
+        (sel.appendSelection "arr" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
         let itemname =
@@ -268,13 +268,13 @@ type LangGeneric_python() =
     override this.requiresValueAssignmentsInSrcFile = false
     override this.supportsStaticVerification = false
 
-    override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
+    override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
         sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName
 
-    override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
-        sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+    override this.getSeqChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+        sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) childIsOptional
     
-    override this.getSeqChildDependingOnChoiceParent (parents: (CallerScope * Asn1AcnAst.Asn1Type) list) (p: Selection) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+    override this.getSeqChildDependingOnChoiceParent (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list) (p: AccessPath) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
         // Check if parent is a Choice
         let isParentChoice =
             match parents with
@@ -287,8 +287,8 @@ type LangGeneric_python() =
         // In python, if the parent is a Choice, we must not return the full name, because the accessor will be self.data
         if isParentChoice then p else this.getSeqChild p childName childTypeIsString childIsOptional
             
-    override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
-        sel.appendSelection "data" Value false
+    override this.getChChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) : AccessPath =
+        sel.appendSelection "data" ByValue false
 
     override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) = ""
 
@@ -310,16 +310,16 @@ type LangGeneric_python() =
             | None -> ""
         parentName + (ToC ch.present_when_name)
 
-    override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+    override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CodegenScope =
         let p = this.getParamType t c
-        {p with arg.receiverId = p.arg.receiverId + suf}
+        {p with accessPath.rootId = p.accessPath.rootId + suf}
     
-    override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+    override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
             match kind with
-            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
+            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
-            | _ -> Pointer
+            | _ -> ByPointer
         let recvId = match c with
                         | Decode -> "instance"
                         | Encode ->
@@ -327,13 +327,13 @@ type LangGeneric_python() =
                             | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
                             | _ -> "self"                           // For class methods, the receiver is always "self"
         
-        {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+        {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
     
-    override this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+    override this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         let res = this.getParamType t c
-        {res with arg.receiverId = "inputVal"}
+        {res with accessPath.rootId = "inputVal"}
             
-    override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
+    override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:AccessPath) (c:Codec) =
         p.joined this
 
     override this.getLocalVariableDeclaration (lv:LocalVariable) : string =
@@ -380,7 +380,7 @@ type LangGeneric_python() =
          Directory.CreateDirectory di.asn1rtlDir |> ignore         
          di
 
-    override this.getChChildIsPresent (arg:Selection) (chParent:string) (pre_name:string) =
+    override this.getChChildIsPresent (arg:AccessPath) (chParent:string) (pre_name:string) =
         sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
 
     override this.CreateMakeFile (r:AstRoot) (di:DirInfo) =

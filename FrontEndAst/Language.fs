@@ -283,7 +283,7 @@ type ILangGeneric () =
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
     abstract member getSeqChild: sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath
-    abstract member getSeqChildDependingOnChoiceParent: parents: (CallerScope * Asn1AcnAst.Asn1Type) list -> sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath
+    abstract member getSeqChildDependingOnChoiceParent: parents: (CodegenScope * Asn1AcnAst.Asn1Type) list -> sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath
     //return a string that contains code with a boolean expression that is true if the child is present
     abstract member getSeqChildIsPresent   : AccessPath -> string -> string
     abstract member getChChildIsPresent   : AccessPath -> string -> string-> string
@@ -417,7 +417,7 @@ type ILangGeneric () =
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
         | _     -> None
 
-    default this.getSeqChildDependingOnChoiceParent (parents: (CallerScope * Asn1AcnAst.Asn1Type) list) (p: Selection) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+    default this.getSeqChildDependingOnChoiceParent (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list) (p: AccessPath) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
         this.getSeqChild p childName childTypeIsString childIsOptional
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
@@ -448,7 +448,7 @@ type ILangGeneric () =
     default this.generateChoiceSizeDefinitions _ _ _ _ _ _ = []
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ = []
-    default this.joinSelection sel = List.fold (fun str accessor -> $"{str}{this.getAccess2 accessor}") sel.receiverId sel.path
+    default this.joinSelection sel = List.fold (fun str accessor -> $"{str}{this.getAccess2 accessor}") sel.rootId sel.steps
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
@@ -475,7 +475,6 @@ type LanguageMacros = {
 type AccessPath with
     member this.joined (lg: ILangGeneric): string =
         lg.joinSelection this
-        //List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.rootId this.steps
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
     member this.asIdentifier: string =

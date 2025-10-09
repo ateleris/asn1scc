@@ -317,19 +317,12 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
 
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
     let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
-
-    // changes from ESA/master:
-    // let p : CodegenScope = lm.lg.getParamType t codec
-    // let varName = p.accessPath.rootId
-    // let sStar = lm.lg.getStar p.accessPath
     
-    // changes from ats:
     let sf = lm.lg.getTypeBasedSuffix FunctionType.AcnEncDecFunctionType t.Kind
-    let p : CallerScope = lm.lg.getParamTypeSuffix t sf codec
-    let varName = p.arg.receiverId
-    let sStar = lm.lg.getStar p.arg
-    
-    // end changes
+    let p : CodegenScope = lm.lg.getParamTypeSuffix t sf codec
+    let varName = p.accessPath.rootId
+    let sStar = lm.lg.getStar p.accessPath
+
     let sInitialExp = ""
     let func, funcDef, auxiliaries, icdResult, ns2  =
             match funcNameAndtasInfo  with
@@ -2514,7 +2507,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
   //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
   let getNewSType (r:IcdRow) =
