@@ -56,7 +56,6 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
 # isvalid_python.stg 53
-ret: int = 0
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<

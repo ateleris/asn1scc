@@ -571,7 +571,7 @@ octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
 # uper_python.stg 531
 res = codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<nFixedSize>))
 if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception: {res.error_message}")
 >>
 
 octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
