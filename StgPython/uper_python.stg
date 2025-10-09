@@ -144,7 +144,10 @@ codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
 # uper_python.stg 156
-<p> = codec.decode_constrained_pos_whole_number<sSsuffix>(<nMin>, <nMax>) # uper:135
+decode_result = codec.decode_constrained_pos_whole_number(<nMin>, <nMax>)
+if not decode_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = cls(decode_result.decoded_value)
 >>
 
 /*case: A :: = INTEGER */
