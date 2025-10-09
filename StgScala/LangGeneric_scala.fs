@@ -61,7 +61,7 @@ let uperExprMethodCall (k: Asn1TypeKind) (sChildInitExpr: string) =
     | true -> ""
     | false -> initMethSuffix k
 
-let getAccess2_scala (acc: Accessor) =
+let getAccess2_scala (acc: AccessStep) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $".{sel}"
@@ -149,13 +149,13 @@ type LangGeneric_scala() =
 
         override _.supportsInitExpressions = false
 
-        override this.getPointer (sel: Selection) = sel.joined this
+        override this.getPointer (sel: AccessPath) = sel.joined this
 
-        override this.getValue (sel: Selection) = sel.joined this
-        override this.getValueUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
-        override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
-        override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
-            let len = sel.path.Length
+        override this.getValue (sel: AccessPath) = sel.joined this
+        override this.getValueUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+        override this.getPointerUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+        override _.joinSelectionUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) =
+            let len = sel.steps.Length
             List.fold (fun str (ix, accessor) ->
                 let accStr =
                     match accessor with
@@ -165,10 +165,10 @@ type LangGeneric_scala() =
                         if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}.get" else $".{id}"
                     | ArrayAccess (ix, _) -> $"({ix})"
                 $"{str}{accStr}"
-            ) sel.receiverId (List.indexed sel.path)
-        override this.getAccess (sel: Selection) = "."
+            ) sel.rootId (List.indexed sel.steps)
+        override this.getAccess (sel: AccessPath) = "."
 
-        override this.getAccess2 (acc: Accessor) = getAccess2_scala acc
+        override this.getAccess2 (acc: AccessStep) = getAccess2_scala acc
 
         override this.getPtrPrefix _ = ""
 
@@ -178,7 +178,8 @@ type LangGeneric_scala() =
 
         override _.real_annotations = ["extern"]
 
-        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) = (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+        override this.getArrayItem (sel: AccessPath) (idx:string) (childTypeIsString: bool) =
+            (sel.appendSelection "arr" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
         override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
             let itemname =
@@ -258,14 +259,14 @@ type LangGeneric_scala() =
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
 
-        override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
+        override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
             sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName
 
-        override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
-            sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+        override this.getSeqChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+            sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) childIsOptional
 
-        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
-            Selection.emptyPath childName (if childTypeIsString then FixArray else Value)
+        override this.getChChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) : AccessPath =
+            AccessPath.emptyPath childName (if childTypeIsString then ArrayElem else ByValue)
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) = ""
 
@@ -287,16 +288,16 @@ type LangGeneric_scala() =
                 | None -> ""
             parentName + (ToC ch.present_when_name) + "_PRESENT"
 
-        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CodegenScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
                 match kind with
-                | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray // TODO: For Ada, this is Value no matter what?
+                | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem // TODO: For Ada, this is Value no matter what?
                 | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
-                | _ -> Pointer
+                | _ -> ByPointer
             let recvId = "pVal" + suf
-            {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+            {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
 
-        override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:Selection) (c:Codec) =
+        override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:AccessPath) (c:Codec) =
             p.joined this
 
 
@@ -331,15 +332,15 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateSequenceAuxiliaries r enc t sq nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateIntegerAuxiliaries r enc t int nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateBooleanAuxiliaries r enc t boolean nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
@@ -352,15 +353,15 @@ type LangGeneric_scala() =
             let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
             innerFns, show (ExprTree call)
 
-        override this.generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateChoiceAuxiliaries r enc t ch nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateNullTypeAuxiliaries r enc t nt nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let fds = generateEnumAuxiliaries r enc t enm nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
@@ -385,9 +386,9 @@ type LangGeneric_scala() =
                             (err: ErrorCode)
                             (prms: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list)
                             (nestingScope: NestingScope)
-                            (p: CallerScope): (AcnFuncBodyResult option) * State =
+                            (p: CodegenScope): (AcnFuncBodyResult option) * State =
                 if not nestingScope.isInit && shouldWrap then
-                    let recP = {p with arg = p.arg.asLastOrSelf}
+                    let recP = {p with accessPath = p.accessPath.asLastOrSelf}
                     let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits ((p, t) :: nestingScope.parents)
                     let res, s = funcBody s err prms recNS recP
                     match res with
@@ -399,7 +400,7 @@ type LangGeneric_scala() =
                         // TODO: Hack to determine how to change the "result variable"
                         let resultExpr =
                             match res.resultExpr with
-                            | Some res when res = recP.arg.asIdentifier -> Some p.arg.asIdentifier
+                            | Some res when res = recP.accessPath.asIdentifier -> Some p.accessPath.asIdentifier
                             | Some res -> Some res
                             | None -> None
                         Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ fdsStr}, s
@@ -412,7 +413,7 @@ type LangGeneric_scala() =
             let precond = generatePrecond r enc t codec
             [show (ExprTree precond)]
 
-        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             match enc with
             | ACN ->
                 let errTpe = IntegerType Int
@@ -421,7 +422,7 @@ type LangGeneric_scala() =
                     | Encode ->
                         let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe (IntegerType Int)}
                         let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
-                        generateEncodePostcondExpr r t p.arg resPostcond decodePureId
+                        generateEncodePostcondExpr r t p.accessPath resPostcond decodePureId
                     | Decode ->
                         let resPostcond = {Var.name = "res"; tpe = eitherMutTpe errTpe (fromAsn1TypeKind t.Kind)}
                         generateDecodePostcondExpr r t resPostcond
@@ -431,7 +432,7 @@ type LangGeneric_scala() =
         override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof r enc stmts pg codec
 
-        override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+        override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
             let proof = generateSequenceProof r enc t sq nestingScope sel codec
             proof |> Option.map (fun p -> show (ExprTree p)) |> Option.toList
 
@@ -442,7 +443,7 @@ type LangGeneric_scala() =
         override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
             generateSequenceOfLikeProof r enc o pg codec
 
-        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CodegenScope) (codec: Codec): string option =
             None
             // TODO: Need something better than that
             (*
@@ -553,7 +554,7 @@ type LangGeneric_scala() =
 
         override this.getTopLevelDirs (target:Targets option) =
             [asn1rtlDirName; srcDirName; "lib"]
-        override this.getChChildIsPresent   (arg:Selection) (chParent:string)  (pre_name:string) =
+        override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (arg.joined this) chParent pre_name
         override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
             prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed
