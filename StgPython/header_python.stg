@@ -260,8 +260,8 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 
 @dataclass(frozen=True)
 class <td.extension_function_positions>:
-    arrsNullFieldsSavePos; separator="\n">
-     <arrsSizeDefinition; separator="\n\n">
+    <arrsNullFieldsSavePos; separator="\n">
+    <arrsSizeDefinition; separator="\n\n">
 <endif>
 
 @dataclass(frozen=True)
