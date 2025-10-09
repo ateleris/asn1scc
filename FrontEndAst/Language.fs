@@ -58,7 +58,7 @@ type UncheckedAccessKind =
 
 type SequenceChildProps = {
     info: Asn1AcnAst.SeqChildInfo
-    sel: Selection
+    sel: AccessPath
     uperMaxOffset: bigint
     acnMaxOffset: bigint
 } with
@@ -71,7 +71,7 @@ type SequenceChildProps = {
 type SequenceProofGen = {
     t: Asn1AcnAst.Asn1Type
     sq: Asn1AcnAst.Sequence
-    sel: Selection
+    sel: AccessPath
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint
@@ -170,7 +170,7 @@ type SequenceOfLikeProofGen = {
     acnMaxOffset: bigint
     uperMaxOffset: bigint
     nestingScope: NestingScope
-    cs: CallerScope
+    cs: CodegenScope
     encDec: string option
     elemDecodeFn: string option
     ixVariable: string
@@ -199,28 +199,28 @@ type SequenceOptionalChild = {
     sq: Asn1AcnAst.Sequence
     child: Asn1Child
     existVar: string option
-    p: CallerScope
+    p: CodegenScope
     nestingScope: NestingScope
-    childBody: CallerScope -> string option -> string
+    childBody: CodegenScope -> string option -> string
 }
 
-type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
+type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
-    abstract member getPointer      : Selection -> string;
-    abstract member getPointerUnchecked: Selection -> UncheckedAccessKind -> string;
-    abstract member getValue        : Selection -> string;
-    abstract member getValueUnchecked: Selection -> UncheckedAccessKind -> string;
-    abstract member joinSelectionUnchecked: Selection -> UncheckedAccessKind -> string;
-    abstract member getAccess       : Selection -> string;
-    abstract member getAccess2      : Accessor  -> string;
-    abstract member getStar         : Selection -> string;
-    abstract member getPtrPrefix    : Selection -> string;
-    abstract member getPtrSuffix    : Selection -> string;
+    abstract member getPointer      : AccessPath -> string;
+    abstract member getPointerUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member getValue        : AccessPath -> string;
+    abstract member getValueUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member joinSelectionUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member getAccess       : AccessPath -> string;
+    abstract member getAccess2      : AccessStep  -> string;
+    abstract member getStar         : AccessPath -> string;
+    abstract member getPtrPrefix    : AccessPath -> string;
+    abstract member getPtrSuffix    : AccessPath -> string;
 
-    abstract member getArrayItem    : sel: Selection -> idx: string -> childTypeIsString: bool -> Selection;
+    abstract member getArrayItem    : sel: AccessPath -> idx: string -> childTypeIsString: bool -> AccessPath;
     abstract member asn1SccIntValueToString : BigInteger -> unsigned: bool -> string;
     abstract member intValueToString : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToString : double -> string
@@ -241,7 +241,7 @@ type ILangGeneric () =
     abstract member isCaseSensitive : bool
 
     abstract member RtlFuncNames : string list
-    abstract member AlwaysPresentRtlFuncNames : string list
+    abstract member getAlwaysPresentRtlFuncNames : CommandLineSettings -> string list
 
     abstract member detectFunctionCalls : string -> string -> string list
     abstract member removeFunctionFromHeader : string -> string -> string
@@ -273,11 +273,11 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
+    abstract member getSeqChild: sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath;
     //return a string that contains code with a boolean expression that is true if the child is present
-    abstract member getSeqChildIsPresent   : Selection -> string -> string
-    abstract member getChChildIsPresent   : Selection -> string -> string-> string
-    abstract member getChChild      : Selection -> string -> bool -> Selection;
+    abstract member getSeqChildIsPresent   : AccessPath -> string -> string
+    abstract member getChChildIsPresent   : AccessPath -> string -> string-> string
+    abstract member getChChild      : AccessPath -> string -> bool -> AccessPath;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string;
     abstract member getEmptySequenceInitExpression : string -> string
@@ -285,10 +285,10 @@ type ILangGeneric () =
     abstract member extractEnumClassName : string -> string -> string -> string
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
-    abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
-    abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
+    abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
+    abstract member getParamValue   : Asn1AcnAst.Asn1Type -> AccessPath -> Codec -> string
 
-    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
+    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope;
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -329,22 +329,22 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
-    abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     abstract member generateOptionalAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
-    abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateNullTypeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateNullTypeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
-    abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> Selection -> Codec -> string
+    abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
     abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
-    abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
+    abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CodegenScope -> Codec -> string option
 
     abstract member generateOctetStringInvariants: SIZE -> SIZE -> string list
     abstract member generateBitStringInvariants:  SIZE -> SIZE -> string list
@@ -358,12 +358,12 @@ type ILangGeneric () =
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
 
-    default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+    default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
-    default this.AlwaysPresentRtlFuncNames = []
+    default this.getAlwaysPresentRtlFuncNames args = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
         sourceCode
@@ -381,7 +381,7 @@ type ILangGeneric () =
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
-        [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
+        [], soc.childBody {soc.p with accessPath = soc.p.accessPath.dropLast} soc.existVar
     default this.generateChoiceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateNullTypeAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
@@ -424,9 +424,9 @@ type LanguageMacros = {
     src     : ISrcBody
 }
 
-type Selection with
+type AccessPath with
     member this.joined (lg: ILangGeneric): string =
-        List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.receiverId this.path
+        List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.rootId this.steps
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
     member this.asIdentifier: string =
@@ -436,4 +436,4 @@ type Selection with
                 | ValueAccess (id, _, _) -> ToC id
                 | PointerAccess (id, _, _) -> ToC id
                 | ArrayAccess _ -> "arr"
-            $"{str}_{acc}") this.receiverId this.path
+            $"{str}_{acc}") this.rootId this.steps
