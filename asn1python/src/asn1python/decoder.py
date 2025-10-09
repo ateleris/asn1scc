@@ -839,3 +839,172 @@ class Decoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def dec_real(self) -> DecodeResult[float]:
+        """
+        Decode real (floating point) value according to ASN.1 PER standard.
+
+        Matches C: BitStream_DecodeReal(pBitStrm, v)
+        Matches Scala: Codec.decodeReal(): Double
+        Used by: UPER, PER for REAL type decoding
+
+        Binary encoding: REAL = M*B^E where M = S*N*2^F
+        Decoding format:
+        - 1 byte: length of encoding
+        - 1 byte: header (sign, base=2, exponent length)
+        - 1-3 bytes: exponent (two's complement)
+        - 1-7 bytes: mantissa (unsigned)
+
+        Returns:
+            DecodeResult containing the decoded float value
+        """
+        import math
+
+        try:
+            # Read length byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            length = result.decoded_value
+
+            bits_consumed = 8
+
+            # Special case: length = 0 means +0.0
+            if length == 0:
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=0.0,
+                    bits_consumed=bits_consumed
+                )
+
+            # Read header byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            header = result.decoded_value
+            bits_consumed += 8
+
+            # Check for special values
+            if header == 0x40:
+                # Positive infinity
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=math.inf,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x41:
+                # Negative infinity
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=-math.inf,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x42:
+                # NaN
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=math.nan,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x43:
+                # Negative zero
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=-0.0,
+                    bits_consumed=bits_consumed
+                )
+
+            # Binary encoding (header & 0x80 == 0x80)
+            if (header & 0x80) != 0x80:
+                # Only binary mode supported
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message="Only binary real encoding is supported"
+                )
+
+            # Extract sign (bit 6)
+            sign = -1 if (header & 0x40) else 1
+
+            # Extract base factor (bits 4-5)
+            # base = 2^exp_factor
+            if (header & 0x10):
+                exp_factor = 3  # base 8
+            elif (header & 0x20):
+                exp_factor = 4  # base 16
+            else:
+                exp_factor = 1  # base 2
+
+            # Extract scaling factor F (bits 2-3)
+            factor = 1 << ((header & 0x0C) >> 2)
+
+            # Extract exponent length (bits 0-1)
+            exp_len = (header & 0x03) + 1
+
+            # Validate exponent length
+            if exp_len > length - 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Exponent length {exp_len} exceeds remaining data {length - 1}"
+                )
+
+            # Read exponent bytes (two's complement)
+            # Check first bit for sign extension
+            first_bit_result = self.read_bit()
+            if not first_bit_result.success:
+                return first_bit_result
+
+            # Start with sign extension
+            exponent = -1 if first_bit_result.decoded_value else 0
+            bits_consumed += 1
+
+            # Read remaining bits of first exponent byte
+            remaining_bits = 7
+            if remaining_bits > 0:
+                partial_result = self._bitstream.read_bits(remaining_bits)
+                exponent = (exponent << remaining_bits) | partial_result
+                bits_consumed += remaining_bits
+
+            # Read remaining exponent bytes
+            for i in range(1, exp_len):
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                exponent = (exponent << 8) | result.decoded_value
+                bits_consumed += 8
+
+            # Read mantissa bytes
+            mantissa_len = length - 1 - exp_len
+            mantissa = 0
+
+            for i in range(mantissa_len):
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                mantissa = (mantissa << 8) | result.decoded_value
+                bits_consumed += 8
+
+            # Calculate final value: sign * mantissa * factor * 2^(exponent * exp_factor)
+            # value = sign * mantissa * factor * base^exponent
+            # where base = 2^exp_factor
+            value = sign * mantissa * factor * math.pow(2, exponent * exp_factor)
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=bits_consumed
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )

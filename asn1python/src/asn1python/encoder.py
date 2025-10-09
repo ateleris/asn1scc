@@ -743,3 +743,190 @@ class Encoder(Codec, ABC):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def enc_real(self, value: float) -> EncodeResult:
+        """
+        Encode real (floating point) value according to ASN.1 PER standard.
+
+        Matches C: BitStream_EncodeReal(pBitStrm, v)
+        Matches Scala: Codec.encodeReal(v: Double)
+        Used by: UPER, PER for REAL type encoding
+
+        Binary encoding: REAL = M*B^E where M = S*N*2^F
+        Encoding format:
+        - 1 byte: length of encoding
+        - 1 byte: header (sign, base=2, exponent length)
+        - 1-3 bytes: exponent (two's complement)
+        - 1-7 bytes: mantissa (unsigned)
+
+        Args:
+            value: Float value to encode
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        import struct
+        import math
+
+        try:
+            # Handle special cases
+            if math.isnan(value):
+                # Encode NaN
+                result = self.append_byte(1)  # length
+                if not result.success:
+                    return result
+                result = self.append_byte(0x42)  # NaN marker
+                if not result.success:
+                    return result
+                return EncodeResult(
+                    success=True,
+                    error_code=ENCODE_OK,
+                    encoded_data=self._bitstream.get_data_copy(),
+                    bits_encoded=16
+                )
+
+            if value == 0.0 and math.copysign(1.0, value) == 1.0:
+                # Positive zero
+                result = self.append_byte(0)  # length = 0 means +0
+                return result if result.success else result
+
+            if value == 0.0 and math.copysign(1.0, value) == -1.0:
+                # Negative zero
+                result = self.append_byte(1)  # length
+                if not result.success:
+                    return result
+                result = self.append_byte(0x43)  # -0 marker
+                if not result.success:
+                    return result
+                return EncodeResult(
+                    success=True,
+                    error_code=ENCODE_OK,
+                    encoded_data=self._bitstream.get_data_copy(),
+                    bits_encoded=16
+                )
+
+            if math.isinf(value):
+                if value > 0:
+                    # Positive infinity
+                    result = self.append_byte(1)  # length
+                    if not result.success:
+                        return result
+                    result = self.append_byte(0x40)  # +inf marker
+                    if not result.success:
+                        return result
+                else:
+                    # Negative infinity
+                    result = self.append_byte(1)  # length
+                    if not result.success:
+                        return result
+                    result = self.append_byte(0x41)  # -inf marker
+                    if not result.success:
+                        return result
+                return EncodeResult(
+                    success=True,
+                    error_code=ENCODE_OK,
+                    encoded_data=self._bitstream.get_data_copy(),
+                    bits_encoded=16
+                )
+
+            # Normal number encoding
+            header = 0x80  # Binary encoding marker
+
+            # Extract sign
+            if value < 0:
+                header |= 0x40
+                value = -value
+
+            # Calculate mantissa and exponent
+            # Use frexp: value = mantissa * 2^exponent where 0.5 <= mantissa < 1.0
+            mantissa_frac, raw_exponent = math.frexp(value)
+
+            # Convert mantissa to integer (shift left to use all bits)
+            # For double: 53 bits of precision
+            mantissa = int(mantissa_frac * (1 << 53))
+            exponent = raw_exponent - 53
+
+            # Remove trailing zeros from mantissa (optimization)
+            while mantissa > 0 and (mantissa & 1) == 0:
+                mantissa >>= 1
+                exponent += 1
+
+            # Calculate lengths
+            # Mantissa length (bytes needed)
+            if mantissa == 0:
+                n_man_len = 1
+            else:
+                n_man_len = (mantissa.bit_length() + 7) // 8
+
+            # Exponent length (bytes needed for two's complement)
+            if exponent >= 0:
+                if exponent == 0:
+                    n_exp_len = 1
+                else:
+                    n_exp_len = (exponent.bit_length() + 8) // 8  # +1 for sign, round to bytes
+            else:
+                if exponent == -1:
+                    n_exp_len = 1
+                else:
+                    n_exp_len = ((exponent + 1).bit_length() + 8) // 8
+
+            # Limit to 1-3 bytes for exponent
+            if n_exp_len > 3:
+                n_exp_len = 3
+
+            # Set exponent length in header (bits 0-1)
+            if n_exp_len == 2:
+                header |= 0x01
+            elif n_exp_len == 3:
+                header |= 0x02
+
+            # Encode length (total: header + exponent + mantissa)
+            total_length = 1 + n_exp_len + n_man_len
+            result = self.append_byte(total_length)
+            if not result.success:
+                return result
+
+            bits_encoded = 8
+
+            # Encode header
+            result = self.append_byte(header)
+            if not result.success:
+                return result
+            bits_encoded += 8
+
+            # Encode exponent (two's complement, big-endian)
+            exp_bits = n_exp_len * 8
+            if exponent < 0:
+                # Two's complement for negative
+                exp_unsigned = (1 << exp_bits) + exponent
+            else:
+                exp_unsigned = exponent
+
+            for i in range(n_exp_len - 1, -1, -1):
+                byte_val = (exp_unsigned >> (i * 8)) & 0xFF
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
+                bits_encoded += 8
+
+            # Encode mantissa (unsigned, big-endian)
+            for i in range(n_man_len - 1, -1, -1):
+                byte_val = (mantissa >> (i * 8)) & 0xFF
+                result = self.append_byte(byte_val)
+                if not result.success:
+                    return result
+                bits_encoded += 8
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                encoded_data=self._bitstream.get_data_copy(),
+                bits_encoded=bits_encoded
+            )
+
+        except (BitStreamError, ValueError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )

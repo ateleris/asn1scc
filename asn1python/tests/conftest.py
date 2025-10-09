@@ -87,6 +87,22 @@ def get_random_signed(bits: int) -> int:
     """Get random signed integer for given bit size."""
     return random.randint(get_signed_min(bits), get_signed_max(bits))
 
+def get_random_float_positive() -> float:
+    """Get random positive real."""
+    return random.random()
+
+def get_random_float_negative() -> float:
+    """Get random negative real."""
+    return -random.random()
+
+def get_random_float_unsigned(bits: int) -> float:
+    """Get random unsigned real."""
+    return random.uniform(0.0, get_unsigned_max(bits))
+
+def get_random_float_signed(bits: int) -> float:
+    """Get random signed real."""
+    return random.uniform(get_signed_min(bits), get_signed_max(bits))
+
 def get_random_float(precision: str = "double", positive_only: bool = False, negative_only: bool = False) -> float:
     """Get random IEEE 754 floating-point number for testing (normal values only).
     
