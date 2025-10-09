@@ -35,26 +35,22 @@ class EncodeConstants:
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
-def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> Union[int, Asn1SccError]:
+def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> None:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
         res = <sVarName>.<soIValidFuncName>()
         if not res:
-            return res
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+    <endif>
     
     <sContent>
-    <else>
-    <sContent>
-    <endif>
-    # acn_python.stg 50
-    return 0
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
-# acn_python.stg 55
 <if(arrsEncodes)>
+# acn_python.stg 55
 class DecodeConstants:
     <arrsErrcodes; separator="\n">
 <endif>
