@@ -255,10 +255,10 @@ Boolean_decode(p, sErrCode) ::= <<
 <p> = codec.read_bit().decoded_value # uper:225
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "codec.base.encodeReal(<p>)"
+Real_encode(p, sSuffix, sErrCode) ::= "codec.enc_real(<p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
 # uper_python.stg 267
-<p> = codec.base.decodeReal<sSuffix>()
+<p> = codec.dec_real<sSuffix>()
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
