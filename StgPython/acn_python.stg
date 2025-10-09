@@ -120,7 +120,7 @@ PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM,
 # Bit count validation would go here
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -132,7 +132,7 @@ PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM,
 PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 134
@@ -143,7 +143,7 @@ PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin,
 PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -156,7 +156,7 @@ PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMF
 # acn_python.stg 147
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 151
@@ -167,7 +167,7 @@ PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMF
 PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 158
@@ -178,7 +178,7 @@ PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMF
 PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -190,7 +190,7 @@ PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, s
 PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 172
@@ -201,7 +201,7 @@ PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, s
 PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -213,7 +213,7 @@ PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, s
 PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
 res = codec.enc_int_positive_integer_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
@@ -225,7 +225,7 @@ PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM
 TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
@@ -237,7 +237,7 @@ TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, 
 TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -249,7 +249,7 @@ TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, 
 TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -260,7 +260,7 @@ TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM
 TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 213
@@ -271,7 +271,7 @@ TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM
 TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -283,7 +283,7 @@ TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM
 TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -295,7 +295,7 @@ TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, so
 TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -307,7 +307,7 @@ TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, so
 TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -319,7 +319,7 @@ TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, so
 TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_int_twos_complement_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
@@ -331,7 +331,7 @@ TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM)
 BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
 res = codec.enc_int_bcd_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
@@ -343,7 +343,7 @@ BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNi
 BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_int_bcd_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
@@ -355,7 +355,7 @@ BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_bcd_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -367,7 +367,7 @@ BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, 
 ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 res = codec.enc_sint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
@@ -379,7 +379,7 @@ ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, n
 ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_sint_ascii_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
@@ -392,7 +392,7 @@ ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin
 # acn_python.stg 289
 res = codec.enc_sint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
@@ -405,7 +405,7 @@ ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperM
 # acn_python.stg 300
 res = codec.enc_uint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
@@ -418,7 +418,7 @@ ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUp
 # acn_python.stg 311
 res = codec.enc_uint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
@@ -430,7 +430,7 @@ ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUp
 Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= <<
 res = codec.enc_real_ieee754_32_big_endian(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
@@ -441,7 +441,7 @@ Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
 Real_64_big_endian_encode(p, sErrCode) ::= <<
 res = codec.enc_real_ieee754_64_big_endian(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Real_64_big_endian_decode(p, sErrCode) ::= <<
@@ -452,7 +452,7 @@ Real_64_big_endian_decode(p, sErrCode) ::= <<
 Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= <<
 res = codec.enc_real_ieee754_32_little_endian(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
@@ -463,7 +463,7 @@ Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
 Real_64_little_endian_encode(p, sErrCode) ::= <<
 res = codec.enc_real_ieee754_64_little_endian(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Real_64_little_endian_decode(p, sErrCode) ::= <<
@@ -599,7 +599,7 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= <<
 res = codec.enc_string_ascii_fix_size(<nAsn1Max>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
@@ -611,7 +611,7 @@ Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::
 # acn_python.stg 477
 res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>), <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
@@ -622,7 +622,7 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
 res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
@@ -634,7 +634,7 @@ Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1M
 # acn_python.stg 493
 res = codec.enc_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
@@ -652,7 +652,7 @@ Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 res = codec.enc_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
@@ -666,7 +666,7 @@ Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, ar
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 res = codec.enc_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
@@ -681,7 +681,7 @@ Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max,
 bix = codec.bit_index()
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 if codec.bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.bit_index() != bix + 7 * <p>.indexOfOrLength(0.toByte):
     # acn_python.stg 537
     return Asn1SccError(461)

@@ -105,7 +105,7 @@ InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*
 charIndex: int = GetCharIndex(<p>(<i>), allowedCharSet)
 res = codec.encode_constrained_whole_number(charIndex, 0, <nLastItemIndex>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
@@ -118,7 +118,7 @@ InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 # uper_python.stg 126
 res = codec.encode_constrained_whole_number(<p>(<i>), 0, 127)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
@@ -133,7 +133,7 @@ IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 # uper_python.stg 139
 res = codec.encode_constrained_whole_number(<p>, <nMin>, <nMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
@@ -147,7 +147,7 @@ IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAs
 <soRangeAssert>
 res = codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
@@ -162,7 +162,7 @@ if not decode_result:
 IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= << 
 # uper_python.stg 163
@@ -178,7 +178,7 @@ else:
 IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 # uper_python.stg 175
@@ -197,7 +197,7 @@ if not codec.decode_unconstrained_whole_number() then # TODO meth does not retur
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= <<
 res = codec.encode_semi_constrained_whole_number(<p>, <nMin>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 # uper_python.stg 190
@@ -210,7 +210,7 @@ if not codec.decode_semi_constrained_whole_number(<nMin>):
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= <<
 res = codec.encode_semi_constrained_pos_whole_number(<p>, <nMin>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 # uper_python.stg 199
@@ -283,7 +283,7 @@ Boolean_decode(p, sErrCode) ::= <<
 Real_encode(p, sSuffix, sErrCode) ::= <<
 res = codec.enc_real(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Real_decode(p, sSuffix, sErrCode) ::= <<
@@ -294,7 +294,7 @@ Real_decode(p, sSuffix, sErrCode) ::= <<
 ObjectIdentifier_encode(p, sErrCode) ::= <<
 res = codec.ObjectIdentifier_encode(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 ObjectIdentifier_decode(p, sErrCode) ::= <<
@@ -307,7 +307,7 @@ if not codec.ObjectIdentifier_decode(): # uper:234 TODO
 RelativeOID_encode(p, sErrCode) ::= <<
 res = codec.RelativeOID_encode(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
     
 RelativeOID_decode(p, sErrCode) ::= <<
@@ -320,7 +320,7 @@ if not codec.RelativeOID_decode():
 Time_encode(p, sTimeSubType, sErrCode) ::= <<
 res = codec.<sTimeSubType>_encode(<p>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 # uper_python.stg 289
@@ -334,7 +334,7 @@ Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
 case <sName>:
     res = codec.encode_constrained_whole_number(<nIndex>, 0, <nLastItemIndex>)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
 # uper_python.stg 301
@@ -373,7 +373,7 @@ choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemI
 if <p>.kind == <sChoiceTypeName>InUse.<sChildID>:
     res = codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     <sChildContent>
 >>
 
@@ -521,7 +521,7 @@ nStringLength: int = len(<p>)
 # ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <sPIden>_nCount: int = nStringLength
 <soCallAux>
 >>
@@ -552,7 +552,7 @@ seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <soCallAux>
 >>
 
@@ -571,7 +571,7 @@ octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
 # uper_python.stg 531
 res = codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<nFixedSize>))
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
@@ -583,10 +583,10 @@ octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 # uper_python.stg 541
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 res = codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<p><sAcc>nCount))
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -614,7 +614,7 @@ bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nS
 # uper_python.stg 568
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"nCount"], sErrCode=sErrCode)>
 >>
 
@@ -635,7 +635,7 @@ FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 while <sBlockIndex> \< <nBlocks64K>:
     res = codec.encode_constrained_whole_number(0xC4, 0, 0xFF)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     <if(bIsBitStringType)>
     codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
 
@@ -656,7 +656,7 @@ FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>
 res = codec.encode_constrained_whole_number(<sBlockId>, 0, 0xFF)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <if(bIsBitStringType)>
 codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
 <else>
@@ -672,15 +672,15 @@ FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingIt
 <if(bRemainingItemsWithinByte)>
 res = codec.encode_constrained_whole_number(<nRemainingItemsVar>, 0, 0xFF)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <else>
 res = codec.append_bit(1)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     
 res = codec.encode_constrained_whole_number(<nRemainingItemsVar>, 0, 0x7FFF)
 if not res:
-    raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <endif>
 <if(bIsBitStringType)>
 codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<nRemainingItemsVar>))
@@ -707,22 +707,22 @@ while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(as
         <sCurBlockSize> = 0x10000
         res = codec.encode_constrained_whole_number(0xC4, 0, 0xFF)
         if not res:
-            raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+            raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     elif <sRemainingItemsVar> >= 0xC000:
         <sCurBlockSize> = 0xC000
         res = codec.encode_constrained_whole_number(0xC3, 0, 0xFF)
         if not res:
-            raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+            raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     elif <sRemainingItemsVar> >= 0x8000:
         <sCurBlockSize> = 0x8000
         res = codec.encode_constrained_whole_number(0xC2, 0, 0xFF)
         if not res:
-            raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+            raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     else:
         <sCurBlockSize> = 0x4000
         res = codec.encode_constrained_whole_number(0xC1, 0, 0xFF)
         if not res:
-            raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+            raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
     <if(bIsBitStringType)>
     codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
@@ -741,14 +741,14 @@ while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(as
 if <sRemainingItemsVar> \<= 0x7F:
     res = codec.encode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 else:
     res = codec.append_bit(1)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     res = codec.encode_constrained_whole_number(<sRemainingItemsVar>, 0, 0x7FFF)
     if not res:
-        raise Asn1Exception(f"Encoding Exception <sErrCode>: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
 <if(bIsBitStringType)>
 codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
