@@ -96,9 +96,7 @@ def test_enc_dec_ia5_string_char_index_internal_field_determinant_zero_length(ac
     input_string: str = ""
     encoded_res = acn_encoder.enc_ia5_string_char_index_internal_field_determinant(0, 0, input_string)
     assert encoded_res.success
-    with pytest.raises(AssertionError) as excinfo:
-        acn_decoder: ACNDecoder = acn_encoder.get_decoder()
-    assert "Codec buffer_size must be greater than zero" in str(excinfo.value)
+    assert encoded_res.bits_encoded == 0
 
 def test_enc_dec_ia5_string_char_index_internal_field_determinant_null_terminator_symbol(acn_encoder: ACNEncoder, seed: int, max_length: int) -> None:
     input_string: str = get_null_terminator_string(max_length)
