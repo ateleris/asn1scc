@@ -239,7 +239,7 @@ type LangGeneric_python() =
     override this.AssignOperator = "="
     override this.TrueLiteral = "True"
     override this.FalseLiteral = "False"
-    override this.emptyStatement = ""
+    override this.emptyStatement = "pass"
     override this.bitStreamName = "BitStream"
     override this.unaryNotOperator = "not"
     override this.modOp = "%"

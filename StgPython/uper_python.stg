@@ -4,9 +4,7 @@ rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= <<
 # uper_python.stg 6
-result = <p>.encode(codec, check_constraints)
-if not result:
-    return result
+<p>.encode(codec, check_constraints)
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13

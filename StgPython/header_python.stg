@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 <arrsIncludedModules:{inc|import asn1pylib.asn1src.<inc> as <inc>}; separator="\n">
 <endif>
 
+from asn1python.asn1_types import Asn1ConstraintValidResult
+
 
 <if(arrsValueAssignments)>
 # Value Assignments:
