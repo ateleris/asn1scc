@@ -520,7 +520,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
 # uper_python.stg 483
 nStringLength: int = len(<p>)
-# ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;
+# ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
@@ -603,13 +603,12 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 /* BIT STRING*/
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 557
-assert(int(<nFixedSize>) >= 0) # overflow may happen during cast
-codec.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, int(<nFixedSize>))
-
+codec.append_bits(<p><sAcc>arr, <nFixedSize>)
 >>
+
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 563
-<p> = <sTypeDefName>(codec.bitStream.readBitsVec(int(<nFixedSize>)))
+<p> = <sTypeDefName>(codec.read_bits(int(<nFixedSize>)))
 >>
 
 bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
@@ -622,8 +621,11 @@ if not res:
 
 bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 # uper_python.stg 574
-<p>_nCount = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-<p>_arr = codec.bitStream.readBitsVec(int(<p>_nCount))
+ret = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+if not ret:
+    raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {ret.error_message}")
+<p>_nCount = ret.decoded_value
+<p>_arr = codec.read_bits(int(<p>_nCount))
 <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
 >>
 
@@ -631,15 +633,15 @@ bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nS
 FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 # uper_python.stg 582
 # encode <nBlocks64K> x 64K Blocks
-<sCurBlockSize> = 0x10000;
-<sCurOffset>: int = 0;
+<sCurBlockSize> = 0x10000
+<sCurOffset>: int = 0
 <sBlockIndex>: int = 0
 while <sBlockIndex> \< <nBlocks64K>:
     res = codec.encode_constrained_whole_number(0xC4, 0, 0xFF)
     if not res:
         raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
     <if(bIsBitStringType)>
-    codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
+    codec.append_bits(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>)
 
     <else>
     <sBLI> = int(<sCurOffset>)
@@ -660,7 +662,7 @@ res = codec.encode_constrained_whole_number(<sBlockId>, 0, 0xFF)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <if(bIsBitStringType)>
-codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
+codec.append_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
 <else>
 for <sBLI> in range(int(<sCurOffset>), int(<sCurBlockSize> + <sCurOffset>)):
     <sInternalItem>
@@ -685,7 +687,7 @@ if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 <endif>
 <if(bIsBitStringType)>
-codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<nRemainingItemsVar>))
+codec.append_bits(<p><sAcc>arr[<sCurOffset>/8], int(<nRemainingItemsVar>))
 <else>
 for <sBLI> in range(int(<sCurOffset>), int(<sCurOffset> + <nRemainingItemsVar>)):
     <sInternalItem>
@@ -727,7 +729,7 @@ while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(as
             raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
     <if(bIsBitStringType)>
-    codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
+    codec.append_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sCurBlockSize>))
     <else>
     <sBLI>=int(<sCurOffset>)
     while <sBLI> \< int(<sCurBlockSize> + <sCurOffset>)
@@ -753,7 +755,7 @@ else:
         raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
 <if(bIsBitStringType)>
-codec.bitStream.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
+codec.append_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
 <else>
 <sBLI> = int(<sCurOffset>)
 while <sBLI> \< int(<sCurOffset> + <sRemainingItemsVar>):
@@ -774,12 +776,12 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret: int = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-    check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
+    check = (ret == 0) && (<sRemainingItemsVar> == 0xC4)
     ret = 0 if check else Asn1SccError(<sErrCodeName>)
     if ret == 0:
         <if(bIsBitStringType)>
-        ret = int(codec.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
-        ret = 0 if ret == 0 else <sErrCodeName>;
+        ret = int(codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
+        ret = 0 if ret == 0 else <sErrCodeName>
 
         <else>
         <sBLI> = int(<sCurOffset>)
@@ -788,7 +790,7 @@ for <sBlockIndex> in range(0, nBlocks64K>):
             <sBLI> += 1
 
         <endif>
-        <sCurOffset> += <sCurBlockSize>;
+        <sCurOffset> += <sCurBlockSize>
 
     if not ret:
         break
@@ -798,13 +800,13 @@ for <sBlockIndex> in range(0, nBlocks64K>):
 FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 # uper_python.stg 724
 # decode a single Block with <nBlockSize> items
-<sCurBlockSize> = <nBlockSize>;
+<sCurBlockSize> = <nBlockSize>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
+val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>)
 ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
 if not isinstance(ret, Asn1SccError):
     <if(bIsBitStringType)>
-        ret = codec.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); # TODO call wrong
+        ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt) # TODO call wrong
         ret = 0 if (ret == 0) else Asn1SccError(<sErrCodeName>)
     
     <else>
@@ -821,16 +823,16 @@ FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingIt
 # decode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-ret = ret and (<sRemainingItemsVar> == <nRemainingItemsVar>);
+ret = ret and (<sRemainingItemsVar> == <nRemainingItemsVar>)
 
 <else>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFFFF)
-ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
+ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>)
 
 <endif>
 if ret == 0:
     <if(bIsBitStringType)>
-    ret = codec.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt); # TODO call wrong
+    ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt) # TODO call wrong
     ret = 0 if not isinstance(ret, Asn1SccError) else Asn1SccError(<sErrCodeName>)
 
     <else>
@@ -880,7 +882,7 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
         return Asn1SccError(<sErrCodeName>)
 
     <if(bIsBitStringType)>
-    if not codec.bitStream.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
+    if not codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
        # uper_python.stg 809
        return <sErrCodeName>
     <else>
@@ -898,19 +900,19 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
 }
 
 if (<sRemainingItemsVar> & 0x80) > 0:
-    len2: int = 0;
+    len2: int = 0
     <sRemainingItemsVar> \<\<= 8 # TODO: how to do this bit shifting in python?
     len2 = int(codec.decode_constrained_whole_number(0, 0xFF)) # uper:780
 
-    <sRemainingItemsVar> |= len2;
-    <sRemainingItemsVar> &= 0x7FFF;
+    <sRemainingItemsVar> |= len2
+    <sRemainingItemsVar> &= 0x7FFF
 
 if <sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>:
     # uper_python.stg 834
     return Asn1SccError(<sErrCodeName>)
 
 <if(bIsBitStringType)>
-if not codec.bitStream.readBits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
+if not codec.read_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
     # uper_python.stg 839
     return <sErrCodeName>
 
@@ -967,9 +969,9 @@ static byte arr[<sReqBytesForUperEncoding>]
 BitStream bitStrm
 BitStream_Init(&bitStrm, arr, sizeof(arr))
 nCount: int = 0
-ret = pBitStrm.decodeOctetString(arr, &nCount, <nMinSize>, <nMaxSize>);
+ret = pBitStrm.decodeOctetString(arr, &nCount, <nMinSize>, <nMaxSize>)
 if ret:
-    ret = <sFuncName>(<p>, &bitStrm);
+    ret = <sFuncName>(<p>, &bitStrm)
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
@@ -981,9 +983,11 @@ BitStream bitStrm
 BitStream_Init(&bitStrm, arr, sizeof(arr))
 
 ret = <sFuncName>(<p>, &bitStrm, false)
-if ret:
-    nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
-    ret = pBitStrm.encodeBitString(arr, nCount, <nMinSize>, <nMaxSize>);
+if not ret:
+     raise Asn1Exception(f"Encoding Exception: {ret.error_message}")
+     
+nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit
+ret = pBitStrm.encodeBitString(arr, nCount, <nMinSize>, <nMaxSize>)
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
@@ -991,13 +995,14 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
 # open new scope to declare some variables
 
 #decode to a temporary bitstream*/
-static byte arr[<sReqBytesForUperEncoding>];
-BitStream bitStrm;
-BitStream_Init(&bitStrm, arr, sizeof(arr));
+static byte arr[<sReqBytesForUperEncoding>]
+BitStream bitStrm
+BitStream_Init(&bitStrm, arr, sizeof(arr))
 nCount: int = 0
-ret = pBitStrm.decodeBitString(arr, &nCount, <nMinSize>, <nMaxSize>);
-if ret:
-    ret = <sFuncName>(<p>, &bitStrm)
+ret = pBitStrm.decodeBitString(arr, &nCount, <nMinSize>, <nMaxSize>)
+if not ret:
+    raise Asn1Exception(f"Encoding Exception: {ret.error_message}")
+ret = <sFuncName>(<p>, &bitStrm)
 
 >>
 
