@@ -138,7 +138,7 @@ ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
 # equal_python.stg 156
-#ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
+ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
 <soInnerStatement>
 >>
 
