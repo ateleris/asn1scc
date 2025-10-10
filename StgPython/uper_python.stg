@@ -523,7 +523,7 @@ nStringLength: int = len(<p>)
 # ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception: {res.error_message}")
 <sPIden>_nCount: int = nStringLength
 <soCallAux>
 >>
