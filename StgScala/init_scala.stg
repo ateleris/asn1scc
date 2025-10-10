@@ -11,7 +11,7 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
 >>
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
 <if(bIsOptional)>
 val <sResVar> = SomeMut(<sValue>)
 <else>

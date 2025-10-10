@@ -9,12 +9,12 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 # python init is done by the dataclass
 >>
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
 # init_python.stg 15
 <if(bIsOptional)>
-<sResVar>: Optional[int] = <sValue>
+<sResVar>: Optional[<sType>] = <sType>(<sValue>)
 <else>
-<sResVar>: int = <sValue>
+<sResVar>: <sType> = <sType>(<sValue>)
 <endif>
 >>
 

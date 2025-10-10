@@ -20,7 +20,7 @@ void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 >>
 
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= "<sVal> = <sValue>;"
 initReal(sVal, dValue, bIsOptional, sResVar) ::= "<sVal> = <dValue>;"
 initBoolean(sVal, bValue, bIsOptional, sResVar) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
 
