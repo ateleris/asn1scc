@@ -398,7 +398,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def read_bits(self, num_bits: int) -> DecodeResult[bytes]:
+    def read_bits(self, num_bits: int) -> DecodeResult[List[int]]:
         """
         Read arbitrary bits from the bitstream into a buffer.
 
@@ -459,7 +459,7 @@ class Decoder(Codec):
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
-                decoded_value=bytes(result),
+                decoded_value=[int(k) for k in result],
                 bits_consumed=bits_consumed
             )
         except BitStreamError as e:

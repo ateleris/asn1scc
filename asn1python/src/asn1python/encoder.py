@@ -365,7 +365,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
-    def append_bits(self, data: bytes, num_bits: int) -> EncodeResult:
+    def append_bits(self, data: List[int], num_bits: int) -> EncodeResult:
         """
         Append arbitrary bits from a buffer to the bitstream.
 
