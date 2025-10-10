@@ -223,7 +223,7 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
                 match childType.equalFunction.isEqualBody with
                 | EqualBodyExpression func  ->
                     match func (childAccesPath v1) (childAccesPath v2) with
-                    | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" lm.lg.AssignOperator exp, lvars)       // ret = (boolExp);
+                    | Some (exp, lvars)  -> Some (lm.equal.makeExpressionToStatement exp, lvars)
                     | None      -> None
                 | EqualBodyStatementList  func   -> func (childAccesPath v1) (childAccesPath v2)
             | Some fncName  ->
