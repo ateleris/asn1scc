@@ -1302,7 +1302,7 @@ if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
 
     pBitStrm = bitStrm
     <soInner>
-    pBitStrm = pBitStrm_save;
+    pBitStrm = pBitStrm_save
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1406,7 +1406,7 @@ if not res:
     # acn_python.stg 1260
     return res
 
-nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit;
+nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit
 <if(bFixedSize)>
 codec.append_bits(bitStrm.buf, nCount)
 

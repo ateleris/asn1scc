@@ -314,6 +314,19 @@ type LangGeneric_python() =
         let p = this.getParamType t c
         {p with accessPath.rootId = p.accessPath.rootId + suf}
     
+    override this.getParamTypeSuffixForEquals (t:Asn1AcnAst.Asn1Type) (s: string) (c:Codec) =
+        let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
+            match kind with
+            | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
+            | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
+            | _ -> ByPointer
+        let recvId = match t.Kind with
+                        | Asn1AcnAst.Enumerated _ -> "param" + s + ".val"
+                        | _ -> "param" + s
+        
+        {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
+        // {p with accessPath.rootId = p.accessPath.rootId + s}
+    
     override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
             match kind with

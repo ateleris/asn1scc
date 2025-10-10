@@ -66,7 +66,7 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
             match newChild.equalFunction.isEqualBody with
             | EqualBodyExpression func  ->
                 match func chp1 chp2 with
-                | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" lm.lg.AssignOperator exp, lvars)
+                | Some (exp, lvars)  -> Some (lm.equal.makeExpressionToStatement exp, lvars)
                 | None      -> None
             | EqualBodyStatementList  func   -> func chp1 chp2
         | Some  fncName ->
@@ -94,12 +94,12 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             match newChild.equalFunction.isEqualBody with
             | EqualBodyExpression func  ->
                 match func p1 p2 with
-                | Some (exp, lvars)     -> sprintf "ret %s (%s);" lm.lg.AssignOperator exp, lvars
-                | None                  -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
+                | Some (exp, lvars)     -> lm.equal.makeExpressionToStatement exp, lvars
+                | None                  -> lm.equal.AssignTrue (), []
             | EqualBodyStatementList  func   ->
                 match func p1 p2 with
                 | Some a    -> a
-                | None      -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
+                | None      -> lm.equal.AssignTrue (), []
         | Some fncName  ->
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) fncName p1.accessPath.isOptional p2.accessPath.isOptional
             makeExpressionToStatement lm exp, []
@@ -118,8 +118,8 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let equalTypeAssignment      = lm.equal.equalTypeAssignment
     let equalTypeAssignment_def  = lm.equal.equalTypeAssignment_def
     let alwaysTrue               = lm.lg.TrueLiteral
-    let p1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode
-    let p2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode
+    let p1 = lm.lg.getParamTypeSuffixForEquals t "1" CommonTypes.Codec.Encode
+    let p2 = lm.lg.getParamTypeSuffixForEquals t "2" CommonTypes.Codec.Encode
     let funcName            = getFuncName r lm  typeDefinition
     let varName1 = p1.accessPath.rootId
     let varName2 = p2.accessPath.rootId

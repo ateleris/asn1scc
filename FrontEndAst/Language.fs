@@ -296,6 +296,7 @@ type ILangGeneric () =
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
+    abstract member getParamTypeSuffixForEquals : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> AccessPath -> Codec -> string
 
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope
@@ -372,6 +373,9 @@ type ILangGeneric () =
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c
+    
+    default this.getParamTypeSuffixForEquals (t:Asn1AcnAst.Asn1Type) (s: string) (c:Codec) =
+        this.getParamTypeSuffix t s c
     
     default this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamType t c

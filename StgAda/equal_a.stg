@@ -104,6 +104,7 @@ end <sFuncName>;
 
 isEqual_Real(p1, p2) ::= "adaasn1rtl.Asn1Real_Equal(<p1>, <p2>)"
 
+AssignTrue() ::= "ret := True;"
 
 isEqual_OctetString(p1, p2, bFixedSize, nFixedSize) ::= <<
 <if(!bFixedSize)><p1>Length = <p2>Length and then <p1>Data(1 .. <p1>Length) = <p2>Data(1 .. <p2>Length)<else><p1>Data = <p2>Data<endif>
