@@ -18,21 +18,21 @@ initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
 <endif>
 >>
 
-initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= <<
 # init_python.stg 24
 <if(bIsOptional)>
-<sResVar>: Optional[Asn1Real] = <dValue>
+<sResVar>: Optional[<sType>] = <sType>(<dValue>)
 <else>
-<sResVar>: Asn1Real = <dValue>
+<sResVar>: <sType> = <sType>(<dValue>)
 <endif>
 >>
 
-initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
+initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= <<
 # init_python.stg 33
 <if(bIsOptional)>
-<sResVar>: Optional[Asn1Boolean] = <if(bValue)>True<else>False<endif>
+<sResVar>: Optional[<sType>] = <sType>(<if(bValue)>True<else>False<endif>)
 <else>
-<sResVar>: Asn1Boolean = <if(bValue)>True<else>False<endif>
+<sResVar>: <sType> = <sType>(<if(bValue)>True<else>False<endif>)
 <endif>
 >>
 
@@ -118,12 +118,12 @@ initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 <endif>
 >>
 
-initNull(sVal, bIsOptional, sResVar) ::= <<
+initNull(sVal, bIsOptional, sResVar, sType) ::= <<
 # init_python.stg 124
 <if(bIsOptional)>
-<sResVar>: Optional[NullType] = None
+<sResVar>: Optional[<sType>] = <sType>()
 <else>
-<sResVar>: NullType = None
+<sResVar>: <sType> = <sType>()
 <endif>
 >>
 
