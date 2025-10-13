@@ -398,7 +398,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def read_bits(self, num_bits: int) -> DecodeResult[List[int]]:
+    def read_bits(self, num_bits: int) -> DecodeResult[bytearray]:
         """
         Read arbitrary bits from the bitstream into a buffer.
 
@@ -560,7 +560,7 @@ class Decoder(Codec):
                 error_message=result.error_message
             )
 
-    def check_bit_pattern_present(self, pattern: bytes, num_bits: int) -> DecodeResult[int]:
+    def check_bit_pattern_present(self, pattern: bytearray, num_bits: int) -> DecodeResult[int]:
         """
         Check if a bit pattern is present at the current position.
 

@@ -623,7 +623,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytes, str_val: str) -> EncodeResult:
+    def enc_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytearray, str_val: str) -> EncodeResult:
         """Encode ASCII string with multiple null characters.
         
         Encodes string characters up to null terminator or max_len, then appends null_characters sequence.
@@ -789,7 +789,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
+    def enc_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytearray, str_val: str) -> EncodeResult:
         """Encode string using character index with fixed size.
         
         Each character is encoded as its index position in the allowed_char_set,
@@ -798,7 +798,7 @@ class ACNEncoder(Encoder):
         
         Args:
             max_len: Number of characters to encode (fixed size)
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             str_val: String value to encode
         """
         if not isinstance(allowed_char_set, (bytes, bytearray)):
@@ -862,7 +862,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, str_val: str) -> EncodeResult:
+    def enc_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytearray, str_val: str) -> EncodeResult:
         """Encode string using character index with external field determinant.
         
         Each character is encoded as its index position in the allowed_char_set.
@@ -870,7 +870,7 @@ class ACNEncoder(Encoder):
         
         Args:
             max_len: Maximum number of characters to encode
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             str_val: String value to encode
         """
         if not isinstance(allowed_char_set, (bytes, bytearray)):
@@ -910,7 +910,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int, str_val: str) -> EncodeResult:
+    def enc_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytearray, min_len: int, str_val: str) -> EncodeResult:
         """Encode string using character index with internal field determinant.
         
         Encodes the string length first as a constrained integer, then each character
@@ -918,7 +918,7 @@ class ACNEncoder(Encoder):
         
         Args:
             max_len: Maximum string length
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             min_len: Minimum string length
             str_val: String value to encode
         """
@@ -1162,7 +1162,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_sint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
+    def enc_sint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytearray) -> EncodeResult:
         """Encode signed integer as ASCII with null termination."""
         if not isinstance(null_characters, (bytes, bytearray)):
             return EncodeResult(
@@ -1326,7 +1326,7 @@ class ACNEncoder(Encoder):
                 error_message=str(e)
             )
 
-    def enc_uint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytes) -> EncodeResult:
+    def enc_uint_ascii_var_size_null_terminated(self, int_val: int, null_characters: bytearray) -> EncodeResult:
         """Encode unsigned integer as ASCII with null termination."""
         if int_val < 0:
             return EncodeResult(
@@ -1419,7 +1419,7 @@ class ACNEncoder(Encoder):
             
         return chars_written, bits_encoded
 
-    def _enc_string_char_index_private(self, max_len: int, allowed_char_set: bytes, str_val: str) -> tuple[int, int]:
+    def _enc_string_char_index_private(self, max_len: int, allowed_char_set: bytearray, str_val: str) -> tuple[int, int]:
         """Private helper method to encode string using character indices until null terminator or max_len.
         
         This method implements the common logic for character index string encoding:
@@ -1430,7 +1430,7 @@ class ACNEncoder(Encoder):
         
         Args:
             max_len: Maximum number of characters to encode
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             str_val: String value to encode
             
         Returns:
@@ -1471,12 +1471,12 @@ class ACNEncoder(Encoder):
         return chars_written, bits_encoded
 
     @staticmethod
-    def _get_char_index(char_byte: int, allowed_char_set: bytes) -> int:
+    def _get_char_index(char_byte: int, allowed_char_set: bytearray) -> int:
         """Get the index of a character byte in the allowed character set.
         
         Args:
             char_byte: Byte value of the character (0-255)
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             
         Returns:
             Index position in allowed_char_set, or -1 if not found

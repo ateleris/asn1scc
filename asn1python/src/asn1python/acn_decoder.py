@@ -532,7 +532,7 @@ class ACNDecoder(Decoder):
                 error_message=str(e)
             )
 
-    def dec_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytes) -> DecodeResult[str]:
+    def dec_string_ascii_null_terminated_mult(self, max_len: int, null_characters: bytearray) -> DecodeResult[str]:
         """Decode ASCII string with multiple null characters.
         
         Uses a sliding window approach to detect multi-byte null terminator sequence.
@@ -670,25 +670,25 @@ class ACNDecoder(Decoder):
             bits_consumed=length_result.bits_consumed + string_result.bits_consumed
         )
 
-    def dec_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytes) -> DecodeResult[str]:
+    def dec_string_char_index_fix_size(self, max_len: int, allowed_char_set: bytearray) -> DecodeResult[str]:
         """Decode string using character index with fixed size.
         
         Decodes exactly max_len characters from character indices.
         
         Args:
             max_len: Number of characters to decode (fixed size)
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
         """
         return self._dec_string_char_index_private(max_len, allowed_char_set, max_len)
 
-    def dec_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytes, ext_size_determinant_fld: int) -> DecodeResult[str]:
+    def dec_string_char_index_external_field_determinant(self, max_len: int, allowed_char_set: bytearray, ext_size_determinant_fld: int) -> DecodeResult[str]:
         """Decode string using character index with external field determinant.
         
         Uses an external field value to determine string length, capped at max_len.
         
         Args:
             max_len: Maximum allowed string length
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             ext_size_determinant_fld: External field determining actual string length
         """
         if ext_size_determinant_fld < 0:
@@ -702,7 +702,7 @@ class ACNDecoder(Decoder):
         characters_to_decode = min(ext_size_determinant_fld, max_len)
         return self._dec_string_char_index_private(max_len, allowed_char_set, characters_to_decode)
 
-    def dec_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytes, min_len: int) -> DecodeResult[str]:
+    def dec_string_char_index_internal_field_determinant(self, max_len: int, allowed_char_set: bytearray, min_len: int) -> DecodeResult[str]:
         """Decode string using character index with internal field determinant.
         
         Decodes a constrained integer first to determine the string length,
@@ -710,7 +710,7 @@ class ACNDecoder(Decoder):
         
         Args:
             max_len: Maximum string length
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             min_len: Minimum string length
         """
         if min_len > max_len:
@@ -905,7 +905,7 @@ class ACNDecoder(Decoder):
                 error_message=str(e)
             )
 
-    def dec_sint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
+    def dec_sint_ascii_var_size_null_terminated(self, null_characters: bytearray) -> DecodeResult:
         """Decode signed integer from ASCII with null termination."""
         if not isinstance(null_characters, (bytes, bytearray)):
             return DecodeResult(
@@ -1025,7 +1025,7 @@ class ACNDecoder(Decoder):
                 error_message=str(e)
             )
 
-    def dec_uint_ascii_var_size_null_terminated(self, null_characters: bytes) -> DecodeResult:
+    def dec_uint_ascii_var_size_null_terminated(self, null_characters: bytearray) -> DecodeResult:
         """Decode unsigned integer from ASCII with null termination."""
         if not isinstance(null_characters, (bytes, bytearray)):
             return DecodeResult(
@@ -1060,11 +1060,11 @@ class ACNDecoder(Decoder):
     # BOOLEAN DECODING
     # ============================================================================
 
-    def read_bit_pattern(self, pattern_to_read: bytes, n_bits_to_read: int) -> DecodeResult:
+    def read_bit_pattern(self, pattern_to_read: bytearray, n_bits_to_read: int) -> DecodeResult:
         """Read bit pattern and return boolean value."""
         raise NotImplementedError("read_bit_pattern not yet implemented")
 
-    def decode_true_false_boolean(self, true_pattern: bytes, false_pattern: bytes, n_bits_to_read: int) -> DecodeResult:
+    def decode_true_false_boolean(self, true_pattern: bytearray, false_pattern: bytearray, n_bits_to_read: int) -> DecodeResult:
         """Decode boolean using true/false patterns."""
         raise NotImplementedError("decode_true_false_boolean not yet implemented")
 
@@ -1247,12 +1247,12 @@ class ACNDecoder(Decoder):
     # CHARACTER INDEX STRING DECODING HELPER METHODS
     # ============================================================================
 
-    def _dec_string_char_index_private(self, max_len: int, allowed_char_set: bytes, characters_to_decode: int) -> DecodeResult[str]:
+    def _dec_string_char_index_private(self, max_len: int, allowed_char_set: bytearray, characters_to_decode: int) -> DecodeResult[str]:
         """Private helper method to decode a specific number of characters from character indices.
         
         Args:
             max_len: Maximum allowed string length (for validation)
-            allowed_char_set: Bytes containing allowed characters
+            allowed_char_set: bytearray containing allowed characters
             characters_to_decode: Actual number of characters to decode
         """
         if not isinstance(allowed_char_set, (bytes, bytearray)):
@@ -1387,7 +1387,7 @@ class ACNDecoder(Decoder):
                 error_message=str(e)
             )
 
-    def _dec_uint_ascii_var_size_null_terminated_impl(self, null_characters: bytes) -> DecodeResult:
+    def _dec_uint_ascii_var_size_null_terminated_impl(self, null_characters: bytearray) -> DecodeResult:
         """Helper method to decode unsigned integer from ASCII with null termination."""
         # Based on C implementation sliding window approach
         try:

@@ -328,7 +328,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
-    def append_byte_array(self, data: bytes, num_bytes: int) -> EncodeResult:
+    def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
         """
         Append multiple bytes to the bitstream.
 
@@ -336,7 +336,7 @@ class Encoder(Codec, ABC):
         Used by: ACN, UPER for octet strings
 
         Args:
-            data: Bytes to write
+            data: bytearray to write
             num_bytes: Number of bytes to write from data
         """
         try:
@@ -365,7 +365,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
-    def append_bits(self, data: List[int], num_bits: int) -> EncodeResult:
+    def append_bits(self, data: bytearray, num_bits: int) -> EncodeResult:
         """
         Append arbitrary bits from a buffer to the bitstream.
 
@@ -432,7 +432,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
-    def encode_octet_string_no_length(self, data: bytes, num_bytes: int) -> EncodeResult:
+    def encode_octet_string_no_length(self, data: bytearray, num_bytes: int) -> EncodeResult:
         """
         Encode octet string without length prefix.
 
@@ -441,7 +441,7 @@ class Encoder(Codec, ABC):
         Used by: ACN for fixed-size or externally-determined length octet strings
 
         Args:
-            data: Bytes to encode
+            data: bytearray to encode
             num_bytes: Number of bytes to encode from data
 
         Returns:
