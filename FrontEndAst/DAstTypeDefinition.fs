@@ -530,11 +530,14 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
                 List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
                 List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
 
-
+        let modName = ToC id.ModName
         let arrsChildren =
             match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
             | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
-            | false -> children |> List.map (fun o -> define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) o.Optionality.IsSome)
+            | false -> children |> List.map (fun o ->
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules)
+                let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
+                define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
 
         let childrenPrivatePart =
             children |>
@@ -587,10 +590,14 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
                 List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
                 List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
 
+        let modName = ToC id.ModName
         let arrsChildren =
             match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
             | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
-            | false -> children |> List.map (fun o -> define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) o.Optionality.IsSome)
+            | false -> children |> List.map (fun o ->
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules)
+                let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
+                define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
 
         let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (lm.lg.getAsn1ChildBackendName0 c))
 

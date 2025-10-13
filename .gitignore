@@ -1416,6 +1416,8 @@ asn1scc/Properties/launchSettings_UPER.json
 /.claude/settings.local.json
 details-docs/
 /asn1python/src/asn1python.egg-info/
+/asn1python/build/
+**/__pycache__/
 /generated-python-output/
 /generated-scala-output/
 /generated-c-output/

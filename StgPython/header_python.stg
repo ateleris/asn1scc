@@ -23,10 +23,9 @@ from dataclasses import dataclass, field
 <arrsIncludedModules:{inc|import asn1pylib.asn1src.<inc> as <inc>}; separator="\n">
 <endif>
 
-
 <if(arrsValueAssignments)>
-# Value Assignments:
-<arrsValueAssignments:{vas|<vas>}; separator="\n">
+# Value Assignments (currently not printed! Probably not necessary in Python?):
+<!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
 
@@ -103,8 +102,6 @@ Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateLocalTimeWithTimeZone
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 # header_python.stg 91
-# todo: should this be a dataclass? -> In C it was just a type alias, but with type alias we would need to not add the additional is_valid, initialize and other class functions
-@dataclass(frozen=True)
 class <sTypeDefinitionName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType>):
     <soExtraDefs>
 >>
@@ -260,8 +257,8 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 
 @dataclass(frozen=True)
 class <td.extension_function_positions>:
-    arrsNullFieldsSavePos; separator="\n">
-     <arrsSizeDefinition; separator="\n\n">
+    <arrsNullFieldsSavePos; separator="\n">
+    <arrsSizeDefinition; separator="\n\n">
 <endif>
 
 @dataclass(frozen=True)

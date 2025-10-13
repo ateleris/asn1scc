@@ -172,7 +172,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
             let fileName = Path.Combine(outDir, pu.specFileName)
             File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
-            File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"import {pu.name}\n")
+            File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"import asn1pylib.asn1src.{pu.name}\n")
 
             // test cases file
             match r.args.generateAutomaticTestCases with

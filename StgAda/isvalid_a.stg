@@ -204,7 +204,9 @@ end <sFuncName>;
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" AND \">"
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
-
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<sFuncName>_CharsAreValid_<nIdx>(<p>)"
+alphaFuncBaseName(p) ::= "<p>_CharsAreValid"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>_CharsAreValid_<nIdx>"
 
 stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(\"\" & <sStrVal>, <p>)"
 

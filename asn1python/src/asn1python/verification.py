@@ -14,53 +14,56 @@ from typing import Final, Tuple, Union, Optional, List, Any, Callable
 #     """Raised when a constraint validation fails"""
 #     pass
 
-@Pure
-def get_bitmask(start: int, end: int) -> int:
-    Requires(0 <= start and start <= end and end <= 8)
-    return 0xFF >> (8 - end + start) << (8 - end)
+# @Pure
+# def get_bitmask(start: int, end: int) -> int:
+#     Requires(0 <= start and start <= end and end <= 8)
+#     return 0xFF >> (8 - end + start) << (8 - end)
 
 @Pure
-def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
-    """Compares if the two bytes b1 and b2 are equal in the range [start, end["""
-    Requires(0 <= b1 and b1 <= 0xFF)
-    Requires(0 <= b2 and b2 <= 0xFF)
-    Requires(0 <= start and start <= end and end <= 8)
-    mask = get_bitmask(start, end)
-
-    return start == end or (b1 & mask) == (b2 & mask)
+def byte_set_bit(b: int, bit: bool, pos: int) -> int:
+    Requires(0 <= b and b <= 0xFF)
+    Requires(0 <= pos and pos < 8)
+    Ensures(0 <= Result() and Result() <= 0xFF)
+    if bit:
+        return b | (1 << (7 - pos))
+    else:
+        return b & ~(1 << (7 - pos))
 
 @Pure
-def intseq_range_eq(b1: PIntSeq, b2: PIntSeq, start: int, end: int) -> bool:
+def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PByteSeq:
+    Requires(0 <= bit_pos and bit_pos < 8)
+    Requires(0 <= byte_pos and byte_pos < len(seq))
+    return seq.update(byte_pos, byte_set_bit(seq[byte_pos], bit, bit_pos))
+
+# @Pure
+# def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
+#     """Compares if the two bytes b1 and b2 are equal in the range [start, end["""
+#     Requires(0 <= b1 and b1 <= 0xFF)
+#     Requires(0 <= b2 and b2 <= 0xFF)
+#     Requires(0 <= start and start <= end and end <= 8)
+#     mask = get_bitmask(start, end)
+
+#     return start == end or (b1 & mask) == (b2 & mask)
+
+@Pure
+def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [start, end["""
     Requires(len(b1) <= len(b2))
-    Requires(0 <= start and start <= end and end <= len(b1))
-    return start == end or b1.range(start, end) == b2.range(start, end)
+    Requires(0 <= end and end <= len(b1))
+    return b1.take(end) == b2.take(end)
 
-@Pure
-def intseq_bit_range_eq(b1: PIntSeq, b2: PIntSeq, start_bit: int, end_bit: int) -> bool:
-    Requires(len(b1) <= len(b2))
-    Requires(Forall(b1, lambda b: 0 <= b and b <= 0xFF))
-    Requires(Forall(b2, lambda b: 0 <= b and b <= 0xFF))
-    Requires(0 <= start_bit and start_bit <= end_bit and end_bit <= len(b1) * 8)
+# @Pure
+# def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end_bit: int) -> bool:
+#     Requires(len(b1) <= len(b2))
+#     Requires(0 <= end_bit and end_bit <= len(b1) * 8)
 
-    if start_bit == end_bit:
-        return True
+#     if 0 == end_bit:
+#         return True
     
-    full_byte_start = start_bit // 8 + (start_bit % 8 != 0)
-    full_byte_end = end_bit // 8
-    rest_start_byte = start_bit // 8
-    rest_from = start_bit % 8
-    rest_end_byte = end_bit // 8
-    rest_end = end_bit % 8
-
-    return (Implies(full_byte_start < full_byte_end, 
-                    intseq_range_eq(b1, b2, full_byte_start, full_byte_end)) and
-            Implies(rest_start_byte == rest_end_byte, 
-                    byte_range_eq(b1[rest_start_byte], b2[rest_start_byte], rest_from, rest_end)) and
-            Implies(rest_start_byte < rest_end_byte, 
-                    byte_range_eq(b1[rest_start_byte], b2[rest_start_byte], rest_from, 8) and
-                    Implies(rest_end != 0, byte_range_eq(b1[rest_end_byte], b2[rest_end_byte], 0, rest_end)))
-            )
+#     end_byte = end_bit // 8
+#     end_byte_bit = end_bit % 8
+# 
+#     return b1.take(end_byte) == b2.take(end_byte) and (end_byte_bit == 0 or byte_range_eq(b1[end_byte], b2[end_byte], 0, end_byte_bit))
 
 # def validate_integer_constraints(value: int,
 #                                 min_val: Optional[int] = None,

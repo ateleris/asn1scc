@@ -1,10 +1,9 @@
 
 
 from .verification import (
-    byte_range_eq,
-    bytearray_eq,
-    bytearray_range_eq,
-    bytearray_bit_range_eq
+    byte_set_bit,
+    byteseq_set_bit,
+    byteseq_eq_until
 )
 
 __version__ = "1.0.0"

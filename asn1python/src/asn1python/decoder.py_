@@ -39,11 +39,11 @@ class Decoder(Codec):
                 # If they don't match, use the range-calculated size (safer)
                 pass
 
-            if self._bitstream.bits_remaining() < bits_needed:
+            if self._bitstream.remaining_bits < bits_needed:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.remaining_bits}"
                 )
 
             # Decode the offset value as unsigned
@@ -146,7 +146,7 @@ class Decoder(Codec):
             current_byte = self._bitstream.current_bit_position() // 8
             if current_byte % 2 != 0:
                 # Need to skip to next word boundary
-                if self._bitstream.bits_remaining() < 8:
+                if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INSUFFICIENT_DATA,
@@ -190,7 +190,7 @@ class Decoder(Codec):
             current_byte = self._bitstream.current_bit_position() // 8
             padding_bytes = (4 - (current_byte % 4)) % 4
 
-            if self._bitstream.bits_remaining() < padding_bytes * 8:
+            if self._bitstream.remaining_bits < padding_bytes * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -227,7 +227,7 @@ class Decoder(Codec):
             DecodeResult containing boolean value (True = 1, False = 0)
         """
         try:
-            if self._bitstream.bits_remaining() < 1:
+            if self._bitstream.remaining_bits < 1:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -269,7 +269,7 @@ class Decoder(Codec):
                 length = min_length
             else:
                 length_bits = (max_length - 1).bit_length() if max_length else 16
-                if self._bitstream.bits_remaining() < length_bits:
+                if self._bitstream.remaining_bits < length_bits:
                     return DecodeResult(
                         success=False,
                         error_code=ERROR_INSUFFICIENT_DATA,
@@ -294,7 +294,7 @@ class Decoder(Codec):
                 )
 
             # Decode bit string data
-            if self._bitstream.bits_remaining() < length:
+            if self._bitstream.remaining_bits < length:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -336,7 +336,7 @@ class Decoder(Codec):
             DecodeResult containing byte value (0-255)
         """
         try:
-            if self._bitstream.bits_remaining() < 8:
+            if self._bitstream.remaining_bits < 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -371,11 +371,11 @@ class Decoder(Codec):
             DecodeResult containing bytes
         """
         try:
-            if self._bitstream.bits_remaining() < num_bytes * 8:
+            if self._bitstream.remaining_bits < num_bytes * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.remaining_bits}"
                 )
 
             result = bytearray()
@@ -398,7 +398,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def read_bits(self, num_bits: int) -> DecodeResult[bytes]:
+    def read_bits(self, num_bits: int) -> DecodeResult[bytearray]:
         """
         Read arbitrary bits from the bitstream into a buffer.
 
@@ -429,11 +429,11 @@ class Decoder(Codec):
                     bits_consumed=0
                 )
 
-            if self._bitstream.bits_remaining() < num_bits:
+            if self._bitstream.remaining_bits < num_bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.remaining_bits}"
                 )
 
             # Calculate required buffer size
@@ -459,7 +459,7 @@ class Decoder(Codec):
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
-                decoded_value=bytes(result),
+                decoded_value=[int(k) for k in result],
                 bits_consumed=bits_consumed
             )
         except BitStreamError as e:
@@ -499,11 +499,11 @@ class Decoder(Codec):
                     bits_consumed=0
                 )
 
-            if self._bitstream.bits_remaining() < num_bytes * 8:
+            if self._bitstream.remaining_bits < num_bytes * 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.remaining_bits}"
                 )
 
             # Check if we're byte-aligned
@@ -560,7 +560,7 @@ class Decoder(Codec):
                 error_message=result.error_message
             )
 
-    def check_bit_pattern_present(self, pattern: bytes, num_bits: int) -> DecodeResult[int]:
+    def check_bit_pattern_present(self, pattern: bytearray, num_bits: int) -> DecodeResult[int]:
         """
         Check if a bit pattern is present at the current position.
 
@@ -581,7 +581,7 @@ class Decoder(Codec):
         """
         try:
             # Check if we have enough bits to read the pattern
-            if self._bitstream.bits_remaining() < num_bits:
+            if self._bitstream.remaining_bits < num_bits:
                 return DecodeResult(
                     success=True,
                     error_code=DECODE_OK,
@@ -648,11 +648,11 @@ class Decoder(Codec):
             DecodeResult containing unsigned integer value
         """
         try:
-            if self._bitstream.bits_remaining() < num_bits:
+            if self._bitstream.remaining_bits < num_bits:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.bits_remaining()}"
+                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.remaining_bits}"
                 )
 
             value = self._bitstream.read_bits(num_bits)
@@ -831,6 +831,175 @@ class Decoder(Codec):
                 error_code=DECODE_OK,
                 decoded_value=value,
                 bits_consumed=8 + num_bytes * 8
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    def dec_real(self) -> DecodeResult[float]:
+        """
+        Decode real (floating point) value according to ASN.1 PER standard.
+
+        Matches C: BitStream_DecodeReal(pBitStrm, v)
+        Matches Scala: Codec.decodeReal(): Double
+        Used by: UPER, PER for REAL type decoding
+
+        Binary encoding: REAL = M*B^E where M = S*N*2^F
+        Decoding format:
+        - 1 byte: length of encoding
+        - 1 byte: header (sign, base=2, exponent length)
+        - 1-3 bytes: exponent (two's complement)
+        - 1-7 bytes: mantissa (unsigned)
+
+        Returns:
+            DecodeResult containing the decoded float value
+        """
+        import math
+
+        try:
+            # Read length byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            length = result.decoded_value
+
+            bits_consumed = 8
+
+            # Special case: length = 0 means +0.0
+            if length == 0:
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=0.0,
+                    bits_consumed=bits_consumed
+                )
+
+            # Read header byte
+            result = self.read_byte()
+            if not result.success:
+                return result
+            header = result.decoded_value
+            bits_consumed += 8
+
+            # Check for special values
+            if header == 0x40:
+                # Positive infinity
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=math.inf,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x41:
+                # Negative infinity
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=-math.inf,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x42:
+                # NaN
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=math.nan,
+                    bits_consumed=bits_consumed
+                )
+            elif header == 0x43:
+                # Negative zero
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=-0.0,
+                    bits_consumed=bits_consumed
+                )
+
+            # Binary encoding (header & 0x80 == 0x80)
+            if (header & 0x80) != 0x80:
+                # Only binary mode supported
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message="Only binary real encoding is supported"
+                )
+
+            # Extract sign (bit 6)
+            sign = -1 if (header & 0x40) else 1
+
+            # Extract base factor (bits 4-5)
+            # base = 2^exp_factor
+            if (header & 0x10):
+                exp_factor = 3  # base 8
+            elif (header & 0x20):
+                exp_factor = 4  # base 16
+            else:
+                exp_factor = 1  # base 2
+
+            # Extract scaling factor F (bits 2-3)
+            factor = 1 << ((header & 0x0C) >> 2)
+
+            # Extract exponent length (bits 0-1)
+            exp_len = (header & 0x03) + 1
+
+            # Validate exponent length
+            if exp_len > length - 1:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Exponent length {exp_len} exceeds remaining data {length - 1}"
+                )
+
+            # Read exponent bytes (two's complement)
+            # Check first bit for sign extension
+            first_bit_result = self.read_bit()
+            if not first_bit_result.success:
+                return first_bit_result
+
+            # Start with sign extension
+            exponent = -1 if first_bit_result.decoded_value else 0
+            bits_consumed += 1
+
+            # Read remaining bits of first exponent byte
+            remaining_bits = 7
+            if remaining_bits > 0:
+                partial_result = self._bitstream.read_bits(remaining_bits)
+                exponent = (exponent << remaining_bits) | partial_result
+                bits_consumed += remaining_bits
+
+            # Read remaining exponent bytes
+            for i in range(1, exp_len):
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                exponent = (exponent << 8) | result.decoded_value
+                bits_consumed += 8
+
+            # Read mantissa bytes
+            mantissa_len = length - 1 - exp_len
+            mantissa = 0
+
+            for i in range(mantissa_len):
+                result = self.read_byte()
+                if not result.success:
+                    return result
+                mantissa = (mantissa << 8) | result.decoded_value
+                bits_consumed += 8
+
+            # Calculate final value: sign * mantissa * factor * 2^(exponent * exp_factor)
+            # value = sign * mantissa * factor * base^exponent
+            # where base = 2^exp_factor
+            value = sign * mantissa * factor * math.pow(2, exponent * exp_factor)
+
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=bits_consumed
             )
 
         except BitStreamError as e:
