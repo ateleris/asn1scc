@@ -34,7 +34,7 @@ decoder = encoder.get_decoder()
 res = <sTasName>.decode(decoder)
 
 # todo: maybe this check needs to be different. What if we decode NullType-Instances?
-if not res:
+if not isinstance(res, int) and not res:
     # test_cases_python.stg 45
     raise Asn1TestcaseDecodeFailedError()
 
