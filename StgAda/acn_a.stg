@@ -762,8 +762,8 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
 result.ErrorCode := <sErrCode>;
 >>

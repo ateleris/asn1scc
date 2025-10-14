@@ -560,12 +560,12 @@ ret = Acn_Dec_String_CharIndex_FixSize(pBitStrm, <nAsn1Max>, allowedCharSet, <nC
 <A(sErrCode)>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 Acn_Enc_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>);
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 ret = Acn_Dec_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>, <p>);
 <A(sErrCode)>
