@@ -156,8 +156,8 @@ val <p> = codec.base.decodeConstrainedPosWholeNumber<sSsuffix>(ULong.fromRaw(<nM
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= <<
 val <p> = codec.base.decodeUnconstrainedWholeNumber() match {
     case None() => return LeftMut(<sErrCode>)
     case Some(v) => v
@@ -190,11 +190,11 @@ if !codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>) then
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, sType) ::=<<
 /* No need to encode the val <p>, it will always be <sConst> */
 ; // NOP
 >>
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
 val <p> = <sConst>
 >>
 
@@ -221,17 +221,17 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 >>
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if <sRootBaseConstraint> then
     codec.base.appendBitZero() /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 else
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     codec.base.appendBitOne()
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTEGER END*/

@@ -159,8 +159,8 @@ ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, 
 
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= <<
 ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 *pErrCode = ret ? 0 : <sErrCode>;                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 >>
@@ -191,11 +191,11 @@ ret = BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);
 
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, sType) ::=<<
 /* No need to encode value since it will always be <sConst> */
 (void)pBitStrm;
 >>
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
 <p>=<sConst>;
 (void)pBitStrm;
 ret = TRUE;
@@ -228,18 +228,18 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if (<sRootBaseConstraint>) {
     BitStream_AppendBitZero(pBitStrm); /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     BitStream_AppendBitOne(pBitStrm);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 };
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTETEGER END*/

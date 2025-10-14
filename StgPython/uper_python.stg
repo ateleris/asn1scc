@@ -164,19 +164,18 @@ if not decode_result:
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= << 
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= << 
 # uper_python.stg 163
 res = codec.decode_unconstrained_whole_number()
 if res is None:
     # uper_python.stg 166
-    return Asn1SccError(<sErrCode>)
-else:
-    <p> = res
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = <sType>(res.decoded_value)
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
@@ -187,14 +186,15 @@ if not res:
 >>
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 # uper_python.stg 175
-if not codec.decode_unconstrained_whole_number() then # TODO meth does not return a boolean value...?
+decode_result = codec.decode_unconstrained_whole_number()
+if not decode_result:
     <if(soCheckExp)>
     if not <soCheckExp>: 
         # uper_python.stg 179
-        return Asn1SccError(<sErrCode>)
+        raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
     <else>
     # uper_python.stg 182
-    return Asn1SccError(<sErrCode>)
+   raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
     <endif>
 >>
 
@@ -225,14 +225,14 @@ if not codec.decode_semi_constrained_pos_whole_number(<nMin>):
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, sType) ::=<<
 # uper_python.stg 207
 # No need to encode the val <p>, it will always be <sConst> 
 # NOPs
 >>
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
 # uper_python.stg 212
-<p> = <sConst>
+<p> = <sType>(<sConst>)
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
@@ -259,7 +259,7 @@ else
 >>
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 # uper_python.stg 240
 if <sRootBaseConstraint>:
     codec.append_bit(False) # write extension bit, value within root range, so ext bit is zero
@@ -267,10 +267,10 @@ if <sRootBaseConstraint>:
 else:
     # value is not within root range, so ext bit is one and value is encoded as unconstrained
     codec.append_bit(True)
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint=sRootBaseConstraint, sIntBody=sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint=sRootBaseConstraint, sIntBody=sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTEGER END*/

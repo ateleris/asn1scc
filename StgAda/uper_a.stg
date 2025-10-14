@@ -145,12 +145,12 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_encode(p, sConst, sErrCode, sType) ::= <<
 -- No need to encode value since it will always be <sConst> --
 null;
 >>
 
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <p> := <sConst>;
 >>
@@ -170,8 +170,8 @@ adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber<sSsuffix>(bs, <p>, <n
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Success);
 >>
@@ -227,18 +227,18 @@ end;
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if <sRootBaseConstraint> then
     <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 0); -- value within root range, so ext bit is zero
     <sIntBody>
 else
     -- value is not within root range, so ext bit is one and value is encoded as unconstrained
     <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 1);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 end if;
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 
