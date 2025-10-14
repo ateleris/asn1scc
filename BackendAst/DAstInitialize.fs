@@ -225,14 +225,14 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
 
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference)  =
     let initInteger = lm.init.initInteger
-
+    let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
             | IntegerValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules)
+        initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar sType
 
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
 
@@ -243,16 +243,16 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         match isZeroAllowed  with
         | false    ->
             match integerVals with
-            |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString x o.intClass) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
-            | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString 0I o.intClass) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
-        | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString 0I o.intClass) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
+            |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString x o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
+            | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString 0I o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
+        | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString 0I o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
     let constantInitExpression () =
         match isZeroAllowed  with
         | false    ->
             match integerVals with
-            |x::_ -> lm.lg.intValueToString x (o.intClass)
-            | [] -> lm.lg.intValueToString 0I (o.intClass)
-        | true  -> lm.lg.intValueToString 0I (o.intClass)
+            |x::_ -> lm.lg.intValueToString x o.intClass
+            | [] -> lm.lg.intValueToString 0I o.intClass
+        | true  -> lm.lg.intValueToString 0I o.intClass
 
 
     let testCaseFuncs =
@@ -260,20 +260,21 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         List.map (fun vl ->
             let initTestCaseFunc (p:CodegenScope) =
                 let resVar = p.accessPath.asIdentifier
-                {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.accessPath PartialAccess) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
+                {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.accessPath PartialAccess) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
 
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
 let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  =
     let initReal = lm.init.initReal
+    let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
             | RealValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules)
+        initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType
 
     let realVals = EncodeDecodeTestCase.RealAutomaticTestCaseValues r t o
     let testCaseFuncs =
@@ -281,7 +282,7 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         List.map (fun vl ->
             let initTestCaseFunc (p:CodegenScope) =
                 let resVar = p.accessPath.asIdentifier
-                {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
+                {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
     let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CodegenScope)  =
@@ -289,9 +290,9 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         match isZeroAllowed with
         | false    ->
             match realVals with
-            | x::_ -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) x p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
-            | [] -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) 0.0 p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
-        | true  -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) 0.0 p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]}
+            | x::_ -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) x p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
+            | [] -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) 0.0 p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
+        | true  -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) 0.0 p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
 
     let constantInitExpression () =
         match isZeroAllowed  with
