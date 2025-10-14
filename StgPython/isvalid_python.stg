@@ -268,8 +268,9 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if <p><sAcc><sChName> == <sChName>:
-    <sInnerStatement>
+if not <p><sAcc><sChName>:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
+<sInnerStatement>
 >>
 
 
@@ -279,7 +280,7 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-(<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
+<p><sAcc><sChName>
 >>
 
 /* SEQUENCE end*/

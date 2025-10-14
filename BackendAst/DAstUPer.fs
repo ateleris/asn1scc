@@ -170,7 +170,8 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
-
+    // let td = (lm.lg.getLongTypedefName ).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+    
     let rangeAssert =
         match typeId.topLevelTas with
         | Some tasInfo ->
@@ -223,7 +224,8 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
         let Boolean         = lm.uper.Boolean
-        let funcBodyContent = Boolean pp errCode.errCodeName codec
+        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let funcBodyContent = Boolean pp errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
 

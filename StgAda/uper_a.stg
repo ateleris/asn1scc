@@ -242,9 +242,9 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRo
 
 
 
-Boolean_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Boolean(bs, <p>);"
+Boolean_encode(p, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Boolean(bs, <p>);"
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>

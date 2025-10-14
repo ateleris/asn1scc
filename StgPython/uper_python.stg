@@ -272,14 +272,17 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 
 /* INTEGER END*/
 
-Boolean_encode(p, sErrCode) ::= <<
+Boolean_encode(p, sErrCode, sType) ::= <<
 # uper_python.stg 256
 codec.append_bit(<p>)
 >>
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 # uper_python.stg 261
-<p> = codec.read_bit().decoded_value # uper:225
+decode_result = codec.read_bit()
+if not decode_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = <sType>(decode_result.decoded_value)
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= <<

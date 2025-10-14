@@ -247,9 +247,9 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRo
 
 
 
-Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
+Boolean_encode(p, sErrCode, sType) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 ret = BitStream_ReadBit(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>

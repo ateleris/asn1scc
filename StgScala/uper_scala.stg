@@ -236,11 +236,11 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 
 /* INTEGER END*/
 
-Boolean_encode(p, sErrCode) ::= <<
+Boolean_encode(p, sErrCode, sType) ::= <<
 codec.base.bitStream.appendBit(<p>)
 >>
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.base.bitStream.readBit() // uper:225
 >>
 
