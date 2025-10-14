@@ -86,8 +86,8 @@ type LangBasic_python() =
         | Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
         | Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
         | Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
-    override this.getNullRtlTypeName = "", "None", "NULL"
-    override this.getBoolRtlTypeName = "", "bool", "BOOLEAN"
+    override this.getNullRtlTypeName = "", "NullType", "NullType"
+    override this.getBoolRtlTypeName = "", "bool", "bool"
 
 let isClassVariable (receiverId: string) : bool =
         // For Python class methods, we need to detect when the receiverId should be treated as "self"
@@ -366,7 +366,7 @@ type LangGeneric_python() =
         | AcnInsertedChild(name, vartype, initVal)  ->
             sprintf "%s = %s" name initVal
         | GenericLocalVariable lv                   ->
-            sprintf "%s = %s" lv.name (if lv.initExp.IsNone then "None" else lv.initExp.Value)
+            sprintf "%s = %s" lv.name (if lv.initExp.IsNone then "NullType" else lv.initExp.Value)
 
     override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
         match tdr with

@@ -144,7 +144,7 @@ IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
 # uper_python.stg 150
 <soRangeAssert>
 res = codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
@@ -152,12 +152,12 @@ if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
 # uper_python.stg 156
 decode_result = codec.decode_constrained_pos_whole_number(<nMin>, <nMax>)
 if not decode_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
-<p> = cls(decode_result.decoded_value)
+<p> = <sType>(decode_result.decoded_value)
 >>
 
 /*case: A :: = INTEGER */
