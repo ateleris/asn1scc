@@ -131,16 +131,19 @@ InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 /* INTEGER START*/
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
 # uper_python.stg 139
 res = codec.encode_constrained_whole_number(<p>, <nMin>, <nMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
 # uper_python.stg 144
-<p> = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>) # uper:122
+decode_result = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>)
+if not decode_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = <sType>(decode_result.decoded_value)
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */

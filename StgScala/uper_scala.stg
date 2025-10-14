@@ -123,11 +123,11 @@ val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 
 /* INTEGER START*/
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
 codec.base.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
 val <p> = codec.base.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:122
 >>
 

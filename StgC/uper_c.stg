@@ -144,8 +144,8 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
 
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
