@@ -98,9 +98,12 @@ end <sFuncName>;
  */
 
 
- isEqual_Primitive(p1, p2) ::= "<p1> = <p2>"
+isEqual_Primitive(p1, p2) ::= "<p1> = <p2>"
 
- isEqual_String(p1, p2) ::= "<p1> = <p2>"
+isEqual_String(p1, p2) ::= "<p1> = <p2>"
+isEqual_Integer(p1, p2) ::= "<p1> = <p2>"
+isEqual_Enumerated(p1, p2) ::= "<isEqual_Integer(p1=p1,p2=p2)>"
+isEqual_Boolean(p1, p2) ::= "<p1> = <p2>"
 
 isEqual_Real(p1, p2) ::= "adaasn1rtl.Asn1Real_Equal(<p1>, <p2>)"
 
