@@ -288,15 +288,18 @@ if not decode_result:
 <p> = <sType>(decode_result.decoded_value)
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= <<
 res = codec.enc_real(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 # uper_python.stg 267
-<p> = codec.dec_real<sSuffix>()
+decode_result = codec.dec_real<sSuffix>()
+if not decode_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = <sType>(decode_result.decoded_value)
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= <<

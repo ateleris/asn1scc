@@ -244,8 +244,8 @@ Boolean_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.base.bitStream.readBit() // uper:225
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "codec.base.encodeReal(<p>)"
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= "codec.base.encodeReal(<p>)"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.base.decodeReal<sSuffix>().toDouble // uper:234
 >>
 

@@ -245,7 +245,8 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = castRPp lm codec (o.getClass r.args) pp
         let Real         = lm.uper.Real
-        let funcBodyContent = Real castPp sSuffix errCode.errCodeName codec
+        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let funcBodyContent = Real castPp sSuffix errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     let annots =
