@@ -357,7 +357,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def read_byte_array(self, num_bytes: int) -> DecodeResult[bytes]:
+    def read_byte_array(self, num_bytes: int) -> DecodeResult[bytearray]:
         """
         Read multiple bytes from the bitstream.
 
@@ -388,7 +388,7 @@ class Decoder(Codec):
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
-                decoded_value=bytes(result),
+                decoded_value=result,
                 bits_consumed=bits_consumed
             )
         except BitStreamError as e:
@@ -469,7 +469,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def decode_octet_string_no_length(self, num_bytes: int) -> DecodeResult[bytes]:
+    def decode_octet_string_no_length(self, num_bytes: int) -> DecodeResult[bytearray]:
         """
         Decode octet string without length prefix.
 
@@ -495,7 +495,7 @@ class Decoder(Codec):
                 return DecodeResult(
                     success=True,
                     error_code=DECODE_OK,
-                    decoded_value=b'',
+                    decoded_value=bytearray(),
                     bits_consumed=0
                 )
 
@@ -517,7 +517,7 @@ class Decoder(Codec):
                 return DecodeResult(
                     success=True,
                     error_code=DECODE_OK,
-                    decoded_value=bytes(result),
+                    decoded_value=bytearray(result),
                     bits_consumed=num_bytes * 8
                 )
             else:
@@ -721,7 +721,7 @@ class Decoder(Codec):
                 return result
             num_bytes = result.decoded_value
 
-            if num_bytes == 0 or num_bytes > 8:
+            if num_bytes == None or num_bytes == 0 or num_bytes > 8:
                 return DecodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
