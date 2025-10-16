@@ -31,14 +31,11 @@ Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 decoder = encoder.get_decoder()
 
 # Decode value
-res = <sTasName>.decode(decoder)
+try:
+    decodedPDU = <sTasName>.decode(decoder)
+except Exception as e:
+    raise Asn1TestcaseDecodeFailedError(e)
 
-# todo: maybe this check needs to be different. What if we decode NullType-Instances?
-if not res and not (issubclass(<sTasName>, int) and res == 0) and not (issubclass(<sTasName>, float) and res == 0.0):
-    # test_cases_python.stg 45
-    raise Asn1TestcaseDecodeFailedError()
-
-decodedPDU = res
 >>
 
 // todo: Implement XER Decoding routines
