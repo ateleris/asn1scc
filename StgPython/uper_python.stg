@@ -602,7 +602,10 @@ if not res:
 
 octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
 # uper_python.stg 536
-<p> = <sTypeDefName>(codec.decode_octet_string_no_length_vec(<nFixedSize>))
+decoded_result = codec.decode_octet_string_no_length_vec(<nFixedSize>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decode_result.error_message}")
+<p> = <sTypeDefName>(decoded_result.decoded_value)
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
