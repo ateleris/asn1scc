@@ -83,6 +83,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    @property
     def bit_index(self) -> int:
         """
         Get the current bit position in the bitstream.
@@ -94,7 +95,7 @@ class Decoder(Codec):
         Returns:
             Current bit position (0-based index)
         """
-        return self._bitstream.current_bit_position()
+        return self._bitstream.current_used_bits
 
     def align_to_byte(self) -> DecodeResult[None]:
         """
@@ -108,9 +109,9 @@ class Decoder(Codec):
             DecodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
             self._bitstream.align_to_byte()
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_consumed = final_pos - initial_pos
             return DecodeResult(
                 success=True,
@@ -137,14 +138,13 @@ class Decoder(Codec):
             DecodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
 
             # First align to byte
             self._bitstream.align_to_byte()
 
             # Then align to 2-byte (16-bit) boundary
-            current_byte = self._bitstream.current_bit_position() // 8
-            if current_byte % 2 != 0:
+            if self._bitstream.current_byte_position % 2 != 0:
                 # Need to skip to next word boundary
                 if self._bitstream.remaining_bits < 8:
                     return DecodeResult(
@@ -154,7 +154,7 @@ class Decoder(Codec):
                     )
                 self._bitstream.read_bits(8)
 
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_consumed = final_pos - initial_pos
             return DecodeResult(
                 success=True,
@@ -181,13 +181,13 @@ class Decoder(Codec):
             DecodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
 
             # First align to byte
             self._bitstream.align_to_byte()
 
             # Then align to 4-byte (32-bit) boundary
-            current_byte = self._bitstream.current_bit_position() // 8
+            current_byte = self._bitstream.current_byte_position
             padding_bytes = (4 - (current_byte % 4)) % 4
 
             if self._bitstream.remaining_bits < padding_bytes * 8:
@@ -200,7 +200,7 @@ class Decoder(Codec):
             for _ in range(padding_bytes):
                 self._bitstream.read_bits(8)
 
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_consumed = final_pos - initial_pos
             return DecodeResult(
                 success=True,
@@ -425,7 +425,7 @@ class Decoder(Codec):
                 return DecodeResult(
                     success=True,
                     error_code=DECODE_OK,
-                    decoded_value=b'',
+                    decoded_value=bytearray(),
                     bits_consumed=0
                 )
 
@@ -507,7 +507,7 @@ class Decoder(Codec):
                 )
 
             # Check if we're byte-aligned
-            if self._bitstream.current_bit == 0:
+            if self._bitstream.current_bit_position == 0:
                 # Optimized path: byte-aligned, can read directly
                 result = bytearray()
                 for _ in range(num_bytes):
@@ -590,8 +590,7 @@ class Decoder(Codec):
                 )
 
             # Save current position
-            saved_byte = self._bitstream.current_byte
-            saved_bit = self._bitstream.current_bit
+            saved_index = self._bitstream.current_used_bits
 
             # Calculate required bytes for pattern
             num_pattern_bytes = (num_bits + 7) // 8
@@ -615,8 +614,7 @@ class Decoder(Codec):
                     pattern_matches = False
 
             # Restore position (this is a check, not a consume)
-            self._bitstream.current_byte = saved_byte
-            self._bitstream.current_bit = saved_bit
+            self._bitstream.set_bit_index(saved_index)
 
             # Return result
             result_value = 2 if pattern_matches else 1
