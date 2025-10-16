@@ -114,7 +114,6 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
-# equal_python.stg 125
 <if(!bIsFixedSize)>
     (<p1>nCount == <p2>nCount) and (<p1>arr[:<p1>nCount] == <p2>arr[:<p1>nCount])
 <else>
@@ -135,7 +134,6 @@ ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
-# equal_python.stg 156
 ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
 <soInnerStatement>
 >>
@@ -143,7 +141,6 @@ ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
-# equal_python.stg 173
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
 <i>: int = 0
@@ -155,7 +152,6 @@ while ret and <i> \< <p1><sAcc>nCount:
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-# equal_python.stg 185
 <i>: int = 0
 while ret and <i> \< <nFixedSize>:
     <sInnerStatement>

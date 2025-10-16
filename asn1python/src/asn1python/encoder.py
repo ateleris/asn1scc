@@ -81,6 +81,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
+    @property
     def bit_index(self) -> int:
         """
         Get the current bit position in the bitstream.
@@ -92,7 +93,7 @@ class Encoder(Codec, ABC):
         Returns:
             Current bit position (0-based index)
         """
-        return self._bitstream.current_bit_position()
+        return self._bitstream.current_used_bits
 
     def align_to_byte(self) -> EncodeResult:
         """
@@ -106,9 +107,9 @@ class Encoder(Codec, ABC):
             EncodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
             self._bitstream.align_to_byte()
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_encoded = final_pos - initial_pos
             return EncodeResult(
                 success=True,
@@ -135,18 +136,18 @@ class Encoder(Codec, ABC):
             EncodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
 
             # First align to byte
             self._bitstream.align_to_byte()
 
             # Then align to 2-byte (16-bit) boundary
-            current_byte = self._bitstream.current_bit_position() // 8
+            current_byte = self.bit_index // 8
             if current_byte % 2 != 0:
                 # Need to skip to next word boundary
                 self._bitstream.write_bits(0, 8)
 
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_encoded = final_pos - initial_pos
             return EncodeResult(
                 success=True,
@@ -173,18 +174,18 @@ class Encoder(Codec, ABC):
             EncodeResult with success/failure status
         """
         try:
-            initial_pos = self._bitstream.current_bit_position()
+            initial_pos = self.bit_index
 
             # First align to byte
             self._bitstream.align_to_byte()
 
             # Then align to 4-byte (32-bit) boundary
-            current_byte = self._bitstream.current_bit_position() // 8
+            current_byte = self.bit_index // 8
             padding_bytes = (4 - (current_byte % 4)) % 4
             for _ in range(padding_bytes):
                 self._bitstream.write_bits(0, 8)
 
-            final_pos = self._bitstream.current_bit_position()
+            final_pos = self.bit_index
             bits_encoded = final_pos - initial_pos
             return EncodeResult(
                 success=True,
@@ -463,7 +464,7 @@ class Encoder(Codec, ABC):
                 )
 
             # Check if we're byte-aligned
-            if self._bitstream.current_bit == 0:
+            if self._bitstream.current_bit_position == 0:
                 # Optimized path: byte-aligned, can write directly
                 for i in range(num_bytes):
                     self._bitstream.write_bits(data[i], 8)
@@ -508,7 +509,7 @@ class Encoder(Codec, ABC):
                 )
 
             # Convert list to bytes
-            byte_data = bytes(data[:num_bytes])
+            byte_data = bytearray(data[:num_bytes])
             return self.encode_octet_string_no_length(byte_data, num_bytes)
         except (ValueError, TypeError) as e:
             return EncodeResult(
