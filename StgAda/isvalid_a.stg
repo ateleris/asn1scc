@@ -213,6 +213,7 @@ stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsCha
 
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret := <sFuncName>(<if(soTypeCasting)><soTypeCasting>(<p>)<else><p><endif>);"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "<call_base_type_func(p=p, sFuncName=sFuncName, soTypeCasting=soTypeCasting)>"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>).Success"
 
 

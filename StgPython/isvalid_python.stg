@@ -88,7 +88,7 @@ def <sFuncName>(self) -> Asn1ConstraintValidResult:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return Asn1ConstraintValidResult(is_valid=True)
+    return ret
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
@@ -259,6 +259,7 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>()"
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
 call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
