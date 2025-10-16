@@ -2,6 +2,15 @@ group uper_python;
 
 rtlModuleName() ::= ""
 
+call_superclass_func_encode(p, sFuncName) ::= <<
+# uper_python.stg 6_2
+super().encode(codec, check_constraints)
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+# uper_python.stg 13_2
+<p> = <sFuncName>(codec, check_constraints)
+>>
+
 call_base_type_func_encode(p, sFuncName) ::= <<
 # uper_python.stg 6
 <p>.encode(codec, check_constraints)

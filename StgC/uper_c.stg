@@ -3,7 +3,12 @@
 rtlModuleName() ::= ""
 
 
-
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
 call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);"
 call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode);"
 

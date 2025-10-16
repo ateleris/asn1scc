@@ -3,6 +3,13 @@ group a_uper;
 
 rtlModuleName() ::= "adaasn1rtl"
 
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
+
 call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 call_base_type_func_decode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 

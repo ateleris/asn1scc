@@ -13,6 +13,7 @@ open DAstUtilFunctions
 open Language
 
 let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
+let callSuperclassFunc (lm:LanguageMacros) = lm.uper.call_superclass_func
 
 let sparkAnnotations (lm:LanguageMacros)  = lm.uper.sparkAnnotations
 
@@ -666,6 +667,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent =  callBaseTypeFunc lm pp baseFuncName codec
+            let funcBodyContent = funcBodyContent + "TEST1111"
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []})
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  [] us
@@ -913,6 +915,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent = callBaseTypeFunc lm pp baseFuncName codec
+            let funcBodyContent = funcBodyContent + "TEST2222"
             let ret = lm.lg.generateChoiceProof r ACN t o funcBodyContent p.accessPath codec
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
 
@@ -952,6 +955,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                             toc, Some toc
                         | _ -> str, None)
                     let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
+                    let funcBodyContent = funcBodyContent + "TEST3333"
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 //| None -> None
             TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] ns)

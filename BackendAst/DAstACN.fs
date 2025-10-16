@@ -19,6 +19,7 @@ let foldMap = Asn1Fold.foldMap
 
 
 let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
+let callSuperclassFunc (lm:LanguageMacros) = lm.uper.call_superclass_func
 
 let sparkAnnotations (lm:LanguageMacros)  = lm.acn.sparkAnnotations
 
@@ -2599,7 +2600,12 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         let toc = ToC str
                         toc, Some toc
                     | _ -> str, None
-                let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
+                let funcBodyContent =
+                    match p.accessPath.steps with
+                     | [] -> callSuperclassFunc lm pp baseFncName codec
+                     | _ -> callBaseTypeFunc lm pp baseFncName codec
+                // let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
+                let funcBodyContent = funcBodyContent
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us)
 
             let ns =

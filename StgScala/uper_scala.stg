@@ -2,6 +2,12 @@
 
 rtlModuleName() ::= ""
 
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
 call_base_type_func_encode(p, sFuncName) ::= <<
 <sFuncName>(<p>, codec, false) match // uper:6
     case Right(_) =>
