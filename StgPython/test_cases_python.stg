@@ -296,3 +296,8 @@ from asn1pylib import Asn1SccError
 <arrsTestFunctionBodies;separator="\n\n">
 
 >>
+
+// Used for when a language like scala requires the sIdentifier to be returned. Otherwise just sBody
+decodingCaseKind(sBody, sIdentifier) ::= <<
+<sBody>
+>>

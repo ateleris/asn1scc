@@ -751,16 +751,14 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let resVar = p.accessPath.asIdentifier
                         {InitFunctionResult.funcBody = ""; resultVar = resVar; localVariables = []}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
-                | atc::[] ->
+                | [ atc ] ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let ii = p.accessPath.SequenceOfLevel + 1
                         let i = sprintf "i%d" ii
                         let resVar = p.accessPath.asIdentifier
                         let chp = {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
                         let childCase = atc.initTestCaseFunc chp
-                        let childBody =
-                            if lm.lg.decodingKind = Copy then childCase.funcBody + "\n" + chp.accessPath.asIdentifier
-                            else childCase.funcBody
+                        let childBody = lm.atc.decodingCaseKind childCase.funcBody chp.accessPath.asIdentifier
                         let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (o.minSize.uper = o.maxSize.uper) [childBody] false i resVar
                         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
                     let combinedTestCase = atc.testCaseTypeIDsMap.Add(t.id, TcvSizeableTypeValue nSize)

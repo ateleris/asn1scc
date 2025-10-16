@@ -212,7 +212,7 @@ initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixed
 <sResVar>_list = []
 for <i> in range(<nSize>):
     <arrsInnerItems; separator="\n">
-    <sResVar>_list.append(<sResVar>)
+    <sResVar>_list.append(<sResVar>_arr_arr)
 <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_list)
 >>
 
