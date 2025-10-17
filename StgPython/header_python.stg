@@ -294,6 +294,7 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 class <td.typeName>InUse(Enum):
     <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
+@dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
     # which selection element is in use
     kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>

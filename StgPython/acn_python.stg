@@ -1094,12 +1094,11 @@ ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIn
 # acn_python.stg 914
 if <p> == <nChildIndex>:
     <sChildContent>
-    instance = cls(kind=<sChoiceTypeName>InUse.<sChildID>, data=<sChildName>)
+    instance = cls(kind=<sChoiceTypeName>InUse.<sChildID>, data=instance_data)
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 921
-# match <p>:
 <arrsChildren: {ch|<ch>}; separator="\n">
 >>
 

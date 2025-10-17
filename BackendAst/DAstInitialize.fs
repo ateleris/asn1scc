@@ -1140,6 +1140,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false ->  fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildTempVarName ch.chType.isIA5String}
                                 | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
+                            | ProgrammingLanguage.Python ->
+                                fnc p
                             | _ ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false  -> fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}

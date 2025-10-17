@@ -239,11 +239,6 @@ initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExp
 
 initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
 # init_python.stg 243
-# sAcc = <sAcc>
-# sChName = <sChName>
-# sChildTypedef = <sChildTypedef>
-# sResVar = <sResVar>
-# todo: fix .None generation
 <sResVar>: Optional[<sChildTypedef>] = None
 >>
 
@@ -256,12 +251,15 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 
 initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
 # init_python.stg 255
+
 <sChildContent>
+# optional part:
 <if(bIsOptional)>
-<sResVar> = <sChildID>(<sChildTempVarName>)
+#<sResVar> = <sChildID>(<sChildTempVarName>)
 <else>
-<sResVar> = <sChildID>(<sChildTempVarName>)
+#<sResVar> = <sChildID>(<sChildTempVarName>)
 <endif>
+# end of optional
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
