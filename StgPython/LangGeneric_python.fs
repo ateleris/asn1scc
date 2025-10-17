@@ -218,13 +218,14 @@ type LangGeneric_python() =
     override this.getUPerFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): option<string> =
         this.getACNFuncName r codec t td
 
-    override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option = 
-        match t.acnParameters with
-        | []    ->
-            match t.id.tasInfo with
-            | None -> None
-            | Some _ -> Some codec.suffix
-        | _     -> None
+    override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option =
+        Some codec.suffix
+        // match t.acnParameters with
+        // | []    ->
+        //     match t.id.tasInfo with
+        //     | None -> None
+        //     | Some _ -> Some codec.suffix
+        // | _     -> None
 
     override this.getRtlFiles (encodings:Asn1Encoding list) (_ :string list) =
         let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
