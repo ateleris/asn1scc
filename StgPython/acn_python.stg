@@ -49,7 +49,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> None
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
-<if(arrsEncodes)>
+<if(arrsErrcodes)>
 # acn_python.stg 55
 class DecodeConstants:
     <arrsErrcodes; separator="\n">
@@ -1104,11 +1104,14 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
-<p> = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
+decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
+if not decode_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
+<p> = decode_result.decoded_value
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931
-    return <sErrCode>
+    raise Asn1Exception(f"Decoding failed with error code {cls.DecodeConstants.<sErrCode>}")
 >>
 
 /* Choice with presence determinants */
