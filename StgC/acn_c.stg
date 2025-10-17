@@ -390,7 +390,7 @@ BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 >>
 
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>

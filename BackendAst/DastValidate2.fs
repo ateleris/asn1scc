@@ -88,19 +88,15 @@ let ValidationCodeBlock_Multiple_And  (lm:LanguageMacros) (vpList:ValidationCode
     | true  -> VCBFalse
     | false ->
         let vpList = vpList |> List.filter (fun z -> match z with VCBExpression _ -> true | VCBStatement _ -> true | _ -> false )
-        let bAllAreExpressions = false//vpList |> Seq.forall(fun z -> match z with VCBExpression _ -> true | _ -> false )
-        match bAllAreExpressions with
-        | true  -> VCBExpression (expAndMulti (vpList |> List.map(fun z -> match z with VCBExpression s -> s | VCBStatement (s,_) -> s | _ -> "invalid")))
-        | false ->
-            let soJoinedStatement, lv =
-                let children, lv =
-                    vpList |>
-                    List.map(fun z -> match z with VCBExpression s -> makeExpressionToStatement0 s, [] | VCBStatement s -> s | _ -> "invalid", []) |>
-                    List.unzip
-                DAstUtilFunctions.nestItems_ret lm children, lv
-            match soJoinedStatement with
-            | Some s    -> VCBStatement (s, lv |> List.collect id)
-            | None      -> VCBTrue
+        let soJoinedStatement, lv =
+            let children, lv =
+                vpList |>
+                List.map(fun z -> match z with VCBExpression s -> makeExpressionToStatement0 s, [] | VCBStatement s -> s | _ -> "invalid", []) |>
+                List.unzip
+            DAstUtilFunctions.nestItems_ret lm children, lv
+        match soJoinedStatement with
+        | Some s    -> VCBStatement (s, lv |> List.collect id)
+        | None      -> VCBTrue
 
 let ValidationCodeBlock_Not (lm:LanguageMacros) vp =
     let statementNot  = lm.isvalid.StatementNot
@@ -832,7 +828,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
     let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l t.id asn1Children valToStrFunc  c cs) ns1
-
+    let x = 1
 
 
     let funBody (errCode: ErrorCode) (p:CodegenScope) =

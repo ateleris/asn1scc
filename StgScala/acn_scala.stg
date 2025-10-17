@@ -373,7 +373,7 @@ val <p> = locally {
 >>
 
 
-Null_declare(p) ::= "val <p>: NullType = 0"
+Null_declare(p, sType) ::= "val <p>: NullType = 0"
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>

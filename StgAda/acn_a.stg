@@ -625,7 +625,7 @@ adaasn1rtl.encoding.acn.Acn_Dec_Boolean_true_false_pattern(bs, <p>, BitArray'(<a
 result.ErrorCode := <sErrCode>;
 >>
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">));
