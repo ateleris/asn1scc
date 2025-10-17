@@ -306,17 +306,17 @@ self.kind != <sChPresent>
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
-# isvalid_python.stg 302
 if self.kind == <sChPresent>:
+    # isvalid_python.stg 302
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
 <! todo: If the separator gets replaced by "\nel", the consecutive children will start with "elif" instead of "if" !>
-<arrsChildren; separator="\n">
+<arrsChildren; separator="\nel">
 else:
-    ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/

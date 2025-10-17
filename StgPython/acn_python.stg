@@ -1090,8 +1090,8 @@ if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-# acn_python.stg 914
 if <p> == <nChildIndex>:
+    # acn_python.stg 914
     <sChildContent>
     instance = cls(kind=<sChildID>, data=instance_data)
 >>
@@ -1107,7 +1107,7 @@ decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 if not decode_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
 <p> = decode_result.decoded_value
-<arrsChildren: {ch|<ch>}; separator="\n">
+<arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # acn_python.stg 931
     raise Asn1Exception(f"Decoding failed with error code {cls.DecodeConstants.<sErrCode>}")
