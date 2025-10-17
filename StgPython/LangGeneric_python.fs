@@ -297,8 +297,8 @@ type LangGeneric_python() =
         let parentName =
             match defOrRef with
             | Some a -> match a with
-                        | ReferenceToExistingDefinition b -> b.typedefName + "."
-                        | TypeDefinition c -> c.typedefName + "."
+                        | ReferenceToExistingDefinition b -> b.typedefName + "InUse."
+                        | TypeDefinition c -> c.typedefName + "InUse."
             | None -> ""
         parentName + (ToC ch._present_when_name_private)
 

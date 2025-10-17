@@ -396,7 +396,7 @@ Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEn
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 # uper_python.stg 333
-if <p>.kind == <sChoiceTypeName>InUse.<sChildID>:
+if <p>.kind == <sChildID>:
     res = codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     if not res:
         raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
@@ -407,7 +407,7 @@ choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemI
 # uper_python.stg 340
 if <sChoiceIndexName> == <nChildIndex>:
     <sChildContent>
-    instance = cls(kind=<sChoiceTypeName>InUse.<sChildID>, data=<sChildName>)
+    instance = cls(kind=<sChildID>, data=<sChildName>)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
