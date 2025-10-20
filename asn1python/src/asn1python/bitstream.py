@@ -147,19 +147,6 @@ class BitStream:
         return Unfolding(Rd(self.bitstream_invariant()), ToByteSeq(self._buffer))
 
     #endregion    
-    
-    def reset(self) -> None:
-        """Reset the bit position to the beginning"""
-        Requires(self.bitstream_invariant())
-        Ensures(self.bitstream_invariant())
-        Ensures(self.current_bit_position == 0)
-        Ensures(self.current_byte_position == 0)
-        Ensures(self.buffer() == Old(self.buffer()))
-
-        Unfold(self.bitstream_invariant())
-        self._current_bit = 0
-        self._current_byte = 0
-        Fold(self.bitstream_invariant())
 
     def set_position(self, bit_position: int, byte_position: int) -> None:
         """Set the current bit and byte position"""
@@ -178,20 +165,39 @@ class BitStream:
         self._current_byte = byte_position
         Fold(self.bitstream_invariant())
 
-    def _shift_bit_index(self, count: int = 1) -> None:
+    def reset(self) -> None:
+        """Reset the bit position to the beginning"""
         Requires(self.bitstream_invariant())
-        Requires(0 <= count)
-        Requires(self.validate_offset(count))
         Ensures(self.bitstream_invariant())
-        Ensures(self.current_used_bits == Old(self.current_used_bits + count))
-        Ensures(self.remaining_bits == Old(self.remaining_bits - count))
+        Ensures(self.current_bit_position == 0)
+        Ensures(self.current_byte_position == 0)
         Ensures(self.buffer() == Old(self.buffer()))
 
-        new_index = self.current_used_bits + count
-        Unfold(self.bitstream_invariant())
-        self._current_bit = new_index % NO_OF_BITS_IN_BYTE
-        self._current_byte = new_index // NO_OF_BITS_IN_BYTE
-        Fold(self.bitstream_invariant())
+        self.set_position(0, 0)
+
+    def set_bit_index(self, bit_index: int) -> None:
+        """Set the current bit index"""
+        Requires(self.bitstream_invariant())
+        Requires(0 <= bit_index and bit_index <= self.buffer_size_bits)
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == bit_index)
+        Ensures(self.buffer() == Old(self.buffer()))
+
+        bit_position = bit_index % NO_OF_BITS_IN_BYTE
+        byte_position = bit_index // NO_OF_BITS_IN_BYTE
+        self.set_position(bit_position, byte_position)
+
+    def _shift_bit_index(self, amount: int = 1) -> None:
+        """Shifts the current bit index by given amount"""
+        Requires(self.bitstream_invariant())
+        Requires(0 <= amount)
+        Requires(self.validate_offset(amount))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + amount))
+        Ensures(self.buffer() == Old(self.buffer()))
+
+        new_index = self.current_used_bits + amount
+        self.set_bit_index(new_index)
     
     #region Read
 
@@ -209,14 +215,27 @@ class BitStream:
     def _read_bits_pure(self, bit_index: int, bit_count: int, shift_count: int) -> int:
         Requires(Rd(self.bitstream_invariant()))
         Requires(0 <= bit_index and 0 <= bit_count and bit_count <= shift_count)
-        Requires(bit_count <= 8 and shift_count <= 8) # TODO resolve limitation
+        Requires(bit_count <= 8 and shift_count <= 8)
         Requires(bit_index + bit_count <= self.buffer_size_bits)        
-        if bit_count == 0:
-            return 0
-        else:
-            val = self._read_bit_pure(bit_index) << (shift_count - 1)
-            val += self._read_bits_pure(bit_index + 1, bit_count - 1, shift_count - 1)
-            return val
+        val = 0        
+        # Stupid but works
+        if bit_count >= 1:
+            val += self._read_bit_pure(bit_index + 0) << (shift_count - 1)
+        if bit_count >= 2:
+            val += self._read_bit_pure(bit_index + 1) << (shift_count - 2)
+        if bit_count >= 3:
+            val += self._read_bit_pure(bit_index + 2) << (shift_count - 3)
+        if bit_count >= 4:
+            val += self._read_bit_pure(bit_index + 3) << (shift_count - 4)
+        if bit_count >= 5:
+            val += self._read_bit_pure(bit_index + 4) << (shift_count - 5)
+        if bit_count >= 6:
+            val += self._read_bit_pure(bit_index + 5) << (shift_count - 6)
+        if bit_count >= 7:
+            val += self._read_bit_pure(bit_index + 6) << (shift_count - 7)
+        if bit_count >= 8:
+            val += self._read_bit_pure(bit_index + 7) << (shift_count - 8)
+        return val
 
     @Pure
     def _read_current_bit_pure(self) -> bool:
@@ -269,9 +288,15 @@ class BitStream:
         
         return value
     
-    # def read_byte(self) -> int:
-    #     """Read a complete byte"""
-    #     return self.read_bits(8)
+    def read_byte(self) -> int:
+        Requires(self.bitstream_invariant())
+        Requires(self.validate_offset(NO_OF_BITS_IN_BYTE))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
+        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(Result() == Old(self._read_bits_pure(self.current_used_bits, NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_BYTE)))
+        """Read a complete byte"""
+        return self.read_bits(8)
 
     #endregion
 
@@ -303,6 +328,11 @@ class BitStream:
         self._buffer[self._current_byte] = byte_set_bit(val, bit, self._current_bit)
         Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
+
+def client() -> None:
+    b = BitStream(bytearray([253, 128]))
+    b.set_bit_index(1)
+    assert b.read_byte() == 251
 
 # bs = BitStream(bytearray([253]))
 # bs.read_bits(8)
