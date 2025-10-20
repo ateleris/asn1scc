@@ -6,6 +6,7 @@ This module provides constraint validation functions for ASN.1 types.
 
 from nagini_contracts.contracts import *
 from typing import Final, Tuple, Union, Optional, List, Any, Callable
+NO_OF_BITS_IN_BYTE = 8
 # import re
 # from .asn1_types import Asn1Error
 
@@ -20,10 +21,17 @@ from typing import Final, Tuple, Union, Optional, List, Any, Callable
 #     return 0xFF >> (8 - end + start) << (8 - end)
 
 @Pure
+def byte_read_bit(b: int, pos: int) -> bool:
+    Requires(0 <= b and b <= 0xFF)
+    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+    return bool(b & (1 << (7 - pos)))
+
+@Pure
 def byte_set_bit(b: int, bit: bool, pos: int) -> int:
     Requires(0 <= b and b <= 0xFF)
-    Requires(0 <= pos and pos < 8)
+    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
     Ensures(0 <= Result() and Result() <= 0xFF)
+    # Ensures(byte_read_bit(Result(), pos) == bit) # SLOW
     if bit:
         return b | (1 << (7 - pos))
     else:
@@ -31,19 +39,9 @@ def byte_set_bit(b: int, bit: bool, pos: int) -> int:
 
 @Pure
 def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PByteSeq:
-    Requires(0 <= bit_pos and bit_pos < 8)
+    Requires(0 <= bit_pos and bit_pos < NO_OF_BITS_IN_BYTE)
     Requires(0 <= byte_pos and byte_pos < len(seq))
     return seq.update(byte_pos, byte_set_bit(seq[byte_pos], bit, bit_pos))
-
-# @Pure
-# def byte_range_eq(b1: int, b2: int, start: int, end: int) -> bool:
-#     """Compares if the two bytes b1 and b2 are equal in the range [start, end["""
-#     Requires(0 <= b1 and b1 <= 0xFF)
-#     Requires(0 <= b2 and b2 <= 0xFF)
-#     Requires(0 <= start and start <= end and end <= 8)
-#     mask = get_bitmask(start, end)
-
-#     return start == end or (b1 & mask) == (b2 & mask)
 
 @Pure
 def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
@@ -51,6 +49,12 @@ def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
     Requires(len(b1) <= len(b2))
     Requires(0 <= end and end <= len(b1))
     return b1.take(end) == b2.take(end)
+
+# def client(b: int, pos: int, val: bool) -> None:
+#     Requires(0 <= b and b <= 0xFF)
+#     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+#     b = byte_set_bit(b, False, pos)
+#     assert byte_read_bit(b, pos) == False
 
 # @Pure
 # def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end_bit: int) -> bool:

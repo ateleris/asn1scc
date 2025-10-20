@@ -260,8 +260,7 @@ class BitStream:
     def read_bits(self, bit_count: int) -> int:
         """Read multiple bits and return as integer"""
         #@nagini Requires(self.bitstream_invariant())
-        #@nagini Requires(0 <= bit_count)
-        #@nagini Requires(bit_count <= NO_OF_BITS_IN_BYTE)
+        #@nagini Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
         #@nagini Requires(self.validate_offset(bit_count))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
@@ -315,6 +314,8 @@ class BitStream:
         #@nagini Ensures(self.buffer_size == Old(self.buffer_size))
         #@nagini Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
         
+        # Ensures(bit == self._read_bit_pure(Old(self.current_used_bits)))
+
         Ensures(Let(Old(Unfolding(self.bitstream_invariant(), self._current_byte)), bool, lambda byte_pos:
                 Let(Old(Unfolding(self.bitstream_invariant(), self._current_bit)), bool, lambda bit_pos: 
                 self.buffer()[byte_pos] == Old(byte_set_bit(self.buffer()[byte_pos], bit, bit_pos)))))
@@ -329,79 +330,22 @@ class BitStream:
         #@nagini Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
 
-def client() -> None:
-    b = BitStream(bytearray([253, 128]))
-    b.set_bit_index(2)
-    val = b.read_byte()
-
-    assert val == 246
-
-
-# bs = BitStream(bytearray([253]))
-# bs.read_bits(8)
-
-
-# def client() -> None:
-#     b1 = bytearray([128,2,3])
-#     bs = BitStream(b1)
-    
-#     assert bs.remaining_bits == 24
-#     bs.set_position(1, 0)
-#     assert bs.current_bit_position == 1
-#     assert bs.current_byte_position == 0
-#     assert bs.current_used_bits == 1
-#     assert bs.buffer_size == 3
-#     assert bs.remaining_bits == bs.buffer_size * NO_OF_BITS_IN_BYTE - bs.current_used_bits
-#     assert bs.remaining_bits == 23
-    
-#     Unfold(bs.bitstream_invariant())
-#     assert bs._buffer[0] == 128
-    
-# def client2() -> None:
-#     bs = BitStream(bytearray([0,0,0]))
-#     bs.write_bit(True)
-#     bs.write_bit(False)
-#     bs.set_position(0, 0)
-#     res = bs.read_bit()
-#     assert res == True
-#     res = bs.read_bit()
-#     assert res == False
-    
-# def client3() -> None:
-#     bs = BitStream(bytearray([0,0,0]))
-#     bs.write_bit(True)
-#     bs.set_position(0, 0)
-#     res = bs.read_bit()
-#     assert res == True
-    
-
-# Prover does not finish
-# def client4() -> None:
-#     bs = BitStream(bytearray(8))
-#     bs.write_bit(True)
-#     bs.write_bit(False)
-#     bs.write_bit(True)
-#     bs.write_bit(False)    
-#     bs.set_position(0, 0)
-    
-#     assert bs.read_bit() == True
-#     assert bs.read_bit() == False
-#     assert bs.read_bit() == True
-#     assert bs.read_bit() == False
-
-# def client_write() -> None:
-#     bs = BitStream(bytearray([0]))
-#     bs.write_bit(True)
-#     bs.write_bit(False)
-#     bs.write_bit(True)
-#     bs.write_bit(False)
-    
-#     assert bs.buffer() == PByteSeq(160)
-
-    #endregion
-
     # def write_bits(self, value: int, bit_count: int) -> None:
     #     """Write multiple bits from an integer value"""
+    #     Requires(self.bitstream_invariant())
+    #     Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
+    #     Requires(self.validate_offset(bit_count))
+    #     Ensures(self.bitstream_invariant())
+    #     Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
+    #     Ensures(self.buffer_size == Old(self.buffer_size))
+    #     Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
+    #     Ensures(value == self._read_bits_pure(Old(self.current_used_bits), bit_count, bit_count))
+
+    #     #@nagini Ensures(self.bitstream_invariant())
+    #     #@nagini 
+    #     #@nagini Ensures(self.buffer() == Old(self.buffer()))
+    #     #@nagini Ensures(Result() == Old(self._read_bits_pure(self.current_used_bits, bit_count, bit_count)))
+
     #     if bit_count < 0 or bit_count > 64:
     #         raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
 
@@ -424,6 +368,19 @@ def client() -> None:
     #         raise BitStreamError(f"Byte value {byte_value} out of range [0, 255]")
 
     #     self.write_bits(byte_value, 8)
+
+    #endregion
+
+def client() -> None:
+    b = BitStream(bytearray([128, 0]))
+    b.set_bit_index(1)
+    b.write_bit(True)
+    b.reset()
+    assert b.read_byte() == 192
+
+
+
+   
 
     # def write_bytes(self, data: bytes) -> None:
     #     """Write multiple bytes"""
