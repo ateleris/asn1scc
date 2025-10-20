@@ -88,19 +88,15 @@ let ValidationCodeBlock_Multiple_And  (lm:LanguageMacros) (vpList:ValidationCode
     | true  -> VCBFalse
     | false ->
         let vpList = vpList |> List.filter (fun z -> match z with VCBExpression _ -> true | VCBStatement _ -> true | _ -> false )
-        let bAllAreExpressions = false//vpList |> Seq.forall(fun z -> match z with VCBExpression _ -> true | _ -> false )
-        match bAllAreExpressions with
-        | true  -> VCBExpression (expAndMulti (vpList |> List.map(fun z -> match z with VCBExpression s -> s | VCBStatement (s,_) -> s | _ -> "invalid")))
-        | false ->
-            let soJoinedStatement, lv =
-                let children, lv =
-                    vpList |>
-                    List.map(fun z -> match z with VCBExpression s -> makeExpressionToStatement0 s, [] | VCBStatement s -> s | _ -> "invalid", []) |>
-                    List.unzip
-                DAstUtilFunctions.nestItems_ret lm children, lv
-            match soJoinedStatement with
-            | Some s    -> VCBStatement (s, lv |> List.collect id)
-            | None      -> VCBTrue
+        let soJoinedStatement, lv =
+            let children, lv =
+                vpList |>
+                List.map(fun z -> match z with VCBExpression s -> makeExpressionToStatement0 s, [] | VCBStatement s -> s | _ -> "invalid", []) |>
+                List.unzip
+            DAstUtilFunctions.nestItems_ret lm children, lv
+        match soJoinedStatement with
+        | Some s    -> VCBStatement (s, lv |> List.collect id)
+        | None      -> VCBTrue
 
 let ValidationCodeBlock_Not (lm:LanguageMacros) vp =
     let statementNot  = lm.isvalid.StatementNot
@@ -611,8 +607,8 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                 let statement, stLVs, bUnreferenced =
                     match funcBody p with
                     | ValidationStatementTrue   (st,lv)
-                    | ValidationStatementFalse  (st,lv) ->  st, lv, true
-                    | ValidationStatement       (st,lv)  -> st, lv, false
+                    | ValidationStatementFalse  (st,lv) -> st, lv, true
+                    | ValidationStatement       (st,lv) -> st, lv, false
                 let lvars = (stLVs@localVars) |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName (lm.lg.getLongTypedefName typeDefinition) statement (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
                 let split (s:string option) =
@@ -644,7 +640,6 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnA
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (o.intClass) c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t  (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
-
 let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUnsigned (allCons  : IntegerTypeConstraint list) =
     match allCons with
     | []        -> None
@@ -833,7 +828,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
     let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l t.id asn1Children valToStrFunc  c cs) ns1
-
+    let x = 1
 
 
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
@@ -999,6 +994,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
+    let callSuperclassFunc = l.isvalid.call_superclass_func
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
 
     let moduleName, typeDefinitionName, typeDefinitionName0 =
@@ -1043,7 +1039,10 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
 
         match resolvedType.isValidFunction with
         | Some _    ->
-            let funcBodyContent = callBaseTypeFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+            let funcBodyContent =
+              match p.accessPath.selectionType with
+              | ByPointer -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+              | _ -> callBaseTypeFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))

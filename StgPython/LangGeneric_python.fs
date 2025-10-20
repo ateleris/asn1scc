@@ -86,8 +86,8 @@ type LangBasic_python() =
         | Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
         | Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
         | Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
-    override this.getNullRtlTypeName = "", "None", "NULL"
-    override this.getBoolRtlTypeName = "", "bool", "BOOLEAN"
+    override this.getNullRtlTypeName = "", "NullType", "NullType"
+    override this.getBoolRtlTypeName = "", "bool", "bool"
 
 let isClassVariable (receiverId: string) : bool =
         // For Python class methods, we need to detect when the receiverId should be treated as "self"
@@ -218,13 +218,14 @@ type LangGeneric_python() =
     override this.getUPerFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): option<string> =
         this.getACNFuncName r codec t td
 
-    override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option = 
-        match t.acnParameters with
-        | []    ->
-            match t.id.tasInfo with
-            | None -> None
-            | Some _ -> Some codec.suffix
-        | _     -> None
+    override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option =
+        Some codec.suffix
+        // match t.acnParameters with
+        // | []    ->
+        //     match t.id.tasInfo with
+        //     | None -> None
+        //     | Some _ -> Some codec.suffix
+        // | _     -> None
 
     override this.getRtlFiles (encodings:Asn1Encoding list) (_ :string list) =
         let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
@@ -296,8 +297,8 @@ type LangGeneric_python() =
         let parentName =
             match defOrRef with
             | Some a -> match a with
-                        | ReferenceToExistingDefinition b -> b.typedefName + "."
-                        | TypeDefinition c -> c.typedefName + "."
+                        | ReferenceToExistingDefinition b -> b.typedefName + "InUse."
+                        | TypeDefinition c -> c.typedefName + "InUse."
             | None -> ""
         parentName + (ToC ch._present_when_name_private)
 
@@ -366,7 +367,7 @@ type LangGeneric_python() =
         | AcnInsertedChild(name, vartype, initVal)  ->
             sprintf "%s = %s" name initVal
         | GenericLocalVariable lv                   ->
-            sprintf "%s = %s" lv.name (if lv.initExp.IsNone then "None" else lv.initExp.Value)
+            sprintf "%s = %s" lv.name (if lv.initExp.IsNone then "NullType" else lv.initExp.Value)
 
     override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
         match tdr with

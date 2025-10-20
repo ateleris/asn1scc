@@ -13,6 +13,7 @@ open DAstUtilFunctions
 open Language
 
 let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
+let callSuperclassFunc (lm:LanguageMacros) = lm.uper.call_superclass_func
 
 let sparkAnnotations (lm:LanguageMacros)  = lm.uper.sparkAnnotations
 
@@ -170,7 +171,8 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
-
+    // let td = (lm.lg.getLongTypedefName ).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+    
     let rangeAssert =
         match typeId.topLevelTas with
         | Some tasInfo ->
@@ -178,13 +180,13 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | None -> None
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange with
-        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName codec, codec=Decode, true, None
-        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert codec, false, false, Some (FullyConstrainedPositive (min, max))
-        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName codec, false, false, Some (FullyConstrained (min, max))
+        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName (ToC typeId.dropModule.AsString) codec, codec=Decode, true, None
+        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert (ToC typeId.dropModule.AsString) codec, false, false, Some (FullyConstrainedPositive (min, max))
+        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName (ToC typeId.dropModule.AsString) codec, false, false, Some (FullyConstrained (min, max))
         | PosInf a  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false, Some (SemiConstrainedPositive a)
         | PosInf a -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false, Some (SemiConstrained a)
         | NegInf max -> IntUnconstrainedMax pp max None errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
-        | Full -> IntUnconstrained pp errCode.errCodeName false codec, false, false, Some Unconstrained
+        | Full -> IntUnconstrained pp errCode.errCodeName false (ToC typeId.dropModule.AsString) codec, false, false, Some Unconstrained
 
     let getValueByConstraint uperRange =
         match uperRange with
@@ -206,7 +208,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r lm intClass a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p)
             let rootBody, _,_, intEncodingType = IntBod uperR true
-            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false, intEncodingType
+            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName (ToC typeId.dropModule.AsString) codec, false, false, intEncodingType
         | _                             -> raise(BugErrorException "")
     Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries = []})
 
@@ -223,7 +225,8 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
         let Boolean         = lm.uper.Boolean
-        let funcBodyContent = Boolean pp errCode.errCodeName codec
+        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let funcBodyContent = Boolean pp errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
 
@@ -243,7 +246,8 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = castRPp lm codec (o.getClass r.args) pp
         let Real         = lm.uper.Real
-        let funcBodyContent = Real castPp sSuffix errCode.errCodeName codec
+        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let funcBodyContent = Real castPp sSuffix errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     let annots =
@@ -663,6 +667,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent =  callBaseTypeFunc lm pp baseFuncName codec
+            let funcBodyContent = funcBodyContent
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []})
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  [] us
@@ -910,6 +915,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent = callBaseTypeFunc lm pp baseFuncName codec
+            let funcBodyContent = funcBodyContent
             let ret = lm.lg.generateChoiceProof r ACN t o funcBodyContent p.accessPath codec
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
 
@@ -949,6 +955,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                             toc, Some toc
                         | _ -> str, None)
                     let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
+                    let funcBodyContent = funcBodyContent
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 //| None -> None
             TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] ns)

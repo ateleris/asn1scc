@@ -1,11 +1,8 @@
 ﻿module GenerateFiles
-open System
-open System.Numerics
 open System.IO
 
 open FsUtils
 open CommonTypes
-open AbstractMacros
 open DAst
 open DAstUtilFunctions
 open Language
@@ -101,6 +98,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let typeDefs =
                 tases |>
                 List.map(fun tas ->
+                    // todo: maybe remove struct type from children?
                     let allChildren = GetMySelfAndChildren tas.Type |> List.filter _.typeDefinitionOrReference.IsTypeDefinition
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}

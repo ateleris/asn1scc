@@ -181,7 +181,7 @@ class Asn1Boolean(Asn1Base):
     def is_constraint_valid(self):
         raise NotImplementedError()
 
-    def encode(self, codec: Codec):
+    def encode(self, codec: Codec, check_constraints: bool = True):
         raise NotImplementedError()
 
 class NullType(Asn1Base):
@@ -233,13 +233,13 @@ class NullType(Asn1Base):
         # todo: evaluate if NullType.is_constraint_valid should return True or False
         return False
     
-    def encode(self, codec: Codec):
+    def encode(self, codec: Codec, check_constraints: bool = True):
         return
     
-    def decode(cls, codec: Codec):
+    def decode(cls, codec: Codec, check_constraints: bool = True):
         return NullType()
     
-    def decode_pure(cls, codec: Codec):
+    def decode_pure(cls, codec: Codec, check_constraints: bool = True):
         return NullType()
 
 

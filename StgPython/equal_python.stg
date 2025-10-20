@@ -85,13 +85,11 @@ isEqual_String(p1, p2) ::= <<
 <p1>[:<p1>.find(b'\x00') if b'\x00' in <p1> else len(<p1>)] == <p2>[:<p2>.find(b'\x00') if b'\x00' in <p2> else len(<p2>)]
 >>
 
+isEqual_Integer(p1, p2) ::= "int(<p1>) == int(<p2>)"
 
-isEqual_Integer(p1, p2) /*nogen*/::= "int(<p1>) == int(<p2>)"
+isEqual_Enumerated(p1, p2) ::= "<isEqual_Integer(p1=p1,p2=p2)>"
 
-isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)>"
-
-
-isEqual_Boolean(p1, p2) /*nogen*/::= "bool(<p1>) == bool(<p2>)"
+isEqual_Boolean(p1, p2) ::= "bool(<p1>) == bool(<p2>)"
 
 isEqual_Real(p1, p2) ::= "float(<p1>) == float(<p2>)"
 
@@ -116,7 +114,6 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
-# equal_python.stg 125
 <if(!bIsFixedSize)>
     (<p1>nCount == <p2>nCount) and (<p1>arr[:<p1>nCount] == <p2>arr[:<p1>nCount])
 <else>
@@ -137,7 +134,6 @@ ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
-# equal_python.stg 156
 ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
 <soInnerStatement>
 >>
@@ -145,7 +141,6 @@ ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
-# equal_python.stg 173
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
 <i>: int = 0
@@ -157,7 +152,6 @@ while ret and <i> \< <p1><sAcc>nCount:
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-# equal_python.stg 185
 <i>: int = 0
 while ret and <i> \< <nFixedSize>:
     <sInnerStatement>

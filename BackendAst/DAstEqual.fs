@@ -22,7 +22,14 @@ let makeExpressionToStatement (lm:LanguageMacros) = lm.equal.makeExpressionToSta
 let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
     Some (lm.equal.isEqual_Primitive (lm.lg.getValue v1.accessPath) (lm.lg.getValue v2.accessPath)  , [])
 
-
+let isEqualBodyBoolean (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isEqual_Boolean (lm.lg.getValue v1.accessPath) (lm.lg.getValue v2.accessPath)  , [])
+    
+let isEqualBodyEnumerated (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isEqual_Enumerated (lm.lg.getValue v1.accessPath) (lm.lg.getValue v2.accessPath)  , [])
+  
+let isEqualBodyInteger (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isEqual_Integer (lm.lg.getValue v1.accessPath) (lm.lg.getValue v2.accessPath) , [])  
 let isEqualBodyString (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
     Some (lm.equal.isEqual_String (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg)  , [])
 
@@ -165,7 +172,7 @@ let castRPp (lm:LanguageMacros) codec realClass pp =
 
 
 let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) =
-    let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm )
+    let isEqualBody         = EqualBodyExpression (isEqualBodyInteger lm )
     createEqualFunction_any r lm   t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
 
 let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference) =
@@ -178,11 +185,11 @@ let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
 
 let createBooleanEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference)  =
-    let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm)
+    let isEqualBody = EqualBodyExpression (isEqualBodyBoolean lm)
     createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
 
 let createEnumeratedEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference)  =
-    let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm)
+    let isEqualBody         = EqualBodyExpression (isEqualBodyEnumerated lm)
     createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
 
 let createObjectIdentifierEqualFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  =

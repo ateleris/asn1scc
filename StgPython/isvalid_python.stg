@@ -88,7 +88,7 @@ def <sFuncName>(self) -> Asn1ConstraintValidResult:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return Asn1ConstraintValidResult(is_valid=True)
+    return ret
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
@@ -259,6 +259,7 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>()"
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
 call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
@@ -268,8 +269,9 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if <p><sAcc><sChName> == <sChName>:
-    <sInnerStatement>
+if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and not <p><sAcc><sChName>:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
+<sInnerStatement>
 >>
 
 
@@ -279,7 +281,7 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-(<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
+<p><sAcc><sChName>
 >>
 
 /* SEQUENCE end*/
@@ -304,17 +306,17 @@ self.kind != <sChPresent>
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
-# isvalid_python.stg 302
 if self.kind == <sChPresent>:
+    # isvalid_python.stg 302
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
 <! todo: If the separator gets replaced by "\nel", the consecutive children will start with "elif" instead of "if" !>
-<arrsChildren; separator="\n">
+<arrsChildren; separator="\nel">
 else:
-    ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/
