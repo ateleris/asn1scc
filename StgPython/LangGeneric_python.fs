@@ -169,8 +169,8 @@ type LangGeneric_python() =
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
         let itemname =
             match defOrRef with
-            | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.python_name
-            | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "." + ToC nm.python_name
+            | Some (TypeDefinition td) -> td.typedefName + "_Enum." + ToC nm.python_name
+            | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "_Enum." + ToC nm.python_name
             | _ -> ToC nm.python_name
         itemname
 
