@@ -204,7 +204,8 @@ let get_group  fileName =
         cache.[fileName] <- group
         group
 
-let SkipCommentTemplates = ["methodNameSuffix"; "initSequenceExpr"; "initSequenceChildExpr"]
+// Don't add comments for the following string templates as those are used inline and comments would, therefore, intervene with the program
+let SkipCommentTemplates = ["methodNameSuffix"; "initSequenceExpr"; "initSequenceChildExpr"; "isEqual_BitString"]
 
 let getDebugComment (template: StringTemplate) =
     if List.contains template.Name SkipCommentTemplates then
