@@ -552,9 +552,9 @@ if <p> == <sName>:
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 # acn_python.stg 428
-if decoded_value == <nItemIdx>:
+if <sIntVal> == <nItemIdx>:
     # acn_python.stg 430
-    <p> = <sName>
+    <sIntVal>_val = <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -578,11 +578,9 @@ EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 # acn_python.stg 451
 <sActualCodecFunc>
-decoded_value = int(<sIntVal>)
 
 <arrsItem; separator="\n">
-# acn_python.stg 456
-# TODO: <p> = Asn1SccError(<sErrCode>)
+<p> = <td.asn1Name>(<sIntVal>_val)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
