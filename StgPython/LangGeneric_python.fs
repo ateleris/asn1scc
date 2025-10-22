@@ -1,4 +1,5 @@
 module LangGeneric_python
+open AbstractMacros
 open Asn1AcnAst
 open CommonTypes
 open System.Numerics
@@ -7,7 +8,6 @@ open FsUtils
 open Language
 open System.IO
 open System
-open Asn1AcnAstUtilFunctions
 // open ProofGen // TODO
 // open ProofAst // TODO
 
@@ -494,6 +494,14 @@ type LangGeneric_python() =
 
     // override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
+
+    override this.adaptAcnFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
+        match childType with
+            | Sequence _ ->
+                match codec with
+                | Encode -> u.call_base_type_func "self" childTypeDef codec
+                | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+            | _ -> childContent_funcBody
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody
