@@ -291,7 +291,7 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 #-- <td.typeName> --------------------------------------------
 <arrsChildrenDefinitions; separator= "\n">
 
-class <td.typeName>InUse(Enum):
+class <td.typeName>InUse(IntEnum):
     <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
 @dataclass(frozen=True)

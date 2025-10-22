@@ -369,8 +369,8 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
             | []    ->
                 match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Python_Lang) with
                 | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
-                | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
-                | [ Python_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
+                | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+                | [ Python_Lang ]-> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> raise (UserException ("Please select only one of target languages, not both."))
