@@ -499,7 +499,7 @@ type LangGeneric_python() =
         match childType with
             | Sequence _ ->
                 match codec with
-                | Encode -> u.call_base_type_func "self" childTypeDef codec
+                | Encode -> u.call_base_type_func "self.data" childTypeDef codec
                 | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
             | _ -> childContent_funcBody
 
