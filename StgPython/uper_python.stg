@@ -136,8 +136,8 @@ InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 # uper_python.stg 131
 decoded_result = codec.decode_constrained_whole_number(0, 127) # uper:109
 if not decoded_result:
-    raise Asn1Exception(f"Decoding Exception {self.EncodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p>_arr_<i>_ = decoded_result.decoded_value
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+<p>.append(decoded_result.decoded_value)
 >>
 
 /* INTEGER START*/
@@ -541,7 +541,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
 nStringLength: int = len(<p>)
 # ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>
@@ -552,11 +552,15 @@ if not res:
 <soCallAux>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 492
-nStringLength: int = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>).decoded_value
-<p>_nCount = nStringLength
-<soCallAux>
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+if not decoded_result: 
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+nStringLength: int = decoded_result.decoded_value
+
+<p> = <sType>([])
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
