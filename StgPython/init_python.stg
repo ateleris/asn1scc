@@ -114,7 +114,7 @@ initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
 <sResVar>: Optional[<sTypeDefName>] = <sValue>
 <else>
-<sResVar>: <sTypeDefName> = <sValue>
+<sResVar>: <sTypeDefName> = <sTypeDefName>(<sValue>)
 <endif>
 >>
 

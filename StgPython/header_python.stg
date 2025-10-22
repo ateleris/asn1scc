@@ -124,7 +124,7 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 # header_python.stg 130
-class <td.typeName>_Enum(Enum):
+class <td.typeName>_Enum(IntEnum):
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 @dataclass(frozen=True)
