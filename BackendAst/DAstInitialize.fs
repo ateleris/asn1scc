@@ -698,7 +698,7 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                 AutomaticTestCase.initTestCaseFunc =
                     (fun (p:CodegenScope) ->
                         let resVar = p.accessPath.asIdentifier
-                        {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) tdName p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
+                        {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) (typeDefinition.longTypedefName2 false) p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))]
             })
     let constantInitExpression () = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
