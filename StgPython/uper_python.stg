@@ -127,7 +127,7 @@ if decoded_result:
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 # uper_python.stg 126
-res = codec.encode_constrained_whole_number(<p>(<i>), 0, 127)
+res = codec.encode_constrained_whole_number(<p>[<i>], 0, 127)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
@@ -548,8 +548,7 @@ nStringLength: int = len(<p>)
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
-<sPIden>_nCount: int = nStringLength
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 >>
 
 str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
