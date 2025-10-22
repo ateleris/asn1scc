@@ -289,7 +289,8 @@ type ILangGeneric () =
     abstract member getChChildIsPresent   : AccessPath -> string -> string-> string
     abstract member getChChild      : AccessPath -> string -> bool -> AccessPath;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
-    abstract member getLongTypedefName : TypeDefinitionOrReference -> string;
+    abstract member getLongTypedefName : TypeDefinitionOrReference -> string
+    abstract member adjustTypedefWithFullPath : string -> string -> string;
     abstract member getEmptySequenceInitExpression : string -> string
     abstract member callFuncWithNoArgs : unit -> string
     abstract member extractEnumClassName : string -> string -> string -> string
@@ -420,6 +421,8 @@ type ILangGeneric () =
             | None -> None
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
         | _     -> None
+     
+    default this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) = typeName
 
     default this.getSeqChildDependingOnChoiceParent (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list) (p: AccessPath) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
         this.getSeqChild p childName childTypeIsString childIsOptional

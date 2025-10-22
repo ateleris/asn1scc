@@ -1082,7 +1082,7 @@ if <p> == <nChildIndex>:
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
-if <p>.kind == <sChoiceTypeName>InUse.<sChoiceTypeName>_<sChildName>:
+if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
     codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>

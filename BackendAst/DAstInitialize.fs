@@ -1090,6 +1090,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     let initChoice                  = lm.init.initChoice
 
     let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let typeDefinitionName = lm.lg.adjustTypedefWithFullPath typeDefinitionName (ToC t.moduleName)
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let childrenOut =
             match v.ActualValue with

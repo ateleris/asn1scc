@@ -226,6 +226,9 @@ type LangGeneric_python() =
         //     | None -> None
         //     | Some _ -> Some codec.suffix
         // | _     -> None
+   
+    override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
+        if typeName = moduleName then moduleName + "." + typeName else typeName
 
     override this.getRtlFiles (encodings:Asn1Encoding list) (_ :string list) =
         let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
