@@ -2088,9 +2088,20 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | _ -> None, [], [], childResultExpr, [], ns2
                     | Some childContent ->
                         let isPrimitiveType =
-                            match childContent.icdResult with
-                            | Some v -> v.scope <> "REFTYPE"
-                            | None -> true
+                            match child.Type.Kind with
+                            | IA5String _
+                            | OctetString _
+                            | NullType _
+                            | BitString _
+                            | Enumerated _
+                            | ObjectIdentifier _
+                            | SequenceOf _
+                            | Sequence _
+                            | Choice _
+                            | ReferenceType _
+                            | TimeType _ -> false
+                            | _ -> true
+
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
@@ -2152,9 +2163,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | None              -> None, [], ns1
                     | Some childContent ->
                         let isPrimitiveType =
-                            match childContent.icdResult with
-                            | Some v -> v.scope <> "REFTYPE"
-                            | None -> true
+                            match acnChild.Type with
+                            | AcnReferenceToEnumerated _
+                            | AcnReferenceToIA5String _ -> false
+                            | _ -> true
+
                         match codec with
                         | Encode   ->
                             match acnChild.Type with
