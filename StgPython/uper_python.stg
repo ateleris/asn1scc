@@ -137,7 +137,7 @@ InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 decoded_result = codec.decode_constrained_whole_number(0, 127) # uper:109
 if not decoded_result:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p>[<i>] = decoded_result.decoded_value
+<p>_arr[<i>] = decoded_result.decoded_value
 >>
 
 /* INTEGER START*/
@@ -558,8 +558,9 @@ if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 nStringLength: int = decoded_result.decoded_value
 
-<p> = <sType>([None] * nStringLength)
+<p>_arr = [None] * nStringLength
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
+<p> = <sType>(<p>_arr)
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
