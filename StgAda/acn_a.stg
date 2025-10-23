@@ -814,7 +814,7 @@ end loop;
 
 
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
 result.errorCode := <sErrCode>;
 if result.Success then
@@ -823,7 +823,7 @@ if result.Success then
 end if;
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 <p>.Length := nStringLength;
@@ -984,12 +984,12 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 -- Encode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 -- Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>

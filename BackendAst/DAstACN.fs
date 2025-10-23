@@ -1337,6 +1337,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         // It is only meaningful for "Copy" decoding kind, since InPlace will directly modify `p`'s array
         let childInitExpr = DAstInitialize.getChildExpression lm child
         let access = lm.lg.getAccess p.accessPath
+        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
         match child.getAcnFunction codec with
         | None -> None, us
         | Some chFunc  ->
@@ -1381,7 +1382,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         match o.isFixedSize with
                         | true  -> None
                         | false ->
-                            let funcBody = varSize pp access td (i level) "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec
+                            let funcBody = varSize pp access td (i level) "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType codec
                             Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = (lv level)@nStringLength; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd})
 
                     | Some internalItem ->
@@ -1389,7 +1390,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let ret, localVariables =
                             match o.isFixedSize with
                             | true -> fixedSize pp td (i level) internalItem.funcBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux codec, nStringLength
-                            | false -> varSize pp access td (i level) internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec, nStringLength
+                            | false -> varSize pp access td (i level) internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType codec, nStringLength
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = (lv level)@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries @ auxiliaries; icdResult = Some icd})
 
                 | SZ_EC_ExternalField _ ->
@@ -2089,7 +2090,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
-                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement codec
+                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef codec
                             | Some Asn1AcnAst.AlwaysAbsent ->
                                 sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement codec
                             | Some Asn1AcnAst.AlwaysPresent ->
@@ -2127,7 +2128,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | AcnChild acnChild ->
                 //handle updates
                 let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
-
+                
                 let updateStatement, ns1 =
                     match codec with
                     | Encode ->
@@ -2150,7 +2151,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
+                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "DAstACN:2153 encode" codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2159,7 +2160,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "DAstACN:2162 decode" codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)

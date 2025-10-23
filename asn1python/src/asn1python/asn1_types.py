@@ -75,7 +75,7 @@ class Asn1Base(abc.ABC):
     from .decoder import Decoder
 
     @abc.abstractmethod
-    def is_constraint_valid(self):
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass
 
     @abc.abstractmethod
@@ -129,6 +129,8 @@ class Asn1Boolean(Asn1Base):
     """
     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
     """
+    from .encoder import Encoder
+
     __slots__ = ("_val",)
 
     def __init__(self, val):
@@ -178,10 +180,10 @@ class Asn1Boolean(Asn1Base):
         return self._val
 
     # --- Stub-Implementations of Asn1Base Methods ---
-    def is_constraint_valid(self):
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         raise NotImplementedError()
 
-    def encode(self, codec: Codec, check_constraints: bool = True):
+    def encode(self, codec: Encoder, check_constraints: bool = True):
         raise NotImplementedError()
 
 class NullType(Asn1Base):
@@ -189,6 +191,9 @@ class NullType(Asn1Base):
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
     Always falsy, always equal to None, singleton instance.
     """
+    from .encoder import Encoder
+    from .decoder import Decoder
+
     __slots__ = ()
 
     _instance = None
@@ -229,17 +234,19 @@ class NullType(Asn1Base):
     def __delattr__(self, name):
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
     
-    def is_constraint_valid(self):
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         # todo: evaluate if NullType.is_constraint_valid should return True or False
-        return False
+        return Asn1ConstraintValidResult(is_valid=True)
     
-    def encode(self, codec: Codec, check_constraints: bool = True):
+    def encode(self, codec: Encoder, check_constraints: bool = True):
         return
     
-    def decode(cls, codec: Codec, check_constraints: bool = True):
+    @classmethod
+    def decode(cls, codec: Decoder, check_constraints: bool = True):
         return NullType()
     
-    def decode_pure(cls, codec: Codec, check_constraints: bool = True):
+    @staticmethod
+    def decode_pure(codec: Decoder, check_constraints: bool = True):
         return NullType()
 
 

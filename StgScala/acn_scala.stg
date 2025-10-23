@@ -541,7 +541,7 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -561,7 +561,7 @@ locally {
 <soCallAux>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -753,13 +753,13 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>

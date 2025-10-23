@@ -742,24 +742,26 @@ else:
     raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 # acn_python.stg 579
 codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 # acn_python.stg 586
 <if(bIntroSnap)>
 codec_0_1 = codec.copy()
 <endif>
 
-decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>).decoded_value
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
-<p>_nCount = decoded_result.decoded_value
-# Bit validation would go here
-<soCallAux>
+    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+<p>_nCount: int = decoded_result.decoded_value
+
+<p>_arr = []
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
+<p> = <sType>(<p>_nCount, <p>_arr)
 >>
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
@@ -949,7 +951,7 @@ sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 # acn_python.stg 772
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
-<sChildContent>
+self.<sChName>.encode(codec, check_constraints)
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
@@ -959,40 +961,30 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
-<sChildContent>
+self.<sChName>.encode(codec, check_constraints)
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
-<sChildContent>
+instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 >>
 
 sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
-# marked as ALWAYS PRESENT, so it must not be None
-if <p> is not None:
-    <sChName> = <p>
-    <soSaveBitStrmPosStatement>
-    <soChildContent>
-else:
-    # acn_python.stg 808
-    return 628
+self.<sChName>.encode(codec, check_constraints)
 >>
 
 sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 # acn_python.stg 813
 # Decode <sChName>
-# marked as ALWAYS PRESENT
-<soSaveBitStrmPosStatement>
-<soChildContent>
-<p>: Optional[<sChildTypedef>] = <soChildExpr>
+<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 >>
 
 sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
@@ -1006,18 +998,15 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTyped
 # Decode <sChName>
 # marked as ALWAYS ABSENT, so do not decode anything
 <soSaveBitStrmPosStatement>
-<p>: Optional[<sChildTypedef>] = None
+<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 >>
 
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 # acn_python.stg 836
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
-if <p> is not None:
-    <sChName> = <p>
-    <sChildContent>
-else:
-    pass
+if <p>.<sChName> is not None:
+    self.<sChName>.encode(codec, check_constraints)
 >>
 
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
@@ -1025,10 +1014,9 @@ sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soCh
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <soExistVar>:
-    <sChildContent>
-    <p>: Optional[<sChildTypedef>] = <soChildExpr>
+    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 else:
-    <p>: Optional[<sChildTypedef>] = None
+    <p>_<sChName>: Optional[<sChildTypedef>] = NullType()
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
