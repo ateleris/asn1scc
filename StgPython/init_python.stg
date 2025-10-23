@@ -112,7 +112,7 @@ initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 # init_python.stg 115
 <if(bIsOptional)>
-<sResVar>: Optional[<sTypeDefName>] = <sValue>
+<sResVar>: Optional[<sTypeDefName>] = <sTypeDefName>(<sValue>)
 <else>
 <sResVar>: <sTypeDefName> = <sTypeDefName>(<sValue>)
 <endif>
