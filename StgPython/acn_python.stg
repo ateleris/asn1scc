@@ -6,7 +6,6 @@ len(<p>.split(b'\x00')[0])
 >>
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
-# acn_python.stg 9
 <if(bIsUnsigned)>
 int(<p><sAcc>nCount)
 <else>
@@ -102,17 +101,17 @@ for <i> in range(int(<fixedSize>)):
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 105
 unaligned_codec = codec.copy()
-codec.align_to_<sAlignmentValue; format="lower">()
+<!codec.align_to_<sAlignmentValue; format="lower">()!>
 # BitStream validation would go here
-<sMainBody>
+<!<sMainBody>!>
 >>
 
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 113
 unaligned_codec = codec.copy()
-codec.align_to_<sAlignmentValue; format="lower">()
+<!codec.align_to_<sAlignmentValue; format="lower">()!>
 # BitStream validation would go here
-<sMainBody>
+<!<sMainBody>!>
 >>
 
 PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -1193,10 +1192,10 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 # acn_python.stg 1004
+# todo: should already be checked in is_constraint_valid, right? Do we need to encode this part here according to acn docs?
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
-    # acn_python.stg 1007
-    return Asn1SccError(860)
+    raise Asn1Exception(f"Exception while checking size dependency: Error Code 860")
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
