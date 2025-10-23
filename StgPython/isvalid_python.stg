@@ -38,10 +38,10 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
 constraint = <sIsValidExp>
-if constraint:
-    ret = Asn1ConstraintValidResult(is_valid=True)
-else:
+if not issubclass(type(constraint), Asn1Boolean) and not issubclass(type(constraint), int) and not issubclass(type(constraint), float) and not constraint:
     return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
