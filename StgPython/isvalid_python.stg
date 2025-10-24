@@ -271,9 +271,10 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and not <p><sAcc><sChName>:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
-<sInnerStatement>
+if (not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>):
+    <sInnerStatement>
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 

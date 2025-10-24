@@ -2245,7 +2245,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 // assert (childrenResultExpr.Length = asn1Children.Length)
                 assert (childrenResultExpr.Length = asn1Children.Length)
                 let existSeq =
-                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty then []
+                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty || ProgrammingLanguage.ActiveLanguages.Head = Python then []
                     else
                         let existTd = (lm.lg.getSequenceTypeDefinition o.typeDef).exist
                         [lm.init.initSequenceExpr existTd childrenExistVar []]
