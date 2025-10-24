@@ -151,7 +151,7 @@ class <td.typeName>(List[int]): # header_python.stg 137
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-class <prTd.typeName>(<td.typeName>): # header_python.stg 141
+class <td.typeName>(<prTd.typeName>): # header_python.stg 141
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -200,7 +200,7 @@ class <td.typeName>(Asn1Base):
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-class <prTd.typeName>(<td.typeName>): # header_python.stg 194
+class <td.typeName>(<prTd.typeName>): # header_python.stg 194
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -229,7 +229,7 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 # header_python.stg 222
 <soChildDefinition>
 
-class <prTd.typeName>(<td.typeName>):
+class <td.typeName>(<prTd.typeName>):
 >>
 
 
@@ -305,7 +305,7 @@ class <td.typeName>(Asn1Base):
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
-type <prTd.typeName> <td.typeName> # header_python.stg 300
+class <td.typeName>(<prTd.typeName>): # header_python.stg 300
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<

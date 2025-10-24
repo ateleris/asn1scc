@@ -1302,7 +1302,8 @@ checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
 # acn_python.stg 1112
 if <arrsCheckPaths; separator=" && ">:
     <sUpdateStatement>
-else <sInitExpr>
+else:
+    <v> = <sInitExpr>
 >>
 
 
