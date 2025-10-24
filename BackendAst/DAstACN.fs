@@ -2163,17 +2163,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     match childContentResult with
                     | None              -> None, [], ns1
                     | Some childContent ->
-                        let isPrimitiveType =
-                            match acnChild.Type with
-                            | AcnReferenceToEnumerated _
-                            | AcnReferenceToIA5String _ -> false
-                            | _ -> true
+                        let isPrimitiveType = true
 
                         match codec with
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "DAstACN:2153 encode" isPrimitiveType codec)
+                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2182,7 +2178,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "DAstACN:2162 decode" isPrimitiveType codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)

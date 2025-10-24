@@ -959,11 +959,7 @@ sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 # acn_python.stg 772
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
-<if(bIsPrimitive)>
 <sChildContent>
-<else>
-self.<sChName>.encode(codec, check_constraints)
-<endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
@@ -1212,22 +1208,17 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
-# acn_python.stg 1017
-<if(bIsOptional)>
-case SomeMut(<sChildCIDHolder>.<sChildCID>(_)):
-<else>
-case <sChildCIDHolder>.<sChildCID>(_):
-<endif>
-    <sEnumCName>
->>
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<>>
 
 ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 # acn_python.stg 1027
-val <sV> = match <sChPath>:
-    <arrsChoiceEnumItems; separator="\n">
-<if(bIsOptional)>
-    case NoneMut(): <sDefaultExpr>
+<if(!bIsOptional)>
+<sV> = <sChPath>.kind
+<else>
+if <sChPath> is not None:
+    <sV> = <sChPath>.kind
+else:
+    <sV> = None
 <endif>
 >>
 

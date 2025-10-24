@@ -13,7 +13,7 @@ cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 
 
 echo "Running Asn1SCC Compiler for Asn1AcnTestLib..."
 ./asn1scc/bin/Debug/net9.0/asn1scc \
--python -ACN -atc -fp AUTO \
+-python -printTemplateInfo -ACN -atc -fp AUTO \
 -o $OUT_DIR \
 ./Asn1AcnTestLib/primitives/boolean/boolean-basic.asn1 \
 ./Asn1AcnTestLib/primitives/boolean/boolean-false-value.asn1 \
