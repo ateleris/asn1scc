@@ -895,7 +895,10 @@ if instanceof(res, Asn1SccError):
 
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 722
-codec.append_bit(<p><sAcc><sChName>.isDefined)
+if <p><sAcc><sChName>:
+    codec.append_bit(True)
+else:
+    codec.append_bit(False)
 >>
 
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
