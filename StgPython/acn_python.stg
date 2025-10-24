@@ -481,12 +481,19 @@ codec.append_bits(true_data if <p> else false_data, <nSize>)
 Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 # acn_python.stg 354
 <if(bEncValIsTrue)>
-tmp = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+tmp = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 <else>
-tmp = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+tmp = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 <endif>
-x = codec.read_bit_pattern(tmp, <nSize>)
-<p> = <if(!bEncValIsTrue)>not x<else>x<endif>
+
+res = codec.read_bit_pattern(tmp, <nSize>)
+if not res:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+
+# todo: how should this look like? Do we really need to invert this according to bEncValIsTrue?
+#<p> = <if(!bEncValIsTrue)>not res.decoded_value<else>res.decoded_value<endif>
+# Until we know better, we use this:
+<p> = cls(res.decoded_value)
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
