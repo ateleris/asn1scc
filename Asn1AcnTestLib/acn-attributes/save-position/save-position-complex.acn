@@ -4,13 +4,13 @@ SavePositionComplex DEFINITIONS ::= BEGIN
 
     DynamicDataWithPosition []
     {
-        length [size 8, save-position, encoding pos-int],
+        length INTEGER [size 8, save-position, encoding pos-int],
         data [size length]
     }
 
     ConditionalWithPosition []
     {
-        hasExtension [save-position],
+        hasExtension BOOLEAN [save-position],
         baseData [],
         extension [present-when hasExtension, save-position]
         {
@@ -20,7 +20,7 @@ SavePositionComplex DEFINITIONS ::= BEGIN
 
     ArrayWithPosition []
     {
-        count [size 4, save-position, encoding pos-int],
+        count INTEGER [size 6, save-position, encoding pos-int],
         items [size count]
     }
 

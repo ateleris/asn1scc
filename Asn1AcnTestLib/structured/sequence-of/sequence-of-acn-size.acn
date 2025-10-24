@@ -2,20 +2,17 @@
 
 SequenceOfAcnSize DEFINITIONS ::= BEGIN
 
-    DynamicArray1 [] {}
+    DynamicArray1 []
 
-    DynamicArray2 [] {}
+    DynamicArray2 []
 
-    DynamicArray3 [] {}
+    DynamicArray3 []
 
     TestStruct []
     {
-        length1 [],
-        array1 [size length1],
-        length2 [],
-        array2 [size length2],
-        length3 [],
-        array3 [size length3]
+        array1 [],
+        array2 [],
+        array3 []
     }
 
 END

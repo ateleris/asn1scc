@@ -4,7 +4,6 @@
 NestedAcnParametrization DEFINITIONS ::= BEGIN
 
     Config ::= SEQUENCE {
-        dataLength INTEGER (0..255),
         flags INTEGER (0..15)
     }
 
@@ -15,8 +14,7 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
 
     NestedConfig ::= SEQUENCE {
         header SEQUENCE {
-            version INTEGER (0..15),
-            payloadSize INTEGER (0..1024)
+            version INTEGER (0..15)
         },
         data OCTET STRING (SIZE(2..20))
     }
@@ -24,8 +22,7 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
     ComplexNested ::= SEQUENCE {
         metadata SEQUENCE {
             info SEQUENCE {
-                dataLen INTEGER (0..255),
-                extraLen INTEGER (0..255)
+                dummy NULL
             },
             flags INTEGER (0..15)
         },

@@ -29,6 +29,13 @@ PresentWhenChoice DEFINITIONS ::= BEGIN
         }
     }
 
+    DataTypeEnum ::= ENUMERATED {
+        intValue(0),
+        realValue(1),
+        stringValue(2),
+        nullValue(3)
+    }
+
     ConditionalChoice ::= CHOICE {
         intValue INTEGER,
         realValue REAL,
@@ -37,12 +44,10 @@ PresentWhenChoice DEFINITIONS ::= BEGIN
     }
 
     Message ::= SEQUENCE {
-        msgType MessageType,
         payload MessagePayload OPTIONAL
     }
 
     DataContainer ::= SEQUENCE {
-        dataType INTEGER (0..3),
         data ConditionalChoice
     }
 

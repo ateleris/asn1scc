@@ -4,24 +4,22 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
 
     Config []
     {
-        dataLength [size 8, encoding pos-int],
         flags [size 4, encoding pos-int]
     }
 
     DataPacket []
     {
         config [],
-        payload [size config.dataLength]
+        payload []
     }
 
     NestedConfig []
     {
         header []
         {
-            version [size 4, encoding pos-int],
-            payloadSize [size 16, encoding pos-int]
+            version [size 4, encoding pos-int]
         },
-        data [size header.payloadSize]
+        data []
     }
 
     ComplexNested []
@@ -30,13 +28,12 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
         {
             info []
             {
-                dataLen [size 8, encoding pos-int],
-                extraLen [size 8, encoding pos-int]
+                dummy []
             },
             flags [size 4, encoding pos-int]
         },
-        mainData [size metadata.info.dataLen],
-        extraData [size metadata.info.extraLen]
+        mainData [],
+        extraData []
     }
 
     TestStruct []

@@ -14,11 +14,8 @@ SequenceOfAcnSize DEFINITIONS ::= BEGIN
     }
 
     TestStruct ::= SEQUENCE {
-        length1 INTEGER (0..255),
         array1 DynamicArray1,
-        length2 INTEGER (0..1024),
         array2 DynamicArray2,
-        length3 INTEGER (0..100),
         array3 DynamicArray3
     }
 

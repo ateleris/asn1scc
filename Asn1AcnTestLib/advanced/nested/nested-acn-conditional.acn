@@ -4,29 +4,26 @@ NestedAcnConditional DEFINITIONS ::= BEGIN
 
     ConditionalInner []
     {
-        hasExtension [],
+        hasExtension BOOLEAN [],
         baseField [size 8, encoding pos-int],
         extensionField [present-when hasExtension, size 16, encoding pos-int]
     }
 
     ConditionalOuter []
     {
-        control [size 4, encoding pos-int],
+        control BOOLEAN [],
         inner [],
         optionalData [present-when control]
     }
 
     NestedConditional []
     {
-        flags []
-        {
-            enableData1 [],
-            enableData2 [],
-            enableData3 []
-        },
-        data1 [present-when flags.enableData1],
-        data2 [present-when flags.enableData2],
-        data3 [present-when flags.enableData3, size 16, encoding pos-int]
+        enableData1 BOOLEAN [],
+        enableData2 BOOLEAN [],
+        enableData3 BOOLEAN [],
+        data1 [present-when enableData1],
+        data2 [present-when enableData2],
+        data3 [present-when enableData3, size 16, encoding pos-int]
     }
 
     TestStruct []

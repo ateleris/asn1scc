@@ -4,7 +4,7 @@ ChoiceDeterminant DEFINITIONS ::= BEGIN
 
     MessageType [] {}
 
-    MessagePayload []
+    MessagePayload <MessageType: msgType> [determinant msgType]
     {
         command [],
         telemetry [],
@@ -14,8 +14,8 @@ ChoiceDeterminant DEFINITIONS ::= BEGIN
 
     Message []
     {
-        msgType [],
-        payload [determinant msgType]
+        msgType MessageType [],
+        payload <msgType> []
     }
 
     TestStruct []

@@ -4,34 +4,38 @@ PresentWhenSequence DEFINITIONS ::= BEGIN
 
     ConditionalSequence []
     {
-        hasExtension [],
+        hasExtension BOOLEAN [],
         baseField [size 8, encoding pos-int],
         extensionField [present-when hasExtension, size 16, encoding pos-int]
     }
 
     MultiConditional []
     {
-        flags [size 4, encoding pos-int],
-        data1 [present-when flags],
-        data2 [present-when flags],
-        data3 [present-when flags, size 8, encoding pos-int]
+        hasData1 BOOLEAN [],
+        hasData2 BOOLEAN [],
+        hasData3 BOOLEAN [],
+        data1 [present-when hasData1],
+        data2 [present-when hasData2],
+        data3 [present-when hasData3, size 8, encoding pos-int]
     }
 
     ComplexConditional []
     {
-        control [],
-        fieldA [present-when control, size 8, encoding pos-int],
-        fieldB [present-when control],
+        hasFieldA BOOLEAN [],
+        hasFieldB BOOLEAN [],
+        fieldA [present-when hasFieldA, size 8, encoding pos-int],
+        fieldB [present-when hasFieldB],
         mandatoryField []
     }
 
     NestedConditional []
     {
-        enableNested [],
+        enableNested BOOLEAN [],
         nested [present-when enableNested]
         {
+            hasExtra BOOLEAN [],
             value [],
-            extra [present-when value]
+            extra [present-when hasExtra]
         }
     }
 

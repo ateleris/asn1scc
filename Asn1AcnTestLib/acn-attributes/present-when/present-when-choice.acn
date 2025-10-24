@@ -4,33 +4,35 @@ PresentWhenChoice DEFINITIONS ::= BEGIN
 
     MessageType [] {}
 
-    MessagePayload []
+    MessagePayload <MessageType: msgType> [determinant msgType]
     {
-        command [present-when msgType],
-        telemetry [present-when msgType],
-        event [present-when msgType],
-        extended [present-when msgType]
+        command [],
+        telemetry [],
+        event [],
+        extended []
     }
 
-    ConditionalChoice []
+    DataTypeEnum [] {}
+
+    ConditionalChoice <DataTypeEnum: dataType> [determinant dataType]
     {
-        intValue [present-when dataType],
-        realValue [present-when dataType],
-        stringValue [present-when dataType],
-        nullValue [present-when dataType]
+        intValue [],
+        realValue [],
+        stringValue [],
+        nullValue []
     }
 
     Message []
     {
-        msgType [],
+        msgType MessageType [],
         hasPayload BOOLEAN [],
-        payload [present-when hasPayload, determinant msgType]
+        payload <msgType> [present-when hasPayload]
     }
 
     DataContainer []
     {
-        dataType [size 2, encoding pos-int],
-        data []
+        dataType DataTypeEnum [size 2, encoding pos-int],
+        data <dataType> []
     }
 
     TestStruct []

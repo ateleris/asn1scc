@@ -30,7 +30,6 @@ ChoiceDeterminant DEFINITIONS ::= BEGIN
     }
 
     Message ::= SEQUENCE {
-        msgType MessageType,
         payload MessagePayload
     }
 

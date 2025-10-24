@@ -2,20 +2,17 @@
 
 BitstringAcnSize DEFINITIONS ::= BEGIN
 
-    DynamicBitString1 [] {}
+    DynamicBitString1 []
 
-    DynamicBitString2 [] {}
+    DynamicBitString2 []
 
-    DynamicBitString3 [] {}
+    DynamicBitString3 []
 
     TestStruct []
     {
-        length1 [],
-        data1 [size length1],
-        length2 [],
-        data2 [size length2],
-        length3 [],
-        data3 [size length3]
+        data1 [],
+        data2 [],
+        data3 []
     }
 
 END

@@ -2,20 +2,17 @@
 
 OctetstringAcnSize DEFINITIONS ::= BEGIN
 
-    DynamicOctetString1 [] {}
+    DynamicOctetString1 []
 
-    DynamicOctetString2 [] {}
+    DynamicOctetString2 []
 
-    DynamicOctetString3 [] {}
+    DynamicOctetString3 []
 
     TestStruct []
     {
-        length1 [],
-        data1 [size length1],
-        length2 [],
-        data2 [size length2],
-        length3 [],
-        data3 [size length3]
+        data1 [],
+        data2 [],
+        data3 []
     }
 
 END

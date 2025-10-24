@@ -10,11 +10,8 @@ BitstringAcnSize DEFINITIONS ::= BEGIN
     DynamicBitString3 ::= BIT STRING (SIZE(0..65535))
 
     TestStruct ::= SEQUENCE {
-        length1 INTEGER (0..255),
         data1 DynamicBitString1,
-        length2 INTEGER (0..1024),
         data2 DynamicBitString2,
-        length3 INTEGER (0..65535),
         data3 DynamicBitString3
     }
 
