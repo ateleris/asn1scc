@@ -905,7 +905,7 @@ sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 727
 decoded_result = codec.read_bit()
 if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
+    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <soExistVar> = decoded_result.decoded_value
 >>
 

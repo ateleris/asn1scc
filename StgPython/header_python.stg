@@ -213,7 +213,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
     <if(!bFixedSize)>    nCount: int = 0<endif>
-    arr: List[int] = field(default_factory=list)
+    arr: List[<sChildType>] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
 
