@@ -3,13 +3,13 @@
 set -e -u -o pipefail
 
 OUT_DIR="generated-testlib-output"
-#echo "Removing generated .stg.fs files & test library output..."
-#rm -- StgPython/*.stg.fs
+echo "Removing generated .stg.fs files & test library output..."
+rm -- StgPython/*.stg.fs
 
-#dotnet build asn1scc
+dotnet build asn1scc
 
-#echo "Generating new .stg.fs files..."
-#cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
+echo "Generating new .stg.fs files..."
+cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
 
 echo "Running Asn1SCC Compiler for Asn1AcnTestLib..."
 ./asn1scc/bin/Debug/net9.0/asn1scc \
