@@ -208,7 +208,6 @@ class <prTd.typeName>(<td.typeName>): # header_python.stg 194
 
 Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 # header_python.stg 201
-<soChildDefinition>
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):

@@ -497,12 +497,11 @@ if not res:
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
-# acn_python.stg 365
-locally {
-    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    codec.append_bits(if <p> then true_data else false_data, <nSize>)
-}
+if <p>:
+    data: bytearray = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+else:
+    data: bytearray = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+codec.append_bits(data, <nSize>)
 >>
 
 BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
