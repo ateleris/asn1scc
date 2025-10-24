@@ -1,0 +1,49 @@
+-- ACN encoding with parametrization based on nested structure subfields
+
+NestedAcnParametrization DEFINITIONS ::= BEGIN
+
+    Config []
+    {
+        dataLength [size 8, encoding pos-int],
+        flags [size 4, encoding pos-int]
+    }
+
+    DataPacket []
+    {
+        config [],
+        payload [size config.dataLength]
+    }
+
+    NestedConfig []
+    {
+        header []
+        {
+            version [size 4, encoding pos-int],
+            payloadSize [size 16, encoding pos-int]
+        },
+        data [size header.payloadSize]
+    }
+
+    ComplexNested []
+    {
+        metadata []
+        {
+            info []
+            {
+                dataLen [size 8, encoding pos-int],
+                extraLen [size 8, encoding pos-int]
+            },
+            flags [size 4, encoding pos-int]
+        },
+        mainData [size metadata.info.dataLen],
+        extraData [size metadata.info.extraLen]
+    }
+
+    TestStruct []
+    {
+        packet [],
+        nested [],
+        complex []
+    }
+
+END

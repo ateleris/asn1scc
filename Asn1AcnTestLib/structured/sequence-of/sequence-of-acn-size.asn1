@@ -1,0 +1,25 @@
+-- Requirement 31: SEQUENCE OF with ACN size attribute
+-- Tests ACN size attribute to specify sequence length
+
+SequenceOfAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicArray1 ::= SEQUENCE (SIZE(0..24)) OF INTEGER
+
+    DynamicArray2 ::= SEQUENCE (SIZE(0..24)) OF OCTET STRING (SIZE(8))
+
+    DynamicArray3 ::= SEQUENCE (SIZE(0..24)) OF SEQUENCE {
+        x INTEGER,
+        y INTEGER,
+        z INTEGER
+    }
+
+    TestStruct ::= SEQUENCE {
+        length1 INTEGER (0..255),
+        array1 DynamicArray1,
+        length2 INTEGER (0..1024),
+        array2 DynamicArray2,
+        length3 INTEGER (0..100),
+        array3 DynamicArray3
+    }
+
+END
