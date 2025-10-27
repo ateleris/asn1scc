@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byteseq_set_bit, byte_set_bit, byteseq_eq_until
+from verification import byteseq_set_bit, byte_set_bit, byteseq_eq_until, byteseq_read_bit
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -202,10 +202,12 @@ class BitStream:
     #region Read
 
     #@nagini @Pure
+    @Opaque
     def _read_bit_pure(self, bit_index: int) -> bool:
         """Read a single bit"""
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Requires(0 <= bit_index and bit_index < self.buffer_size_bits)
+        Ensures(Result() == byteseq_read_bit(self.buffer(), bit_index % NO_OF_BITS_IN_BYTE, bit_index // NO_OF_BITS_IN_BYTE))
         #@nagini Unfold(self.bitstream_invariant())
         byte_position = bit_index // NO_OF_BITS_IN_BYTE
         bit_position = bit_index % NO_OF_BITS_IN_BYTE
@@ -216,7 +218,7 @@ class BitStream:
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Requires(0 <= bit_index and 0 <= bit_count and bit_count <= shift_count)
         #@nagini Requires(bit_count <= 8 and shift_count <= 8)
-        #@nagini Requires(bit_index + bit_count <= self.buffer_size_bits)        
+        #@nagini Requires(bit_index + bit_count <= self.buffer_size_bits)
         val = 0        
         # Stupid but works
         if bit_count >= 1:
@@ -314,15 +316,8 @@ class BitStream:
         #@nagini Ensures(self.buffer_size == Old(self.buffer_size))
         #@nagini Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
         
-        # Ensures(bit == self._read_bit_pure(Old(self.current_used_bits)))
-
-        Ensures(Let(Old(Unfolding(self.bitstream_invariant(), self._current_byte)), bool, lambda byte_pos:
-                Let(Old(Unfolding(self.bitstream_invariant(), self._current_bit)), bool, lambda bit_pos: 
-                self.buffer()[byte_pos] == Old(byte_set_bit(self.buffer()[byte_pos], bit, bit_pos)))))
-        
-        # SLOWER
-        # Ensures(self.buffer() == Old(Unfolding(self.bitstream_invariant(), 
-        #         byteseq_set_bit(ToByteSeq(self._buffer), bit, self._current_bit, self._current_byte))))
+        Ensures(self.buffer() == Old(Unfolding(self.bitstream_invariant(), byteseq_set_bit(ToByteSeq(self._buffer), bit, self._current_bit, self._current_byte))))
+        Ensures(bit == self._read_bit_pure(Old(self.current_used_bits)))
 
         #@nagini Unfold(self.bitstream_invariant())
         val = self._buffer[self._current_byte]
@@ -377,6 +372,7 @@ def client() -> None:
     b.write_bit(True)
     b.reset()
     assert b.read_byte() == 192
+    assert b.read_byte() == 0
 
 
 

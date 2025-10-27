@@ -21,26 +21,37 @@ NO_OF_BITS_IN_BYTE = 8
 #     return 0xFF >> (8 - end + start) << (8 - end)
 
 @Pure
+@Opaque
 def byte_read_bit(b: int, pos: int) -> bool:
     Requires(0 <= b and b <= 0xFF)
     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+    Ensures(Result() == PByteSeq.int_get_bit(b, 7- pos))
     return bool(b & (1 << (7 - pos)))
 
 @Pure
+@Opaque
 def byte_set_bit(b: int, bit: bool, pos: int) -> int:
     Requires(0 <= b and b <= 0xFF)
     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-    Ensures(0 <= Result() and Result() <= 0xFF)
-    # Ensures(byte_read_bit(Result(), pos) == bit) # SLOW
+    Ensures(Result() == PByteSeq.int_set_bit(b, 7 - pos, bit))
+    Ensures(byte_read_bit(Result(), pos) == bit) # SLOW
     if bit:
         return b | (1 << (7 - pos))
     else:
         return b & ~(1 << (7 - pos))
 
 @Pure
+def byteseq_read_bit(seq: PByteSeq, bit_pos: int, byte_pos: int) -> bool:
+    Requires(0 <= bit_pos and bit_pos < NO_OF_BITS_IN_BYTE)
+    Requires(0 <= byte_pos and byte_pos < len(seq))
+    return byte_read_bit(seq[byte_pos], bit_pos)
+
+@Pure
 def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PByteSeq:
     Requires(0 <= bit_pos and bit_pos < NO_OF_BITS_IN_BYTE)
     Requires(0 <= byte_pos and byte_pos < len(seq))
+    Ensures(len(seq) == len(Result()))
+    Ensures(byteseq_read_bit(Result(), bit_pos, byte_pos) == bit)
     return seq.update(byte_pos, byte_set_bit(seq[byte_pos], bit, bit_pos))
 
 @Pure
@@ -53,8 +64,8 @@ def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
 # def client(b: int, pos: int, val: bool) -> None:
 #     Requires(0 <= b and b <= 0xFF)
 #     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-#     b = byte_set_bit(b, False, pos)
-#     assert byte_read_bit(b, pos) == False
+#     b = byte_set_bit(b, val, pos)
+#     assert byte_read_bit(b, pos) == val
 
 # @Pure
 # def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end_bit: int) -> bool:
