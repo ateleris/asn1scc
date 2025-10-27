@@ -325,37 +325,44 @@ class BitStream:
         #@nagini Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
 
-    # def write_bits(self, value: int, bit_count: int) -> None:
-    #     """Write multiple bits from an integer value"""
-    #     Requires(self.bitstream_invariant())
-    #     Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
-    #     Requires(self.validate_offset(bit_count))
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
-    #     Ensures(self.buffer_size == Old(self.buffer_size))
-    #     Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
-    #     Ensures(value == self._read_bits_pure(Old(self.current_used_bits), bit_count, bit_count))
+    def write_bits(self, value: int, bit_count: int) -> None:
+        """Write multiple bits from an integer value"""
+        Requires(self.bitstream_invariant())
+        Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
+        Requires(0 <= value and value <= 0xFF) #TODO Dynamically find bound
+        Requires(self.validate_offset(bit_count))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
+        # Ensures(value == self._read_bits_pure(Old(self.current_used_bits), bit_count, bit_count))
 
-    #     #@nagini Ensures(self.bitstream_invariant())
-    #     #@nagini 
-    #     #@nagini Ensures(self.buffer() == Old(self.buffer()))
-    #     #@nagini Ensures(Result() == Old(self._read_bits_pure(self.current_used_bits, bit_count, bit_count)))
+        # if bit_count < 0 or bit_count > 64:
+        #     raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
 
-    #     if bit_count < 0 or bit_count > 64:
-    #         raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
+        if bit_count == 0:
+            return
 
-    #     if bit_count == 0:
-    #         return
+        # Check if value fits in bit_count bits
+        # max_value = (1 << bit_count) - 1
+        # if value < 0 or value > max_value:
+        #     raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
 
-    #     # Check if value fits in bit_count bits
-    #     max_value = (1 << bit_count) - 1
-    #     if value < 0 or value > max_value:
-    #         raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
-
-    #     # Write bits from most significant to least significant
-    #     for i in range(bit_count - 1, -1, -1):
-    #         bit = (value >> i) & 1
-    #         self.write_bit(bool(bit))
+        # Write bits from most significant to least significant
+        i: int = 0
+        while i < bit_count:
+            Invariant(self.bitstream_invariant())
+            Invariant(0 <= i and i <= bit_count)
+            Invariant(self.validate_offset(bit_count - i))
+            Invariant(self.current_used_bits == Old(self.current_used_bits + i))
+            Invariant(self.buffer_size == Old(self.buffer_size))
+            Invariant(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
+            Invariant((value % (1 << i)) == self._read_bits_pure(Old(self.current_used_bits), i, bit_count))
+            
+            bit = bool((value >> (bit_count - 1 - i)) & 1)
+            self.write_bit(bit)
+            
+            i += 1
 
     # def write_byte(self, byte_value: int) -> None:
     #     """Write a complete byte"""
