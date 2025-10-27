@@ -689,7 +689,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         | NonPrimitiveReference2OtherType -> None
 
     let aaa, private_part =
-        match createChoice children   with
+        match createChoice children with
         | Some (a, b) -> Some a, b
         | None -> None, None
     let aaaOnly = createChoiceOnly children

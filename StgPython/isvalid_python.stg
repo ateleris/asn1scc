@@ -37,9 +37,11 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-ret = <sIsValidExp>
-if not ret:
+constraint = <sIsValidExp>
+if not issubclass(type(constraint), Asn1Boolean) and not issubclass(type(constraint), int) and not issubclass(type(constraint), float) and not constraint:
     return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -269,9 +271,10 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and not <p><sAcc><sChName>:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
-<sInnerStatement>
+if (not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>):
+    <sInnerStatement>
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 
@@ -295,15 +298,9 @@ if self.kind == <sChPresent>:
     <sInnerStatement>
 >>
 
-Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
-# isvalid_python.stg 292
-self.kind == <sChPresent>
->>
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= "self.kind == <sChPresent>"
 
-Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
-# isvalid_python.stg 297
-self.kind != <sChPresent>
->>
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= "self.kind != <sChPresent>"
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
 if self.kind == <sChPresent>:
@@ -339,10 +336,10 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 332
-<i>: int = 0
-while <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <sInnerStatement>
-    <i> = <i> + 1
+    if not ret:
+        return ret
 >>
 
 

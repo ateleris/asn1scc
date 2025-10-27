@@ -122,12 +122,12 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 if decoded_result:
-    <p>_arr.append(allowedCharSet[int(decoded_result.decoded_value)])
+    <p>_arr[<i>] = allowedCharSet[int(decoded_result.decoded_value)]
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 # uper_python.stg 126
-res = codec.encode_constrained_whole_number(<p>(<i>), 0, 127)
+res = codec.encode_constrained_whole_number(<p>[<i>], 0, 127)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
@@ -136,8 +136,8 @@ InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 # uper_python.stg 131
 decoded_result = codec.decode_constrained_whole_number(0, 127) # uper:109
 if not decoded_result:
-    raise Asn1Exception(f"Decoding Exception {self.EncodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p>_arr_<i>_ = decoded_result.decoded_value
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+<p>_arr[<i>] = decoded_result.decoded_value
 >>
 
 /* INTEGER START*/
@@ -438,7 +438,10 @@ else:
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 374
-codec.append_bit(<p><sAcc><sChName>.isDefined)
+if <p><sAcc><sChName>:
+    codec.append_bit(True)
+else:
+    codec.append_bit(False)
 >>
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 378
@@ -533,7 +536,7 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 473
-<p>_arr = []
+<p>_arr = [None] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 <p> = cls(<p>_arr)
 
@@ -541,22 +544,26 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
 nStringLength: int = len(<p>)
 # ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
-<sPIden>_nCount: int = nStringLength
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 492
-nStringLength: int = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>).decoded_value
-<p>_nCount = nStringLength
-<soCallAux>
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+if not decoded_result: 
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+nStringLength: int = decoded_result.decoded_value
+
+<p>_arr = [None] * nStringLength
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
+<p> = <sType>(<p>_arr)
 >>
 
 /* SEQUENCE OF & OCTET STRING*/

@@ -6,7 +6,6 @@ len(<p>.split(b'\x00')[0])
 >>
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
-# acn_python.stg 9
 <if(bIsUnsigned)>
 int(<p><sAcc>nCount)
 <else>
@@ -102,17 +101,17 @@ for <i> in range(int(<fixedSize>)):
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 105
 unaligned_codec = codec.copy()
-codec.align_to_<sAlignmentValue; format="lower">()
+<!codec.align_to_<sAlignmentValue; format="lower">()!>
 # BitStream validation would go here
-<sMainBody>
+<!<sMainBody>!>
 >>
 
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 113
 unaligned_codec = codec.copy()
-codec.align_to_<sAlignmentValue; format="lower">()
+<!codec.align_to_<sAlignmentValue; format="lower">()!>
 # BitStream validation would go here
-<sMainBody>
+<!<sMainBody>!>
 >>
 
 PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
@@ -482,21 +481,27 @@ codec.append_bits(true_data if <p> else false_data, <nSize>)
 Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 # acn_python.stg 354
 <if(bEncValIsTrue)>
-tmp = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+tmp = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 <else>
-tmp = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+tmp = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 <endif>
-x = codec.read_bit_pattern(tmp, <nSize>)
-<p> = <if(!bEncValIsTrue)>not x<else>x<endif>
+
+res = codec.read_bit_pattern(tmp, <nSize>)
+if not res:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+
+# todo: how should this look like? Do we really need to invert this according to bEncValIsTrue?
+#<p> = <if(!bEncValIsTrue)>not res.decoded_value<else>res.decoded_value<endif>
+# Until we know better, we use this:
+<p> = cls(res.decoded_value)
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
-# acn_python.stg 365
-locally {
-    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
-    codec.append_bits(if <p> then true_data else false_data, <nSize>)
-}
+if <p>:
+    data: bytearray = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+else:
+    data: bytearray = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+codec.append_bits(data, <nSize>)
 >>
 
 BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
@@ -522,18 +527,17 @@ codec.append_bits(tmp, <nSize>)
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 395
 <if(bSavePosition)>
-    codec.read_bit_pattern_ignore_value(<nSize>)
-    <p> = None
-    <else>
-    <if(arruNullValueAsByteArray)>
-    tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-    if not codec.read_bit_pattern(tmp, <nSize>):
-        # acn_python.stg 403
-        return <sErrCode>
-    
-    <A(sErrCode)>
-    <p> = None
-    <endif>
+codec.read_bit_pattern_ignore_value(<nSize>)
+<p> = cls()
+<else>
+<if(arruNullValueAsByteArray)>
+tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+res = codec.read_bit_pattern(tmp, <nSize>)
+if not res:
+    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}") 
+
+<p> = cls()
+<endif>
 <endif>
 >>
 
@@ -552,9 +556,9 @@ if <p> == <sName>:
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 # acn_python.stg 428
-if decoded_value == <nItemIdx>:
+if <sIntVal> == <nItemIdx>:
     # acn_python.stg 430
-    <p> = <sName>
+    <sIntVal>_val = <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -578,11 +582,9 @@ EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 # acn_python.stg 451
 <sActualCodecFunc>
-decoded_value = int(<sIntVal>)
 
 <arrsItem; separator="\n">
-# acn_python.stg 456
-# TODO: <p> = Asn1SccError(<sErrCode>)
+<p> = <td.asn1Name>(<sIntVal>_val)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -744,24 +746,26 @@ else:
     raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 # acn_python.stg 579
 codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 # acn_python.stg 586
 <if(bIntroSnap)>
 codec_0_1 = codec.copy()
 <endif>
 
-decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>).decoded_value
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
-<p>_nCount = decoded_result.decoded_value
-# Bit validation would go here
-<soCallAux>
+    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+<p>_nCount: int = decoded_result.decoded_value
+
+<p>_arr = [None] * <p>_nCount
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
+<p> = <sType>(<p>_nCount, <p>_arr)
 >>
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
@@ -896,14 +900,17 @@ if instanceof(res, Asn1SccError):
 
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 722
-codec.append_bit(<p><sAcc><sChName>.isDefined)
+if <p><sAcc><sChName>:
+    codec.append_bit(True)
+else:
+    codec.append_bit(False)
 >>
 
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 727
 decoded_result = codec.read_bit()
 if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
+    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <soExistVar> = decoded_result.decoded_value
 >>
 
@@ -947,108 +954,114 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = pBitStrm # save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 772
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 779
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
+<if(bIsPrimitive)>
 <sChildContent>
+<else>
+self.<sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
+<if(bIsPrimitive)>
 <sChildContent>
+<else>
+instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+<endif>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
-# marked as ALWAYS PRESENT, so it must not be None
-if <p> is not None:
-    <sChName> = <p>
-    <soSaveBitStrmPosStatement>
-    <soChildContent>
-else:
-    # acn_python.stg 808
-    return 628
+<if(bIsPrimitive)>
+<soChildContent>
+<else>
+self.<sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 813
 # Decode <sChName>
-# marked as ALWAYS PRESENT
-<soSaveBitStrmPosStatement>
+<if(bIsPrimitive)>
 <soChildContent>
-<p>: Optional[<sChildTypedef>] = <soChildExpr>
+<else>
+<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+<endif>
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 822
 # Encode <sChName>
 # marked as ALWAYS ABSENT, so do not encode anything
 <soSaveBitStrmPosStatement>
 >>
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 828
 # Decode <sChName>
 # marked as ALWAYS ABSENT, so do not decode anything
 <soSaveBitStrmPosStatement>
-<p>: Optional[<sChildTypedef>] = None
+<if(bIsPrimitive)>
+<sChildContent>
+<else>
+<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+<endif>
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 836
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
-if <p> is not None:
-    <sChName> = <p>
+if <p>.<sChName> is not None:
+    <if(bIsPrimitive)>
     <sChildContent>
-else:
-    pass
+    <else>
+    self.<sChName>.encode(codec, check_constraints)
+    <endif>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 847
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <soExistVar>:
+    <if(bIsPrimitive)>
     <sChildContent>
-    <p>: Optional[<sChildTypedef>] = <soChildExpr>
+    <else>
+    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+    <endif>
 else:
-    <p>: Optional[<sChildTypedef>] = None
+    <p>_<sChName>: Optional[<sChildTypedef>] = NullType()
 >>
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 858
-<soSaveBitStrmPosStatement>
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive)>
 >>
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 864
-/* Decode <sChName> */
-<soSaveBitStrmPosStatement>
-val <p>_<sChName> =
-    if <soExistVar> then
-        <sChildContent>
-        SomeMut(<soChildExpr>)
-    else
-        <sInitWithDefaultValue>
+<sequence_optional_child_decode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive)>
 >>
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
@@ -1117,7 +1130,7 @@ else:
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 938
-case <sChildID>(<sChildName>):
+if <p>.<sChildName> == <sChildID>:
     <sChildBody>
 >>
 
@@ -1183,10 +1196,10 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 # acn_python.stg 1004
+# todo: should already be checked in is_constraint_valid, right? Do we need to encode this part here according to acn docs?
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
-    # acn_python.stg 1007
-    return Asn1SccError(860)
+    raise Asn1Exception(f"Exception while checking size dependency: Error Code 860")
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
@@ -1194,22 +1207,17 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
-# acn_python.stg 1017
-<if(bIsOptional)>
-case SomeMut(<sChildCIDHolder>.<sChildCID>(_)):
-<else>
-case <sChildCIDHolder>.<sChildCID>(_):
-<endif>
-    <sEnumCName>
->>
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<>>
 
 ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 # acn_python.stg 1027
-val <sV> = match <sChPath>:
-    <arrsChoiceEnumItems; separator="\n">
-<if(bIsOptional)>
-    case NoneMut(): <sDefaultExpr>
+<if(!bIsOptional)>
+<sV> = <sChPath>.kind
+<else>
+if <sChPath> is not None:
+    <sV> = <sChPath>.kind
+else:
+    <sV> = None
 <endif>
 >>
 
@@ -1293,7 +1301,8 @@ checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
 # acn_python.stg 1112
 if <arrsCheckPaths; separator=" && ">:
     <sUpdateStatement>
-else <sInitExpr>
+else:
+    <v> = <sInitExpr>
 >>
 
 

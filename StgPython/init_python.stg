@@ -112,9 +112,9 @@ initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 # init_python.stg 115
 <if(bIsOptional)>
-<sResVar>: Optional[<sTypeDefName>] = <sValue>
+<sResVar>: Optional[<sTypeDefName>] = <sTypeDefName>(<sValue>)
 <else>
-<sResVar>: <sTypeDefName> = <sValue>
+<sResVar>: <sTypeDefName> = <sTypeDefName>(<sValue>)
 <endif>
 >>
 
@@ -204,7 +204,6 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 # init_python.stg 206
 <if(!bLastItem)><if(bFirst)>if<else>elif<endif> <i> % <nCaseLen> == <nCaseIdx>:<else>else:<endif>
     <sChildCaseInit>
-    <sResVar>
 >>
 
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
