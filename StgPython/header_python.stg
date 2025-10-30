@@ -134,7 +134,7 @@ class <td.typeName>_Enum(IntEnum):
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     # initialize val with the first enum element by default
-    val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
+    <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
