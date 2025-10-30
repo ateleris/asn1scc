@@ -49,7 +49,7 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
 # equal_python.stg 51
-def __eq__(param1, param2) -> bool:
+def __eq__(self1, self2) -> bool:
      ret: bool = True
      <arrsLocalVars; separator="\n">
  

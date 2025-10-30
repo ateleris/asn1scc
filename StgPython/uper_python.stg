@@ -547,7 +547,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
 nStringLength: int = len(<p>)
-# ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>
+# ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
@@ -752,7 +752,7 @@ Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sCurBlockSize>: int = 0
 <sCurOffset>: int = 0
 <sBlockIndex>: int = 0
-while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>:
+while <sRemainingItemsVar> >= 0x4000 and <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>:
     if <sRemainingItemsVar> >= 0x10000:
         <sCurBlockSize> = 0x10000
         res = codec.encode_constrained_whole_number(0xC4, 0, 0xFF)
@@ -822,7 +822,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret: int = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-    check = (ret == 0) && (<sRemainingItemsVar> == 0xC4)
+    check = (ret == 0) and (<sRemainingItemsVar> == 0xC4)
     ret = 0 if check else Asn1SccError(<sErrCodeName>)
     if ret == 0:
         <if(bIsBitStringType)>
@@ -848,7 +848,7 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 # decode a single Block with <nBlockSize> items
 <sCurBlockSize> = <nBlockSize>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>)
+val check = (ret == 0) and (<sRemainingItemsVar> == <sBlockId>)
 ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
 if not isinstance(ret, Asn1SccError):
     <if(bIsBitStringType)>
