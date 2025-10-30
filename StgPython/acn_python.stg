@@ -147,7 +147,11 @@ if not res:
 
 PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 141
-<p> = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(16)
+decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(16)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
+    
+<p> = decoded_result.decoded_value
 <MF(soMF)>
 >>
 
@@ -159,7 +163,11 @@ if not res:
 >>
 PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 151
-<p> = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(32)
+decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(32)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
+<p> = (decoded_result.decoded_value)
+
 <MF(soMF)>
 >>
 
@@ -170,7 +178,11 @@ if not res:
 >>
 PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 158
-<p> = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(64)
+decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(64)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian: {decoded_result.error_message}")
+<p> = (decoded_result.decoded_value)
+
 <MF(soMF)>
 >>
 
@@ -707,25 +719,29 @@ if not decoded_result:
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 533
 bix = codec.get_bit_index()
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <p>.indexOfOrLength(0.toByte):
+if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * len(<p>):
     # acn_python.stg 537
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 542
 bix = codec.get_bit_index()
 if <sExtFld> \< 0:
-    <p> = Asn1SccError(464)
-<p> = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
+    raise Asn1Exception(464)
+decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+<p> = <sType>(decoded_result.decoded_value)
+
 if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <p>.indexOfOrLength(0):
-    raise Asn1Exception(f"Decoding failed with errorcode {sErrCode}: {decode_result.error_message}")
+    raise Asn1Exception(f"ERROR TODO")
 >>
 
 
@@ -1442,7 +1458,7 @@ if x is None:
 else:
     nCount = x
 
-arr = codec.decode_octet_string_no_length(nCount.toInt)
+arr = codec.decode_octet_string_no_length(nCount)
 if arr is None:
     # acn_python.stg 1239
     return Asn1SccError(pErrCode)
