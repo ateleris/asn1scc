@@ -275,8 +275,8 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
 let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  =
     let initReal = lm.init.initReal
     let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
@@ -289,11 +289,13 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         realVals |>
         List.map (fun vl ->
             let initTestCaseFunc (p:CodegenScope) =
+                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let resVar = p.accessPath.asIdentifier
                 {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
     let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CodegenScope)  =
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let resVar = p.accessPath.asIdentifier
         match isZeroAllowed with
         | false    ->

@@ -273,7 +273,6 @@ emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValue
 # test_cases_python.stg:320
 def <sFuncName>() -> None:
     from .<sModName>_auto_tcs import <sTasName>_<sEnc>enc_dec
-    from .<sModName> import <sTasName>
     
     <arrsVars; separator="\n">
 
