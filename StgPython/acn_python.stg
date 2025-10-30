@@ -527,17 +527,18 @@ codec.append_bits(tmp, <nSize>)
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 395
 <if(bSavePosition)>
-codec.read_bit_pattern_ignore_value(<nSize>)
-<p> = cls()
-<else>
-<if(arruNullValueAsByteArray)>
-tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-res = codec.read_bit_pattern(tmp, <nSize>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}") 
-
-<p> = cls()
-<endif>
+    codec.read_bit_pattern_ignore_value(<nSize>)
+    <p> = None
+    <else>
+    <if(arruNullValueAsByteArray)>
+    tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+    if not codec.read_bit_pattern(tmp, <nSize>):
+        # acn_python.stg 403
+        return <sErrCode>
+    
+    <A(sErrCode)>
+    <p> = None
+    <endif>
 <endif>
 >>
 
@@ -1130,7 +1131,7 @@ else:
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 938
-if <p>.<sChildName> == <sChildID>:
+case <sChildID>(<sChildName>):
     <sChildBody>
 >>
 
