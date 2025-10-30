@@ -84,10 +84,17 @@ class Codec(Generic[T]):
         new_codec._bitstream.set_bit_index(bit_index)
         return new_codec
 
+    @classmethod
     @abstractmethod
-    def _construct(self, buffer: bytearray) -> T:
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> T:
+        """Create a new codec with a buffer of length buffer_byte_size."""
         pass
 
+    @classmethod
+    @abstractmethod
+    def _construct(cls, buffer: bytearray) -> T:
+        pass
+    
     def reset_bitstream(self):
         self._bitstream.reset()
     

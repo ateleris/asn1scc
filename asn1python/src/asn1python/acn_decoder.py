@@ -21,9 +21,14 @@ class ACNDecoder(Decoder):
 
     def __init__(self, buffer: bytearray) -> None:
         super().__init__(buffer=buffer)
-        
-    def _construct(self, buffer: bytearray) -> 'ACNDecoder':
-        return ACNDecoder(buffer)
+           
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'ACNDecoder':
+        return cls(bytearray(buffer_byte_size))
+     
+    @classmethod
+    def _construct(cls, buffer: bytearray) -> 'ACNDecoder':
+        return cls(buffer)
 
     # ============================================================================
     # INTEGER DECODING - POSITIVE INTEGER

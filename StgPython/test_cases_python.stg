@@ -103,7 +103,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 # test_cases_python.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    encoder = <sCodecClass>Encoder(<sTasName>.EncodeConstants.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
+    encoder = <sCodecClass>Encoder.of_size(<sTasName>.EncodeConstants.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
     <sNestedStatements>
     # test_cases_python.stg 108
     return True
