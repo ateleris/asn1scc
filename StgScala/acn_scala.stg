@@ -308,23 +308,23 @@ val <p> = codec.dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(<p>, (byte[]){<a
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
-Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
+Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_32_big_endian<sSsuffix>()
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_big_endian(<p>)"
-Real_64_big_endian_decode(p, sErrCode) ::= <<
+Real_64_big_endian_encode(p, sErrCode, sType) ::= "codec.enc_Real_IEEE754_64_big_endian(<p>)"
+Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_64_big_endian()
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_little_endian(<p>)"
-Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "codec.enc_Real_IEEE754_32_little_endian(<p>)"
+Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_32_little_endian<sSsuffix>()
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_little_endian(<p>)"
-Real_64_little_endian_decode(p, sErrCode) ::= <<
+Real_64_little_endian_encode(p, sErrCode, sType) ::= "codec.enc_Real_IEEE754_64_little_endian(<p>)"
+Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_64_little_endian()
 >>
 
