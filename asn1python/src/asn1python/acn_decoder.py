@@ -6,6 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
+from .asn1_types import NO_OF_BITS_IN_BYTE
 from .decoder import Decoder
 from .codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
 from .bitstream import BitStreamError
@@ -21,9 +22,14 @@ class ACNDecoder(Decoder):
 
     def __init__(self, buffer: bytearray) -> None:
         super().__init__(buffer=buffer)
-        
-    def _construct(self, buffer: bytearray) -> 'ACNDecoder':
-        return ACNDecoder(buffer)
+           
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'ACNDecoder':
+        return cls(bytearray(buffer_byte_size))
+     
+    @classmethod
+    def _construct(cls, buffer: bytearray) -> 'ACNDecoder':
+        return cls(buffer)
 
     # ============================================================================
     # INTEGER DECODING - POSITIVE INTEGER
@@ -1060,21 +1066,167 @@ class ACNDecoder(Decoder):
     # BOOLEAN DECODING
     # ============================================================================
 
-    def read_bit_pattern(self, pattern_to_read: bytearray, n_bits_to_read: int) -> DecodeResult:
+    def read_bit_pattern(self, pattern_to_read: bytearray, n_bits_to_read: int) -> DecodeResult[bool]:
         """Read bit pattern and return boolean value."""
-        raise NotImplementedError("read_bit_pattern not yet implemented")
+        try:
+            prev_bits = self._bitstream.current_used_bits
+            bytes_to_read = n_bits_to_read // NO_OF_BITS_IN_BYTE
+            remaining_bits_to_read = n_bits_to_read % NO_OF_BITS_IN_BYTE
+            needed_bytes = bytes_to_read + (0 if remaining_bits_to_read == 0 else 1)
+            
+            bool_result: bool = True
+            i: int = 0
+            
+            while i < bytes_to_read:
+                read: int
+                if self._bitstream.remaining_bits < NO_OF_BITS_IN_BYTE:
+                    read = self._bitstream.read_bits(self._bitstream.remaining_bits)
+                else:
+                    read = self._bitstream.read_byte()
+                
+                if read != pattern_to_read[i]:
+                    bool_result = False
+                    
+                i += 1
+                
+            if remaining_bits_to_read > 0:
+                read = self._bitstream.read_bits(remaining_bits_to_read)
+                pattern = pattern_to_read[bytes_to_read] >> (NO_OF_BITS_IN_BYTE - remaining_bits_to_read)
+                if  read != pattern:
+                    bool_result = False
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bool_result,
+                bits_consumed= self._bitstream.current_used_bits - prev_bits
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
-    def decode_true_false_boolean(self, true_pattern: bytearray, false_pattern: bytearray, n_bits_to_read: int) -> DecodeResult:
+    def decode_true_false_boolean(self, true_pattern: bytearray, false_pattern: bytearray, n_bits_to_read: int) -> DecodeResult[bool]:
         """Decode boolean using true/false patterns."""
-        raise NotImplementedError("decode_true_false_boolean not yet implemented")
+        try:
+            prev_bits = self._bitstream.current_used_bits
+            bytes_to_read = n_bits_to_read // NO_OF_BITS_IN_BYTE
+            remaining_bits_to_read = n_bits_to_read % NO_OF_BITS_IN_BYTE
+            
+            bool_result: bool | None = None
+            
+            for i in range(bytes_to_read):
+                read = self._bitstream.read_byte() if self._bitstream.remaining_bits >= NO_OF_BITS_IN_BYTE else self._bitstream.read_bits(self._bitstream.remaining_bits)
+                
+                # Validate: byte must match either true or false pattern
+                matches_true = (read == true_pattern[i])
+                matches_false = (read == false_pattern[i])
+                
+                if not matches_true and not matches_false:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Invalid pattern: {read}"
+                    )
+                
+                # First byte determines the expected pattern
+                if i == 0:
+                    bool_result = matches_true
+                else:
+                    # Subsequent bytes must be consistent with first byte's determination
+                    if matches_true and not bool_result:
+                        return DecodeResult(
+                            success=False,
+                            error_code=ERROR_INVALID_VALUE,
+                            error_message=f"Byte {i} matches true pattern but earlier bytes matched false pattern"
+                        )
+                    if matches_false and bool_result:
+                        return DecodeResult(
+                            success=False,
+                            error_code=ERROR_INVALID_VALUE,
+                            error_message=f"Byte {i} matches false pattern but earlier bytes matched true pattern"
+                        )
+            
+            if remaining_bits_to_read > 0:
+                read = self._bitstream.read_bits(remaining_bits_to_read)
+                true_partial = true_pattern[bytes_to_read] >> (NO_OF_BITS_IN_BYTE - remaining_bits_to_read)
+                false_partial = false_pattern[bytes_to_read] >> (NO_OF_BITS_IN_BYTE - remaining_bits_to_read)
+                
+                matches_true = (read == true_partial)
+                matches_false = (read == false_partial)
+                
+                if not matches_true and not matches_false:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INVALID_VALUE,
+                        error_message=f"Invalid pattern: {read}"
+                    )
+                
+                if bytes_to_read == 0:
+                    bool_result = matches_true
+                else:
+                    if matches_true and not bool_result:
+                        return DecodeResult(
+                            success=False,
+                            error_code=ERROR_INVALID_VALUE,
+                            error_message="Remaining bits match true pattern but earlier bytes matched false pattern"
+                        )
+                    if matches_false and bool_result:
+                        return DecodeResult(
+                            success=False,
+                            error_code=ERROR_INVALID_VALUE,
+                            error_message="Remaining bits match false pattern but earlier bytes matched true pattern"
+                        )
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bool_result,
+                bits_consumed=self._bitstream.current_used_bits - prev_bits
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # NULL TYPE FUNCTIONS
     # ============================================================================
 
-    def read_bit_pattern_ignore_value(self, n_bits_to_read: int) -> DecodeResult:
+    def read_bit_pattern_ignore_value(self, n_bits_to_read: int) -> DecodeResult[None]:
         """Read bit pattern and ignore the value."""
-        raise NotImplementedError("read_bit_pattern_ignore_value not yet implemented")
+        try:
+            prev_bits = self._bitstream.current_used_bits
+            bytes_to_read = n_bits_to_read // NO_OF_BITS_IN_BYTE
+            remaining_bits_to_read = n_bits_to_read % NO_OF_BITS_IN_BYTE
+            needed_bytes = bytes_to_read + (0 if remaining_bits_to_read == 0 else 1)
+            
+            i: int = 0
+            while i < bytes_to_read:
+                self._bitstream.read_byte()
+                i += 1
+                
+            if remaining_bits_to_read > 0:
+                self._bitstream.read_bits(remaining_bits_to_read)
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                bits_consumed= self._bitstream.current_used_bits - prev_bits
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # ============================================================================
     # IEEE 754 REAL DECODING WITH FLOAT PRECISION

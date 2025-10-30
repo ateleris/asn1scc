@@ -28,7 +28,6 @@ from dataclasses import dataclass, field
 <!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
-__all__ = []
 
 # Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
@@ -61,7 +60,7 @@ Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
 Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
 
 Declare_Boolean() ::= "Asn1Boolean"
-Declare_Real() ::= "Asn1Real"
+Declare_Real() ::= "float"
 
 Declare_Int8() ::="int"
 Declare_UInt8() ::="int"
@@ -72,8 +71,8 @@ Declare_UInt32() ::="int"
 Declare_Int64() ::="int"
 Declare_UInt64() ::="int"
 
-Declare_Real32() ::= "Asn1Real32"
-Declare_Real64() ::= "Asn1Real64"
+Declare_Real32() ::= "float"
+Declare_Real64() ::= "float"
 
 Declare_BooleanNoRTL() ::= "Asn1Boolean"
 Declare_RealNoRTL() ::= "RealNoRTL"
@@ -104,7 +103,6 @@ Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateLocalTimeWithTimeZone
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 # header_python.stg 91
 class <sTypeDefinitionName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType>):
-    __all__.append("<sTypeDefinitionName>")
     <soExtraDefs>
 >>
 
@@ -127,19 +125,16 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 # header_python.stg 130
 class <td.typeName>_Enum(IntEnum):
-    __all__.append("<td.typeName>_Enum")
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     # initialize val with the first enum element by default
     val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
-class <td.typeName>(<prTd.typeName>): # header_python.stg 125
-    __all__.append("<td.typeName>")
+class <prTd.typeName>(<td.typeName>): # header_python.stg 125
 >>
 
 Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
@@ -153,12 +148,10 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
 # todo: maybe ia5 string needs to inherit from Asn1Base as well?
 class <td.typeName>(List[int]): # header_python.stg 137
-    __all__.append("<td.typeName>")
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 141
-    __all__.append("<td.typeName>")
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -172,7 +165,6 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
@@ -180,8 +172,7 @@ class <td.typeName>(Asn1Base):
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-class <td.typeName>(<prTd.typeName>): # header_python.stg 164
-    __all__.append("<td.typeName>")
+class <prTd.typeName>(<td.typeName>): # header_python.stg 164
 >>
 
 /***********************************       BIT STRING    ************************************************************/
@@ -202,7 +193,6 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
     
@@ -211,7 +201,6 @@ class <td.typeName>(Asn1Base):
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 194
-    __all__.append("<td.typeName>")
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -222,7 +211,6 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[<sChildType>] = field(default_factory=list)
     
@@ -242,7 +230,6 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 <soChildDefinition>
 
 class <td.typeName>(<prTd.typeName>):
-    __all__.append("<td.typeName>")
 >>
 
 
@@ -269,14 +256,12 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 
 @dataclass(frozen=True)
 class <td.extension_function_positions>:
-    __all__.append("<td.extension_function_positions>")
     <arrsNullFieldsSavePos; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
 <endif>
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     <arrsChildren:{ch|<ch>}; separator="\n">
     <arrsInvariants; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
@@ -286,7 +271,6 @@ Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceType
 # header_python.stg 268
 @dataclass(frozen=True)
 class <td.typeName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>):
-    __all__.append("<td.typeName>")
     <arrsExtraDefs; separator="\n">
 
 <if (arrsNullFieldsSavePos)>
@@ -307,12 +291,10 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 <arrsChildrenDefinitions; separator= "\n">
 
 class <td.typeName>InUse(IntEnum):
-    __all__.append("<td.typeName>InUse")
     <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
     # which selection element is in use
     kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>
     
@@ -324,7 +306,6 @@ class <td.typeName>(Asn1Base):
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 300
-    __all__.append("<td.typeName>")
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<
