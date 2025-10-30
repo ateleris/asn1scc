@@ -93,3 +93,6 @@ class Codec(Generic[T]):
     
     def get_bitstream_buffer(self) -> bytearray:
         return self._bitstream.get_data()
+
+    def get_bit_index(self) -> int:
+        return self._bitstream.current_used_bits
