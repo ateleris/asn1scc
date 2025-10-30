@@ -124,7 +124,10 @@ if not res:
 
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 127
-<p> = codec.dec_int_positive_integer_const_size<sSsuffix>(<nFixedSize>)
+decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(<nFixedSize>)
+if not decoded_result.success:
+    raise Asn1Exception(f"Decoding of Positive Integer failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -135,7 +138,10 @@ if not res:
 >>
 PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 134
-<p> = codec.dec_int_positive_integer_const_size<sSsuffix>(8)
+decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(8)
+if not decoded_result.success:
+    raise Asn1Exception(f"Decoding of Positive Integer failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -150,8 +156,7 @@ PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMF
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(16)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
-    
-<p> = decoded_result.decoded_value
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -166,8 +171,7 @@ PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMF
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(32)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
-<p> = (decoded_result.decoded_value)
-
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -181,8 +185,7 @@ PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMF
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(64)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian: {decoded_result.error_message}")
-<p> = (decoded_result.decoded_value)
-
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -194,7 +197,10 @@ if not res:
 
 PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 165
-<p> = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(16)
+decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(16)
+if not decoded_result.success:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -205,7 +211,10 @@ if not res:
 >>
 PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 172
-<p> = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(32)
+decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(32)
+if not decoded_result.success:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 
@@ -217,7 +226,10 @@ if not res:
 
 PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 179
-<p> = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(64)
+decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(64)
+if not decoded_result.success:
+    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 <MF(soMF)>
 >>
 // TODO: Seems unused?
@@ -514,10 +526,7 @@ res = codec.read_bit_pattern(tmp, <nSize>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
-# todo: how should this look like? Do we really need to invert this according to bEncValIsTrue?
 <p> = <if(!bEncValIsTrue)>cls(not res.decoded_value)<else>cls(res.decoded_value)<endif>
-# Until we know better, we use this:
-# <p> = cls(res.decoded_value)
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<

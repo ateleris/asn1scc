@@ -35,12 +35,12 @@ class ACNDecoder(Decoder):
     # INTEGER DECODING - POSITIVE INTEGER
     # ============================================================================
 
-    def dec_int_positive_integer_const_size(self, encoded_size_in_bits: int) -> DecodeResult:
+    def dec_int_positive_integer_const_size(self, encoded_size_in_bits: int) -> DecodeResult[int]:
         """Decode positive integer with constant size in bits."""
         return self.decode_integer(min_val=0, max_val=(1 << encoded_size_in_bits) - 1,
                                   size_in_bits=encoded_size_in_bits)
 
-    def dec_int_positive_integer_const_size_big_endian(self, num_bits: int) -> DecodeResult:
+    def dec_int_positive_integer_const_size_big_endian(self, num_bits: int) -> DecodeResult[int]:
         """Decode positive integer with constant size in big-endian byte order.
 
         Args:
@@ -54,7 +54,7 @@ class ACNDecoder(Decoder):
             )
         return self._decode_integer_big_endian(num_bits, False)
 
-    def dec_int_positive_integer_const_size_little_endian(self, num_bits: int) -> DecodeResult:
+    def dec_int_positive_integer_const_size_little_endian(self, num_bits: int) -> DecodeResult[int]:
         """Decode positive integer with constant size in little-endian byte order.
 
         Args:
@@ -68,7 +68,7 @@ class ACNDecoder(Decoder):
             )
         return self._decode_integer_little_endian(num_bits, False)
 
-    def dec_int_positive_integer_var_size_length_embedded(self) -> DecodeResult:
+    def dec_int_positive_integer_var_size_length_embedded(self) -> DecodeResult[int]:
         """Decode positive integer with variable size (length embedded)."""
         try:
             length_result = self.dec_length(8)
@@ -112,7 +112,7 @@ class ACNDecoder(Decoder):
     # INTEGER DECODING - TWO'S COMPLEMENT
     # ============================================================================
 
-    def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult:
+    def dec_int_twos_complement_const_size(self, format_bit_length: int) -> DecodeResult[int]:
         """Decode signed integer using two's complement with constant size."""
         # Decode as unsigned first
         result = self.decode_unsigned_integer(format_bit_length)

@@ -186,7 +186,7 @@ IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= <<
 decoded_result = codec.decode_unconstrained_whole_number()
 if not decoded_result:
     # uper_python.stg 166
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+    raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -203,10 +203,10 @@ if decoded_result:
     <if(soCheckExp)>
     if not <soCheckExp>: 
         # uper_python.stg 179
-        raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+        raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
     <else>
     # uper_python.stg 182
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+    raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
     <endif>
 >>
 
