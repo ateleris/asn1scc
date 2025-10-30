@@ -426,48 +426,60 @@ ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUp
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_32_big_endian(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 # acn_python.stg 323
-<p> = codec.dec_real_ieee754_32_big_endian<sSsuffix>()
+decoded_result = codec.dec_real_ieee754_32_big_endian<sSsuffix>()
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_big_endian failed: {decoded_result.error_message}")
+<p> = <sType>(decoded_result.decoded_value)
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= <<
+Real_64_big_endian_encode(p, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_64_big_endian(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Real_64_big_endian_decode(p, sErrCode) ::= <<
+Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 # acn_python.stg 329
-<p> = codec.dec_real_ieee754_64_big_endian()
+decoded_result = codec.dec_real_ieee754_64_big_endian()
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_real_ieee754_64_big_endian failed: {decoded_result.error_message}")
+<p> = <sType>(decoded_result.decoded_value)
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_32_little_endian(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 # acn_python.stg 335
-<p> = codec.dec_real_ieee754_32_little_endian<sSsuffix>()
+decoded_result = codec.dec_real_ieee754_32_little_endian<sSsuffix>()
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_little_endian failed: {decoded_result.error_message}")
+<p> = <sType>(decoded_result.decoded_value)
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= <<
+Real_64_little_endian_encode(p, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_64_little_endian(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Real_64_little_endian_decode(p, sErrCode) ::= <<
+Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 # acn_python.stg 341
-<p> = codec.dec_real_ieee754_64_little_endian()
+decoded_result = codec.dec_real_ieee754_64_little_endian()
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_little_endian failed: {decoded_result.error_message}")
+<p> = <sType>(decoded_result.decoded_value)
 >>
 
 
@@ -725,9 +737,12 @@ codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<p><sAcc>nCount))
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 # acn_python.stg 558
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
-    <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>))
+    decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
+    if not decoded_result:
+        raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+    <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, decoded_result.decoded_value)
 else:
-    raise Asn1Exception(f"Decoding failed with errorcode {sErrCode}: {decode_result.error_message}")
+    raise Asn1Exception(f"Decoding failed with errorcode {<sErrCode>}: {decoded_result.error_message}")
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
@@ -838,10 +853,13 @@ codec.append_bits(<p><sAcc>arr, <p><sAcc>nCount)
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 659
-if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
-    <p> = <sTypedefName>(<sExtFld>, codec.read_bits(<sExtFld>).decoded_value)
+if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>):
+    decode_result = codec.read_bits(<sExtFld>)
+    if not decode_result:
+        raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decode_result.error_message}")
+    <p> = <sTypeDefName>(<sExtFld>, decode_result.decoded_value)
 else:
-    <p> = Asn1SccError(<sErrCode>)
+    raise Asn1Exception(f"{cls.DecodeConstants.<sErrCode>}")
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -857,7 +875,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
         raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
     <p> = <sTypeDefName>(decode_result.decoded_value)
 else:
-    <p> =  Asn1SccError(<sErrCode>)
+    raise Asn1Exception(f"{<sErrCode>}")v
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<

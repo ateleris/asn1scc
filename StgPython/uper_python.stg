@@ -184,7 +184,7 @@ if not res:
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= << 
 # uper_python.stg 163
 decoded_result = codec.decode_unconstrained_whole_number()
-if decoded_result is None:
+if not decoded_result:
     # uper_python.stg 166
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)

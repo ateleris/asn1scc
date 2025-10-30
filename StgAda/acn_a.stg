@@ -568,26 +568,26 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_big_endian(bs, <p>);"
-Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_big_endian(bs, <p>);"
+Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_big_endian<sSuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_64_big_endian(bs, <p>);"
-Real_64_big_endian_decode(p, sErrCode) ::= <<
+Real_64_big_endian_encode(p, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_64_big_endian(bs, <p>);"
+Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_big_endian(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
-Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
+Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_64_little_endian(bs, <p>);"
-Real_64_little_endian_decode(p, sErrCode) ::= <<
+Real_64_little_endian_encode(p, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_64_little_endian(bs, <p>);"
+Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_little_endian(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
