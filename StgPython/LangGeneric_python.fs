@@ -431,7 +431,7 @@ type LangGeneric_python() =
          di
 
     override this.getChChildIsPresent (arg:AccessPath) (chParent:string) (pre_name:string) =
-        sprintf "isinstance(%s, %s.%s_PRESENT)" (arg.joined this) chParent pre_name
+        sprintf "True"
 
     override this.CreateMakeFile (r:AstRoot) (di:DirInfo) =
         let printPyproject = aux_python.PrintMakeFile
