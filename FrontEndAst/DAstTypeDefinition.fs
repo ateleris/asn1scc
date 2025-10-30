@@ -454,7 +454,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
             let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  maxAlignment child
-            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
+            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             let privateDefinition =
                 match childTypeDefinitionOrReference with
                 | TypeDefinition  td -> td.privateTypeDefinition
@@ -479,7 +479,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
             let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  maxAlignment child
-            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2  (Some lm.lg) lm.lg.hasModules) (getChildDefinitionOnly childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
+            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2  (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (getChildDefinitionOnly childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             Some completeDefinition
         | NonPrimitiveNewSubTypeDefinition subDef ->
             let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
@@ -530,12 +530,11 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
                 List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
                 List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
 
-        let modName = ToC id.ModName
         let arrsChildren =
             match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
             | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
             | false -> children |> List.map (fun o ->
-                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules)
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
                 // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
                 define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
 
@@ -595,7 +594,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
             match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
             | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
             | false -> children |> List.map (fun o ->
-                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules)
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
                 // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
                 define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
 
@@ -640,7 +639,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         let td = lm.lg.getChoiceTypeDefinition typeDef
         let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinition (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
         let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
-        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules) (lm.lg.presentWhenName0 None o))
+        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (lm.lg.presentWhenName0 None o))
         let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren
         let nIndexMax = BigInteger ((Seq.length children)-1)
 
@@ -673,7 +672,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
 
         let td = lm.lg.getChoiceTypeDefinition typeDef
         let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
-        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules) (lm.lg.presentWhenName0 None o))
+        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (lm.lg.presentWhenName0 None o))
         let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren
         let nIndexMax = BigInteger ((Seq.length children)-1)
 

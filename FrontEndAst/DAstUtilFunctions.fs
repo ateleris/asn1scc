@@ -96,9 +96,10 @@ type LocalVariable with
 
 type TypeDefinitionOrReference with
 
-    member this.longTypedefName2 (lg: ILangGeneric option) (hasModules: bool) =
+    member this.longTypedefName2 (lg: ILangGeneric option) (hasModules: bool) (moduleName: string) =
+        let moduleName = ToC moduleName
         match lg with
-        | Some l -> l.longTypedefName2 this hasModules
+        | Some l -> l.longTypedefName2 this hasModules moduleName
         | None ->
             match this with
             | TypeDefinition  td ->
@@ -110,6 +111,7 @@ type TypeDefinitionOrReference with
                     | true   ->
                         match pu with
                         | "" -> ref.typedefName
+                        | k when k = moduleName -> ref.typedefName
                         | _ -> pu + "." + ref.typedefName
                     | false     -> ref.typedefName
                 | None    -> ref.typedefName

@@ -386,15 +386,15 @@ type LangGeneric_python() =
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
         if tdr.programUnit = currentModule
         then
-            tdr.typeName
+            tdr.asn1Name
         else
-            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
+            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.asn1Name
     
-    override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) : string =
+    override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
             match td with
             | TypeDefinition  td ->
-                td.typedefName
+                moduleName + "." + td.typedefName// + "FIRST"
             | ReferenceToExistingDefinition ref ->
                 match ref.programUnit with
                 | Some pu ->
@@ -402,10 +402,11 @@ type LangGeneric_python() =
                     | true   ->
                         match pu with
                         | "" -> ref.typedefName
-                        | _ -> pu + "." + ref.typedefName
-                    | false     -> ref.typedefName
-                | None    -> ref.typedefName
-        k + "BLABLIBLU"
+                        | k when k = moduleName -> ref.typedefName
+                        | _ -> pu + "." + ref.typedefName// + "DEFAULT"
+                    | false     -> ref.typedefName// + "THIRD"
+                | None    -> ref.typedefName// + "FOURTH"
+        k
     
 
     override this.toHex n = sprintf "0x%x" n
