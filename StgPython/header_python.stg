@@ -60,7 +60,7 @@ Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
 Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
 
 Declare_Boolean() ::= "Asn1Boolean"
-Declare_Real() ::= "Asn1Real"
+Declare_Real() ::= "float"
 
 Declare_Int8() ::="int"
 Declare_UInt8() ::="int"
@@ -71,8 +71,8 @@ Declare_UInt32() ::="int"
 Declare_Int64() ::="int"
 Declare_UInt64() ::="int"
 
-Declare_Real32() ::= "Asn1Real32"
-Declare_Real64() ::= "Asn1Real64"
+Declare_Real32() ::= "float"
+Declare_Real64() ::= "float"
 
 Declare_BooleanNoRTL() ::= "Asn1Boolean"
 Declare_RealNoRTL() ::= "RealNoRTL"
