@@ -530,12 +530,12 @@ codec.append_bits(data, <nSize>)
 
 BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
 # acn_python.stg 374
-true_data = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-false_data = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
+true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 decode_result = codec.decode_true_false_boolean(true_data, false_data, <nSize>)
 if not decode_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
-<p> = boole(decode_result.decoded_value)
+<p> = cls(decode_result.decoded_value)
 >>
 
 Null_declare(p, sType) ::= "<p>: <sType> = <sType>()"
