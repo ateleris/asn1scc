@@ -171,7 +171,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
-    // let td = (lm.lg.getLongTypedefName ).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+    // let td = ((lm.lg.getLongTypedefName ).longTypedefName2 (Some lm.lg) lm.lg.hasModules) (ToC p.modName)
     
     let rangeAssert =
         match typeId.topLevelTas with
@@ -225,7 +225,8 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
         let Boolean         = lm.uper.Boolean
-        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
         let funcBodyContent = Boolean pp errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
@@ -246,7 +247,8 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = castRPp lm codec (o.getClass r.args) pp
         let Real         = lm.uper.Real
-        let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
         let funcBodyContent = Real castPp sSuffix errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
@@ -310,7 +312,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let nMax = BigInteger(Seq.length o.items) - 1I
         let nLastItemIndex      = nMax
         let typeDef0 = lm.lg.getEnumTypeDefinition o.typeDef
-        let td =  typeDef0.longTypedefName2 lm.lg.hasModules  (ToC p.modName)
+        let td =  typeDef0.longTypedefName2 (Some lm.lg) lm.lg.hasModules
         let pp, resultExpr = adaptArgumentValue lm codec p
         let sFirstItemName = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
         let nMin = 0I
@@ -438,7 +440,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (ii, None)
         let td0 = lm.lg.getStrTypeDefinition o.typeDef
-        let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = td0.longTypedefName2 (Some lm.lg) lm.lg.hasModules
         let InternalItem_string_no_alpha   = lm.uper.InternalItem_string_no_alpha
         let InternalItem_string_with_alpha = lm.uper.InternalItem_string_with_alpha
         let str_FixedSize       = lm.uper.str_FixedSize
@@ -499,7 +501,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
     let i = sprintf "i%d" ii
     let lv = SequenceOfIndex (ii, None)
 
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
     let pp, resultExpr = joinedOrAsIdentifier lm codec p
     let access = lm.lg.getAccess p.accessPath
 
@@ -552,7 +554,7 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
     let internalItem = lm.uper.InternalItem_bit_str (p.accessPath.joined lm.lg) i  errCode.errCodeName codec
     let iVar = SequenceOfIndex (ii, None)
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
     let pp, resultExpr = joinedOrAsIdentifier lm codec p
     let access = lm.lg.getAccess p.accessPath
 
@@ -586,7 +588,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
     let fixedSize       = lm.uper.seqOf_FixedSize
     let varSize         = lm.uper.seqOf_VarSize
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
     let nIntItemMaxSize = ( child.uperMaxSizeInBits)
 
@@ -698,7 +700,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
     let sequence_default_child      = lm.uper.sequence_default_child
     let sequence_build              = lm.uper.sequence_build
 
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
@@ -731,7 +733,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
         let handleChild (s: SequenceChildState) (child:Asn1Child): SequenceChildResult * SequenceChildState =
             let childName =  TL "handleChild_01" (fun () -> lm.lg.getAsn1ChildBackendName child)
-            let childTypeDef = TL "handleChild_02" (fun () -> child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules)
+            let childTypeDef = TL "handleChild_02" (fun () -> child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules)
             let childNestingScope =
                 TL "handleChild_03" (fun () -> 
                 {nestingScope with
@@ -852,11 +854,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | CommonTypes.Encode  -> []
         | CommonTypes.Decode  -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
 
-    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let td0 = lm.lg.getChoiceTypeDefinition o.typeDef
-        let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = td0.longTypedefName2  (Some lm.lg) lm.lg.hasModules (ToC p.modName)
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
 
@@ -874,7 +876,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                 | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
                 | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChild p.accessPath  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
             let sChildName = (lm.lg.getAsn1ChChildBackendName child)
-            let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
+            let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
             let isEnum = match child.chType.Kind with | Enumerated _ -> true | _ -> false
             let sChildInitExpr = child.chType.initFunction.initExpressionFnc()

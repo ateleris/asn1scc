@@ -96,20 +96,23 @@ type LocalVariable with
 
 type TypeDefinitionOrReference with
 
-    member this.longTypedefName2 bHasModules =
-        match this with
-        | TypeDefinition  td ->
-            td.typedefName
-        | ReferenceToExistingDefinition ref ->
-            match ref.programUnit with
-            | Some pu ->
-                match bHasModules with
-                | true   ->
-                    match pu with
-                    | "" -> ref.typedefName
-                    | _ -> pu + "." + ref.typedefName
-                | false     -> ref.typedefName
-            | None    -> ref.typedefName
+    member this.longTypedefName2 (lg: ILangGeneric option) (hasModules: bool) =
+        match lg with
+        | Some l -> l.longTypedefName2 this hasModules
+        | None ->
+            match this with
+            | TypeDefinition  td ->
+                td.typedefName
+            | ReferenceToExistingDefinition ref ->
+                match ref.programUnit with
+                | Some pu ->
+                    match hasModules with
+                    | true   ->
+                        match pu with
+                        | "" -> ref.typedefName
+                        | _ -> pu + "." + ref.typedefName
+                    | false     -> ref.typedefName
+                | None    -> ref.typedefName
 
     member this.getAsn1Name (typePrefix : string) =
         let typedefName =

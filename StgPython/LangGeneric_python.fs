@@ -375,7 +375,38 @@ type LangGeneric_python() =
     override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
         match tdr with
         | TypeDefinition  td -> td.typedefName
-        | ReferenceToExistingDefinition ref -> ref.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu ->
+                match pu with
+                | "" -> ref.typedefName
+                | _ -> pu + "." + ref.typedefName
+            | None    -> ref.typedefName
+    
+    override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
+        if tdr.programUnit = currentModule
+        then
+            tdr.typeName
+        else
+            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
+    
+    override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) : string =
+        let k =
+            match td with
+            | TypeDefinition  td ->
+                td.typedefName
+            | ReferenceToExistingDefinition ref ->
+                match ref.programUnit with
+                | Some pu ->
+                    match hasModules with
+                    | true   ->
+                        match pu with
+                        | "" -> ref.typedefName
+                        | _ -> pu + "." + ref.typedefName
+                    | false     -> ref.typedefName
+                | None    -> ref.typedefName
+        k + "BLABLIBLU"
+    
 
     override this.toHex n = sprintf "0x%x" n
 

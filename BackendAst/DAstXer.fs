@@ -370,7 +370,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let choice_child =  lm.xer.CHOICE_child
     let choice_no_tag = lm.xer.CHOICE_no_tag
     let choice =        lm.xer.CHOICE
-    let typeDefinitionName =  typeDefinition.longTypedefName2 lm.lg.hasModules
+    let typeDefinitionName =  typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules
     let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
     let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let handleChild childIndex (child:ChChildInfo) =
