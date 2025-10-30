@@ -473,8 +473,8 @@ Real_64_little_endian_decode(p, sErrCode) ::= <<
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 # acn_python.stg 347
-true_data = bytes([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
-false_data = bytes([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 codec.append_bits(true_data if <p> else false_data, <nSize>)
 >>
 
@@ -519,7 +519,7 @@ Null_declare(p, sType) ::= "<p>: <sType> = <sType>()"
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 387
 <if(arruNullValueAsByteArray)>
-tmp = bytes([<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+tmp = bytearray([<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 codec.append_bits(tmp, <nSize>)
 <endif>
 >>
@@ -802,24 +802,24 @@ else:
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 # acn_python.stg 628
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.append_bits(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
+codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 # acn_python.stg 634
 <i>: int = 0
 
-checkBitPatternPresentResult = codec.check_bit_pattern_present(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
+checkBitPatternPresentResult = codec.check_bit_pattern_present(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 while <i> \< <nSizeMax> and checkBitPatternPresentResult != 2:
     <sInternalItem>
     <i> += 1
-    decode_result = codec.check_bit_pattern_present(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
+    decode_result = codec.check_bit_pattern_present(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
     if not decode_result:
         raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
     checkBitPatternPresentResult = <sType>(decode_result.decoded_value)
 
 if (<i> == <nSizeMax>) and checkBitPatternPresentResult != 2:
-    decode_result = codec.check_bit_pattern_present(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
+    decode_result = codec.check_bit_pattern_present(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
     if not decode_result:
         raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
     checkBitPatternPresentResult = <sType>(decode_result.decoded_value)
@@ -863,7 +863,7 @@ else:
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 684
 codec.append_bits(<p><sAcc>arr, <p><sAcc>arr.length*8)
-codec.append_bits(bytes([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
+codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
