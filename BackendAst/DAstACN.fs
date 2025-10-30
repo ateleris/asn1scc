@@ -823,7 +823,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             | None ->
                 let pp, resultExpr = adaptArgument lm codec p
                 let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-                let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 Boolean pp errCode.errCodeName sType codec, resultExpr
             | Some (TrueValueEncoding pattern)  ->
                 let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
@@ -889,7 +889,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
         let nullType         = lm.acn.Null_pattern
         let aux = lm.lg.generateNullTypeAuxiliaries r ACN t o nestingScope p.accessPath codec
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         
         match o.acnProperties.encodingPattern with
         | None ->
@@ -1006,7 +1006,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let pp, resultExpr = adaptArgument lm codec p
         let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
@@ -1177,7 +1177,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.accessPath
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
@@ -1342,7 +1342,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         let childInitExpr = DAstInitialize.getChildExpression lm child
         let access = lm.lg.getAccess p.accessPath
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         match child.getAcnFunction codec with
         | None -> None, us
         | Some chFunc  ->
@@ -1430,7 +1430,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let childErrCodes   = internalItem.errCodes
                         let noSizeMin = if o.minSize.acn=0I then None else Some o.minSize.acn
                         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-                        let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
+                        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                         let funcBodyContent = oct_sqf_null_terminated pp access (i level) internalItem.funcBody noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits sType codec
 
                         let lv2 =
