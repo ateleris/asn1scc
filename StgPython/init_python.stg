@@ -134,9 +134,9 @@ initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefi
 <else>
 <if(bAlpha)>
 allowed_char_set = [<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
-<sResVar> = <td.asn1name>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
+<sResVar> = <td.typeName>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
 <else>
-<sResVar> = <td.asn1name>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
+<sResVar> = <td.typeName>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
 <endif>
 <endif>
 >>
