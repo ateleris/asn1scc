@@ -503,9 +503,9 @@ if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 
 # todo: how should this look like? Do we really need to invert this according to bEncValIsTrue?
-#<p> = <if(!bEncValIsTrue)>not res.decoded_value<else>res.decoded_value<endif>
+<p> = <if(!bEncValIsTrue)>cls(not res.decoded_value)<else>cls(res.decoded_value)<endif>
 # Until we know better, we use this:
-<p> = cls(res.decoded_value)
+# <p> = cls(res.decoded_value)
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<

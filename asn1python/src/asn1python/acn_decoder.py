@@ -6,6 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
+from .asn1_types import NO_OF_BITS_IN_BYTE
 from .decoder import Decoder
 from .codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
 from .bitstream import BitStreamError
@@ -1065,9 +1066,48 @@ class ACNDecoder(Decoder):
     # BOOLEAN DECODING
     # ============================================================================
 
-    def read_bit_pattern(self, pattern_to_read: bytearray, n_bits_to_read: int) -> DecodeResult:
+    def read_bit_pattern(self, pattern_to_read: bytearray, n_bits_to_read: int) -> DecodeResult[bool]:
         """Read bit pattern and return boolean value."""
-        raise NotImplementedError("read_bit_pattern not yet implemented")
+        try:
+            prev_bits = self._bitstream.current_used_bits
+            bytes_to_read = n_bits_to_read // NO_OF_BITS_IN_BYTE
+            remaining_bits_to_read = n_bits_to_read % NO_OF_BITS_IN_BYTE
+            needed_bytes = bytes_to_read + (0 if remaining_bits_to_read == 0 else 1)
+            
+            bool_value: bool = True
+            i: int = 0
+            
+            while i < bytes_to_read:
+                read: int
+                if self._bitstream.remaining_bits < NO_OF_BITS_IN_BYTE:
+                    read = self._bitstream.read_bits(self._bitstream.remaining_bits)
+                else:
+                    read = self._bitstream.read_byte()
+                
+                if read != pattern_to_read[i]:
+                    bool_value = False
+                    
+                i += 1
+                
+            if remaining_bits_to_read > 0:
+                read = self._bitstream.read_bits(remaining_bits_to_read)
+                pattern = pattern_to_read[bytes_to_read] >> (NO_OF_BITS_IN_BYTE - remaining_bits_to_read)
+                if  read != pattern:
+                    bool_value = False
+            
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=bool_value,
+                bits_consumed= self._bitstream.current_used_bits - prev_bits
+            )
+            
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def decode_true_false_boolean(self, true_pattern: bytearray, false_pattern: bytearray, n_bits_to_read: int) -> DecodeResult:
         """Decode boolean using true/false patterns."""
