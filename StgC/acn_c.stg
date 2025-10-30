@@ -572,11 +572,11 @@ ret = Acn_Dec_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, 
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>, <p>);
 <A(sErrCode)>
 >>
