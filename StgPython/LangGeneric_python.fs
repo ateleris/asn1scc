@@ -327,8 +327,8 @@ type LangGeneric_python() =
         let recvId = match t.Kind with
                         | Asn1AcnAst.Enumerated _ -> "param" + s + ".val"
                         | _ -> "param" + s
-        
-        {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
+
+        {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
         // {p with accessPath.rootId = p.accessPath.rootId + s}
     
     override this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
@@ -343,8 +343,8 @@ type LangGeneric_python() =
                             match t.Kind with
                             | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
                             | _ -> "self"                           // For class methods, the receiver is always "self"
-        
-        {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
+
+        {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
     
     override this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         let res = this.getParamType t c
@@ -375,7 +375,40 @@ type LangGeneric_python() =
     override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
         match tdr with
         | TypeDefinition  td -> td.typedefName
-        | ReferenceToExistingDefinition ref -> ref.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu ->
+                match pu with
+                | "" -> ref.typedefName
+                | _ -> pu + "." + ref.typedefName
+            | None    -> ref.typedefName
+    
+    override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
+        if tdr.programUnit = currentModule
+        then
+            tdr.asn1Name
+        else
+            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.asn1Name
+    
+    override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
+        let k =
+            match td with
+            | TypeDefinition  td ->
+                // When defining a type within its own module, don't use module prefix
+                td.typedefName
+            | ReferenceToExistingDefinition ref ->
+                match ref.programUnit with
+                | Some pu ->
+                    match hasModules with
+                    | true   ->
+                        match pu with
+                        | "" -> ref.typedefName
+                        | k when k = moduleName -> ref.typedefName
+                        | _ -> pu + "." + ref.typedefName// + "DEFAULT"
+                    | false     -> ref.typedefName// + "THIRD"
+                | None    -> ref.typedefName// + "FOURTH"
+        k
+    
 
     override this.toHex n = sprintf "0x%x" n
 

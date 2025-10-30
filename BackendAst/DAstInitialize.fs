@@ -225,13 +225,16 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
 
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference)  =
     let initInteger = lm.init.initInteger
-    let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+    // Use getLongTypedefNameBasedOnModule for proper module-aware naming
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
             | IntegerValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
+        // Compute sType based on the actual code generation module context
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         initInteger (lm.lg.getValue p.accessPath) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar sType
 
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
@@ -240,6 +243,8 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
     let isZeroAllowed = isValidValueRanged allCons 0I
     let tasInitFunc (p:CodegenScope) =
         let resVar = p.accessPath.asIdentifier
+        // Compute sType based on the actual code generation module context
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         match isZeroAllowed  with
         | false    ->
             match integerVals with
@@ -260,6 +265,8 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         List.map (fun vl ->
             let initTestCaseFunc (p:CodegenScope) =
                 let resVar = p.accessPath.asIdentifier
+                // Compute sType based on the test code generation module context
+                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.accessPath PartialAccess) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
 
@@ -267,8 +274,9 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
 
 let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  =
     let initReal = lm.init.initReal
-    let sType = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
@@ -281,11 +289,13 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         realVals |>
         List.map (fun vl ->
             let initTestCaseFunc (p:CodegenScope) =
+                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let resVar = p.accessPath.asIdentifier
                 {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
     let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CodegenScope)  =
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let resVar = p.accessPath.asIdentifier
         match isZeroAllowed with
         | false    ->
@@ -387,6 +397,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         match o.isFixedSize with
         | true  -> initFixSizeBitOrOctString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) arrsBytes
         | false -> initFixVarSizeBitOrOctString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (BigInteger arrsBytes.Length) arrsBytes
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let tdName = lm.lg.getLongTypedefName typeDefinition
     let constantInitExpression () =
         match o.isFixedSize with
@@ -409,7 +420,8 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                     let ii = p.accessPath.SequenceOfLevel + 1
                     let i = sprintf "i%d" ii
                     let resVar = p.accessPath.asIdentifier
-                    let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper (nSize = 0I) resVar
+                    let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                    let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper (nSize = 0I) resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs =
@@ -435,7 +447,8 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         | _                        -> raise(BugErrorException "UnexpectedType")
                 let ii = p.accessPath.SequenceOfLevel + 1
                 let i = sprintf "i%d" ii
-                let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I) resVar
+                let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I) resVar
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
 
@@ -460,15 +473,18 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
 
 let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference)  =
     let initNull = lm.init.initNull
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcBody (p:CodegenScope) v =
         let resVar = p.accessPath.asIdentifier
-        initNull (lm.lg.getValue p.accessPath) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules)
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        initNull (lm.lg.getValue p.accessPath) p.accessPath.isOptional resVar sType
     let constantInitExpression () = "0"
     let testCaseFuncs: AutomaticTestCase list =
         [{AutomaticTestCase.initTestCaseFunc =
             (fun p ->
                 let resVar = p.accessPath.asIdentifier
-                {InitFunctionResult.funcBody = initNull (lm.lg.getValueUnchecked p.accessPath PartialAccess) p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables=[]});
+                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                {InitFunctionResult.funcBody = initNull (lm.lg.getValueUnchecked p.accessPath PartialAccess) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]});
           testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]}]
     createInitFunctionCommon r lm t typeDefinition funcBody testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
@@ -494,6 +510,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         List.collect id |>
         List.map(fun (v,_) -> DAstVariables.printBitStringValueAsCompoundLiteral lm "" o v.Value)
 
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let tdName = lm.lg.getLongTypedefName typeDefinition
 
     let testCaseFuncs, tasInitFunc =
@@ -507,7 +524,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                     let i = sprintf "i%d" ii
                     let resVar = p.accessPath.asIdentifier
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
-                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper p.accessPath.isOptional resVar
+                    let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
@@ -537,7 +555,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | Asn1AcnAst.BitString bo -> bo.isFixedSize
                         | _                        -> raise(BugErrorException "UnexpectedType")
 
-                let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
+                let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
             testCaseFuncs, zero
@@ -578,17 +597,20 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
 
 let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference)  =
     let initBoolean = lm.init.initBoolean
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
             | BooleanValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initBoolean (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules)
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        initBoolean (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType
 
     let initTestCaseFunc (vl: bool) (p: CodegenScope) =
         let resVar = p.accessPath.asIdentifier
-        {InitFunctionResult.funcBody = initBoolean (lm.lg.getValueUnchecked p.accessPath PartialAccess) vl p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables = []}
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        {InitFunctionResult.funcBody = initBoolean (lm.lg.getValueUnchecked p.accessPath PartialAccess) vl p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables = []}
 
     let testCaseFuncs =
         EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |>
@@ -596,9 +618,10 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnA
 
     let tasInitFunc (p:CodegenScope)  =
         let resVar = p.accessPath.asIdentifier
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         match isValidValueGeneric o.AllCons (=) false  with
-        | true    -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.accessPath) false p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables = []}
-        | false     -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.accessPath) true p.accessPath.isOptional resVar (typeDefinition.longTypedefName2 lm.lg.hasModules); resultVar = resVar; localVariables = []}
+        | true    -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.accessPath) false p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables = []}
+        | false     -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.accessPath) true p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables = []}
 
     let constantInitExpression () = lm.lg.FalseLiteral
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
@@ -682,14 +705,26 @@ let mergeMaps (m1:Map<'key,'value>) (m2:Map<'key,'value>) =
 
 let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst.Asn1Type) (o: Asn1AcnAst.Enumerated)  (typeDefinition: TypeDefinitionOrReference) iv =
     let initEnumerated = lm.init.initEnumerated
-    let tdName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let resVar = p.accessPath.asIdentifier
         let vl =
             match v.ActualValue with
             | EnumValue iv      -> o.items |> Seq.find(fun x -> x.Name.Value = iv)
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initEnumerated (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) tdName p.accessPath.isOptional resVar
+        let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        // Get enum value name and qualify with module if needed
+        let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
+        let enumValue =
+            match ProgrammingLanguage.ActiveLanguages.Head with
+            | Python -> 
+                if tk.programUnit <> p.modName then
+                    // In test cases (different module), qualify the enum with the enum type's module
+                    tk.programUnit + "." + enumValueBase
+                else
+                    enumValueBase
+            | _ -> enumValueBase
+        initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar
 
     let testCaseFuncs =
         EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |>
@@ -698,7 +733,19 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                 AutomaticTestCase.initTestCaseFunc =
                     (fun (p:CodegenScope) ->
                         let resVar = p.accessPath.asIdentifier
-                        {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) (typeDefinition.longTypedefName2 (if ProgrammingLanguage.ActiveLanguages.Head = Python then false else lm.lg.hasModules)) p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
+                        let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                        // Get enum value name and qualify with module if needed
+                        let enumValue =
+                            match ProgrammingLanguage.ActiveLanguages.Head with
+                            | Python ->
+                                let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
+                                if tk.programUnit <> p.modName then
+                                    // In test cases (different module), qualify the enum with the enum type's module
+                                    tk.programUnit + "." + enumValueBase
+                                else
+                                    enumValueBase
+                            | _ -> lm.lg.getNamedItemBackendName (Some typeDefinition) vl
+                        {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))]
             })
     let constantInitExpression () = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
@@ -720,6 +767,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let initTestCaseSizeSequenceOf_innerItem    = lm.init.initTestCaseSizeSequenceOf_innerItem
     let initTestCaseSizeSequenceOf              = lm.init.initTestCaseSizeSequenceOf
     let initChildWithInitFunc                   = lm.init.initChildWithInitFunc
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let vl =
             match v.ActualValue with
@@ -740,7 +788,6 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match o.isFixedSize with
         | true  -> initFixedSequenceOf vl
         | false -> initVarSizeSequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (BigInteger vl.Length) vl
-    let tdName = typeDefinition.longTypedefName2 lm.lg.hasModules
     //let ii = t.id.SequenceOfLevel + 1
     //let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
     let testCaseFuncs =
@@ -756,6 +803,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let ii = p.accessPath.SequenceOfLevel + 1
                         let i = sprintf "i%d" ii
                         let resVar = p.accessPath.asIdentifier
+                        let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                         let chp = {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
                         let childCase = atc.initTestCaseFunc chp
                         let childBody = lm.atc.decodingCaseKind childCase.funcBody chp.accessPath.asIdentifier
@@ -768,6 +816,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let ii = p.accessPath.SequenceOfLevel + 1
                         let i = sprintf "i%d" ii
                         let resVar = p.accessPath.asIdentifier
+                        let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                         let arrsInnerItems, childLocalVars =
                             childTestCases |>
                             List.mapi(fun idx atc ->
@@ -821,6 +870,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
             let ii = p.accessPath.SequenceOfLevel + 1
             let i = sprintf "i%d" ii
             let resVar = p.accessPath.asIdentifier
+            let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
             let initCountValue = Some o.minSize.uper
             let chp = {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
             let childInitRes_funcBody, childInitRes_localVariables =
@@ -866,6 +916,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
     let initTestCase_sequence_child_opt     = lm.init.initTestCase_sequence_child_opt
     let initChildWithInitFunc               = lm.init.initChildWithInitFunc
     let initSequence_emptySeq               = lm.init.initSequence_emptySeq
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let initByAsn1ValueFnc (p:CodegenScope) (v:Asn1ValueKind) =
         let childrenRet =
             match v.ActualValue with
@@ -901,7 +952,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.filter(fun z -> match z.Optionality with Some Asn1AcnAst.AlwaysAbsent -> lm.lg.decodingKind = Copy | _ -> true)
 
         let handleChild (ch:Asn1Child) =
-            let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
+            let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             ch.Type.initFunction.automaticTestCases |>
             List.collect(fun atc ->
                 let presentFunc  =
@@ -954,7 +1005,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                             let joinedBodies = children |> List.map (fun c -> c.funcBody) |> Seq.StrJoin "\n"
                             let bodyRes =
                                 if lm.lg.decodingKind = Copy then
-                                    let seqBuild = lm.uper.sequence_build resVar (typeDefinition.longTypedefName2 lm.lg.hasModules) p.accessPath.isOptional (children |> List.map (fun ch -> ch.resultVar))
+                                    let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                                    let seqBuild = lm.uper.sequence_build resVar tdName p.accessPath.isOptional (children |> List.map (fun ch -> ch.resultVar))
                                     joinedBodies + "\n" + seqBuild
                                 else joinedBodies
                             {funcBody = bodyRes; resultVar = resVar; localVariables = children |> List.collect (fun c -> c.localVariables)}
@@ -971,7 +1023,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
     let initTasFunction, nonEmbeddedChildrenFuncs =
         TL "SQ_IN_02" (fun () ->
         let handleChild (p:CodegenScope) (ch:Asn1Child): (InitFunctionResult) =
-            let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
+            let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             let chP = {p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome}
             let resVar = chP.accessPath.asIdentifier
             let presentFunc (defaultValue  : Asn1AcnAst.Asn1Value option) =
@@ -981,7 +1033,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                     | None  ->
                         match ch.Type.typeDefinitionOrReference with
                         | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
-                            let fncName = (ch.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) + (lm.init.methodNameSuffix())
+                            let fncName = (ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) + (lm.init.methodNameSuffix())
                             let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.accessPath) (fncName)
                             let funcBody = initTestCase_sequence_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome (ch.Type.initFunction.initExpressionFnc ())
                             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = [] }
@@ -1072,7 +1124,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                 | Some (Asn1AcnAst.Optional opt)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)
                 | Some (Asn1AcnAst.AlwaysAbsent)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 0I)
                 | Some (Asn1AcnAst.AlwaysPresent)   -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)                )
-        let tdName = (typeDefinition.longTypedefName2 lm.lg.hasModules)
+        let tdName = (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName)
         match nonEmptyChildren with
         | [] -> lm.lg.getEmptySequenceInitExpression tdName
         | _  -> lm.init.initSequenceExpr tdName nonEmptyChildren arrsOptionalChildren
@@ -1088,9 +1140,10 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     let initTestCase_choice_child   = lm.init.initTestCase_choice_child
     let initChildWithInitFunc       = lm.init.initChildWithInitFunc
     let initChoice                  = lm.init.initChoice
+    let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
 
-    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let typeDefinitionName = lm.lg.adjustTypedefWithFullPath typeDefinitionName (ToC t.moduleName)
+    let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+    // let typeDefinitionName = lm.lg.adjustTypedefWithFullPath typeDefinitionName (ToC t.moduleName)
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let childrenOut =
             match v.ActualValue with
@@ -1100,8 +1153,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     match chChild.Name.Value = iv.name with
                     | false -> None
                     | true  ->
-                        let sChildTypeName = chChild.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
-                        let sChoiceTypeName = typeDefinition.longTypedefName2 lm.lg.hasModules
+                        let sChildTypeName = chChild.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+                        let sChoiceTypeName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                         let sChildName = (lm.lg.getAsn1ChChildBackendName chChild)
                         let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
 
@@ -1120,20 +1173,29 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
     let testCaseFuncs =
         let handleChild  (ch:ChChildInfo)  =
-            let sChildID (p:CodegenScope) = (lm.lg.presentWhenName (Some typeDefinition) ch)
-                //match ProgrammingLanguage.ActiveLanguages.Head with
-                //| ProgrammingLanguage.Scala -> (lm.lg.presentWhenName (Some typeDefinition) ch)
-                //| _ -> (ToC ch._present_when_name_private) + "_PRESENT"
-
             let len = ch.chType.initFunction.automaticTestCases.Length
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
-            let sChildTypeDef = ch.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
             let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp"
+            // Get the child type's type definition for module-aware naming
+            let childTk = lm.lg.getTypeDefinition ch.chType.FT_TypeDefinition
             ch.chType.initFunction.automaticTestCases |> Seq.toList |>
             List.map(fun atc ->
                 let fnc = atc.initTestCaseFunc
                 let presentFunc (p:CodegenScope) =
                     let resVar = p.accessPath.asIdentifier
+                    // Compute type names based on actual code generation module context
+                    let typeDefName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+                    let sChildTypeDef = lm.lg.getLongTypedefNameBasedOnModule childTk p.modName
+                    let sChildID =
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python ->
+                            // For the enum value, we need to prefix with module if we're in a different module
+                            let sChildIDBase = lm.lg.presentWhenName (Some typeDefinition) ch
+                            if (ToC t.id.ModName) <> p.modName then
+                                (ToC t.id.ModName) + "." + sChildIDBase
+                            else
+                                sChildIDBase
+                         | _ -> lm.lg.presentWhenName (Some typeDefinition) ch
                     let childContent_funcBody, childContent_localVariables =
                         let childContent =
                             match ProgrammingLanguage.ActiveLanguages.Head with
@@ -1154,7 +1216,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         | ProgrammingLanguage.Scala ->
                             sChildTypeDef + (lm.init.methodNameSuffix()) + "()"
                         | _ -> (extractDefaultInitValue ch.chType.Kind)
-                    let funcBody = initTestCase_choice_child (p.accessPath.joinedUnchecked lm.lg PartialAccess) (lm.lg.getAccess p.accessPath) childContent_funcBody (sChildID p) sChildName  sChildTypeDef typeDefinitionName sChildTempVarName sChildTempDefaultInit p.accessPath.isOptional resVar
+                    let funcBody = initTestCase_choice_child (p.accessPath.joinedUnchecked lm.lg PartialAccess) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName  sChildTypeDef typeDefName sChildTempVarName sChildTempDefaultInit p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = childContent_localVariables}
                 let combinedTestCase =
                     match atc.testCaseTypeIDsMap.ContainsKey ch.chType.id with
@@ -1175,7 +1237,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     let initTasFunction (p:CodegenScope) =
         let handleChild  (ch:ChChildInfo)  =
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
-            let sChildTypeDef = ch.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
+            let sChildTypeDef = ch.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp"
             let chp = {p with accessPath = lm.lg.getChChild p.accessPath (match ProgrammingLanguage.ActiveLanguages.Head with | ProgrammingLanguage.Scala -> sChildTempVarName | _ -> sChildName) ch.chType.isIA5String}
             let resVar = p.accessPath.asIdentifier // TODO: resVar ok?

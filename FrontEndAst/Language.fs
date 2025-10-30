@@ -290,6 +290,8 @@ type ILangGeneric () =
     abstract member getChChild      : AccessPath -> string -> bool -> AccessPath;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string
+    abstract member getLongTypedefNameBasedOnModule : FE_TypeDefinition -> string -> string
+    abstract member longTypedefName2 : TypeDefinitionOrReference -> bool -> string -> string
     abstract member adjustTypedefWithFullPath : string -> string -> string;
     abstract member getEmptySequenceInitExpression : string -> string
     abstract member callFuncWithNoArgs : unit -> string
@@ -384,6 +386,21 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.getLongTypedefNameBasedOnModule (fe:FE_TypeDefinition) (currentModule: string) = fe.typeName
+    default this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
+        match td with
+        | TypeDefinition  td ->
+            td.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu ->
+                match hasModules with
+                | true   ->
+                    match pu with
+                    | "" -> ref.typedefName
+                    | _ -> pu + "." + ref.typedefName
+                | false     -> ref.typedefName
+            | None    -> ref.typedefName
     default this.getAlwaysPresentRtlFuncNames args = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
