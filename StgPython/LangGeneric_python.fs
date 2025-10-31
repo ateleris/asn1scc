@@ -386,9 +386,9 @@ type LangGeneric_python() =
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
         if tdr.programUnit = currentModule
         then
-            tdr.asn1Name
+            tdr.typeName
         else
-            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.asn1Name
+            (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
     
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
