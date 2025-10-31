@@ -916,10 +916,10 @@ codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLeng
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
-decoded_result = codec.readBits_nullterminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>)
+decoded_result = codec.read_bits_null_terminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>*8)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
-<p> = <sTypeDefName>(decoded_result.decoded_value)
+<p> = <sTypeDefName>(list(decoded_result.decoded_value))
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"

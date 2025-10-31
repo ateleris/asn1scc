@@ -138,7 +138,7 @@ class BitStream:
         for _ in range(byte_count):
             result.append(self.read_byte())
         return result
-    
+
     #endregion
     #region Write
 
