@@ -660,15 +660,15 @@ if not decoded_result:
 /* BIT STRING*/
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 557
-codec.append_bits(<p><sAcc>arr, <nFixedSize>)
+codec.append_bits(bytearray(<p><sAcc>arr), <nFixedSize>)
 >>
 
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 563
 ret = codec.read_bits(int(<nFixedSize>))
 if not ret:
-     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {ret.error_message}")
-<p> = <sTypeDefName>(ret.decoded_value)
+     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {ret.error_message}")
+<p> = <sTypeDefName>(list(ret.decoded_value))
 >>
 
 bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<

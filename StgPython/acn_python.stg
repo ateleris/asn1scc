@@ -646,17 +646,17 @@ res = decoded_result.decoded_value
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 477
-res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>), <p>)
+res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]), "".join([chr(a) for a in <p>]))
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 482
-decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>))
+decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]))
 if not decoded_result:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
@@ -1099,7 +1099,7 @@ if <soExistVar>:
     <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
     <endif>
 else:
-    <p>_<sChName>: Optional[<sChildTypedef>] = NullType()
+    <p>_<sChName>: Optional[<sChildTypedef>] = <sChildTypedef>()
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
