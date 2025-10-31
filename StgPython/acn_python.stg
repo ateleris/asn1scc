@@ -1185,7 +1185,7 @@ if <p>.kind == <sChildID>:
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|0x<b;format="X2">}; separator=", ">))))
+(<sExtFld>.sameElements(List(<arruVal:{b|0x<b;format="X2">}; separator=", ">)))
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -1210,7 +1210,7 @@ Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
 <arrsChildren; separator="\n">
 else:
     # acn_python.stg 972
-    return Asn1SccError(<sErrCode>)
+    raise Asn1Exception(cls.DecodeConstants.<sErrCode>)
 >>
 
 /* Choice with Enum determinant */
