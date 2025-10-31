@@ -152,33 +152,33 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode, sType) ::= <<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::= <<
 -- No need to encode value since it will always be <sConst> --
 null;
 >>
 
-IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <p> := <sConst>;
 >>
 
 
 /*case: A:: = INTEGER (5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Success);
 >>

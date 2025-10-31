@@ -143,23 +143,27 @@ if not decoded_result:
 /* INTEGER START*/
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 139
 res = codec.encode_constrained_whole_number(<p>, <nMin>, <nMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 144
 decoded_result = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 # uper_python.stg 150
 <soRangeAssert>
 res = codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
@@ -167,27 +171,36 @@ if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 # uper_python.stg 156
 decoded_result = codec.decode_constrained_pos_whole_number(<nMin>, <nMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= << 
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= << 
 # uper_python.stg 163
 decoded_result = codec.decode_unconstrained_whole_number()
 if not decoded_result:
     # uper_python.stg 166
     raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
+
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
@@ -239,14 +252,18 @@ if not decoded_result:
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode, sType) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
 # uper_python.stg 207
 # No need to encode the val <p>, it will always be <sConst> 
 # NOPs
 >>
-IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 # uper_python.stg 212
-<p> = <sType>(<sConst>)
+<if(soType)>
+<p> = <soType>(<sConst>)
+<else>
+<p> = <sConst>
+<endif>
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
@@ -267,7 +284,7 @@ if decoded_result:
     if not extBit: # ext bit is zero ==> value is expected with root range
         <sIntBody>
     else
-        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="True")>
+        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
 else
     ret = <sErrCode>
 >>

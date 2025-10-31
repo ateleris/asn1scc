@@ -171,8 +171,9 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
-    // let td = ((lm.lg.getLongTypedefName ).longTypedefName2 (Some lm.lg) lm.lg.hasModules) (ToC p.modName)
     
+    let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId p        
+
     let rangeAssert =
         match typeId.topLevelTas with
         | Some tasInfo ->
@@ -180,13 +181,13 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | None -> None
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange with
-        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName (ToC typeId.dropModule.AsString) codec, codec=Decode, true, None
-        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert (ToC typeId.dropModule.AsString) codec, false, false, Some (FullyConstrainedPositive (min, max))
-        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName (ToC typeId.dropModule.AsString) codec, false, false, Some (FullyConstrained (min, max))
+        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName (Some (ToC typeId.dropModule.AsString)) codec, codec=Decode, true, None
+        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert (Some (ToC typeId.dropModule.AsString)) codec, false, false, Some (FullyConstrainedPositive (min, max))
+        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName (Some (ToC typeId.dropModule.AsString)) codec, false, false, Some (FullyConstrained (min, max))
         | PosInf a  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false, Some (SemiConstrainedPositive a)
         | PosInf a -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false, Some (SemiConstrained a)
         | NegInf max -> IntUnconstrainedMax pp max None errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
-        | Full -> IntUnconstrained pp errCode.errCodeName false (ToC typeId.dropModule.AsString) codec, false, false, Some Unconstrained
+        | Full -> IntUnconstrained pp errCode.errCodeName false sType codec, false, false, Some Unconstrained
 
     let getValueByConstraint uperRange =
         match uperRange with

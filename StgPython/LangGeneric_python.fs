@@ -390,6 +390,13 @@ type LangGeneric_python() =
         else
             (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
     
+    override this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (p: CodegenScope) : string option =
+        match rf.tasInfo with
+        | None -> None
+        | Some k ->
+            let tasName = ToC k.tasName
+            Some (if p.modName <> k.modName then k.modName + "." + tasName else tasName)
+        
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
             match td with
