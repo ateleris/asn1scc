@@ -640,7 +640,7 @@ Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 # acn_python.stg 472
 decoded_result = codec.dec_string_ascii_fix_size(<nAsn1Max>)
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 res = decoded_result.decoded_value
 >>
 
@@ -655,7 +655,7 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sT
 # acn_python.stg 482
 decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, [<arruNullBytes; separator=", ">], len(<arruNullBytes>))
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -669,7 +669,7 @@ Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFl
 # acn_python.stg 488
 decoded_result = codec.dec_string_ascii_external_field_determinant(<nAsn1Max>, <sExtFld>)
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -684,7 +684,7 @@ Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1M
 # acn_python.stg 498
 decoded_result = codec.dec_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>)
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -706,7 +706,7 @@ Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.dec_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -723,7 +723,7 @@ Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, ar
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
 if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1Exception(f"Encoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
 
@@ -910,16 +910,16 @@ else:
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 684
-codec.append_bits(<p><sAcc>arr, <p><sAcc>arr.length*8)
+codec.append_bits(bytearray(<p><sAcc>arr), len(<p><sAcc>arr)*8)
 codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
-if codec.bitStream.readBits_nullterminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) is None:
-   <p> = Asn1SccError(<sErrCode>)
+if codec.readBits_nullterminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) is None:
+   <p> = Asn1SccError(cls.DecodeConstants.<sErrCode>)
 else:
-    <sTypeDefName>(arr)
+   <sTypeDefName>(<p>)
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"
@@ -1355,7 +1355,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 {
     # first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
     pBitStrm_save: BitStream = pBitStrm
-    pBitStrm = BitStream_Init(arr.length)
+    pBitStrm = BitStream_Init(len(arr))
     <sInner>
     pBitStrm = pBitStrm_save
 }
