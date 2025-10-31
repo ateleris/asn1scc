@@ -1163,7 +1163,7 @@ Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 if not decode_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
-<p> = decode_result.decoded_value
+<p> = <td.typeName>InUse(decode_result.decoded_value)
 <arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # acn_python.stg 931
@@ -1198,7 +1198,8 @@ elif <arrsConditions; separator=" and ">:
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 # acn_python.stg 963
-<arrsChildren; separator="\n">
+<p>.data.encode(codec, check_constraints)
+<!<arrsChildren; separator="\n">!>
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
@@ -1212,7 +1213,7 @@ else:
 /* Choice with Enum determinant */
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 978
-if <p> == <sChildID>(<sChildName>):
+if <p>.kind == <sChildID>:
     <sChildBody>
 >>
 
@@ -1220,7 +1221,7 @@ ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 # acn_python.stg 984
 if <p> == <sEnmName>:
     <sChildBody>
-    <sChildID>(<sChildName>)
+    <p> = cls(kind=<p>, data=<p>_data)
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
