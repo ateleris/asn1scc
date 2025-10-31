@@ -38,10 +38,10 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
 constraint = <sIsValidExp>
-if not issubclass(type(constraint), Asn1Boolean) and not issubclass(type(constraint), int) and not issubclass(type(constraint), float) and not constraint:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
-else:
+if constraint:
     ret = Asn1ConstraintValidResult(is_valid=True)
+else:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -271,7 +271,7 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if (not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>):
+if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>:
     <sInnerStatement>
 else:
     ret = Asn1ConstraintValidResult(is_valid=True)
@@ -284,7 +284,7 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-<p><sAcc><sChName>
+<p><sAcc><sChName> is not None if <sPresOrAbs> else <p><sAcc><sChName> is None
 >>
 
 /* SEQUENCE end*/

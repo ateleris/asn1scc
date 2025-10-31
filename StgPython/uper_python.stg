@@ -665,7 +665,7 @@ codec.append_bits(bytearray(<p><sAcc>arr), <nFixedSize>)
 
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 563
-ret = codec.read_bits(int(<nFixedSize>))
+ret = codec.read_bits(<nFixedSize>)
 if not ret:
      raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {ret.error_message}")
 <p> = <sTypeDefName>(list(ret.decoded_value))
