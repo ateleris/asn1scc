@@ -565,9 +565,9 @@ codec.read_bit_pattern_ignore_value(<nSize>)
 <else>
 <if(arruNullValueAsByteArray)>
 tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
-res = codec.read_bit_pattern(tmp, <nSize>)
+res = codec.read_bit_pattern(bytearray(tmp), <nSize>)
 if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}") 
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}") 
 
 <p> = cls()
 <endif>
@@ -916,10 +916,10 @@ codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLeng
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
-if codec.readBits_nullterminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) is None:
-   <p> = Asn1SccError(cls.DecodeConstants.<sErrCode>)
-else:
-   <sTypeDefName>(<p>)
+decoded_result = codec.readBits_nullterminated(list({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
+<p> = <sTypeDefName>(decoded_result.decoded_value)
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"
