@@ -21,20 +21,29 @@ NO_OF_BITS_IN_BYTE = 8
 #     return 0xFF >> (8 - end + start) << (8 - end)
 
 @Pure
+def int_eq_cutoff(a: int, b: int, cutoff_bit: int) -> bool:
+    Requires(0 <= a)
+    Requires(0 <= b)
+    Requires(0 <= cutoff_bit and cutoff_bit <= NO_OF_BITS_IN_BYTE)
+    mask = 1 << cutoff_bit
+    return a // mask == b // mask
+
+@Pure
 @Opaque
 def byte_read_bit(b: int, pos: int) -> bool:
     Requires(0 <= b and b <= 0xFF)
     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
     Ensures(Result() == PByteSeq.int_get_bit(b, 7- pos))
-    return bool(b & (1 << (7 - pos)))
+    return bool((b >> (7 - pos)) % 2)
+    # return bool(b & (1 << (7 - pos)))
 
 @Pure
 @Opaque
 def byte_set_bit(b: int, bit: bool, pos: int) -> int:
-    Requires(0 <= b and b <= 0xFF)
-    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-    Ensures(Result() == PByteSeq.int_set_bit(b, 7 - pos, bit))
-    Ensures(byte_read_bit(Result(), pos) == bit) # SLOW
+    #@nagini Requires(0 <= b and b <= 0xFF)
+    #@nagini Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+    #@nagini Ensures(Result() == PByteSeq.int_set_bit(b, 7 - pos, bit))
+    #@nagini Ensures(byte_read_bit(Result(), pos) == bit)
     if bit:
         return b | (1 << (7 - pos))
     else:
@@ -61,11 +70,18 @@ def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
     Requires(0 <= end and end <= len(b1))
     return b1.take(end) == b2.take(end)
 
-# def client(b: int, pos: int, val: bool) -> None:
-#     Requires(0 <= b and b <= 0xFF)
-#     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-#     b = byte_set_bit(b, val, pos)
-#     assert byte_read_bit(b, pos) == val
+def client(b: int, pos: int, val: bool) -> None:
+    Requires(0 <= b and b <= 0xFF)
+    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+    prev = b
+    b = byte_set_bit(b, val, pos)
+    assert byte_read_bit(b, pos) == val
+    
+    i = 0
+    while i < NO_OF_BITS_IN_BYTE:
+        if i != pos:
+            assert byte_read_bit(b, i) == byte_read_bit(prev, i)
+        
 
 # @Pure
 # def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end_bit: int) -> bool:
