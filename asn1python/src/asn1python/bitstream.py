@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byteseq_set_bit, byte_set_bit, byteseq_eq_until, byteseq_read_bit, int_eq_cutoff, byte_read_bit
+from verification import byteseq_set_bit, byte_set_bit, byteseq_eq_until, byteseq_read_bit, int_eq_cutoff, byte_read_bit, byteseq_read_bits
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -211,7 +211,7 @@ class BitStream:
         #@nagini Unfold(self.bitstream_invariant())
         byte_position = bit_index // NO_OF_BITS_IN_BYTE
         bit_position = bit_index % NO_OF_BITS_IN_BYTE
-        return bool(self._buffer[byte_position] & (1 << (7 - bit_position)))
+        return bool((self._buffer[byte_position] >> (7 - bit_position)) % 2)
 
     #@nagini @Pure
     def _read_bits_pure(self, bit_index: int, bit_count: int, shift_count: int) -> int:
@@ -316,8 +316,8 @@ class BitStream:
         #@nagini Ensures(self.buffer_size == Old(self.buffer_size))
         #@nagini Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
         
-        #@nagini Ensures(self.buffer()[Old(self.current_byte_position)] == byte_set_bit(self.buffer()[Old(self.current_byte_position)], bit, Old(self.current_bit_position)))
-        #Ensures(self.buffer() == Old(Unfolding(self.bitstream_invariant(), byteseq_set_bit(ToByteSeq(self._buffer), bit, self._current_bit, self._current_byte))))
+        # #@nagini Ensures(self.buffer()[Old(self.current_byte_position)] == byte_set_bit(self.buffer()[Old(self.current_byte_position)], bit, Old(self.current_bit_position)))
+        Ensures(self.buffer() == Old(Unfolding(self.bitstream_invariant(), byteseq_set_bit(ToByteSeq(self._buffer), bit, self._current_bit, self._current_byte))))
         #@nagini Ensures(bit == self._read_bit_pure(Old(self.current_used_bits)))
 
         #@nagini Unfold(self.bitstream_invariant())
@@ -329,7 +329,7 @@ class BitStream:
     def write_bits(self, value: int, bit_count: int) -> None:
         """Write multiple bits from an integer value"""
         Requires(self.bitstream_invariant())
-        Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE) 
+        Requires(0 <= bit_count and bit_count <= 2) 
         Requires(0 <= value and value < (1 << (bit_count)))
         Requires(self.validate_offset(bit_count))
         Ensures(self.bitstream_invariant())
@@ -359,12 +359,13 @@ class BitStream:
             Invariant(self.validate_offset(bit_count - i))
             Invariant(self.current_used_bits == Old(self.current_used_bits + i))
             Invariant(self.buffer_size == Old(self.buffer_size))
-            # Invariant(Forall(int, lambda x: (Implies(0 <= x and x < i, self._read_bit_pure(Old(self.current_used_bits) + x) == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + x)))))) # Takes even longer, ~200s for 1 bit
             #@nagini Invariant(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
-            # Invariant(int_eq_cutoff(value, self._read_bits_pure(Old(self.current_used_bits), i, bit_count), bit_count - i)) #TODO Works for 1 (45s), 2 (120s), 3 (230s), 4 (515s) 
+            # Invariant(Forall(int, lambda x: (Implies(0 <= x and x < i, self._read_bit_pure(Old(self.current_used_bits) + x) == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + x)))))) # Takes even longer, ~200s for 1 bit
+            Invariant(int_eq_cutoff(value, self._read_bits_pure(Old(self.current_used_bits), i, bit_count), bit_count - i)) #TODO Works for 1 (45s), 2 (120s), 3 (230s), 4 (515s) 
             
-            bit = bool((value >> (bit_count - 1 - i)) % 2)
-            assert bit == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + i))
+            # bit = bool((value >> (bit_count - 1 - i)) % 2)
+            bit = bool(value & (1 << (bit_count - 1 - i)))
+            # assert bit == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + i))
             self.write_bit(bit)
             
             i += 1

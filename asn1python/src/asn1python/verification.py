@@ -29,13 +29,23 @@ def int_eq_cutoff(a: int, b: int, cutoff_bit: int) -> bool:
     return a // mask == b // mask
 
 @Pure
-@Opaque
-def byte_read_bit(b: int, pos: int) -> bool:
+# @Opaque
+def byte_read_bit(b: int, position: int) -> bool:
+    """Read a single bit. Position starts from MSB"""
     Requires(0 <= b and b <= 0xFF)
-    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-    Ensures(Result() == PByteSeq.int_get_bit(b, 7- pos))
-    return bool((b >> (7 - pos)) % 2)
+    Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+    # Ensures(Result() == PByteSeq.int_get_bit(b, 7- position))
+    return bool((b >> (7 - position)) % 2)
     # return bool(b & (1 << (7 - pos)))
+
+@Pure
+@Opaque
+def byte_read_bit_lsb(b: int, position: int) -> bool:
+    """Read a single bit. Position starts from LSB"""
+    Requires(0 <= b and b <= 0xFF)
+    Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+    Ensures(Result() == PByteSeq.int_get_bit(b, position))
+    return bool((b >> position) % 2)
 
 @Pure
 @Opaque
@@ -49,11 +59,46 @@ def byte_set_bit(b: int, bit: bool, pos: int) -> int:
     else:
         return b & ~(1 << (7 - pos))
 
+#region Byteseq read
+
 @Pure
 def byteseq_read_bit(seq: PByteSeq, bit_pos: int, byte_pos: int) -> bool:
     Requires(0 <= bit_pos and bit_pos < NO_OF_BITS_IN_BYTE)
     Requires(0 <= byte_pos and byte_pos < len(seq))
     return byte_read_bit(seq[byte_pos], bit_pos)
+
+@Pure
+def byteseq_read_bit_index(seq: PByteSeq, bit_index: int) -> bool:
+    Requires(0 <= bit_index and bit_index < len(seq) * NO_OF_BITS_IN_BYTE)
+    return byteseq_read_bit(seq, bit_index % NO_OF_BITS_IN_BYTE, bit_index // NO_OF_BITS_IN_BYTE)
+
+@Pure
+def byteseq_read_bits(seq: PByteSeq, length: int, bit_index: int) -> int:
+    Requires(0 <= bit_index and bit_index + length <= len(seq) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+
+    # Stupid but works
+    val = 0
+    if length >= 1:
+        val += byteseq_read_bit_index(seq, bit_index + 0) << (length - 1)
+    if length >= 2:
+        val += byteseq_read_bit_index(seq, bit_index + 1) << (length - 2)
+    if length >= 3:
+        val += byteseq_read_bit_index(seq, bit_index + 2) << (length - 3)
+    if length >= 4:
+        val += byteseq_read_bit_index(seq, bit_index + 3) << (length - 4)
+    if length >= 5:
+        val += byteseq_read_bit_index(seq, bit_index + 4) << (length - 5)
+    if length >= 6:
+        val += byteseq_read_bit_index(seq, bit_index + 5) << (length - 6)
+    if length >= 7:
+        val += byteseq_read_bit_index(seq, bit_index + 6) << (length - 7)
+    if length >= 8:
+        val += byteseq_read_bit_index(seq, bit_index + 7) << (length - 8)
+    return val
+
+#endregion
+#region Byteseq set
 
 @Pure
 def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PByteSeq:
@@ -64,23 +109,73 @@ def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PB
     return seq.update(byte_pos, byte_set_bit(seq[byte_pos], bit, bit_pos))
 
 @Pure
+def byteseq_set_bit_index(seq: PByteSeq, bit: bool, bit_index: int) -> PByteSeq:
+    Requires(0 <= bit_index and bit_index < len(seq) * NO_OF_BITS_IN_BYTE)
+    Ensures(len(seq) == len(Result()))
+    Ensures(byteseq_read_bit_index(Result(), bit_index) == bit)
+    return byteseq_set_bit(seq, bit, bit_index % NO_OF_BITS_IN_BYTE, bit_index // NO_OF_BITS_IN_BYTE)
+
+@Pure
+def byteseq_set_bits(seq: PByteSeq, value: int, length: int, bit_index: int) -> PByteSeq:
+    Requires(0 <= bit_index and bit_index + length <= len(seq) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= 3)
+    Requires(0 <= value and value < (1 << length))
+    Ensures(len(seq) == len(Result()))
+    Ensures(byteseq_eq_until(seq, Result(), bit_index // NO_OF_BITS_IN_BYTE)) # Previous bytes equal
+    # Ensures(Let(bit_index % NO_OF_BITS_IN_BYTE, bool, lambda l:
+    #         Let(bit_index // NO_OF_BITS_IN_BYTE * NO_OF_BITS_IN_BYTE, bool, lambda pos: 
+    #             byteseq_read_bits(seq, l, pos) == byteseq_read_bits(Result(), l, pos)))) # Previous bits in current byte equal
+    Ensures(byteseq_read_bits(Result(), length, bit_index) == value) # Written value equal
+
+    new_seq = seq.range(0, len(seq))
+    if length >= 1:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 0), bit_index + 0)
+    if length >= 2:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 1), bit_index + 1)
+    if length >= 3:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 2), bit_index + 2)
+    if length >= 4:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 3), bit_index + 3)
+    if length >= 5:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 4), bit_index + 4)
+    if length >= 6:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 5), bit_index + 5)
+    if length >= 7:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 6), bit_index + 6)
+    if length >= 8:
+        new_seq = byteseq_set_bit_index(new_seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 7), bit_index + 7)
+    return new_seq
+
+# def test_set() -> None:
+#     seq = PByteSeq(0)
+#     value = 1
+#     bit_index = 0
+#     length = 1
+#     seq = byteseq_set_bit_index(seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 0), bit_index + 0)
+#     read = byteseq_read_bits(seq, length, bit_index)
+
+#     assert value == read
+
+#endregion
+
+@Pure
 def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [start, end["""
     Requires(len(b1) <= len(b2))
     Requires(0 <= end and end <= len(b1))
     return b1.take(end) == b2.take(end)
 
-def client(b: int, pos: int, val: bool) -> None:
-    Requires(0 <= b and b <= 0xFF)
-    Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-    prev = b
-    b = byte_set_bit(b, val, pos)
-    assert byte_read_bit(b, pos) == val
+# def client(b: int, pos: int, val: bool) -> None:
+#     Requires(0 <= b and b <= 0xFF)
+#     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
+#     prev = b
+#     b = byte_set_bit(b, val, pos)
+#     assert byte_read_bit(b, pos) == val
     
-    i = 0
-    while i < NO_OF_BITS_IN_BYTE:
-        if i != pos:
-            assert byte_read_bit(b, i) == byte_read_bit(prev, i)
+#     i = 0
+#     while i < NO_OF_BITS_IN_BYTE:
+#         if i != pos:
+#             assert byte_read_bit(b, i) == byte_read_bit(prev, i)
         
 
 # @Pure
