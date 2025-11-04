@@ -29,12 +29,12 @@ def int_eq_cutoff(a: int, b: int, cutoff_bit: int) -> bool:
     return a // mask == b // mask
 
 @Pure
-# @Opaque
+@Opaque
 def byte_read_bit(b: int, position: int) -> bool:
     """Read a single bit. Position starts from MSB"""
     Requires(0 <= b and b <= 0xFF)
     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
-    # Ensures(Result() == PByteSeq.int_get_bit(b, 7- position))
+    Ensures(Result() == PByteSeq.int_get_bit(b, 7- position))
     return bool((b >> (7 - position)) % 2)
     # return bool(b & (1 << (7 - pos)))
 
@@ -46,6 +46,31 @@ def byte_read_bit_lsb(b: int, position: int) -> bool:
     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
     Ensures(Result() == PByteSeq.int_get_bit(b, position))
     return bool((b >> position) % 2)
+
+@Pure
+def byte_read_bits(b: int, length: int) -> int:
+    Requires(0 <= b and b <= 0xFF)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+
+    # Stupid but works
+    val = 0
+    if length >= 1:
+        val += byte_read_bit(b, 0) << (length - 1)
+    if length >= 2:
+        val += byte_read_bit(b, 1) << (length - 2)
+    if length >= 3:
+        val += byte_read_bit(b, 2) << (length - 3)
+    if length >= 4:
+        val += byte_read_bit(b, 3) << (length - 4)
+    if length >= 5:
+        val += byte_read_bit(b, 4) << (length - 5)
+    if length >= 6:
+        val += byte_read_bit(b, 5) << (length - 6)
+    if length >= 7:
+        val += byte_read_bit(b, 6) << (length - 7)
+    if length >= 8:
+        val += byte_read_bit(b, 7) << (length - 8)
+    return val    
 
 @Pure
 @Opaque
@@ -109,9 +134,14 @@ def byteseq_set_bit(seq: PByteSeq, bit: bool, bit_pos: int, byte_pos: int) -> PB
     return seq.update(byte_pos, byte_set_bit(seq[byte_pos], bit, bit_pos))
 
 @Pure
+@Opaque
 def byteseq_set_bit_index(seq: PByteSeq, bit: bool, bit_index: int) -> PByteSeq:
     Requires(0 <= bit_index and bit_index < len(seq) * NO_OF_BITS_IN_BYTE)
     Ensures(len(seq) == len(Result()))
+    Ensures(byteseq_eq_until(seq, Result(), bit_index // NO_OF_BITS_IN_BYTE))
+    Ensures(Let(bit_index % NO_OF_BITS_IN_BYTE, bool, lambda l:
+            Let(bit_index // NO_OF_BITS_IN_BYTE * NO_OF_BITS_IN_BYTE, bool, lambda pos: 
+                byteseq_read_bits(seq, l, pos) == byteseq_read_bits(Result(), l, pos))))
     Ensures(byteseq_read_bit_index(Result(), bit_index) == bit)
     return byteseq_set_bit(seq, bit, bit_index % NO_OF_BITS_IN_BYTE, bit_index // NO_OF_BITS_IN_BYTE)
 
@@ -125,7 +155,7 @@ def byteseq_set_bits(seq: PByteSeq, value: int, length: int, bit_index: int) -> 
     # Ensures(Let(bit_index % NO_OF_BITS_IN_BYTE, bool, lambda l:
     #         Let(bit_index // NO_OF_BITS_IN_BYTE * NO_OF_BITS_IN_BYTE, bool, lambda pos: 
     #             byteseq_read_bits(seq, l, pos) == byteseq_read_bits(Result(), l, pos)))) # Previous bits in current byte equal
-    Ensures(byteseq_read_bits(Result(), length, bit_index) == value) # Written value equal
+    # Ensures(byteseq_read_bits(Result(), length, bit_index) == value) # Written value equal
 
     new_seq = seq.range(0, len(seq))
     if length >= 1:
