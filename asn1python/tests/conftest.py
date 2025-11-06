@@ -10,7 +10,7 @@ from asn1python.acn_encoder import ACNEncoder, IA5_CHAR_SET
 
 @pytest.fixture
 def acn_encoder() -> ACNEncoder:
-    return ACNEncoder()
+    return ACNEncoder.of_size(1024*1024) # TODO: add possibility of exact size later.
 
 @pytest.fixture
 def seed() -> int:
