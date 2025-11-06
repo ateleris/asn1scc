@@ -265,7 +265,10 @@ if not res:
 
 TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 200
-<p> = codec.dec_int_twos_complement_const_size<sSsuffix>(8)
+res = codec.dec_int_twos_complement_const_size<sSsuffix>(8)
+if not res:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<p> = cls(res.decoded_value)
 <MF(soMF)>
 >>
 
