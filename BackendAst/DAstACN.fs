@@ -2095,20 +2095,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             Some childBody, [], [], childResultExpr, [], ns2
                         | _ -> None, [], [], childResultExpr, [], ns2
                     | Some childContent ->
-                        let isPrimitiveType =
-                            match child.Type.Kind with
-                            | IA5String _
-                            | OctetString _
-                            | NullType _
-                            | BitString _
-                            | Enumerated _
-                            | ObjectIdentifier _
-                            | SequenceOf _
-                            | Sequence _
-                            | Choice _
-                            | ReferenceType _
-                            | TimeType _ -> false
-                            | _ -> true
+                        let isPrimitiveType = child.Type.Kind.isBaseKindTypePrimitive ProgrammingLanguage.ActiveLanguages.Head
 
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with

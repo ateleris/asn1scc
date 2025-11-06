@@ -1088,6 +1088,22 @@ with
         | Choice k -> Asn1AcnAst.Choice k.baseInfo
         | ReferenceType k -> Asn1AcnAst.ReferenceType k.baseInfo
         | TimeType k -> Asn1AcnAst.TimeType k.baseInfo
+    member this.isBaseKindTypePrimitive: (ProgrammingLanguage -> bool) = fun (l: ProgrammingLanguage) ->
+        match this with
+        | Integer k ->  k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
+        | Real k -> k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
+        | IA5String k -> false
+        | OctetString k -> false
+        | NullType k -> k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
+        | BitString k -> false
+        | Boolean k -> k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
+        | Enumerated k -> false
+        | ObjectIdentifier k -> k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
+        | SequenceOf k -> false
+        | Sequence k -> false
+        | Choice k -> false
+        | ReferenceType k -> false
+        | TimeType k -> k.baseInfo.typeDef[l].kind.IsPrimitiveReference2RTL
     member this.isValidFunction: IsValidFunction option =
         match this with
         | Integer k -> k.isValidFunction
