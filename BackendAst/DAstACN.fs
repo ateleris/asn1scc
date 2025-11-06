@@ -2096,7 +2096,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | _ -> None, [], [], childResultExpr, [], ns2
                     | Some childContent ->
                         let isPrimitiveType = 
-                            match child.Type.FT_TypeDefinition[ProgrammingLanguage.ActiveLanguages.Head] with 
+                            match (lm.lg.getTypeDefinition child.Type.FT_TypeDefinition) with 
                             | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
                             | _ -> false
 
