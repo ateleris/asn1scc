@@ -37,7 +37,7 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-constraint = <sIsValidExp>
+ret = Asn1ConstraintValidResult(is_valid=True) if (<sIsValidExp>) else Asn1ConstraintValidResult(is_valid=False, error_code=88888)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -50,9 +50,7 @@ if not ret:
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 # isvalid_python.stg 48
 <sStatement>
-if constraint:
-    ret = Asn1ConstraintValidResult(is_valid=True)
-else:
+if not ret:
     return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
@@ -90,7 +88,7 @@ def <sFuncName>(self) -> Asn1ConstraintValidResult:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return ret
+    return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
@@ -213,13 +211,16 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> bool:
+def chars_are_valid(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i: int = 0
     while valid and i \< len(self) and self[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
-    return valid
+    if valid:
+        return Asn1ConstraintValidResult(is_valid=valid)
+    else:
+        return Asn1ConstraintValidResult(is_valid=valid, error_code=4444)
 
 >>
 
