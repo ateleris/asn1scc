@@ -2095,7 +2095,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             Some childBody, [], [], childResultExpr, [], ns2
                         | _ -> None, [], [], childResultExpr, [], ns2
                     | Some childContent ->
-                        let isPrimitiveType = child.Type.Kind.isBaseKindTypePrimitive ProgrammingLanguage.ActiveLanguages.Head
+                        let isPrimitiveType = 
+                            match child.Type.FT_TypeDefinition[ProgrammingLanguage.ActiveLanguages.Head] with 
+                            | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                            | _ -> false
 
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
