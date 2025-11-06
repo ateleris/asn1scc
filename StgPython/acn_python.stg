@@ -92,6 +92,19 @@ MF(soMF) ::= /*nogen*/ <<
 <endif>
 >>
 
+CheckEncodeResult(sInp, sErrCode) /*nogen*/ ::= <<
+# acn_python.stg 434343
+if not <sInp>:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {<sInp>.error_message}")
+>>
+
+CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
+# acn_python.stg 424242
+if not <sInp>:
+    raise Asn1Exception(f"Decoding failed with Error Code {self.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+<p> = <sType>(<sInp>.decoded_value)
+>>
+
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 # acn_python.stg 98
 for <i> in range(int(<fixedSize>)):
@@ -118,440 +131,356 @@ PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM,
 # acn_python.stg 121
 # Bit count validation would go here
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 127
 decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(<nFixedSize>)
-if not decoded_result.success:
-    raise Asn1Exception(f"Decoding of Positive Integer failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 134
 decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(8)
-if not decoded_result.success:
-    raise Asn1Exception(f"Decoding of Positive Integer failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 141
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(16)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 147
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 151
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(32)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 158
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(64)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_big_endian: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 165
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(16)
-if not decoded_result.success:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 172
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(32)
-if not decoded_result.success:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 179
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(64)
-if not decoded_result.success:
-    raise Asn1Exception(f"Decoding of dec_int_positive_integer_const_size_little_endian failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 // TODO: Seems unused?
 PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
 res = codec.enc_int_positive_integer_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
 # acn_python.stg 186
-<p> = codec.dec_int_positive_integer_var_size_length_embedded<sSsuffix>()
+decoded_result = codec.dec_int_positive_integer_var_size_length_embedded<sSsuffix>()
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
 # acn_python.stg 193
-<p> = codec.dec_int_twos_complement_const_size<psSsuffix>(<nFixedSize>)
+decoded_result = codec.dec_int_twos_complement_const_size<psSsuffix>(<nFixedSize>)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 200
 res = codec.dec_int_twos_complement_const_size<sSsuffix>(8)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 207
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(16)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 >>
 
 TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 213
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(32)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 220
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(64)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 227
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(16)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 234
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(32)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 241
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(64)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_int_twos_complement_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 # acn_python.stg 248
 res = codec.dec_int_twos_complement_var_size_length_embedded<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
 res = codec.enc_int_bcd_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
 # acn_python.stg 255
 res = codec.dec_int_bcd_const_size<sSsuffix>(<nNibbles>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_int_bcd_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 # acn_python.stg 262
 res = codec.dec_int_bcd_var_size_length_embedded<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 res = codec.enc_int_bcd_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 # acn_python.stg 269
 res = codec.dec_int_bcd_var_size_null_terminated<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 res = codec.enc_sint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 # acn_python.stg 276
 res = codec.dec_sint_ascii_const_size<sSsuffix>(<nSizeInBytes>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 res = codec.enc_sint_ascii_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 # acn_python.stg 283
 res = codec.dec_sint_ascii_var_size_length_embedded<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 # acn_python.stg 289
 res = codec.enc_sint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 # acn_python.stg 294
 res = codec.dec_sint_ascii_var_size_null_terminated<sSsuffix>((byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 # acn_python.stg 300
 res = codec.enc_uint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 # acn_python.stg 305
 res = codec.dec_uint_ascii_const_size<sSsuffix>(<nSizeInBytes>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 # acn_python.stg 311
 res = codec.enc_uint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 # acn_python.stg 316
 res = codec.dec_uint_ascii_var_size_null_terminated<sSsuffix>(<p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-if not res:
-    raise Asn1Exception(f"Decoding Exception {self.DecodeConstants.<sErrCode>}: {res.error_message}")
-<p> = cls(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
 Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_32_big_endian(<p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 # acn_python.stg 323
 res = codec.dec_real_ieee754_32_big_endian<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_big_endian failed: {res.error_message}")
-<p> = <sType>(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
 Real_64_big_endian_encode(p, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_64_big_endian(<p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 # acn_python.stg 329
 res = codec.dec_real_ieee754_64_big_endian()
-if not res:
-    raise Asn1Exception(f"Decoding of dec_real_ieee754_64_big_endian failed: {res.error_message}")
-<p> = <sType>(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
 Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_32_little_endian(<p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 # acn_python.stg 335
 res = codec.dec_real_ieee754_32_little_endian<sSsuffix>()
-if not res:
-    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_little_endian failed: {res.error_message}")
-<p> = <sType>(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
 Real_64_little_endian_encode(p, sErrCode, sType) ::= <<
 res = codec.enc_real_ieee754_64_little_endian(<p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 # acn_python.stg 341
 res = codec.dec_real_ieee754_64_little_endian()
-if not res:
-    raise Asn1Exception(f"Decoding of dec_real_ieee754_32_little_endian failed: {res.error_message}")
-<p> = <sType>(res.decoded_value)
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
 
@@ -590,9 +519,7 @@ BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 decode_result = codec.decode_true_false_boolean(true_data, false_data, <nSize>)
-if not decode_result:
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
-<p> = cls(decode_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType="cls")>
 >>
 
 Null_declare(p, sType) ::= "<p>: <sType> = <sType>()"
@@ -680,23 +607,19 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= <<
 res = codec.enc_string_ascii_fix_size(<nAsn1Max>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 # acn_python.stg 472
 decoded_result = codec.dec_string_ascii_fix_size(<nAsn1Max>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-res = decoded_result.decoded_value
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="")>
 >>
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 477
 res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]), "".join([chr(a) for a in <p>]))
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
@@ -709,31 +632,25 @@ if not decoded_result:
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
 res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
 # acn_python.stg 488
 decoded_result = codec.dec_string_ascii_external_field_determinant(<nAsn1Max>, <sExtFld>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 # acn_python.stg 493
 res = codec.enc_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 # acn_python.stg 498
 decoded_result = codec.dec_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
@@ -745,34 +662,28 @@ Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 # acn_python.stg 508
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 res = codec.enc_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 514
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.dec_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
-if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 520
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 res = codec.enc_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 526
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
-if not decoded_result:
-    raise Asn1Exception(f"Encoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 >>
 
 
@@ -780,8 +691,7 @@ Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max,
 # acn_python.stg 533
 bix = codec.get_bit_index()
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <p>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * len(<p>):
     # acn_python.stg 537
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
@@ -795,9 +705,7 @@ length = codec.get_bit_index()
 if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 
 if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <p>.indexOfOrLength(0):
     raise Asn1Exception(f"ERROR TODO")
@@ -832,9 +740,7 @@ oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, s
 # acn_python.stg 571
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     decoded_result = codec.decode_octet_string_no_length_vec(<nSizeMax>)
-    if not decoded_result:
-        raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
-    <p> = <sTypedefName>(decoded_result.decoded_value)
+    <CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 else:
     raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
 >>
@@ -852,9 +758,8 @@ codec_0_1 = codec.copy()
 <endif>
 
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<p>_nCount: int = decoded_result.decoded_value
+<! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
+<CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
 
 <p>_arr = [None] * <p>_nCount
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
@@ -903,15 +808,11 @@ while <i> \< <nSizeMax> and checkBitPatternPresentResult != 2:
     <sInternalItem>
     <i> += 1
     decode_result = codec.check_bit_pattern_present(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
-    if not decode_result:
-        raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
-    checkBitPatternPresentResult = <sType>(decode_result.decoded_value)
+    <CheckDecodeResult(p="checkBitPatternPresentResult", sInp="decode_result", sErrCode=sErrCode, sType=sType)>
 
 if (<i> == <nSizeMax>) and checkBitPatternPresentResult != 2:
     decode_result = codec.check_bit_pattern_present(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
-    if not decode_result:
-        raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
-    checkBitPatternPresentResult = <sType>(decode_result.decoded_value)
+    <CheckDecodeResult(p="checkBitPatternPresentResult", sInp="decode_result", sErrCode=sErrCode, sType=sType)>
     
 if checkBitPatternPresentResult == 0:
     # acn_python.stg 647
@@ -941,17 +842,14 @@ else:
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 667
 res = codec.append_bits(<p><sAcc>arr, <nSizeMax>)
-if not res:
-    return Asn1SccError(<sErrCode>)
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 672
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<nSizeMax>)
-    if not decode_result:
-        raise Asn1Exception(f"Decoding failed {<sErrCode>}: {decode_result.error_message}")
-    <p> = <sTypeDefName>(decode_result.decoded_value)
+    <CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType=sType)>
 else:
     raise Asn1Exception(f"{<sErrCode>}")v
 >>
@@ -1005,9 +903,7 @@ else:
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 727
 decoded_result = codec.read_bit()
-if not decoded_result:
-    raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
-<soExistVar> = decoded_result.decoded_value
+<CheckDecodeResult(p=soExistVar, sInp="decoded_result", sErrCode=sErrCode, sType="bool")>
 >>
 
 sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
@@ -1209,9 +1105,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
 decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-if not decode_result:
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decode_result.error_message}")
-<p> = <td.typeName>InUse(decode_result.decoded_value)
+<CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType="int")>
 <arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # acn_python.stg 931
