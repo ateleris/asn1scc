@@ -27,7 +27,7 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
-return Asn1ConstraintValidResult(True)
+return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -38,22 +38,22 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
 constraint = <sIsValidExp>
-if constraint:
-    ret = Asn1ConstraintValidResult(is_valid=True)
-else:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 # isvalid_python.stg 43
 ret = <sIsValidExp>
 if not ret:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 # isvalid_python.stg 48
 <sStatement>
+if constraint:
+    ret = Asn1ConstraintValidResult(is_valid=True)
+else:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -336,6 +336,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 332
+ret = Asn1ConstraintValidResult(is_valid=True)
 for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <sInnerStatement>
     if not ret:
