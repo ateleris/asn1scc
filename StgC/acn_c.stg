@@ -347,7 +347,7 @@ ret = Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm, <p>);
 
 
 
-Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 {
 	static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
 	static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -357,7 +357,7 @@ Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 >>
 
 
-Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 {
 	<if(bEncValIsTrue)>
 	static byte tmp[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -371,7 +371,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 >>
 
 
-BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode, sType) ::= <<
 {
     static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
     static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -380,7 +380,7 @@ BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 }
 >>
 
-BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode, sType) ::= <<
 {
     static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
     static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};

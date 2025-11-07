@@ -484,14 +484,14 @@ res = codec.dec_real_ieee754_64_little_endian()
 >>
 
 
-Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 # acn_python.stg 347
 true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 codec.append_bits(true_data if <p> else false_data, <nSize>)
 >>
 
-Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 # acn_python.stg 354
 <if(bEncValIsTrue)>
 tmp = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
@@ -503,10 +503,10 @@ res = codec.read_bit_pattern(tmp, <nSize>)
 if not res:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
 
-<p> = <if(!bEncValIsTrue)>cls(not res.decoded_value)<else>cls(res.decoded_value)<endif>
+<p> = <if(!bEncValIsTrue)><sType>(not res.decoded_value)<else><sType>(res.decoded_value)<endif>
 >>
 
-BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode, sType) ::= <<
 if <p>:
     data: bytearray = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 else:
@@ -514,7 +514,7 @@ else:
 codec.append_bits(data, <nSize>)
 >>
 
-BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode, sType) ::= <<
 # acn_python.stg 374
 true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
@@ -536,7 +536,7 @@ Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSav
 # acn_python.stg 395
 <if(bSavePosition)>
 codec.read_bit_pattern_ignore_value(<nSize>)
-<p> = cls()
+<p> = NullType()
 <else>
 <if(arruNullValueAsByteArray)>
 tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
@@ -544,7 +544,7 @@ res = codec.read_bit_pattern(bytearray(tmp), <nSize>)
 if not res:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}") 
 
-<p> = cls()
+<p> = NullType()
 <endif>
 <endif>
 >>

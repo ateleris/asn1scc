@@ -820,31 +820,31 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
                     let resExpr = p.accessPath.asIdentifier
                     resExpr, resExpr, Some resExpr
                 | _ -> lm.lg.getValue p.accessPath, lm.lg.getPointer p.accessPath, None
+            let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+            let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
             match o.acnProperties.encodingPattern with
             | None ->
                 let pp, resultExpr = adaptArgument lm codec p
-                let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
-                let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 Boolean pp errCode.errCodeName sType codec, resultExpr
             | Some (TrueValueEncoding pattern)  ->
                 let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrTrueValueAsByteArray = bitStringValueToByteArray pattern
                 let arrFalseValueAsByteArray = arrTrueValueAsByteArray |> Array.map (~~~)
                 let nSize = pattern.Value.Length
-                acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr
+                acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
             | Some (FalseValueEncoding pattern) ->
                 let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrFalseValueAsByteArray = bitStringValueToByteArray pattern
                 let arrTrueValueAsByteArray = arrFalseValueAsByteArray |> Array.map (~~~)
                 let nSize = pattern.Value.Length
-                acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr
+                acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
             | Some (TrueFalseValueEncoding(trPattern, fvPatten)) ->
                 let arrTrueBits = trPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrFalseBits = fvPatten.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrTrueValueAsByteArray = bitStringValueToByteArray trPattern
                 let arrFalseValueAsByteArray = bitStringValueToByteArray fvPatten
                 let nSize = trPattern.Value.Length
-                BooleanTrueFalse pvalue ptr (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrTrueBits arrFalseBits errCode.errCodeName codec, resultExpr
+                BooleanTrueFalse pvalue ptr (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrTrueBits arrFalseBits errCode.errCodeName sType codec, resultExpr
         let icdFnc fieldName sPresent comments =
             [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
         let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
