@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byteseq_read_bit, byte_read_bits, byteseq_set_bit, byteseq_set_bits
+from verification import byte_read_bit, byteseq_read_bit, byte_read_bits, byteseq_set_bit, byteseq_set_bits
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -62,6 +62,7 @@ class BitStream:
     def validate_offset(self, bits: int) -> bool:
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Requires(0 <= bits)
+        Ensures(Implies(Result(), bits <= self.remaining_bits))
         #@nagini Unfold(Rd(self.bitstream_invariant()))
         return BitStream._validate_offset_bits(self._current_bit, self._current_byte, len(self._buffer), bits)
     
@@ -99,6 +100,7 @@ class BitStream:
         """Get the current bit position"""
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Ensures(0 <= Result() and Result() <= NO_OF_BITS_IN_BYTE)
+        #@nagini Ensures(Result() == self.current_used_bits % NO_OF_BITS_IN_BYTE)
         #@nagini Unfold(Rd(self.bitstream_invariant()))
         return self._current_bit
 
@@ -107,6 +109,7 @@ class BitStream:
         """Get the current byte position"""
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Ensures(0 <= Result() and Result() <= self.buffer_size)
+        #@nagini Ensures(Result() == self.current_used_bits // NO_OF_BITS_IN_BYTE)
         #@nagini Unfold(Rd(self.bitstream_invariant()))
         return self._current_byte
 
@@ -139,11 +142,14 @@ class BitStream:
     def remaining_bits(self) -> int:
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Ensures(Result() == Unfolding(Rd(self.bitstream_invariant()), BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer))))
+        #@nagini Ensures(Result() == self.buffer_size_bits - self.current_used_bits)
         return self.buffer_size * NO_OF_BITS_IN_BYTE - self.current_used_bits
 
     @Pure
     def buffer(self) -> PByteSeq:
         #@nagini Requires(Rd(self.bitstream_invariant()))
+        Ensures(len(Result()) == self.buffer_size)
+        Ensures(self.current_used_bits + self.remaining_bits == len(Result()) * NO_OF_BITS_IN_BYTE)
         return Unfolding(Rd(self.bitstream_invariant()), ToByteSeq(self._buffer))
 
     #endregion    
@@ -199,49 +205,56 @@ class BitStream:
         new_index = self.current_used_bits + amount
         self.set_bit_index(new_index)
     
-    #region Read
-
-    # @Pure
-    # @Opaque
-    # def _read_bit_pure(self, bit_index: int) -> bool:
-    #     """Read a single bit"""
-    #     #@nagini Requires(Rd(self.bitstream_invariant()))
-    #     #@nagini Requires(0 <= bit_index and bit_index < self.buffer_size_bits)
-    #     Ensures(Result() == byteseq_read_bit(self.buffer(), bit_index))
-    #     #@nagini Unfold(self.bitstream_invariant())
-    #     byte_position = bit_index // NO_OF_BITS_IN_BYTE
-    #     bit_position = bit_index % NO_OF_BITS_IN_BYTE
-    #     pure = Reveal(byteseq_read_bit(self.buffer(), bit_index))
-    #     return bool((self._buffer[byte_position] >> (7 - bit_position)) % 2)                      
+    #region Read                   
         
     @Pure
+    @Opaque
     def _read_current_bit_pure(self) -> bool:
         Requires(Rd(self.bitstream_invariant()))
-        Requires(0 < self.remaining_bits)
-        Ensures(Result() == byteseq_read_bit(self.buffer(), self.current_used_bits))
-        
+        Requires(1 <= self.remaining_bits)
+        Unfold(Rd(self.bitstream_invariant()))
+        return byte_read_bit(self._buffer[self._current_byte], self._current_bit)
+
+    @Pure
+    @Opaque
+    def _lemma_read_current_bit_pure(self) -> bool:
+        Requires(Rd(self.bitstream_invariant()))
+        Requires(1 <= self.remaining_bits)
+        Ensures(self._read_current_bit_pure() == byteseq_read_bit(self.buffer(), self.current_used_bits))
+        Ensures(Result())
+
         ghost_buf = self.buffer()
         ghost_index = self.current_used_bits
-        ghost = Reveal(byteseq_read_bit(ghost_buf, ghost_index)) 
-        
+        ghost_byte_pos = ghost_index // NO_OF_BITS_IN_BYTE
+        ghost_bit_pos = ghost_index % NO_OF_BITS_IN_BYTE
+        ghost_byte = ghost_buf[ghost_byte_pos]
+        ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
+        read_bit = Reveal(self._read_current_bit_pure())
+
         Unfold(self.bitstream_invariant())
-        
-        res = bool((self._buffer[self._current_byte] >> (7 - self._current_bit)) % 2)
+        bit_pos_eq = self._current_bit == ghost_bit_pos
+        byte_eq = self._buffer[self._current_byte] == ghost_byte
 
+        # TODO I think Reveal() should not be necessary here
+        inner_bit = Reveal(byte_read_bit(self._buffer[self._current_byte], self._current_bit))
+        ghost_inner_bit = Reveal(byte_read_bit(ghost_byte, ghost_bit_pos))
+        
+        return byte_eq and bit_pos_eq and inner_bit == ghost_inner_bit and ghost_bit == read_bit
+
+    def read_bit(self) -> bool:
+        """Read a single bit"""
+        Requires(self.bitstream_invariant())
+        Requires(1 <= self.remaining_bits)
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
+        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(Result() == byteseq_read_bit(self.buffer(), Old(self.current_used_bits)))
+        
+        ghost = self._lemma_read_current_bit_pure()
+
+        res = self._read_current_bit_pure()
+        self._shift_bit_index(1)
         return res
-
-    # def read_bit(self) -> bool:
-    #     """Read a single bit"""
-    #     Requires(self.bitstream_invariant())
-    #     Requires(self.validate_offset(1))
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
-    #     Ensures(self.buffer() == Old(self.buffer()))
-    #     Ensures(Result() == byteseq_read_bit(self.buffer(), self.current_used_bits))
-        
-
-    #     self._shift_bit_index(1)
-    #     return res
 
    
     # def read_bits(self, bit_count: int) -> int:
