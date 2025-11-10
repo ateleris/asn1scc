@@ -66,6 +66,18 @@ def byte_read_bits(byte: int, position: int, length: int) -> int:
 
 @Pure
 @Opaque
+def _lemma_byte_read_bit_eq(byte: int, position: int) -> bool:
+    Requires(0 <= byte and byte <= 0xFF)
+    Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+    Ensures(int(byte_read_bit(byte, position)) == byte_read_bits(byte, position, 1))
+    Ensures(Result())
+    
+    single = Reveal(byte_read_bit(byte, position))
+    multiple = Reveal(byte_read_bits(byte, position, 1))
+    return int(single) == multiple
+
+@Pure
+@Opaque
 def byte_read_bits_rec(byte: int, position: int, length: int) -> int:
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
@@ -80,14 +92,6 @@ def byte_read_bits_rec(byte: int, position: int, length: int) -> int:
     res = rec + (byte_read_bit(byte, position) << (length - 1))
     
     return res
-
-# @Pure
-# @Opaque
-# def _lemma_split_byte_read_bits(byte: int, length: int, split_position: int) -> bool:
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= split_position and split_position <= length)
-#     Requires(0 <= byte and byte < (1 << length))
-#     Ensures(byte == byte_read_bits(byte, ))
 
 # @Pure
 # @Opaque
@@ -155,6 +159,22 @@ def byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> int:
     lower = byte_read_bits(byteseq[byte_position + 1], 0, second_length)
     return upper + lower
 
+@Pure
+@Opaque
+def _lemma_byteseq_read_bit_eq(byteseq: PByteSeq, position: int) -> bool:
+    Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Ensures(int(byteseq_read_bit(byteseq, position)) == byteseq_read_bits(byteseq, position, 1))
+    Ensures(Result())
+    
+    byte_position = position // NO_OF_BITS_IN_BYTE
+    bit_position = position % NO_OF_BITS_IN_BYTE
+    first_case = bit_position + 1 <= NO_OF_BITS_IN_BYTE
+    inner = _lemma_byte_read_bit_eq(byteseq[byte_position], bit_position)
+    
+    single = Reveal(byteseq_read_bit(byteseq, position))
+    multiple = Reveal(byteseq_read_bits(byteseq, position, 1))
+    return first_case and inner and int(single) == multiple
+
 #region Set bits
 
 @Pure
@@ -169,31 +189,6 @@ def byte_set_bit(byte: int, bit: bool, position: int) -> int:
         return byte | (1 << (7 - position))
     else:
         return byte & ~(1 << (7 - position))
-
-@Pure
-@Opaque
-def _lemma_byte_set_bit(byte: int, bit: bool, position: int) -> bool:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
-    # Ensures(byte_set_bit(byte, bit, position) == byte_set_bits(byte, bit, position, 1))
-    Ensures(byte_read_bit(byte_set_bit(byte, bit, position), position) == bit)
-    # Ensures(byte_read_bits(byte_set_bit(byte, bit, position), 0, position) == byte_read_bits(byte, 0, position)) # Previous bits
-    # Ensures(byte_read_bits(byte_set_bit(byte, bit, position), position+1, NO_OF_BITS_IN_BYTE - (position+1)) == byte_read_bits(byte, position+1, NO_OF_BITS_IN_BYTE - (position+1))) # Remaining bits
-    Ensures(Result())
-    
-    new_byte = Reveal(byte_set_bit(byte, bit, position))
-    written_bit = Reveal(byte_read_bit(new_byte, position))
-    
-    # Showing prefix and suffix for single bit is slow
-    # Perhaps we can just use byte_set_bits instead
-    # new_prefix = Reveal(byte_read_bits(new_byte, 0, position))
-    # old_prefix = Reveal(byte_read_bits(byte, 0, position))
-    
-    # post_position = position+1
-    # new_suffix = Reveal(byte_read_bits(new_byte, post_position, NO_OF_BITS_IN_BYTE - post_position))
-    # old_suffix = Reveal(byte_read_bits(byte, post_position, NO_OF_BITS_IN_BYTE - post_position))
-    
-    return bit == written_bit # and new_prefix == old_prefix and new_suffix == old_suffix
 
 #
 # Splits the byte into three parts
@@ -242,6 +237,19 @@ def _lemma_byte_set_bits(byte: int, value: int, position: int, length: int) -> b
     
     return value == written_value and new_prefix == old_prefix and new_suffix == old_suffix
 
+# Would be nice, but not that important
+# Similar then also for the byteseq variant
+# @Pure
+# @Opaque
+# def _lemma_byte_set_bit_eq(byte: int, bit: bool, position: int) -> int:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+#     Ensures(byte_set_bit(byte, bit, position) == byte_set_bits(byte, int(bit), position, 1))
+#     Ensures(Result())
+#     single = Reveal(byte_set_bit(byte, bit, position))
+#     multiple = Reveal(byte_set_bits(byte, int(bit), position, 1))
+#     return single == multiple
+
 #endregion
 #region Set Byteseq
 
@@ -254,22 +262,6 @@ def byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> PByteSeq:
     byte_position = position // NO_OF_BITS_IN_BYTE
     bit_position = position % NO_OF_BITS_IN_BYTE
     return byteseq.update(byte_position, byte_set_bit(byteseq[byte_position], bit, bit_position))
-
-@Pure
-@Opaque
-def _lemma_byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> bool:
-    Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Ensures(byteseq_read_bit(byteseq_set_bit(byteseq, bit, position), position) == bit) # Written bit
-    Ensures(byteseq_eq_until(byteseq, byteseq_set_bit(byteseq, bit, position), position // NO_OF_BITS_IN_BYTE)) # Previous bytes
-    Ensures(Result())
-    
-    byte_position = position // NO_OF_BITS_IN_BYTE
-    bit_position = position % NO_OF_BITS_IN_BYTE
-    
-    inner = Reveal(_lemma_byte_set_bit(byteseq[byte_position], bit, bit_position))
-    new_seq = Reveal(byteseq_set_bit(byteseq, bit, position))
-    written_bit = Reveal(byteseq_read_bit(new_seq, position))
-    return inner and bit == written_bit
 
 @Pure
 @Opaque
@@ -299,66 +291,51 @@ def byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) 
     
     return byteseq.update(byte_position, new_upper_byte).update(byte_position + 1, new_lower_byte)
 
-@Pure
-@Opaque
-def _lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Requires(0 <= value and value < (1 << length))
-    Ensures(byteseq_read_bits(byteseq_set_bits(byteseq, value, position, length), position, length) == value) # Written value
-    Ensures(Implies(len(byteseq) > position // NO_OF_BITS_IN_BYTE, byte_read_bits(byteseq_set_bits(byteseq, value, position, length)[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE) 
-            == byte_read_bits(byteseq[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE))) # Previous bits in this byte
-    Ensures(byteseq_eq_until(byteseq, byteseq_set_bits(byteseq, value, position, length), position // NO_OF_BITS_IN_BYTE)) # Previous bytes
-    Ensures(Result())
+# WORKS
+# TODO but improve performance
+# @Pure
+# @Opaque
+# def _lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
+#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= value and value < (1 << length))
+#     Ensures(byteseq_read_bits(byteseq_set_bits(byteseq, value, position, length), position, length) == value) # Written value
+#     Ensures(Implies(len(byteseq) > position // NO_OF_BITS_IN_BYTE, byte_read_bits(byteseq_set_bits(byteseq, value, position, length)[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE) 
+#             == byte_read_bits(byteseq[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE))) # Previous bits in this byte
+#     Ensures(byteseq_eq_until(byteseq, byteseq_set_bits(byteseq, value, position, length), position // NO_OF_BITS_IN_BYTE)) # Previous bytes
+#     Ensures(Result())
     
-    byte_position = position // NO_OF_BITS_IN_BYTE
-    bit_position = position % NO_OF_BITS_IN_BYTE
+#     byte_position = position // NO_OF_BITS_IN_BYTE
+#     bit_position = position % NO_OF_BITS_IN_BYTE
     
-    if bit_position + length <= NO_OF_BITS_IN_BYTE:
-        new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
-        written_value = Reveal(byteseq_read_bits(new_seq, position, length))
+#     if bit_position + length <= NO_OF_BITS_IN_BYTE:
+#         new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
+#         written_value = Reveal(byteseq_read_bits(new_seq, position, length))
         
-        if length == 0:
-            return True
+#         if length == 0:
+#             return True
         
-        inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], value, bit_position, length))
-        return inner and value == written_value
+#         inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], value, bit_position, length))
+#         return inner and value == written_value
     
-    new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
-    written_value = Reveal(byteseq_read_bits(new_seq, position, length))
+#     new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
+#     written_value = Reveal(byteseq_read_bits(new_seq, position, length))
     
-    upper_length = NO_OF_BITS_IN_BYTE - bit_position
-    upper_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length))
-    upper_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length))
+#     upper_length = NO_OF_BITS_IN_BYTE - bit_position
+#     upper_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length))
+#     upper_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length))
     
-    written_upper_value = Reveal(byte_read_bits(new_seq[byte_position], bit_position, upper_length))
+#     written_upper_value = Reveal(byte_read_bits(new_seq[byte_position], bit_position, upper_length))
     
-    lower_length = length - upper_length
-    lower_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length))
-    lower_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length))
+#     lower_length = length - upper_length
+#     lower_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length))
+#     lower_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length))
     
-    written_lower_value = Reveal(byte_read_bits(new_seq[byte_position + 1], 0, lower_length))
+#     written_lower_value = Reveal(byte_read_bits(new_seq[byte_position + 1], 0, lower_length))
     
-    return (upper_inner and upper_value == written_upper_value and 
-            lower_inner and lower_value == written_lower_value and 
-            written_value == value)
-
-# def bit_client() -> None:
-#     val = 0
-#     # _lemma_byte_set_bit(val, True, 0)
-#     val = byte_set_bit(val, True, 0)
-#     val = byte_set_bit(val, True, 1)
-    
-#     assert byte_read_bit(val, 0) == True
-#     assert byte_read_bit(val, 1) == True
-
-# def client() -> None:
-#     length = 2
-#     start_pos = 0
-#     val = 3
-#     original = 0
-#     written = byte_set_bits(original, val, length, start_pos)
-#     assert byte_read_bits(val, length, 0) == byte_read_bits(written, length, start_pos)
+#     return (upper_inner and upper_value == written_upper_value and 
+#             lower_inner and lower_value == written_lower_value and 
+#             written_value == value)
 
 #endregion
 
