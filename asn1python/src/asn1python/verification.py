@@ -47,7 +47,7 @@ def byteseq_eq_until(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
 
 @Pure
 @Opaque
-def byte_read_bit(byte: int, position: int) -> bool:
+def byte_read_bit(byte: PInt, position: PInt) -> bool:
     """Read a single bit. Position starts from MSB"""
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
@@ -56,7 +56,7 @@ def byte_read_bit(byte: int, position: int) -> bool:
 
 @Pure
 @Opaque
-def byte_read_bits(byte: int, position: int, length: int) -> int:
+def byte_read_bits(byte: PInt, position: PInt, length: PInt) -> int:
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
@@ -78,7 +78,7 @@ def _lemma_byte_read_bit_equal(byte: int, position: int) -> bool:
 
 @Pure
 @Opaque
-def byte_read_bits_rec(byte: int, position: int, length: int) -> int:
+def byte_read_bits_rec(byte: PInt, position: PInt, length: PInt) -> int:
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
@@ -143,7 +143,7 @@ def _lemma_byte_read_bits_induction(byte: int, position: int, length: int) -> bo
 
 @Pure
 @Opaque
-def byteseq_read_bit(byteseq: PByteSeq, position: int) -> bool:
+def byteseq_read_bit(byteseq: PByteSeq, position: PInt) -> bool:
     Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
     byte_position = position // NO_OF_BITS_IN_BYTE
@@ -162,7 +162,7 @@ def byteseq_read_bit(byteseq: PByteSeq, position: int) -> bool:
 #
 @Pure
 @Opaque
-def byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> int:
+def byteseq_read_bits(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
@@ -242,7 +242,7 @@ def _lemma_byteseq_read_bit_equal(byteseq: PByteSeq, position: int) -> bool:
 
 @Pure
 @Opaque
-def byteseq_read_bits_rec(byteseq: PByteSeq, position: int, length: int) -> int:
+def byteseq_read_bits_rec(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(length)
@@ -278,18 +278,18 @@ def byteseq_read_bits_rec(byteseq: PByteSeq, position: int, length: int) -> int:
 
 #region Set bits
 
-@Pure
-@Opaque
-def byte_set_bit(byte: int, bit: bool, position: int) -> int:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
-    Decreases(None)
-    Ensures(0 <= Result() and Result() <= 0xFF)
+# @Pure
+# @Opaque
+# def byte_set_bit(byte: int, bit: bool, position: int) -> int:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+#     Decreases(None)
+#     Ensures(0 <= Result() and Result() <= 0xFF)
 
-    if bit:
-        return byte | (1 << (7 - position))
-    else:
-        return byte & ~(1 << (7 - position))
+#     if bit:
+#         return byte | (1 << (7 - position))
+#     else:
+#         return byte & ~(1 << (7 - position))
 
 #
 # Splits the byte into three parts
@@ -300,19 +300,19 @@ def byte_set_bit(byte: int, bit: bool, position: int) -> int:
 # |x|x|b|b|b|?|?|?|
 #  0 1 2 3 4 5 6 7
 #
-@Pure
-@Opaque
-def byte_set_bits(byte: int, value: int, position: int, length: int) -> int:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= value and value < (1 << length))
-    Ensures(0 <= Result() and Result() <= 0xFF)
+# @Pure
+# @Opaque
+# def byte_set_bits(byte: int, value: int, position: int, length: int) -> int:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= value and value < (1 << length))
+#     Ensures(0 <= Result() and Result() <= 0xFF)
     
-    upper = byte_read_bits(byte, 0, position) << (NO_OF_BITS_IN_BYTE - position)
-    middle = value << (NO_OF_BITS_IN_BYTE - position - length)
-    lower = byte % (1 << (NO_OF_BITS_IN_BYTE - position - length))
-    return upper + middle + lower
+#     upper = byte_read_bits(byte, 0, position) << (NO_OF_BITS_IN_BYTE - position)
+#     middle = value << (NO_OF_BITS_IN_BYTE - position - length)
+#     lower = byte % (1 << (NO_OF_BITS_IN_BYTE - position - length))
+#     return upper + middle + lower
 
 # @Pure
 # @Opaque
@@ -354,43 +354,43 @@ def byte_set_bits(byte: int, value: int, position: int, length: int) -> int:
 #endregion
 #region Set Byteseq
 
-@Pure
-@Opaque
-def byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> PByteSeq:
-    Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Decreases(None)
-    Ensures(len(byteseq) == len(Result()))
-    byte_position = position // NO_OF_BITS_IN_BYTE
-    bit_position = position % NO_OF_BITS_IN_BYTE
-    return byteseq.update(byte_position, byte_set_bit(byteseq[byte_position], bit, bit_position))
+# @Pure
+# @Opaque
+# def byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> PByteSeq:
+#     Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
+#     Decreases(None)
+#     Ensures(len(byteseq) == len(Result()))
+#     byte_position = position // NO_OF_BITS_IN_BYTE
+#     bit_position = position % NO_OF_BITS_IN_BYTE
+#     return byteseq.update(byte_position, byte_set_bit(byteseq[byte_position], bit, bit_position))
 
-@Pure
-@Opaque
-def byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> PByteSeq:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Requires(0 <= value and value < (1 << length))
-    Decreases(None)
-    Ensures(len(byteseq) == len(Result()))
+# @Pure
+# @Opaque
+# def byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> PByteSeq:
+#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= value and value < (1 << length))
+#     Decreases(None)
+#     Ensures(len(byteseq) == len(Result()))
 
-    if length == 0:
-        return byteseq
+#     if length == 0:
+#         return byteseq
     
-    byte_position = position // NO_OF_BITS_IN_BYTE
-    bit_position = position % NO_OF_BITS_IN_BYTE
+#     byte_position = position // NO_OF_BITS_IN_BYTE
+#     bit_position = position % NO_OF_BITS_IN_BYTE
     
-    if bit_position + length <= NO_OF_BITS_IN_BYTE:
-        return byteseq.update(byte_position, byte_set_bits(byteseq[byte_position], value, bit_position, length))
+#     if bit_position + length <= NO_OF_BITS_IN_BYTE:
+#         return byteseq.update(byte_position, byte_set_bits(byteseq[byte_position], value, bit_position, length))
     
-    upper_length = NO_OF_BITS_IN_BYTE - bit_position
-    upper_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length)
-    new_upper_byte = byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length)
+#     upper_length = NO_OF_BITS_IN_BYTE - bit_position
+#     upper_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length)
+#     new_upper_byte = byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length)
     
-    lower_length = length - upper_length
-    lower_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length)
-    new_lower_byte = byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length)
+#     lower_length = length - upper_length
+#     lower_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length)
+#     new_lower_byte = byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length)
     
-    return byteseq.update(byte_position, new_upper_byte).update(byte_position + 1, new_lower_byte)
+#     return byteseq.update(byte_position, new_upper_byte).update(byte_position + 1, new_lower_byte)
 
 # WORKS
 # TODO but improve performance
