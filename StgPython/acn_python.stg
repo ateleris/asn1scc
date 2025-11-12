@@ -1106,7 +1106,7 @@ Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 # acn_python.stg 927
 decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 <CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType="int")>
-<arrsChildren: {ch|<ch>}; separator="\nel">
+<arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # acn_python.stg 931
     raise Asn1Exception(f"Decoding failed with error code {cls.DecodeConstants.<sErrCode>}")
@@ -1127,8 +1127,8 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-# acn_python.stg 951
 <if(bFirst)>
+# acn_python.stg 951
 <p> = None
 if <arrsConditions; separator=" and ">:
 <else>
