@@ -311,7 +311,7 @@ if self.kind == <sChPresent>:
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
-<arrsChildren; separator="\n">
+<arrsChildren; separator="\nel">
 else:
     ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
 >>
