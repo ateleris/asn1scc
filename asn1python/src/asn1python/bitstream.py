@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byte_read_bit, byteseq_read_bit, byteseq_read_bits, _lemma_byteseq_read_bit_equal, lemma_byteseq_read_bits_induction
+from verification import byte_read_bit, byteseq_read_bit, byteseq_read_bits, _lemma_byteseq_read_bits_equal, _lemma_byteseq_read_bits
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -193,7 +193,7 @@ class BitStream:
         self.set_position(bit_position, byte_position)
 
     def _shift_bit_index(self, amount: int = 1) -> None:
-        """Shifts the current bit index by given amount"""
+        """Shift the current bit index by given amount"""
         #@nagini Requires(self.bitstream_invariant())
         #@nagini Requires(0 <= amount)
         #@nagini Requires(self.validate_offset(amount))
@@ -249,21 +249,21 @@ class BitStream:
         Ensures(int(Result()) == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), 1))
 
         ghost = self._lemma_read_current_bit_pure()
-        ghost = _lemma_byteseq_read_bit_equal(self.buffer(), self.current_used_bits)
+        ghost = _lemma_byteseq_read_bits_equal(self.buffer(), self.current_used_bits)
 
         res = self._read_current_bit_pure()
         self._shift_bit_index(1)
         return res
 
     def read_bits(self, bit_count: PInt) -> int:
-        """Read multiple bits and return as integer"""
+        """Read up to 8 bits"""
         #@nagini Requires(self.bitstream_invariant())
         #@nagini Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
         #@nagini Requires(self.validate_offset(bit_count))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
-        #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
+        #@nagini Ensures(Result() == byteseq_read_bits_repeated(self.buffer(), Old(self.current_used_bits), bit_count))
 
         if bit_count == 0:
             return 0
@@ -282,7 +282,7 @@ class BitStream:
             value = (value << 1) + next_bit
             
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
-            ghost = lemma_byteseq_read_bits_induction(self.buffer(), Old(self.current_used_bits), i + 1)
+            ghost = _lemma_byteseq_read_bits(self.buffer(), Old(self.current_used_bits), i + 1)
             i = i + 1
 
         return value
