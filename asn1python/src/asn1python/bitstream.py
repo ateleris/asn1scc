@@ -214,7 +214,6 @@ class BitStream:
         Unfold(Rd(self.bitstream_invariant()))
         return byte_read_bit(self._buffer[self._current_byte], self._current_bit)
 
-    # TODO clean up
     @Pure
     @Opaque
     def _lemma_read_current_bit_pure(self) -> bool:
@@ -228,18 +227,16 @@ class BitStream:
         ghost_byte_pos = ghost_index // NO_OF_BITS_IN_BYTE
         ghost_bit_pos = ghost_index % NO_OF_BITS_IN_BYTE
         ghost_byte = ghost_buf[ghost_byte_pos]
+
         ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
         read_bit = Reveal(self._read_current_bit_pure())
 
-        Unfold(self.bitstream_invariant())
+        Unfold(Rd(self.bitstream_invariant()))
         bit_pos_eq = self._current_bit == ghost_bit_pos
         byte_eq = self._buffer[self._current_byte] == ghost_byte
 
-        # TODO I think Reveal() should not be necessary here
-        inner_bit = byte_read_bit(self._buffer[self._current_byte], self._current_bit)
-        ghost_inner_bit = byte_read_bit(ghost_byte, ghost_bit_pos)
-        
-        return byte_eq and bit_pos_eq and inner_bit == ghost_inner_bit and ghost_bit == read_bit
+        return bit_pos_eq and byte_eq and ghost_bit == read_bit 
+
 
     def read_bit(self) -> bool:
         """Read a single bit"""
@@ -258,16 +255,15 @@ class BitStream:
         self._shift_bit_index(1)
         return res
 
-    # LOOP variant
-    def read_bits(self, bit_count: int) -> int:
+    def read_bits(self, bit_count: PInt) -> int:
         """Read multiple bits and return as integer"""
         #@nagini Requires(self.bitstream_invariant())
-        Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
+        #@nagini Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
         #@nagini Requires(self.validate_offset(bit_count))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
-        Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
+        #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
 
         if bit_count == 0:
             return 0
@@ -290,54 +286,16 @@ class BitStream:
             i = i + 1
 
         return value
-    
-    # def read_bits(self, bit_count: int) -> int:
-    #     """Read multiple bits and return as integer"""
-    #     #@nagini Requires(self.bitstream_invariant())
-    #     Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
-    #     #@nagini Requires(self.validate_offset(bit_count))
-    #     #@nagini Ensures(self.bitstream_invariant())
-    #     #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
-    #     #@nagini Ensures(self.buffer() == Old(self.buffer()))
-    #     Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
 
-    #     ghost = Reveal(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
-
-    #     if bit_count == 0:
-    #         return 0
-        
-    #     position = self.current_used_bits
-    #     ghost_buf = self.buffer()
-    #     Unfold(self.bitstream_invariant())
-        
-    #     Assert(self._current_byte == position // NO_OF_BITS_IN_BYTE)
-    #     Assert(self._current_bit == position % NO_OF_BITS_IN_BYTE)
-    #     Assert(ghost_buf[position // NO_OF_BITS_IN_BYTE] == self._buffer[self._current_byte])
-
-    #     if self._current_bit + bit_count <= NO_OF_BITS_IN_BYTE:
-    #         res = byte_read_bits(self._buffer[self._current_byte], self._current_bit , bit_count)
-    #     else:
-    #         Assume(False)
-    #         first_length = NO_OF_BITS_IN_BYTE - self._current_bit
-    #         second_length = bit_count - first_length
-            
-    #         upper = byte_read_bits(self._buffer[self._current_byte], self._current_bit, first_length) << second_length
-    #         lower = byte_read_bits(self._buffer[self._current_byte + 1], 0, second_length)
-    #         res = upper + lower
-
-    #     Fold(self.bitstream_invariant())
-    #     self._shift_bit_index(bit_count)
-    #     return res
-
-    # def read_byte(self) -> int:
-    #     """Read a complete byte"""
-    #     #@nagini Requires(self.bitstream_invariant())
-    #     #@nagini Requires(self.validate_offset(NO_OF_BITS_IN_BYTE))
-    #     #@nagini Ensures(self.bitstream_invariant())
-    #     #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
-    #     #@nagini Ensures(self.buffer() == Old(self.buffer()))
-    #     Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
-    #     return self.read_bits(8)
+    def read_byte(self) -> int:
+        """Read a complete byte"""
+        #@nagini Requires(self.bitstream_invariant())
+        #@nagini Requires(self.validate_offset(NO_OF_BITS_IN_BYTE))
+        #@nagini Ensures(self.bitstream_invariant())
+        #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
+        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
+        return self.read_bits(NO_OF_BITS_IN_BYTE)
 
     #endregion
 

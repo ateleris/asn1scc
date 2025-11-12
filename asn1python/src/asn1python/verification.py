@@ -240,42 +240,6 @@ def _lemma_byteseq_read_bit_equal(byteseq: PByteSeq, position: int) -> bool:
     multiple = Reveal(byteseq_read_bits(byteseq, position, 1))
     return first_case and inner and int(single) == multiple
 
-@Pure
-@Opaque
-def byteseq_read_bits_rec(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Decreases(length)
-    Ensures(0 <= Result() and Result() < (1 << length))
-
-    if length <= 1:
-        return byteseq_read_bits(byteseq, position, length)
-
-    rec = byteseq_read_bits_rec(byteseq, position, length - 1) << 1
-    res = rec + byteseq_read_bits(byteseq, position + length - 1, 1)
-    return res
-
-# Still uses old msb to lsb order
-# @Pure
-# @Opaque
-# def _lemma_byteseq_read_bits_equal(byteseq: PByteSeq, position: int, length: int) -> bool:
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-#     Decreases(length)
-#     Ensures(byteseq_read_bits(byteseq, position, length) == byteseq_read_bits_rec(byteseq, position, length))
-#     Ensures(Result())
-    
-#     direct = byteseq_read_bits(byteseq, position, length)
-#     rec = Reveal(byteseq_read_bits_rec(byteseq, position, length))
-        
-#     if length <= 1:
-#         return direct == rec
-
-#     equal_lemma = _lemma_byteseq_read_bits_equal(byteseq, position + 1, length - 1)
-#     induction_lemma = _lemma_byteseq_read_bits_induction(byteseq, position, length)
-
-#     return direct == rec and equal_lemma and induction_lemma
-
 #region Set bits
 
 # @Pure
