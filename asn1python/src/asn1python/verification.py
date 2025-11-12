@@ -179,7 +179,7 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
 
 # @Pure
 # @Opaque
-# def byte_set_bit(byte: int, bit: bool, position: int) -> int:
+# def byte_set_bit(byte: PInt, bit: PBool, position: PInt) -> int:
 #     Requires(0 <= byte and byte <= 0xFF)
 #     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
 #     Decreases(None)
@@ -189,6 +189,28 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
 #         return byte | (1 << (7 - position))
 #     else:
 #         return byte & ~(1 << (7 - position))
+
+# @Pure
+# @Opaque
+# def _lemma_byte_set_bit(byte: int, bit: bool, position: int) -> bool:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+#     Ensures(byte_read_bit(byte_set_bit(byte, bit, position), position) == bit) # Written value
+#     Ensures(byte_read_bits(byte_set_bit(byte, bit, position), 0, position) == byte_read_bits(byte, 0, position)) # Previous bits
+# #     Ensures(byte_read_bits(byte_set_bit(byte, bit, position), position+1, NO_OF_BITS_IN_BYTE - (position+1)) == byte_read_bits(byte, position+1, NO_OF_BITS_IN_BYTE - (position+1))) # Remaining bits
+
+#     new_byte = Reveal(byte_set_bit(byte, bit, position))
+#     written_bit = Reveal(byte_read_bit(new_byte, position))
+    
+#     new_prefix = Reveal(byte_read_bits(new_byte, 0, position))
+#     old_prefix = Reveal(byte_read_bits(byte, 0, position))
+#     return bit == written_bit and new_prefix == old_prefix
+    
+    # post_position = position+1
+    # new_suffix = Reveal(byte_read_bits(new_byte, post_position, NO_OF_BITS_IN_BYTE - post_position))
+    # old_suffix = Reveal(byte_read_bits(byte, post_position, NO_OF_BITS_IN_BYTE - post_position))
+    
+    # return bit == written_bit and new_prefix == old_prefix and new_suffix == old_suffix
 
 #
 # Splits the byte into three parts
@@ -201,7 +223,7 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
 #
 # @Pure
 # @Opaque
-# def byte_set_bits(byte: int, value: int, position: int, length: int) -> int:
+# def byte_set_bits(byte: PInt, value: PInt, position: PInt, length: PInt) -> int:
 #     Requires(0 <= byte and byte <= 0xFF)
 #     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
 #     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
@@ -212,6 +234,37 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
 #     middle = value << (NO_OF_BITS_IN_BYTE - position - length)
 #     lower = byte % (1 << (NO_OF_BITS_IN_BYTE - position - length))
 #     return upper + middle + lower
+
+# @Pure
+# @Opaque
+# def byte_set_bits_rec(byte: PInt, value: PInt, position: PInt, length: PInt) -> int:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= value and value < (1 << length))
+#     Ensures(0 <= Result() and Result() <= 0xFF)
+
+#     if length == 0:
+#         return byte
+
+#     rec = byte_set_bits_rec(byte, value, position, length - 1)
+#     bit = byte_read_bit(byte, position +  length - 1)
+#     res = byte_set_bit(rec, bit, position + length - 1)
+#     return res
+
+# @Pure
+# @Opaque
+# def _lemma_byte_set_bits_rec(byte: int, value: int, position: int, length: int) -> bool:
+#     Requires(0 <= byte and byte <= 0xFF)
+#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
+#     Requires(0 <= value and value < (1 << length))
+#     Ensures(byte_read_bits(byte_set_bits_rec(byte, value, position, length), position, length) == value) # Written value
+#     Ensures(byte_read_bits(byte_set_bits_rec(byte, value, position, length), 0, position) == byte_read_bits(byte, 0, position)) # Previous bits
+#     Ensures(byte_read_bits(byte_set_bits_rec(byte, value, position, length), position+length, NO_OF_BITS_IN_BYTE - (position+length)) == byte_read_bits(byte, position+length, NO_OF_BITS_IN_BYTE - (position+length))) # Remaining bits
+#     Ensures(Result())
+
+#     new_byte = Reveal(byte_set_bits_rec(byte, value, position, length))
 
 # @Pure
 # @Opaque
@@ -237,6 +290,11 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
     
 #     return value == written_value and new_prefix == old_prefix and new_suffix == old_suffix
 
+# @Pure
+# @Opaque
+# def _lemma_byte_set_bits_induction(byte: int, value: int, position: int, length: int) -> bool:
+
+
 # Would be nice, but not that important
 # Similar then also for the byteseq variant
 # @Pure
@@ -247,8 +305,12 @@ def _lemma_byteseq_read_bits(byteseq: PByteSeq, position: int, length: int) -> b
 #     Ensures(byte_set_bit(byte, bit, position) == byte_set_bits(byte, int(bit), position, 1))
 #     Ensures(Result())
 #     single = Reveal(byte_set_bit(byte, bit, position))
-#     multiple = Reveal(byte_set_bits(byte, int(bit), position, 1))
-#     return single == multiple
+#     multiple = Reveal(byte_set_bits(byte, bit, position, 1))
+#     ghost = _lemma_byte_set_bits(byte, bit, position, 1)
+
+#     Assert(single == multiple)
+
+#     return ghost and single == multiple
 
 #endregion
 #region Set Byteseq

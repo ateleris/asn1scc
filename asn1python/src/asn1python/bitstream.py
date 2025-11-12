@@ -263,7 +263,7 @@ class BitStream:
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
-        #@nagini Ensures(Result() == byteseq_read_bits_repeated(self.buffer(), Old(self.current_used_bits), bit_count))
+        #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
 
         if bit_count == 0:
             return 0
@@ -294,7 +294,7 @@ class BitStream:
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
-        Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
+        #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
         return self.read_bits(NO_OF_BITS_IN_BYTE)
 
     #endregion
