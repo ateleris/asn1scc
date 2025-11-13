@@ -2,6 +2,7 @@
 open System
 open System.Numerics
 open System.IO
+open Asn1AcnAst
 open DAstTypeDefinition
 open FsUtils
 open CommonTypes
@@ -44,17 +45,20 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> a.acnAlignment
         | Asn1AcnAst.AcnReferenceToIA5String a -> a.acnAlignment
 
+    // Console.WriteLine(ch.Type)
+    let arr = ch.Type.AsString.Split(".")
+    let sType = arr[arr.Length - 1]
     let funcBodyEncode, ns1=
         match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Encode ch.id a us
+        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Encode ch.id a us sType
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r deps lm Codec.Encode ch.id a us
         | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r deps lm Codec.Encode ch.id a us
-        | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Encode ch.id a (defOrRef r m a) us
+        | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Encode ch.id a (defOrRef r m a) us 
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Encode ch.id a us
 
     let funcBodyDecode, ns2 =
         match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a ns1 sType
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1

@@ -127,315 +127,315 @@ unaligned_codec = codec.copy()
 <!<sMainBody>!>
 >>
 
-PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 121
 # Bit count validation would go here
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 127
 decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(<nFixedSize>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 134
 decoded_result = codec.dec_int_positive_integer_const_size<sSsuffix>(8)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 141
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(16)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 147
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 151
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(32)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 158
 decoded_result = codec.dec_int_positive_integer_const_size_big_endian<sSsuffix>(64)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 165
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(16)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 172
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(32)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_positive_integer_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 179
 decoded_result = codec.dec_int_positive_integer_const_size_little_endian<sSsuffix>(64)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 // TODO: Seems unused?
-PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= <<
 res = codec.enc_int_positive_integer_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= <<
 # acn_python.stg 186
 decoded_result = codec.dec_int_positive_integer_var_size_length_embedded<sSsuffix>()
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 193
 decoded_result = codec.dec_int_twos_complement_const_size<psSsuffix>(<nFixedSize>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 8)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 200
 res = codec.dec_int_twos_complement_const_size<sSsuffix>(8)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 207
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(16)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 213
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(32)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_big_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 220
 res = codec.dec_int_twos_complement_const_size_big_endian<sSsuffix>(64)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 16)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 227
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(16)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 32)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 234
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(32)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_twos_complement_const_size_little_endian(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, 64)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 241
 res = codec.dec_int_twos_complement_const_size_little_endian<sSsuffix>(64)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 res = codec.enc_int_twos_complement_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 # acn_python.stg 248
 res = codec.dec_int_twos_complement_var_size_length_embedded<sSsuffix>()
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= <<
 res = codec.enc_int_bcd_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= <<
 # acn_python.stg 255
 res = codec.dec_int_bcd_const_size<sSsuffix>(<nNibbles>)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 res = codec.enc_int_bcd_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 # acn_python.stg 262
 res = codec.dec_int_bcd_var_size_length_embedded<sSsuffix>()
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 res = codec.enc_int_bcd_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 # acn_python.stg 269
 res = codec.dec_int_bcd_var_size_null_terminated<sSsuffix>()
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 res = codec.enc_sint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 # acn_python.stg 276
 res = codec.dec_sint_ascii_const_size<sSsuffix>(<nSizeInBytes>)
 <CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
 <MF(soMF)>
 >>
 
-ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 res = codec.enc_sint_ascii_var_size_length_embedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 # acn_python.stg 283
 res = codec.dec_sint_ascii_var_size_length_embedded<sSsuffix>()
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 # acn_python.stg 289
 res = codec.enc_sint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 # acn_python.stg 294
 res = codec.dec_sint_ascii_var_size_null_terminated<sSsuffix>((byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 # acn_python.stg 300
 res = codec.enc_uint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 # acn_python.stg 305
 res = codec.dec_uint_ascii_const_size<sSsuffix>(<nSizeInBytes>)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 # acn_python.stg 311
 res = codec.enc_uint_ascii_var_size_null_terminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 # acn_python.stg 316
 res = codec.dec_uint_ascii_var_size_null_terminated<sSsuffix>(<p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
@@ -519,7 +519,7 @@ BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 false_data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 decode_result = codec.decode_true_false_boolean(true_data, false_data, <nSize>)
-<CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType=sType)>
 >>
 
 Null_declare(p, sType) ::= "<p>: <sType> = <sType>()"
