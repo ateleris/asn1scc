@@ -69,7 +69,7 @@ type LangBasic_python() =
     override this.isCaseSensitive = true
     override this.keywords = python_keywords
     override this.isKeyword (token) = python_keywords.Contains token
-    override this.OnTypeNameConflictTryAppendModName = true
+    override this.OnTypeNameConflictTryAppendModName = false
     override this.declare_IntegerNoRTL = "", "int", "INTEGER"
     override this.declare_PosIntegerNoRTL = "", "int", "INTEGER"
     override this.getRealRtlTypeName = "", "float", "REAL"
@@ -402,15 +402,15 @@ type LangGeneric_python() =
             match td with
             | TypeDefinition  td ->
                 // When defining a type within its own module, don't use module prefix
-                td.typedefName
+                td.typedefName// + "MINUSONETH"
             | ReferenceToExistingDefinition ref ->
                 match ref.programUnit with
                 | Some pu ->
                     match hasModules with
                     | true   ->
                         match pu with
-                        | "" -> ref.typedefName
-                        | k when k = moduleName -> ref.typedefName
+                        | "" -> ref.typedefName// + "ZEROTH"
+                        | k when k = moduleName -> ref.typedefName// + "FIRST"
                         | _ -> pu + "." + ref.typedefName// + "DEFAULT"
                     | false     -> ref.typedefName// + "THIRD"
                 | None    -> ref.typedefName// + "FOURTH"

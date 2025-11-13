@@ -45,9 +45,10 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> a.acnAlignment
         | Asn1AcnAst.AcnReferenceToIA5String a -> a.acnAlignment
 
-    // Console.WriteLine(ch.Type)
     let arr = ch.Type.AsString.Split(".")
-    let sType = arr[arr.Length - 1]
+    let mutable sType = arr[arr.Length - 1]
+    if sType = "INTEGER" then
+        sType <- "int"
     let funcBodyEncode, ns1=
         match ch.Type with
         | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Encode ch.id a us sType
