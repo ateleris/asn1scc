@@ -126,15 +126,15 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 # header_python.stg 130
-class <td.typeName>_Enum(IntEnum):
-    __all__.append("<td.typeName>_Enum")
+class <td.asn1Name>_Enum(IntEnum):
+    __all__.append("<td.asn1Name>_Enum")
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 @dataclass(frozen=True)
-class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
+class <td.asn1Name>(Asn1Base):
+    __all__.append("<td.asn1Name>")
     # initialize val with the first enum element by default
-    val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
+    val: <td.asn1Name>_Enum = <td.asn1Name>_Enum.<first(arrsEnumNames)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
