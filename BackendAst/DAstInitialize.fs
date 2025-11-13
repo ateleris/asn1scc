@@ -1191,8 +1191,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         | Python ->
                             // For the enum value, we need to prefix with module if we're in a different module
                             let sChildIDBase = lm.lg.presentWhenName (Some typeDefinition) ch
-                            if (ToC t.id.ModName) <> p.modName then
-                                (ToC t.id.ModName) + "." + sChildIDBase
+                            if (ToC childTk.programUnit) <> p.modName && childTk.programUnit <> "" then
+                                (ToC childTk.programUnit) + "." + sChildIDBase
                             else
                                 sChildIDBase
                          | _ -> lm.lg.presentWhenName (Some typeDefinition) ch
