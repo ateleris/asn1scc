@@ -1,27 +1,11 @@
 group acn_python;
 
-getStringSize(p) ::= <<
-len(<p>.split(b'\x00')[0])
-# above acn_python.stg 4
->>
-
-getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
-<if(bIsUnsigned)>
-int(<p><sAcc>nCount)
-<else>
-<p><sAcc>nCount
-<endif>
->>
+getStringSize(p) ::= "len(<p>)"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.nCount"
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
 # acn_python.stg 18
-<sErrCode> = <nErrValue>  # <soErrorCodeComment>
->>
-
-EmitAcnParameter(sName, sType) ::= "<sName>: <sType>  # TODO acn:11"
-
-EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
-# acn_python.stg 25
+<sErrCode> = <nErrValue>  <if(soErrorCodeComment)># <soErrorCodeComment><endif>
 >>
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
@@ -53,6 +37,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 class DecodeConstants:
     <arrsErrcodes; separator="\n">
 <endif>
+
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
@@ -75,7 +60,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True) -> '<sTy
     return <sVarName>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True) -> Tuple[ACNDecoder, Union['<sTypeDefName>', Asn1SccError]]:
+def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True) -> Tuple[ACNDecoder, '<sTypeDefName>']:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res = <sTypeDefName>.<sFuncName>(cpy, check_constraints)
@@ -1166,12 +1151,6 @@ if <p> == <sEnmName>:
     <p> = cls(kind=<p>, data=<p>_data)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
-# acn_python.stg 991
-# match <p>.<sEnmExtFld>:
-<arrsChildren; separator="\n">
->>
-
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 997
 # <p> = match <sEnmExtFld>:
@@ -1229,6 +1208,8 @@ ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 # acn_python.stg 1053
 choice = <sChPath>
 <arrsChoiceItems; separator="\n">
+else:
+    raise Asn1Exception(f"Encoding Exception! No match found for <sChPath>!")
 >>
 
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
@@ -1486,4 +1467,23 @@ if not res:
     return res
 
 <endif>
+>>
+
+
+// ==============================================
+//              UNUSED TEMPLATES
+// ==============================================
+
+EmitAcnParameter(sName, sType) ::= "# EmitAcnParameter UNUSED <sName>: <sType>  # TODO acn:11"
+
+EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
+<! Not necessary for python. EmitTypeAssignment_primitive_def_encode already has all those variables. !>
+>>
+
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+"""
+# Choice_Enum_encode UNUSED
+# acn_python.stg 991
+<arrsChildren; separator="\n">
+"""
 >>
