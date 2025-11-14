@@ -902,12 +902,12 @@ else if (<arrsConditions; separator=" && ">) {
 }
 >>
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <arrsChildren; separator="\n">
 else return LeftMut(<sErrCode>)
 >>
@@ -924,12 +924,12 @@ case <sEnmName> =>
     <sChildID>(<sChildName>)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 val <p> = <sEnmExtFld> match
     <arrsChildren; separator="\n">
 >>

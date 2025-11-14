@@ -2161,14 +2161,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     match childContentResult with
                     | None              -> None, [], ns1
                     | Some childContent ->
-                        let isPrimitiveType = 
+                        let isPrimitiveType, sType = 
                             match acnChild.Type with
                             | AcnInteger _
                             | AcnNullType _
-                            | AcnBoolean _ -> true
-                            | AcnReferenceToEnumerated _
-                            | AcnReferenceToIA5String _ -> false
-
+                            | AcnBoolean _ -> true, ""
+                            | AcnReferenceToEnumerated t -> false, lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.enumerated.definitionOrRef)
+                            | AcnReferenceToIA5String t -> false, lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.str.definitionOrRef)
+                        
                         match codec with
                         | Encode   ->
                             match acnChild.Type with
@@ -2183,7 +2183,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
                             // Workaround: 0 # assigns 0 to the response variable and puts everything else behind a line comment.
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "0 #" isPrimitiveType codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
@@ -2460,7 +2460,6 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                 let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
 
-                let sChoiceTypeName = typeDefinitionName
                 let childContent_funcBody = lm.lg.adaptAcnFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef
                 match child.Optionality with
                 | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
@@ -2468,7 +2467,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | None  ->
                     match ec with
                     | CEC_uper  ->
-                        Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
+                        Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_enum (enm,_) ->
                         let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                             match p.modName = a.modName with
@@ -2477,7 +2476,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                         let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                        Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
+                        Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_presWhen  ->
                         let handPresenceCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                             match cond with
@@ -2507,7 +2506,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
-                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
+                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
             [(childBody, childContent_localVariables, childContent_errCodes, auxiliaries)], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us

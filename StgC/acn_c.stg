@@ -955,7 +955,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 >>
 
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 switch(<p><sAcc>kind)
 {
 <arrsChildren; separator="\n">
@@ -965,7 +965,7 @@ default:
 }
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 *pErrCode = 0;
 <arrsChildren; separator="\n">
 else {
@@ -993,7 +993,7 @@ case <sEnmName>:
 >>
 
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 switch(<p><sAcc>kind)
 {
     <arrsChildren; separator="\n">
@@ -1003,7 +1003,7 @@ default:
 }
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 switch(<sEnmExtFld>)
 {
     <arrsChildren; separator="\n">

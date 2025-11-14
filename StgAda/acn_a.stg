@@ -1133,13 +1133,13 @@ when <sEnmName> =>
 
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 case <sEnmExtFld> is
     <arrsChildren; separator="\n">
 end case;
@@ -1155,7 +1155,7 @@ ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> = <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
@@ -1168,7 +1168,7 @@ when <sChildID> =>
 
 
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <arrsChildren; separator="\n">
 else

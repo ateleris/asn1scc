@@ -998,6 +998,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
+#<soChildContent>
 <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 <endif>
 >>
@@ -1127,24 +1128,24 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-<if(bFirst)>
-<p> = None
 if <arrsConditions; separator=" and ">:
-<else>
-if <arrsConditions; separator=" and ">:
-    # acn_python.stg 951
-<endif>
     <sChildBody>
     <p> = <sChildID>(<sChildName>)
+    
+    # perhaps hackaround?
+    # if isinstance(instance_data, <sChildTypeDef>):
+    #   <p> = instance_data
+    # else:
+    #   <p> = <sChildTypeDef>(instance_data)
 >>
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 963
 <p>.data.encode(codec, check_constraints)
 <!<arrsChildren; separator="\n">!>
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 969
 <arrsChildren; separator="\n">
 else:
@@ -1166,16 +1167,16 @@ if <p> == <sEnmName>:
     <p> = cls(kind=<p>, data=<p>_data)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 991
-# match <p>:
+# match <p>.<sEnmExtFld>:
 <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 997
 # <p> = match <sEnmExtFld>:
-<arrsChildren; separator="\n">
+<!<arrsChildren; separator="\n">!>
 >>
 
 /* Updates */
@@ -1198,9 +1199,11 @@ ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefau
 # acn_python.stg 1027
 <if(!bIsOptional)>
 <sV> = <sChPath>.kind
+<sV>_is_initialized = True
 <else>
 if <sChPath> is not None:
     <sV> = <sChPath>.kind
+    <sV>_is_initialized = True
 else:
     <sV> = None
 <endif>
@@ -1238,10 +1241,11 @@ MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleEl
 <sV0> = <sVi>
 <else>
 <if(bIsFirst)>
-if <sChPath> is not None:
+<sV0> = None
+if <sVi>_is_initialized:
     <sV0> = <sVi>
 <else>
-elif <sChPath> is not None:
+elif <sVi>_is_initialized:
     <sV0> = <sVi>
 <endif>
 <endif>
@@ -1256,7 +1260,7 @@ MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 <if(bIsAlwaysInit)>
 (<sV0> == <sVi>)
 <else>
-((<sChPath> is not None and <sV0> == <sVi>) or <sChPath> is None)
+((<sVi>_is_initialized and <sV0> == <sVi>) or not <sVi>_is_initialized)
 <endif>
 >>
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
@@ -1277,15 +1281,12 @@ else <sDefaultExpr>
 
 
 if not <arrsLocalCheckEquality; separator=" and ">:
-    <v> = Asn1SccError("998 acn_python.stg 1338")
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}")
 >>
 
-
+// 2025-11-14 ms: checkAccessPath is not really used in python. All update statements (primarily ChoiceDependencyEnum) already check for optionality of the access path
 checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
-if <arrsCheckPaths; separator=" and ">:
-    <sUpdateStatement> # acn_python.stg 1112
-else:
-    <v> = <sInitExpr>
+<sUpdateStatement>
 >>
 
 

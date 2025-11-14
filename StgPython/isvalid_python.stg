@@ -88,7 +88,7 @@ def <sFuncName>(self) -> Asn1ConstraintValidResult:
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
-    return Asn1ConstraintValidResult(is_valid=True)
+    return ret
 >>
 
 GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
