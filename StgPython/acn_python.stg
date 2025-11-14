@@ -998,7 +998,6 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-#<soChildContent>
 <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 <endif>
 >>
