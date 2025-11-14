@@ -2527,9 +2527,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm, _  ->
                 let extField = getExternalField r deps t.id
-                choice_Enum pp access childrenStatements extField errCode.errCodeName codec, resultExpr
-            | CEC_presWhen, _    -> choice_preWhen pp  access childrenStatements errCode.errCodeName codec, resultExpr
                 choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
+            | CEC_presWhen, _    ->
                 choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
