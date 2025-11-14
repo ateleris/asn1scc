@@ -1160,8 +1160,8 @@ if <p>.kind == <sChildID>:
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-# acn_python.stg 984
 if <p> == <sEnmName>:
+    # acn_python.stg 984
     <sChildBody>
     <p> = cls(kind=<p>, data=<p>_data)
 >>
