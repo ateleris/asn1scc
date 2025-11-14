@@ -2344,6 +2344,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             match children |> Seq.exists(fun c -> not (Seq.isEmpty c.acnPresentWhenConditions)) with
             | true           -> CEC_presWhen
             | false          -> CEC_uper
+            
+    // let ec = if ProgrammingLanguage.ActiveLanguages.Head <> Python then ec else CEC_uper 
 
     let localVariables =
         match ec, codec with
@@ -2527,6 +2529,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let extField = getExternalField r deps t.id
                 choice_Enum pp access childrenStatements extField errCode.errCodeName codec, resultExpr
             | CEC_presWhen, _    -> choice_preWhen pp  access childrenStatements errCode.errCodeName codec, resultExpr
+                choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
+                choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
         Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
