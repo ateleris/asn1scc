@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byte_read_bit, byteseq_read_bit, byteseq_read_bits, _lemma_byteseq_read_bits_equal, _lemma_byteseq_read_bits
+from verification import byte_read_bit, byteseq_read_bit, byteseq_read_bits, _lemma_byteseq_read_bits_equal, _lemma_byteseq_read_bits_induction_lsb
 # from asn1_types import NO_OF_BITS_IN_BYTE
 NO_OF_BITS_IN_BYTE = 8
 
@@ -282,7 +282,7 @@ class BitStream:
             value = (value << 1) + next_bit
             
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
-            ghost = _lemma_byteseq_read_bits(self.buffer(), Old(self.current_used_bits), i + 1)
+            ghost = _lemma_byteseq_read_bits_induction_lsb(self.buffer(), Old(self.current_used_bits), i + 1)
             i = i + 1
 
         return value
