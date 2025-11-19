@@ -334,6 +334,8 @@ class BitStream:
         Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
+        Ensures(byteseq_equal_until(self.buffer(), Old(self.buffer()), Old(self.current_used_bits)))
+        Ensures(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count) == value)
         
         if bit_count == 0:
             return
@@ -357,6 +359,7 @@ class BitStream:
             updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
             i = i + 1
         Assert(ghost_current_value == value)
+        lemma = lemma_byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count)
     
     # def write_bits(self, value: int, bit_count: int) -> None:
     #     """Write multiple bits from an integer value"""
@@ -411,18 +414,20 @@ class BitStream:
         Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
+        Ensures(byteseq_equal_until(self.buffer(), Old(self.buffer()), Old(self.current_used_bits)))
+        Ensures(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE) == value)
 
         self.write_bits(value, 8)
 
     #endregion
 
-# def client() -> None:
-#     b = BitStream(bytearray([128, 0]))
-#     b.set_bit_index(1)
-#     b.write_bits(241, 8)
-#     b.reset()
-#     assert b.read_byte() == 192
-#     assert b.read_byte() == 0
+def client() -> None:
+    b = BitStream(bytearray([0,0,0,0]))
+    b.write_bits(255, 8)
+    
+    b.reset()
+    
+    assert b.read_bits(8) == 255
 
 
 # client()

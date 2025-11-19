@@ -299,7 +299,7 @@ def lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, leng
 
 @Pure
 @Opaque
-def _lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, position: int, length: int) -> bool:
+def lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, position: int, length: int) -> bool:
     """Proof that byteseq equality implies equality of byteseq_read_bits within that range. """
     Requires(len(b1) <= len(b2))
     Requires(0 <= equal_end and equal_end <= len(b1) * NO_OF_BITS_IN_BYTE)
@@ -313,7 +313,7 @@ def _lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, p
         return True
     
     # Holds for length - 1
-    lemma_rec = _lemma_byteseq_equal_read_bits(b1, b2, equal_end, position, length -1)
+    lemma_rec = lemma_byteseq_equal_read_bits(b1, b2, equal_end, position, length -1)
     Assert(byteseq_read_bits(b1, position, length - 1) == byteseq_read_bits(b2, position, length - 1))
     
     # Show for new bit
@@ -658,7 +658,7 @@ def __lemma_byteseq_set_bits_value(byteseq: PByteSeq, value: int, position: int,
     lemma_read_equal = lemma_byteseq_read_bits_equal(new_seq, set_position)
     Assert(byteseq_read_bits(new_seq, set_position, 1) == int(bit))
     
-    lemma_read_equality = _lemma_byteseq_equal_read_bits(new_seq, rec_seq, set_position, position, length - 1)
+    lemma_read_equality = lemma_byteseq_equal_read_bits(new_seq, rec_seq, set_position, position, length - 1)
     Assert(byteseq_read_bits(new_seq, position, length - 1) == value >> 1)
     
     lemma_read_induction = lemma_byteseq_read_bits_induction_lsb(new_seq, position, length)
