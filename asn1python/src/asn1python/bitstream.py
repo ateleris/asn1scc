@@ -8,7 +8,6 @@ that match the behavior of the C and Scala bitstream implementations.
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
 from verification import *
-NO_OF_BITS_IN_BYTE = 8
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -312,13 +311,10 @@ class BitStream:
         Ensures(self.current_used_bits == Old(self.current_used_bits) + 1)
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.buffer() == Old(byteseq_set_bit(self.buffer(), bit, self.current_used_bits)))
-        # Ensures(byteseq_read_bit(self.buffer(), Old(self.current_used_bits)) == bit)
-        # Ensures(byteseq_equal_until(self.buffer(), Old(self.buffer()), Old(self.current_used_bits)))
         
         ghost_buf = self.buffer()
         ghost_index = self.current_used_bits
-        # ghost = Reveal(byteseq_set_bit(ghost_buf, bit, ghost_index))
-        # lemma = _lemma_byteseq_set_bit(ghost_buf, bit, ghost_index)
+        ghost = Reveal(byteseq_set_bit(ghost_buf, bit, ghost_index))
 
         Unfold(self.bitstream_invariant())
         val = self._buffer[self._current_byte]
@@ -337,23 +333,30 @@ class BitStream:
         Ensures(self.bitstream_invariant())
         Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
         
         if bit_count == 0:
             return
         
         ghost_current_value = 0
-        for i in range(bit_count):
+        i: int = 0
+        
+        while i < bit_count:
             Invariant(self.bitstream_invariant())
             Invariant(0 <= i and i <= bit_count)
             Invariant(self.validate_offset(bit_count - i))
             Invariant(self.current_used_bits == Old(self.current_used_bits + i))
+            Invariant(ghost_current_value == value >> (bit_count - i))
             Invariant(self.buffer() == byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
-
 
             bit = bool((value >> (bit_count - 1 - i)) % 2)
             ghost_current_value = (ghost_current_value << 1) + bit
             
             self.write_bit(bit)
+            
+            updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
+            i = i + 1
+        Assert(ghost_current_value == value)
     
     # def write_bits(self, value: int, bit_count: int) -> None:
     #     """Write multiple bits from an integer value"""
@@ -399,12 +402,17 @@ class BitStream:
             
     #         i += 1
 
-    # def write_byte(self, byte_value: int) -> None:
-    #     """Write a complete byte"""
-    #     if byte_value < 0 or byte_value > 255:
-    #         raise BitStreamError(f"Byte value {byte_value} out of range [0, 255]")
+    def write_byte(self, value: int) -> None:
+        """Writes a complete byte"""
+        Requires(self.bitstream_invariant())
+        Requires(0 <= value and value < (1 << (NO_OF_BITS_IN_BYTE)))
+        Requires(self.validate_offset(NO_OF_BITS_IN_BYTE))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
 
-    #     self.write_bits(byte_value, 8)
+        self.write_bits(value, 8)
 
     #endregion
 
