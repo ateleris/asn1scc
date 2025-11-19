@@ -64,119 +64,34 @@ def byteseq_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
     return full_bytes_eq
 
 @Pure
-@Opaque
-def __lemma_byteseq_equal_induction_full_byte(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
+@Opaque  
+def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix: int) -> bool:
+    """Proof that byteseq equality is monotonic"""
     Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-    Requires(end % NO_OF_BITS_IN_BYTE == 0)
+    Requires(0 <= prefix and prefix <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
     Requires(byteseq_equal_until(b1, b2, end))
     Decreases(None)
-    Ensures(Implies(end >= 1, byteseq_equal_until(b1, b2, end - 1)))
-    Ensures(Implies(end >= 1, byteseq_read_bit(b1, end - 1) == byteseq_read_bit(b2, end - 1)))
+    Ensures(byteseq_equal_until(b1, b2, prefix))
     Ensures(Result())
     
-    if end == 0:
+    if end == prefix:
         return True
     
-    induction_end = end - 1
-    induction_byte = induction_end // NO_OF_BITS_IN_BYTE
+    end_equal = Reveal(byteseq_equal_until(b1, b2, end))
+    prefix_equal = Reveal(byteseq_equal_until(b1, b2, prefix))
     
-    full_eq = Reveal(byteseq_equal_until(b1, b2, end))
-    induction_eq = Reveal(byteseq_equal_until(b1, b2, induction_end))
+    end_byte_position = end // NO_OF_BITS_IN_BYTE
+    end_bit_position = end % NO_OF_BITS_IN_BYTE
     
-    b1_byte = b1[induction_byte]
-    b2_byte = b2[induction_byte]
-    Assert(b1_byte == b2_byte)
+    prefix_byte_position = prefix // NO_OF_BITS_IN_BYTE
+    prefix_bit_position = prefix % NO_OF_BITS_IN_BYTE
     
-    b1_last_bit = Reveal(byteseq_read_bit(b1, induction_end))
-    b2_last_bit = Reveal(byteseq_read_bit(b2, induction_end))
-    
-    return induction_eq and b1_last_bit == b2_last_bit
-
-@Pure
-@Opaque
-def __lemma_byteseq_equal_induction_single_bit(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-    Requires(end % NO_OF_BITS_IN_BYTE == 1)
-    Requires(byteseq_equal_until(b1, b2, end))
-    Decreases(None)
-    Ensures(byteseq_equal_until(b1, b2, end - 1))
-    Ensures(byteseq_read_bit(b1, end - 1) == byteseq_read_bit(b2, end - 1))
-    Ensures(Result())
-    
-    induction_end = end - 1
-    induction_byte = induction_end // NO_OF_BITS_IN_BYTE
-    
-    full_eq = Reveal(byteseq_equal_until(b1, b2, end))
-    induction_eq = Reveal(byteseq_equal_until(b1, b2, induction_end))
-    
-    lemma_b1_bit = _lemma_byte_read_bit_equal(b1[induction_byte], 0)
-    lemma_b2_bit = _lemma_byte_read_bit_equal(b2[induction_byte], 0)
-    
-    b1_last_bit = Reveal(byteseq_read_bit(b1, induction_end))
-    b2_last_bit = Reveal(byteseq_read_bit(b2, induction_end))
-    
-    return induction_eq and b1_last_bit == b2_last_bit
-
-# Slowest of the three cases
-@Pure
-@Opaque
-def __lemma_byteseq_equal_induction_in_byte(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-    Requires(1 < end % NO_OF_BITS_IN_BYTE)
-    Requires(byteseq_equal_until(b1, b2, end))
-    Decreases(None)
-    Ensures(byteseq_equal_until(b1, b2, end - 1))
-    Ensures(byteseq_read_bit(b1, end - 1) == byteseq_read_bit(b2, end - 1))
-    Ensures(Result())
-
-    bit_position = end % NO_OF_BITS_IN_BYTE
-
-    induction_end = end - 1
-    induction_byte = induction_end // NO_OF_BITS_IN_BYTE
-    
-    full_eq = Reveal(byteseq_equal_until(b1, b2, end))
-    induction_eq = Reveal(byteseq_equal_until(b1, b2, induction_end))
-    
-    b1_byte = b1[induction_byte]
-    b2_byte = b2[induction_byte]
-    
-    b1_bits_induction_lemma = _lemma_byte_read_bits_induction_lsb(b1_byte, 0, bit_position)
-    b2_bits_induction_lemma = _lemma_byte_read_bits_induction_lsb(b2_byte, 0, bit_position)
-    
-    Assert(byte_read_bits(b1_byte, 0, bit_position - 1) == byte_read_bits(b2_byte, 0, bit_position - 1))
-    Assert(byte_read_bits(b1_byte, bit_position - 1, 1) == byte_read_bits(b2_byte, bit_position - 1, 1))
-    
-    b1_bits_equal_lemma = _lemma_byte_read_bit_equal(b1_byte, bit_position - 1)
-    b2_bits_equal_lemma = _lemma_byte_read_bit_equal(b2_byte, bit_position - 1)
-    
-    b1_last_bit = Reveal(byteseq_read_bit(b1, induction_end))
-    b2_last_bit = Reveal(byteseq_read_bit(b2, induction_end))
-    return b1_last_bit == b2_last_bit
-
-@Pure
-@Opaque
-def _lemma_byteseq_equal_induction(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
-    """Asserts that byteseq equivalence in the bit range `[0, end[` implies equivalence in the range `[0, end - 1[` and equivalence of the bit at position `end - 1`"""
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-    Requires(byteseq_equal_until(b1, b2, end))
-    Decreases(None)
-    Ensures(Implies(end >= 1, byteseq_equal_until(b1, b2, end - 1)))
-    Ensures(Implies(end >= 1, byteseq_read_bit(b1, end - 1) == byteseq_read_bit(b2, end - 1)))
-    Ensures(Result())
-    
-    bit_position = end % NO_OF_BITS_IN_BYTE
-    
-    if bit_position == 0:
-        return __lemma_byteseq_equal_induction_full_byte(b1, b2, end)
-    
-    if bit_position == 1:
-        return __lemma_byteseq_equal_induction_single_bit(b1, b2, end)
-    
-    return __lemma_byteseq_equal_induction_in_byte(b1, b2, end)
+    if end_byte_position == prefix_byte_position:
+        byte1 = b1[end_byte_position]
+        byte2 = b2[end_byte_position]
+        bits_lemma = _lemma_byte_read_bits_equal_monotonic(byte1, byte2, end_bit_position, prefix_bit_position)
+           
+    return prefix_equal
 
 @Pure
 @Opaque
@@ -231,32 +146,6 @@ def _lemma_byte_read_bit_equal(byte: int, position: int) -> bool:
     multiple = Reveal(byte_read_bits(byte, position, 1))
     return int(single) == multiple
 
-# SLOW
-# @Pure
-# @Opaque
-# def _lemma_byte_read_equal_induction(byte1: int, byte2: int, length: int) -> bool:
-#     Requires(0 <= byte1 and byte1 <= 0xFF)
-#     Requires(0 <= byte2 and byte2 <= 0xFF)
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     Requires(byte_read_bits(byte1, 0, length) == byte_read_bits(byte2, 0, length))
-#     Decreases(None)
-#     Ensures(Implies(length > 0, byte_read_bits(byte1, 0, length - 1) == byte_read_bits(byte2, 0, length - 1)))
-#     Ensures(Implies(length > 0, byte_read_bit(byte1, length - 1) == byte_read_bit(byte2, length - 1)))
-#     Ensures(Result())
-
-#     if length == 0:
-#         return True
-
-#     byte1_induction = _lemma_byte_read_bits_induction(byte1, 0, length)
-#     byte2_induction = _lemma_byte_read_bits_induction(byte2, 0, length)
-
-#     Assert(byte_read_bits(byte1, 0, length - 1) == byte_read_bits(byte2, 0, length - 1))
-#     Assert(byte_read_bits(byte1, length - 1, 1) == byte_read_bits(byte2, length - 1, 1))
-    
-#     byte1_equal_lemma = _lemma_byte_read_bit_equal(byte1, length - 1)
-#     byte2_equal_lemma = _lemma_byte_read_bit_equal(byte2, length - 1)
-#     return byte_read_bit(byte1, length - 1) == byte_read_bit(byte2, length - 1)
-
 @Pure
 @Opaque
 def _lemma_byte_read_bits_induction_lsb(byte: int, position: int, length: int) -> bool:
@@ -279,29 +168,6 @@ def _lemma_byte_read_bits_induction_lsb(byte: int, position: int, length: int) -
 
     inner = _lemma_byte_read_bits_induction_lsb(byte, position, length - 1)
     return inner and full == prefix + single
-
-@Pure
-@Opaque
-def _lemma_byte_read_bits_induction_msb(byte: int, position: int, length: int) -> bool:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= position and position <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= length and length + position <= NO_OF_BITS_IN_BYTE)
-    Decreases(length)
-    Ensures(Implies(length == 0, byte_read_bits(byte, position, length) == 0))
-    Ensures(Implies(length >= 1, byte_read_bits(byte, position, length) == 
-                    (byte_read_bits(byte, position, 1) << (length - 1))
-                    + byte_read_bits(byte, position + 1, length - 1)))
-    Ensures(Result())
-
-    if length == 0:
-        return True
-
-    full = Reveal(byte_read_bits(byte, position, length))
-    single = Reveal(byte_read_bits(byte, position, 1)) << (length - 1)
-    suffix = Reveal(byte_read_bits(byte, position + 1, length - 1))
-
-    inner = _lemma_byte_read_bits_induction_msb(byte, position + 1, length - 1)
-    return inner and full == single + suffix
 
 # Currently not needed
 # @Pure
@@ -326,32 +192,26 @@ def _lemma_byte_read_bits_induction_msb(byte: int, position: int, length: int) -
 
 @Pure
 @Opaque
-def _lemma_byte_read_bits_equal_prefix(byte1: int, byte2: int, position: int, length: int) -> bool:
-    """ Asserts that if two bytes are equal in range [position, position + length[,
-        then they are also equal in the range [position, position + length - 1["""
+def _lemma_byte_read_bits_equal_monotonic(byte1: int, byte2: int, end: int, prefix: int) -> bool:
+    """Proof that equality on byte_read_bits is monotonic"""
     Requires(0 <= byte1 and byte1 <= 0xFF)
     Requires(0 <= byte2 and byte2 <= 0xFF)
-    Requires(0 <= position and position <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= length and length + position <= NO_OF_BITS_IN_BYTE)
-    Requires(byte_read_bits(byte1, position, length) == byte_read_bits(byte2, position, length))
-    Decreases(None)
-    Ensures(Implies(length > 0, byte_read_bits(byte1, position, length - 1) == byte_read_bits(byte2, position, length - 1)))
+    Requires(0 <= prefix and prefix <= end and end <= NO_OF_BITS_IN_BYTE)
+    Requires(byte_read_bits(byte1, 0, end) == byte_read_bits(byte2, 0, end))
+    Decreases(end)
+    Ensures(byte_read_bits(byte1, 0, prefix) == byte_read_bits(byte2, 0, prefix))
     Ensures(Result())
 
-    if length == 0:
+    if end == prefix:
         return True
-
-    byte1_full = byte_read_bits(byte1, position, length)
-    byte2_full = byte_read_bits(byte2, position, length)
-    Assert(byte1_full == byte2_full)
-
-    byte1_induction_lemma = _lemma_byte_read_bits_induction_lsb(byte1, position, length)
-    byte2_induction_lemma = _lemma_byte_read_bits_induction_lsb(byte2, position, length)
-    Assert(byte_read_bits(byte1, position + length - 1, 1) == byte_read_bits(byte1, position + length - 1, 1))
- 
-    byte1_part = byte_read_bits(byte1, position, length - 1)
-    byte2_part = byte_read_bits(byte2, position, length - 1)
-    return byte1_part == byte2_part
+    
+    byte1_end = Reveal(byte_read_bits(byte1, 0, end))
+    byte2_end = Reveal(byte_read_bits(byte2, 0, end))
+    Assert(byte1_end == byte2_end)
+    
+    byte1_prefix = Reveal(byte_read_bits(byte1, 0, prefix))
+    byte2_prefix = Reveal(byte_read_bits(byte2, 0, prefix))
+    return byte1_prefix == byte2_prefix
 
 
 
@@ -421,7 +281,7 @@ def byteseq_read_bit(byteseq: PByteSeq, position: PInt) -> bool:
 @Pure
 @Opaque
 def byteseq_read_bits(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
-    """Read an unrestricted number of bits from the byte sequence"""
+    """Read a number of bits from the byte sequence"""
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(length)
@@ -436,7 +296,37 @@ def byteseq_read_bits(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
 
 @Pure
 @Opaque
-def _lemma_byteseq_read_bits_equal(byteseq: PByteSeq, position: int) -> bool:
+def _lemma_byteseq_read_bits_value(byteseq: PByteSeq, position: int, length: int, inner: int) -> bool:
+    Requires(0 < length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= inner and inner < length)
+    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Decreases(length)
+    Ensures(byte_read_bit(byteseq_read_bits(byteseq, position, length), NO_OF_BITS_IN_BYTE - length + inner) 
+         == byteseq_read_bit(byteseq, position + inner))
+    Ensures(Result())
+    
+    full_read = Reveal(byteseq_read_bits(byteseq, position, length))
+    single_bit = Reveal(byteseq_read_bit(byteseq, position + inner))
+    
+    # Requested bit is LSB
+    if inner == length - 1:
+        full_to_single = Reveal(byte_read_bit(full_read, NO_OF_BITS_IN_BYTE - length + inner))
+        return single_bit == full_to_single
+    
+    
+    lemma_inner = _lemma_byteseq_read_bits_value(byteseq, position, length - 1, inner)
+    rec_full_read = byteseq_read_bits(byteseq, position, length - 1)
+    Assert(rec_full_read == full_read >> 1)
+    full_to_single_rec = Reveal(byte_read_bit(rec_full_read, NO_OF_BITS_IN_BYTE - (length - 1) + inner))
+    Assert(full_to_single_rec == single_bit)
+    
+    full_to_single = Reveal(byte_read_bit(full_read, NO_OF_BITS_IN_BYTE - length + inner))
+    return single_bit == full_to_single
+
+@Pure
+@Opaque
+def lemma_byteseq_read_bits_equal(byteseq: PByteSeq, position: int) -> bool:
+    """Proof that `byteseq_read_bits(byteseq, position, 1) == byteseq_read_bit(byteseq, position)`."""
     Requires(0 <= position and position + 1 <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
     Ensures(byteseq_read_bits(byteseq, position, 1) == int(byteseq_read_bit(byteseq, position)))
@@ -448,7 +338,7 @@ def _lemma_byteseq_read_bits_equal(byteseq: PByteSeq, position: int) -> bool:
 
 @Pure
 @Opaque
-def _lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, length: int) -> bool:
+def lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, length: int) -> bool:
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(length)
@@ -464,17 +354,70 @@ def _lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, len
     prefix = Reveal(byteseq_read_bits(byteseq, position, length - 1)) << 1
     single = Reveal(byteseq_read_bits(byteseq, position + length - 1, 1))
 
-    eq_lemma = _lemma_byteseq_read_bits_equal(byteseq, position +  length - 1)
-    inner_lemma = _lemma_byteseq_read_bits_induction_lsb(byteseq, position, length - 1)
+    inner_lemma = lemma_byteseq_read_bits_induction_lsb(byteseq, position, length - 1)
+    return inner_lemma and full == prefix + single
 
-    return eq_lemma and inner_lemma and full == prefix + single
+@Pure
+@Opaque
+def _lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, position: int, length: int) -> bool:
+    """Proof that byteseq equality implies equality of byteseq_read_bits within that range. """
+    Requires(len(b1) <= len(b2))
+    Requires(0 <= equal_end and equal_end <= len(b1) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= position and position + length <= equal_end)
+    Requires(byteseq_equal_until(b1, b2, equal_end))
+    Decreases(length)
+    Ensures(byteseq_read_bits(b1, position, length) == byteseq_read_bits(b2, position, length))
+    
+    if length == 0:
+        return True
+    
+    # Holds for length - 1
+    lemma_rec = _lemma_byteseq_equal_read_bits(b1, b2, equal_end, position, length -1)
+    Assert(byteseq_read_bits(b1, position, length - 1) == byteseq_read_bits(b2, position, length - 1))
+    
+    # Show for new bit
+    lemma_equal = Reveal(byteseq_equal_until(b1, b2, equal_end))
+    
+    end_byte_position = equal_end // NO_OF_BITS_IN_BYTE
+    end_bit_position = equal_end % NO_OF_BITS_IN_BYTE
+    
+    read_position = position + length - 1
+    read_byte_position = read_position // NO_OF_BITS_IN_BYTE
+    read_bit_position = read_position % NO_OF_BITS_IN_BYTE
+    
+    if end_byte_position == read_byte_position:
+        value_byte1 = Reveal(byte_read_bits(b1[end_byte_position], 0, end_bit_position))
+        value_byte2 = Reveal(byte_read_bits(b2[end_byte_position], 0, end_bit_position))
+        Assert(value_byte1 == value_byte2)
+        
+        read_bit_inner1 = Reveal(byte_read_bit(b1[end_byte_position], read_bit_position))
+        read_bit_inner2 = Reveal(byte_read_bit(b2[end_byte_position], read_bit_position))
+        Assert(read_bit_inner1 == read_bit_inner2)
+    else:
+        Assert(b1[read_byte_position] == b2[read_byte_position])
+    
+    read_bit1 = Reveal(byteseq_read_bit(b1, read_position))
+    read_bit2 = Reveal(byteseq_read_bit(b2, read_position))
+    Assert(read_bit1 == read_bit2)
+    
+    lemma_read_bits1 = lemma_byteseq_read_bits_equal(b1, read_position)
+    lemma_read_bits2 = lemma_byteseq_read_bits_equal(b2, read_position)
+    Assert(byteseq_read_bits(b1, read_position, 1) == byteseq_read_bits(b2, read_position, 1))
+    
+    lemma_read_induction1 = lemma_byteseq_read_bits_induction_lsb(b1, position, length)
+    lemma_read_induction2 = lemma_byteseq_read_bits_induction_lsb(b2, position, length)
+    return byteseq_read_bits(b1, position, length) == byteseq_read_bits(b2, position, length)
 
+    
+
+# TODO proof this
 # @Pure
 # @Opaque
 # def _lemma_byteseq_read_bits_induction_msb(byteseq: PByteSeq, position: int, length: int) -> bool:
 #     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
 #     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-#     Decreases(length)
+#     # Decreases(length)
 #     Ensures(Implies(length >= 1, byteseq_read_bits(byteseq, position, length) == 
 #                                 (byteseq_read_bits(byteseq, position, 1) << (length - 1)) + 
 #                                 (byteseq_read_bits(byteseq, position + 1, length - 1))))
@@ -484,13 +427,22 @@ def _lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, len
 #         return True
 
 #     full = Reveal(byteseq_read_bits(byteseq, position, length))
-#     single = Reveal(byteseq_read_bits(byteseq, position, 1)) << (length - 1)
+#     single = Reveal(byteseq_read_bits(byteseq, position, 1))
 #     suffix = Reveal(byteseq_read_bits(byteseq, position + 1, length - 1))
 
-#     eq_lemma = _lemma_byteseq_read_bits_equal(byteseq, position)
-#     inner_lemma = _lemma_byteseq_read_bits_induction_msb(byteseq, position + 1, length - 1)
+#     full_msb = byte_read_bit(full, NO_OF_BITS_IN_BYTE - length)
+#     lemma_value = _lemma_byteseq_read_bits_value(byteseq, position, length, 0)
+#     Assert(full_msb == byteseq_read_bit(byteseq, position))
+#     lemma_equal = _lemma_byteseq_read_bits_equal(byteseq, position)
+#     Assert(full_msb == bool(single))
+    
+#     full_suffix = Reveal(byte_read_bits(full, NO_OF_BITS_IN_BYTE - length + 1, length - 1))
+#     Assert(full_suffix == suffix)
 
-#     return eq_lemma and inner_lemma and full == suffix + single   
+#     inner_lemma = _lemma_byteseq_read_bits_induction_msb(byteseq, position + 1, length - 1)
+#     Assert((single << (length - 1)) + suffix == full)
+
+#     return inner_lemma
 
 #region Set bits
 
@@ -701,7 +653,20 @@ def __lemma_byteseq_set_bit_prefix(byteseq: PByteSeq, bit: bool, position: int) 
     equal = Reveal(byteseq_equal_until(new_seq, byteseq, position))
 
     return byte_prefix == old_byte_prefix and equal
+
+@Pure
+@Opaque
+def _lemma_byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> bool:
+    Requires(0 <= position and position < len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    Ensures(byteseq_read_bit(byteseq_set_bit(byteseq, bit, position), position) == bit)
+    Ensures(byteseq_equal_until(byteseq_set_bit(byteseq, bit, position), byteseq, position))
+    Ensures(Result())
     
+    value = __lemma_byteseq_set_bit_value(byteseq, bit, position)
+    prefix = __lemma_byteseq_set_bit_prefix(byteseq, bit, position)
+    return value and prefix
+
 @Pure
 @Opaque
 def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PInt) -> PByteSeq:
@@ -715,13 +680,11 @@ def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PIn
     if length == 0:
         return byteseq
     
-    msb = byte_read_bit(value, NO_OF_BITS_IN_BYTE - length)
-    rest_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length + 1, length - 1)
+    rec = byteseq_set_bits(byteseq, value >> 1, position, length - 1)
+    bit = bool(value % 2)
+    new_seq = byteseq_set_bit(rec, bit, position + length - 1)
 
-    new_seq = byteseq_set_bit(byteseq, msb, position)
-    rec = byteseq_set_bits(new_seq, rest_value, position + 1, length - 1)
-
-    return rec
+    return new_seq
 
 @Pure
 @Opaque
@@ -731,10 +694,9 @@ def _lemma_byteseq_set_bits_equal(byteseq: PByteSeq, value: bool, position: int)
     Ensures(byteseq_set_bits(byteseq, value, position, 1) == byteseq_set_bit(byteseq, value, position))
     Ensures(Result())
 
-    bit = Reveal(byte_read_bit(value, 7))
     repeated = Reveal(byteseq_set_bits(byteseq, value, position, 1))
     single = byteseq_set_bit(byteseq, value, position)
-    return bit == value and repeated == single
+    return repeated == single
 
 # @Pure
 # @Opaque
@@ -756,10 +718,10 @@ def _lemma_byteseq_set_bits_equal(byteseq: PByteSeq, value: bool, position: int)
 #     msb = byte_read_bit(value, NO_OF_BITS_IN_BYTE - length)
 #     first = _lemma_byteseq_set_bits_equal(byteseq, msb, position)
 
-# WORKS
 @Pure
 @Opaque
 def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
+    """Proof that `byteseq_set_bits()` preserves previous bits in the sequence."""
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
@@ -769,145 +731,68 @@ def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int
 
     if length == 0:
         return byteseq_set_bits(byteseq, value, position, length) == byteseq
+    
+    full_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
+    rec_seq = byteseq_set_bits(byteseq, value >> 1, position, length - 1)
+    lemma_rec = __lemma_byteseq_set_bits_prefix(byteseq, value >> 1, position, length - 1)
+    
+    Assert(byteseq_equal_until(rec_seq, byteseq, position))
+    
+    bit = bool(value % 2)
+    new_seq = byteseq_set_bit(rec_seq, bit, position + length - 1)
+    lemma_set_bit = _lemma_byteseq_set_bit(rec_seq, bit, position + length - 1)
+    lemma_equal_monotonic = lemma_byteseq_equal_monotonic(new_seq, rec_seq, position + length - 1, position)
+    Assert(byteseq_equal_until(new_seq, rec_seq, position))
+    lemma_equal_transitiv = _lemma_byteseq_equal_until_transitiv(new_seq, rec_seq, byteseq, position)
+    return byteseq_equal_until(new_seq, byteseq, position)
 
-    full = Reveal(byteseq_set_bits(byteseq, value, position, length))
-    msb = byte_read_bit(value, NO_OF_BITS_IN_BYTE - length)
-    rest_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length + 1, length - 1)
-
-    first_bit_seq = byteseq_set_bit(byteseq, msb, position)
-    lemma_prefix = __lemma_byteseq_set_bit_prefix(byteseq, msb, position)
-    Assert(byteseq_equal_until(first_bit_seq, byteseq, position))
-
-    rest_seq = byteseq_set_bits(first_bit_seq, rest_value, position + 1, length - 1)
-    Assert(full == rest_seq)
-
-    lemma_first_bit_seq = __lemma_byteseq_set_bits_prefix(first_bit_seq, rest_value, position + 1, length - 1)
-    Assert(byteseq_equal_until(rest_seq, first_bit_seq, position + 1))
-    lemma_prefix_induction = _lemma_byteseq_equal_induction(rest_seq, first_bit_seq, position + 1)
-    Assert(byteseq_equal_until(rest_seq, first_bit_seq, position))
-
-    lemma_transitiv = _lemma_byteseq_equal_until_transitiv(rest_seq, first_bit_seq, byteseq, position)
-
-    full_eq_byteseq = byteseq_equal_until(full, byteseq, position)
-    return full_eq_byteseq
-
-# @Pure
-# @Opaque
+@Pure
+@Opaque
 def __lemma_byteseq_set_bits_value(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
+    """Proof that `byteseq_set_bits()` writes the input value."""
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
-    # Decreases(None)
+    Decreases(length)
     Ensures(byteseq_read_bits(byteseq_set_bits(byteseq, value, position, length), position, length) == value)
     Ensures(Result())
 
     if length == 0:
         return True
     
-    full = Reveal(byteseq_set_bits(byteseq, value, position, length))
-    msb = byte_read_bit(value, NO_OF_BITS_IN_BYTE - length)
-    rest_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length + 1, length - 1)
-    lemma_split_msb = _lemma_byte_read_bits_induction_msb(value, NO_OF_BITS_IN_BYTE - length, length)
-    combined_value = (msb << (length - 1)) + rest_value
-    Assert(combined_value == value) # This cannot be verified yet
-
-    first_bit_seq = byteseq_set_bit(byteseq, msb, position)
-    first_bit_lemma = __lemma_byteseq_set_bit_value(byteseq, msb, position)
-    first_read_msb = byteseq_read_bit(first_bit_seq, position)
-    Assert(first_read_msb == msb)
+    full_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))   
+    rec_seq = byteseq_set_bits(byteseq, value >> 1, position, length - 1)
+    lemma_rec = __lemma_byteseq_set_bits_value(byteseq, value >> 1, position, length - 1)
+    Assert(byteseq_read_bits(rec_seq, position, length - 1) == value >> 1)
     
-    rest_seq = byteseq_set_bits(first_bit_seq, rest_value, position + 1, length - 1)
-    Assert(full == rest_seq)
+    bit = bool(value % 2)
+    set_position = position + length - 1
+    new_seq = byteseq_set_bit(rec_seq, bit, set_position)
     
-    lemma_rest_value = __lemma_byteseq_set_bits_value(first_bit_seq, rest_value, position + 1, length - 1)
-    rest_read_value = byteseq_read_bits(full, position + 1, length - 1)
-    Assert(rest_read_value == rest_value)
-
-    lemma_prefix = __lemma_byteseq_set_bits_prefix(first_bit_seq, rest_value, position + 1, length - 1)
-    lemma_prefix_induction = _lemma_byteseq_equal_induction(full, first_bit_seq, position + 1)
-    msb_read_value = byteseq_read_bit(full, position)
-    Assert(msb_read_value == msb)
+    lemma_set_bit = _lemma_byteseq_set_bit(rec_seq, bit, set_position)
+    lemma_read_equal = lemma_byteseq_read_bits_equal(new_seq, set_position)
+    Assert(byteseq_read_bits(new_seq, set_position, 1) == int(bit))
     
-    lemma_read_equal = _lemma_byteseq_read_bits_equal(full, position)
-    # lemma_induction_msb = _lemma_byteseq_read_bits_induction_msb(full, position, length)
-    read_value = byteseq_read_bits(full, position, length)
-    Assert(read_value == value)
-    return read_value == value
-
-
-# @Pure
-# @Opaque
-# def byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> PByteSeq:
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= value and value < (1 << length))
-#     Decreases(None)
-#     Ensures(len(byteseq) == len(Result()))
-
-#     if length == 0:
-#         return byteseq
+    lemma_read_equality = _lemma_byteseq_equal_read_bits(new_seq, rec_seq, set_position, position, length - 1)
+    Assert(byteseq_read_bits(new_seq, position, length - 1) == value >> 1)
     
-#     byte_position = position // NO_OF_BITS_IN_BYTE
-#     bit_position = position % NO_OF_BITS_IN_BYTE
+    lemma_read_induction = lemma_byteseq_read_bits_induction_lsb(new_seq, position, length)
+    return byteseq_read_bits(new_seq, position, length) == value
     
-#     if bit_position + length <= NO_OF_BITS_IN_BYTE:
-#         return byteseq.update(byte_position, byte_set_bits(byteseq[byte_position], value, bit_position, length))
+@Pure
+@Opaque
+def lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= value and value < (1 << length))
+    Decreases(None)
+    Ensures(byteseq_equal_until(byteseq_set_bits(byteseq, value, position, length), byteseq, position))
+    Ensures(byteseq_read_bits(byteseq_set_bits(byteseq, value, position, length), position, length) == value)
+    Ensures(Result())
     
-#     upper_length = NO_OF_BITS_IN_BYTE - bit_position
-#     upper_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length)
-#     new_upper_byte = byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length)
-    
-#     lower_length = length - upper_length
-#     lower_value = byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length)
-#     new_lower_byte = byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length)
-    
-#     return byteseq.update(byte_position, new_upper_byte).update(byte_position + 1, new_lower_byte)
-
-# WORKS
-# TODO but improve performance
-# @Pure
-# @Opaque
-# def _lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-#     Requires(0 <= value and value < (1 << length))
-#     Ensures(byteseq_read_bits(byteseq_set_bits(byteseq, value, position, length), position, length) == value) # Written value
-#     Ensures(Implies(len(byteseq) > position // NO_OF_BITS_IN_BYTE, byte_read_bits(byteseq_set_bits(byteseq, value, position, length)[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE) 
-#             == byte_read_bits(byteseq[position // NO_OF_BITS_IN_BYTE], 0, position % NO_OF_BITS_IN_BYTE))) # Previous bits in this byte
-#     Ensures(byteseq_eq_until(byteseq, byteseq_set_bits(byteseq, value, position, length), position // NO_OF_BITS_IN_BYTE)) # Previous bytes
-#     Ensures(Result())
-    
-#     byte_position = position // NO_OF_BITS_IN_BYTE
-#     bit_position = position % NO_OF_BITS_IN_BYTE
-    
-#     if bit_position + length <= NO_OF_BITS_IN_BYTE:
-#         new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
-#         written_value = Reveal(byteseq_read_bits(new_seq, position, length))
-        
-#         if length == 0:
-#             return True
-        
-#         inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], value, bit_position, length))
-#         return inner and value == written_value
-    
-#     new_seq = Reveal(byteseq_set_bits(byteseq, value, position, length))
-#     written_value = Reveal(byteseq_read_bits(new_seq, position, length))
-    
-#     upper_length = NO_OF_BITS_IN_BYTE - bit_position
-#     upper_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - length, upper_length))
-#     upper_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position], upper_value, bit_position, upper_length))
-    
-#     written_upper_value = Reveal(byte_read_bits(new_seq[byte_position], bit_position, upper_length))
-    
-#     lower_length = length - upper_length
-#     lower_value = Reveal(byte_read_bits(value, NO_OF_BITS_IN_BYTE - lower_length, lower_length))
-#     lower_inner = Reveal(_lemma_byte_set_bits(byteseq[byte_position + 1], lower_value, 0, lower_length))
-    
-#     written_lower_value = Reveal(byte_read_bits(new_seq[byte_position + 1], 0, lower_length))
-    
-#     return (upper_inner and upper_value == written_upper_value and 
-#             lower_inner and lower_value == written_lower_value and 
-#             written_value == value)
+    lemma_prefix = __lemma_byteseq_set_bits_prefix(byteseq, value, position, length)
+    lemma_value = __lemma_byteseq_set_bits_value(byteseq, value, position, length)
+    return lemma_prefix and lemma_value
 
 #endregion
 

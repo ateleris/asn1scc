@@ -7,8 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
-from verification import byte_read_bit, byteseq_read_bit, byteseq_read_bits, _lemma_byteseq_read_bits_equal, _lemma_byteseq_read_bits_induction_lsb
-# from asn1_types import NO_OF_BITS_IN_BYTE
+from verification import *
 NO_OF_BITS_IN_BYTE = 8
 
 class BitStreamError(Exception):
@@ -249,7 +248,7 @@ class BitStream:
         Ensures(int(Result()) == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), 1))
 
         ghost = self._lemma_read_current_bit_pure()
-        ghost = _lemma_byteseq_read_bits_equal(self.buffer(), self.current_used_bits)
+        ghost = lemma_byteseq_read_bits_equal(self.buffer(), self.current_used_bits)
 
         res = self._read_current_bit_pure()
         self._shift_bit_index(1)
@@ -282,7 +281,7 @@ class BitStream:
             value = (value << 1) + next_bit
             
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
-            ghost = _lemma_byteseq_read_bits_induction_lsb(self.buffer(), Old(self.current_used_bits), i + 1)
+            ghost = lemma_byteseq_read_bits_induction_lsb(self.buffer(), Old(self.current_used_bits), i + 1)
             i = i + 1
 
         return value
@@ -305,25 +304,57 @@ class BitStream:
     #
     # |x|x|x|b|?|?|?|?|
     #  0 1 2 3 4 5 6 7
-    # def write_bit(self, bit: bool) -> None:
-    #     """Write a single bit"""
-    #     #@nagini Requires(self.bitstream_invariant())
-    #     #@nagini Requires(self.validate_offset(1))
-    #     #@nagini Ensures(self.bitstream_invariant())
-    #     #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits) + 1)
-    #     #@nagini Ensures(self.buffer_size == Old(self.buffer_size))
-    #     #@nagini Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
+    def write_bit(self, bit: bool) -> None:
+        """Write a single bit"""
+        Requires(self.bitstream_invariant())
+        Requires(self.validate_offset(1))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits) + 1)
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.buffer() == Old(byteseq_set_bit(self.buffer(), bit, self.current_used_bits)))
+        # Ensures(byteseq_read_bit(self.buffer(), Old(self.current_used_bits)) == bit)
+        # Ensures(byteseq_equal_until(self.buffer(), Old(self.buffer()), Old(self.current_used_bits)))
         
-    #     # #@nagini Ensures(self.buffer()[Old(self.current_byte_position)] == byte_set_bit(self.buffer()[Old(self.current_byte_position)], bit, Old(self.current_bit_position)))
-    #     Ensures(self.buffer() == Old(Unfolding(self.bitstream_invariant(), byteseq_set_bit(ToByteSeq(self._buffer), bit, self._current_bit, self._current_byte))))
-    #     #@nagini Ensures(bit == self._read_bit_pure(Old(self.current_used_bits)))
+        ghost_buf = self.buffer()
+        ghost_index = self.current_used_bits
+        # ghost = Reveal(byteseq_set_bit(ghost_buf, bit, ghost_index))
+        # lemma = _lemma_byteseq_set_bit(ghost_buf, bit, ghost_index)
 
-    #     #@nagini Unfold(self.bitstream_invariant())
-    #     val = self._buffer[self._current_byte]
-    #     self._buffer[self._current_byte] = byte_set_bit(val, bit, self._current_bit)
-    #     #@nagini Fold(self.bitstream_invariant())
-    #     self._shift_bit_index(1)
+        Unfold(self.bitstream_invariant())
+        val = self._buffer[self._current_byte]
+        self._buffer[self._current_byte] = byte_set_bit(val, bit, self._current_bit)
+        
+        Fold(self.bitstream_invariant())
+        self._shift_bit_index(1)
 
+
+    def write_bits(self, value: int, bit_count: int) -> None:
+        """Write multiple bits from an integer value"""
+        Requires(self.bitstream_invariant())
+        Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE) 
+        Requires(0 <= value and value < (1 << (bit_count)))
+        Requires(self.validate_offset(bit_count))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        
+        if bit_count == 0:
+            return
+        
+        ghost_current_value = 0
+        for i in range(bit_count):
+            Invariant(self.bitstream_invariant())
+            Invariant(0 <= i and i <= bit_count)
+            Invariant(self.validate_offset(bit_count - i))
+            Invariant(self.current_used_bits == Old(self.current_used_bits + i))
+            Invariant(self.buffer() == byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
+
+
+            bit = bool((value >> (bit_count - 1 - i)) % 2)
+            ghost_current_value = (ghost_current_value << 1) + bit
+            
+            self.write_bit(bit)
+    
     # def write_bits(self, value: int, bit_count: int) -> None:
     #     """Write multiple bits from an integer value"""
     #     Requires(self.bitstream_invariant())
