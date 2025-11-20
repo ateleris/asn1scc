@@ -98,18 +98,16 @@ for <i> in range(int(<fixedSize>)):
 
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 105
-unaligned_codec = codec.copy()
-<!codec.align_to_<sAlignmentValue; format="lower">()!>
+codec.align_to_<sAlignmentValue>()
 # BitStream validation would go here
-<!<sMainBody>!>
+<sMainBody>
 >>
 
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 113
-unaligned_codec = codec.copy()
-<!codec.align_to_<sAlignmentValue; format="lower">()!>
+codec.align_to_<sAlignmentValue>()
 # BitStream validation would go here
-<!<sMainBody>!>
+<sMainBody>
 >>
 
 PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<

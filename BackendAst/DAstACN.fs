@@ -113,6 +113,24 @@ let handleSavePosition (funcBody: FuncBody)
             newContent, ns1a
         newFuncBody
 
+let getAlignmentString (al: AcnAlignment) =
+    match al with
+    | AcnGenericTypes.NextByte ->
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Scala -> "Byte", 8I
+        | Python -> "byte", 8I
+        | _ -> "NextByte", 8I
+    | AcnGenericTypes.NextWord ->
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Scala -> "Short", 16I
+        | Python -> "word", 8I
+        | _ -> "NextWord", 16I
+    | AcnGenericTypes.NextDWord ->
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Scala -> "Int", 32I
+        | Python -> "dword", 8I
+        | _ -> "NextDWord", 32I
+
 let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
                                 (lm:LanguageMacros)
                                 (codec:CommonTypes.Codec)
@@ -122,20 +140,7 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal =
-            match al with
-            | AcnGenericTypes.NextByte ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Byte", 8I
-                | _ -> "NextByte", 8I
-            | AcnGenericTypes.NextWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Short", 16I
-                | _ -> "NextWord", 16I
-            | AcnGenericTypes.NextDWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Int", 32I
-                | _ -> "NextDWord", 32I
+        let alStr, nAlignmentVal = getAlignmentString al
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =
@@ -157,11 +162,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal =
-            match al with
-            | AcnGenericTypes.NextByte   -> "NextByte", 8I
-            | AcnGenericTypes.NextWord   -> "NextWord", 16I
-            | AcnGenericTypes.NextDWord  -> "NextDWord", 32I
+        let alStr, nAlignmentVal = getAlignmentString al
         let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CodegenScope) (lvName:string) =
             let content = funcBody codec prms nestingScope p lvName
             let newContent =

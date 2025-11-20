@@ -317,7 +317,8 @@ class <td.typeName>(Asn1Base):
     kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>
     
     # actual selection element
-    data: Union[<arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
+    # TODO should NullType be included here
+    data: Union[NullType, <arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
 
     <arrsSizeDefinition; separator="\n\n">
 >>
