@@ -1191,20 +1191,19 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         | Python ->
                             // For the enum value, we need to prefix with module if we're in a different module
                             let sChildIDBase = lm.lg.presentWhenName (Some typeDefinition) ch
-                            if (ToC t.id.ModName) <> p.modName then
-                                (ToC t.id.ModName) + "." + sChildIDBase
+                            if ToC childTk.programUnit <> p.modName && childTk.programUnit <> "" then
+                                ToC childTk.programUnit + "." + sChildIDBase
                             else
                                 sChildIDBase
                          | _ -> lm.lg.presentWhenName (Some typeDefinition) ch
                     let childContent_funcBody, childContent_localVariables =
                         let childContent =
                             match ProgrammingLanguage.ActiveLanguages.Head with
-                            | ProgrammingLanguage.Scala ->
+                            | ProgrammingLanguage.Scala 
+                            | ProgrammingLanguage.Python ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false ->  fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildTempVarName ch.chType.isIA5String}
                                 | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
-                            | ProgrammingLanguage.Python ->
-                                fnc p
                             | _ ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false  -> fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}

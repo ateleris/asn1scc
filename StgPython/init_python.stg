@@ -251,7 +251,8 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
 # init_python.stg 255
 <sChildContent>
-<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>)
+# init_python.stg 257
+<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>_data)
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
