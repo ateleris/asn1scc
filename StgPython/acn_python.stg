@@ -86,7 +86,7 @@ if not <sInp>:
 CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # acn_python.stg 424242
 if not <sInp>:
-    raise Asn1Exception(f"Decoding failed with Error Code {self.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
 <p> = <sType>(<sInp>.decoded_value)
 >>
 
@@ -1112,6 +1112,7 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 if <arrsConditions; separator=" and ">:
     <sChildBody>
+    # acn_python.stg 952
     <p> = <sChildID>(<sChildName>)
     
     # perhaps hackaround?
