@@ -880,7 +880,7 @@ val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
 case <sChildID>(<sChildName>) =>
     <sChildBody>
 >>
@@ -891,7 +891,7 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 (<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
 <if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
 <else>
 else if (<arrsConditions; separator=" && ">) {

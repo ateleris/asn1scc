@@ -2557,6 +2557,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_presWhen  ->
                         Console.WriteLine("INNER - " + sChildName + " - " + typeDefinitionName)
+                        let isPrimitiveType =
+                            match ProgrammingLanguage.ActiveLanguages.Head with
+                            | Python -> false  // Python always uses class decode methods
+                            | _ ->
+                                match (lm.lg.getTypeDefinition child.chType.FT_TypeDefinition) with
+                                | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                                | _ -> false
                         let handPresenceCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                             match cond with
                             | PresenceInt  (relPath, intLoc)   ->
@@ -2585,7 +2592,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
-                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
+                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef typeDefinitionName sChildInitExpr isPrimitiveType codec)
             [(childBody, childContent_localVariables, childContent_errCodes, auxiliaries)], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us

@@ -1101,10 +1101,14 @@ else:
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
 # acn_python.stg 938
 if <p>.kind == <sChildID>:
+    <if(bIsPrimitive)>
     <sChildBody>
+    <else>
+    self.data.encode(codec, check_constraints)
+    <endif>
 >>
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
@@ -1115,22 +1119,23 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 if <arrsConditions; separator=" and ">:
-    <sChildBody>
     # acn_python.stg 952
+    <if(bIsPrimitive)>
+    <sChildBody>
+    <else>
+    instance_data = <sChildTypeDef>.decode(codec, check_constraints)
+    <endif>
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
-    
-    # perhaps hackaround?
-    # if isinstance(instance_data, <sChildTypeDef>):
-    #   <p> = instance_data
-    # else:
-    #   <p> = <sChildTypeDef>(instance_data)
 >>
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
-<arrsChildren; separator="\n#NEXT CHILD:\n">
+<!"""
+<p>
+<sAcc>
+<sErrCode>
+"""!>
 # acn_python.stg 963
-<p>.data.encode(codec, check_constraints)
-<!<arrsChildren; separator="\n">!>
+<arrsChildren; separator="\n">
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
