@@ -2598,9 +2598,6 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let access = lm.lg.getAccess p.accessPath
-            match ec, ProgrammingLanguage.ActiveLanguages.Head with
-            | _, Python -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
-            | CEC_uper, _        ->
             let lang = ProgrammingLanguage.ActiveLanguages.Head
             match ec with
             | CEC_uper        ->
