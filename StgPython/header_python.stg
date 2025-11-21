@@ -55,8 +55,8 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 Python TYPES
 */
 
-Declare_Integer() ::="int" // TODO: is this really 64 bit? 
-Declare_PosInteger() ::="int" // TODO: is this really 64 bit?
+Declare_Integer() ::="int"
+Declare_PosInteger() ::="int"
 Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
 Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
 

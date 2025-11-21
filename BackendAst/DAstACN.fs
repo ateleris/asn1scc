@@ -373,7 +373,25 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                                 match md.Value = t.id.ModName with
                                 | true  -> ToC2(r.args.TypePrefix + ts.Value)
                                 | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
-                        emitPrm p.c_name prmTypeName
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python ->
+                            // For Python, use basic types: enumerations -> int, strings -> str
+                            let basicType =
+                                try
+                                    let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
+                                    let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
+                                    match refTas with
+                                    | Some tas ->
+                                        match tas.Type.ActualType.Kind with
+                                        | Asn1AcnAst.Enumerated _ -> "int"
+                                        | Asn1AcnAst.IA5String _
+                                        | Asn1AcnAst.NumericString _ -> "str"
+                                        | _ -> "int"  // Default to int for other types
+                                    | None -> "int"  // Default if not found
+                                with
+                                | _ -> "int"  // Default on any error
+                            emitPrm p.c_name basicType
+                        | _ -> emitPrm p.c_name prmTypeName
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
@@ -1786,6 +1804,7 @@ type private SequenceChildState = {
     childIx: bigint
     uperAccBits: bigint
     acnAccBits: bigint
+    acnChildrenEncoded: (string * AcnChild) list
 }
 type private SequenceChildResult = {
     stmts: SequenceChildStmt list
@@ -2024,6 +2043,41 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     acnRelativeOffset = s.acnAccBits
                     acnOffset = nestingScope.acnOffset + s.acnAccBits
                     parents = (p, t) :: nestingScope.parents}
+            
+            // Build ACN parameters for child that has dependencies
+            let acnParamsForTemplate =
+              match childInfo with
+              | Asn1Child child ->
+                  // Find dependencies of this Asn1Child where the dependency kind is AcnDepRefTypeArgument
+                  // This tells us which parameters the child type needs and where they come from
+                  deps.acnDependencies
+                      |> List.filter(fun d ->
+                          d.asn1Type = child.Type.id &&
+                          match d.dependencyKind with
+                          | AcnDepRefTypeArgument _ -> true
+                          | _ -> false)
+                      |> List.choose(fun d ->
+                          // Extract the target parameter name from the dependency kind
+                          let targetParamName =
+                              match d.dependencyKind with
+                              | AcnDepRefTypeArgument acnPrm -> acnPrm.c_name
+                              | _ -> ""  // Should never happen given our filter
+
+                          match d.determinant with
+                          | AcnChildDeterminant acnCh ->
+                              // The parameter gets its value from an ACN child that was encoded earlier
+                              // Find the variable name that holds the ACN child's value
+                              let found = s.acnChildrenEncoded |> List.tryFind(fun (varName, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
+                              // Return "parameterName=variableName" format
+                              found |> Option.map(fun (varName, _) -> sprintf "%s=%s" targetParamName varName)
+                          | AcnParameterDeterminant acnPrm ->
+                              // The parameter gets its value from a parent parameter
+                              // Only include this if the parent actually has this parameter
+                              match acnArgs |> List.tryFind(fun (_, prm) -> prm.id = acnPrm.id) with
+                              | Some _ -> Some (sprintf "%s=%s" targetParamName acnPrm.c_name)
+                              | None -> None
+                      )
+              | AcnChild _ -> []
 
             match childInfo with
             | Asn1Child child   ->
@@ -2101,11 +2155,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match (lm.lg.getTypeDefinition child.Type.FT_TypeDefinition) with 
                             | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
                             | _ -> false
-
+      
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
-                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType codec
+                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate codec
                             | Some Asn1AcnAst.AlwaysAbsent ->
                                 sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
                             | Some Asn1AcnAst.AlwaysPresent ->
@@ -2138,7 +2192,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
                 let icdResult = icd_asn1_child child stmts.icdComments
                 let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
-                let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
+                // Keep the accumulated ACN children so subsequent children can reference them
+                let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded}
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
@@ -2174,7 +2229,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType codec)
+                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2184,7 +2239,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
                             // Workaround: 0 # assigns 0 to the response variable and puts everything else behind a line comment.
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
@@ -2193,7 +2248,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
                 let icdResult = icd_acn_child acnChild icdComments
                 let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult}
-                let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
+                // Record this ACN child so subsequent Asn1 children can reference it
+                let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; acnChildrenEncoded = (acnChild.c_name, acnChild) :: s.acnChildrenEncoded}
                 res, newAcc
 
 
@@ -2211,7 +2267,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | Some (Optional opt) -> if opt.acnPresentWhen.IsNone then 1I else 0I
             | _ -> 0I
         )
-        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
+        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits; acnChildrenEncoded = []}
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
@@ -2434,7 +2490,26 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         if lm.lg.acn.choice_requires_tmp_decoding && codec = Decode then
                             {CodegenScope.modName = p.modName; accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
                         else {p with accessPath = lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}
-                    chFunc.funcBody us [] childNestingScope childP
+                    
+                    let acnArgsForChild =
+                      deps.acnDependencies
+                      |> List.filter(fun d -> d.asn1Type = child.chType.id)
+                      |> List.choose(fun d ->
+                          match d.dependencyKind with
+                          | AcnDepPresence (relPath, _) ->
+                              match d.determinant with
+                              | AcnParameterDeterminant acnPrm -> Some (relPath, acnPrm)
+                              | _ -> None
+                          | AcnDepPresenceStr (relPath, _, _) ->
+                              match d.determinant with
+                              | AcnParameterDeterminant acnPrm -> Some (relPath, acnPrm)
+                              | _ -> None
+                          | AcnDepRefTypeArgument acnPrm ->
+                              // Use empty path for direct parameter references
+                              Some (AcnGenericTypes.RelativePath [], acnPrm)
+                          | _ -> None
+                      )
+                    chFunc.funcBody us acnArgsForChild childNestingScope childP
                 | None -> None, us
 
             let childContent_funcBody, childContent_localVariables, childContent_errCodes, auxiliaries =
@@ -2481,6 +2556,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
                         Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_presWhen  ->
+                        Console.WriteLine("INNER - " + sChildName + " - " + typeDefinitionName)
                         let handPresenceCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                             match cond with
                             | PresenceInt  (relPath, intLoc)   ->
@@ -2525,12 +2601,24 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             match ec, ProgrammingLanguage.ActiveLanguages.Head with
             | _, Python -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_uper, _        ->
+            let lang = ProgrammingLanguage.ActiveLanguages.Head
+            match ec with
+            | CEC_uper        ->
                 choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
-            | CEC_enum   enm, _  ->
+            | CEC_enum   enm  ->
                 let extField = getExternalField r deps t.id
                 choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
             | CEC_presWhen, _    ->
                 choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
+                match lang with
+                | Python ->
+                    choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
+                | _ -> choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
+            | CEC_presWhen    ->
+                match lang with
+                | Python ->
+                    choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
+                | _ -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
         Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns

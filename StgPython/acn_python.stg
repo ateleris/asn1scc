@@ -8,6 +8,9 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
 <sErrCode> = <nErrValue>  <if(soErrorCodeComment)># <soErrorCodeComment><endif>
 >>
 
+// Need to initialize to a default type because it's used in the function definition of encode/decode after other default values
+EmitAcnParameter(sName, sType) ::= "<sName>: <sType> = None"
+
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 # acn_python.stg 29
 class EncodeConstants:
@@ -19,6 +22,7 @@ class EncodeConstants:
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
 def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True) -> None:
+def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> None:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -43,7 +47,7 @@ class DecodeConstants:
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
+def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> '<sTypeDefName>':
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -60,10 +64,10 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True) -> '<sTy
     return <sVarName>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True) -> Tuple[ACNDecoder, '<sTypeDefName>']:
+def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
-    res = <sTypeDefName>.<sFuncName>(cpy, check_constraints)
+    res = <sTypeDefName>.<sFuncName>(cpy, check_constraints<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
     # acn_python.stg 84
     return cpy, res
 >>
@@ -943,25 +947,25 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-self.<sChName>.encode(codec, check_constraints)
+self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
 
@@ -1113,7 +1117,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 if <arrsConditions; separator=" and ">:
     <sChildBody>
     # acn_python.stg 952
-    <p> = <sChildID>(<sChildName>)
+    <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
     
     # perhaps hackaround?
     # if isinstance(instance_data, <sChildTypeDef>):
@@ -1123,6 +1127,7 @@ if <arrsConditions; separator=" and ">:
 >>
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+<arrsChildren; separator="\n#NEXT CHILD:\n">
 # acn_python.stg 963
 <p>.data.encode(codec, check_constraints)
 <!<arrsChildren; separator="\n">!>
@@ -1141,6 +1146,11 @@ ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 # acn_python.stg 978
 if <p>.kind == <sChildID>:
     <sChildBody>
+>>
+
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+# acn_python.stg 991
+<arrsChildren; separator="\n">
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -1473,16 +1483,6 @@ if not res:
 //              UNUSED TEMPLATES
 // ==============================================
 
-EmitAcnParameter(sName, sType) ::= "# EmitAcnParameter UNUSED <sName>: <sType>  # TODO acn:11"
-
 EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 <! Not necessary for python. EmitTypeAssignment_primitive_def_encode already has all those variables. !>
->>
-
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
-"""
-# Choice_Enum_encode UNUSED
-# acn_python.stg 991
-<arrsChildren; separator="\n">
-"""
 >>
