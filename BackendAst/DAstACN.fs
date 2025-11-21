@@ -2598,25 +2598,30 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let access = lm.lg.getAccess p.accessPath
-            match ec, ProgrammingLanguage.ActiveLanguages.Head with
-            | _, Python -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
-            | CEC_uper, _        ->
             let lang = ProgrammingLanguage.ActiveLanguages.Head
             match ec with
             | CEC_uper        ->
+                // Console.WriteLine("CEC_uper for " + sChoiceIndexName)
                 choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm  ->
                 let extField = getExternalField r deps t.id
-                choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
-            | CEC_presWhen, _    ->
-                choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
+                // Console.WriteLine("CEC_enum for " + sChoiceIndexName + " (" + extField + ")")
                 match lang with
                 | Python ->
+                    // Console.WriteLine("Using choice_uper in CEC_enum")
+                    // let otherStuff = choice_Enum pp access childrenStatements extField td errCode.errCodeName codec
+                    // let myStuff = choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec
+                    //"CHOICE CEC_ENUM ORIGINAL\n" + otherStuff + "\nCHOICE ENUM MYSTUFF\n" + myStuff + "\nCHOICE ENUM DONE", resultExpr
                     choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
                 | _ -> choice_Enum pp access childrenStatements extField td errCode.errCodeName codec, resultExpr
             | CEC_presWhen    ->
+                // Console.WriteLine("CEC_presWhen for " + sChoiceIndexName)
                 match lang with
                 | Python ->
+                    // Console.WriteLine("Using choice_uper in CEC_presWhen")
+                    // let otherStuff = choice_preWhen pp  access childrenStatements td errCode.errCodeName codec
+                    // let myStuff = choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec
+                    //"CHOICE CEC_PRESWHEN ORIGINAL\n" + otherStuff + "\nCHOICE PRESWHEN MYSTUFF\n" + myStuff + "\nCHOICE PRESWHEN DONE", resultExpr
                     choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
                 | _ -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
