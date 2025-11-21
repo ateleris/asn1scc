@@ -1,34 +1,56 @@
+from nagini_contracts.adt import ADT
 from nagini_contracts.contracts import *
-from typing import Final, Tuple
+from typing import NamedTuple
+from verification import byteseq_read_bits, NO_OF_BITS_IN_BYTE
 
-class Segment:
+class Segment_ADT(ADT):
+    pass
+
+class Segment(Segment_ADT, NamedTuple('Segment', [('length', int), ('value', int)])):
+    pass
+
+@Pure
+def segments_total_length(segments: PSeq[Segment]) -> int:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Decreases(len(segments))
+    Ensures(Result() >= 0)
     
-    @Predicate
-    def segment_predicate(self) -> bool:
-        return Acc(self._length) and Acc(self._value)
+    if len(segments) == 0:
+        return 0
     
-    def __init__(self, length: int, value: int):
-        Ensures(Acc(self.segment_predicate(), 1/20))
-        self._length = length
-        self._value = value
-        Fold(Acc(self.segment_predicate(), 1/20))
-        Ensures(self.length == length)
-        Ensures(self.value == value)
+    return segments[0].length + segments_total_length(segments.drop(1))
+
+@Pure
+def segment_invariant(seg: Segment) -> bool:
+    Decreases(None)
+    return (0 <= seg.length and seg.length <= NO_OF_BITS_IN_BYTE and 
+            0 <= seg.value and seg.value < (1 << seg.length))
+
+@Pure
+def __segments_contained_from(byteseq: PByteSeq, position: int, segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(0 <= position and position + segments_total_length(segments) <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Decreases(len(segments))
     
-    # def __eq__(self, other: "Segment") -> bool:
-    #     Requires(Rd(other.segment_predicate()))
-    #     return other.length == self.length and other.value == self.value
+    if len(segments) == 0:
+        return True
     
-    @property
-    def length(self) -> int:
-        Requires(Rd(self.segment_predicate()))
-        Unfold(self.segment_predicate())
-        return self._length
+    segment: Segment = segments[0]
     
-    @property
-    def value(self) -> int:
-        Requires(Rd(self.segment_predicate()))
-        Unfold(self.segment_predicate())
-        return self._value
-    
-# SegmentSeq = PSeq[Segment]
+    Assert(segment.length <= segments_total_length(segments))
+    contained = byteseq_read_bits(byteseq, position, segment.length) == segment.value
+    rec = __segments_contained_from(byteseq, segment.length, segments.drop(1))
+    return contained and rec
+
+@Pure
+def segments_contained(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
+    """Asserts that the segments are contained in the byte sequence"""
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(segments_total_length(segments) <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    return __segments_contained_from(byteseq, 0, segments)
+
+@Pure
+def segments_invariant(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
+    return (Forall(segments, lambda seg: segment_invariant(seg)) and
+            segments_total_length(segments) <= len(byteseq) * NO_OF_BITS_IN_BYTE and
+            segments_contained(byteseq, segments))
