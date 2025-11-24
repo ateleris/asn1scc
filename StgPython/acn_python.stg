@@ -1118,7 +1118,7 @@ if <p>.kind == <sChildID>:
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(List(<arruVal:{b|0x<b;format="X2">}; separator=", ">)))
+list(<sExtFld>) == list(<arruVal:{b|0x<b;format="X2">}; separator=", ">)
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
