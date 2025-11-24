@@ -8,6 +8,7 @@ that match the behavior of the C and Scala bitstream implementations.
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
 from verification import *
+from segment import Segment, segments_contained, segment_invariant, segments_invariant
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -70,6 +71,10 @@ class BitStream:
                 Acc(self._buffer) and Acc(bytearray_pred(self._buffer)) and
                 BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
 
+    @Predicate
+    def segments_predicate(self) -> bool:
+        return (self.bitstream_invariant() and Acc(self.segments) and segments_invariant(self.buffer(), self.segments))
+
     #endregion
 
     def __init__(self, data: bytearray):
@@ -83,13 +88,16 @@ class BitStream:
         self._buffer = bytearray(data)
         self._current_bit = 0  # Current bit within byte (0-7)
         self._current_byte = 0  # Current byte position (0-based)
+        self.segments: PSeq[Segment] = PSeq()
         #@nagini Fold(self.bitstream_invariant())
+        Fold(self.segments_predicate())
         
         #@nagini Ensures(Acc(bytearray_pred(data), 1/20))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_bit_position == 0)
         #@nagini Ensures(self.current_byte_position == 0)
         #@nagini Ensures(self.buffer() == ToByteSeq(data))
+        Ensures(self.segments_predicate())
     
     #region Properties
 
@@ -295,6 +303,11 @@ class BitStream:
         #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
         return self.read_bits(NO_OF_BITS_IN_BYTE)
 
+    # def read_segment(self, length: int) -> int:
+        # Has to match length of current segment
+        # Returns value of current segment
+        # Advanced segment index
+
     #endregion
 
     #region Write
@@ -361,49 +374,14 @@ class BitStream:
         Assert(ghost_current_value == value)
         lemma = lemma_byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count)
     
-    # def write_bits(self, value: int, bit_count: int) -> None:
-    #     """Write multiple bits from an integer value"""
-    #     Requires(self.bitstream_invariant())
-    #     Requires(0 <= bit_count and bit_count <= 2) 
-    #     Requires(0 <= value and value < (1 << (bit_count)))
-    #     Requires(self.validate_offset(bit_count))
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
-    #     Ensures(self.buffer_size == Old(self.buffer_size))
-    #     #@nagini Ensures(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
-    #     #   #@nagini Ensures(value == self._read_bits_pure(Old(self.current_used_bits), bit_count, bit_count)) #TODO Works for 1 (45s), 2 (120s), 3 (230s), 4 (515s)
-
-    #     prev_position = self.current_used_bits
-
     #     # if bit_count < 0 or bit_count > 64:
     #     #     raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
-
-    #     # if bit_count == 0:
-    #     #     return
 
     #     # Check if value fits in bit_count bits
     #     # max_value = (1 << bit_count) - 1
     #     # if value < 0 or value > max_value:
     #     #     raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
-
-    #     # Write bits from most significant to least significant
-    #     i: int = 0
-    #     while i < bit_count:
-    #         Invariant(self.bitstream_invariant())
-    #         Invariant(0 <= i and i <= bit_count)
-    #         Invariant(self.validate_offset(bit_count - i))
-    #         Invariant(self.current_used_bits == Old(self.current_used_bits + i))
-    #         Invariant(self.buffer_size == Old(self.buffer_size))
-    #         #@nagini Invariant(byteseq_eq_until(self.buffer(), Old(self.buffer()), Old(Unfolding(self.bitstream_invariant(), self._current_byte))))
-    #         # Invariant(Forall(int, lambda x: (Implies(0 <= x and x < i, self._read_bit_pure(Old(self.current_used_bits) + x) == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + x)))))) # Takes even longer, ~200s for 1 bit
-    #         Invariant(int_eq_cutoff(value, self._read_bits_pure(Old(self.current_used_bits), i, bit_count), bit_count - i)) #TODO Works for 1 (45s), 2 (120s), 3 (230s), 4 (515s) 
-            
-    #         # bit = bool((value >> (bit_count - 1 - i)) % 2)
-    #         bit = bool(value & (1 << (bit_count - 1 - i)))
-    #         # assert bit == Reveal(byte_read_bit(value, NO_OF_BITS_IN_BYTE - bit_count + i))
-    #         self.write_bit(bit)
-            
-    #         i += 1
+    
 
     def write_byte(self, value: int) -> None:
         """Writes a complete byte"""
@@ -418,16 +396,49 @@ class BitStream:
         Ensures(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE) == value)
 
         self.write_bits(value, 8)
-
+        
+    def write_segment(self, value: int, length: int) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE) 
+        Requires(0 <= value and value < (1 << (length)))
+        Requires(self.validate_offset(length))
+        Requires(self.segments_predicate())
+        
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + length))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.segments_predicate())
+        Ensures(Unfolding(self.segments_predicate(), self.segments == self.segments + PSeq(Segment(length, value))))
+        
+        # We want to show that the new value has been appended
+        # We want to guarantee that all segments are in the PByteSeq respectively the bytearray
+        
+        self.write_bits(value, length)
+        
+        Unfold(self.segments_predicate())
+        self.segments = self.segments + PSeq(Segment(length, value))
+        Fold(self.segments_predicate())
+        
+        
+        
     #endregion
 
 def client() -> None:
     b = BitStream(bytearray([0,0,0,0]))
     b.write_bits(255, 8)
+    buf = b.buffer()
+    b.write_bits(7, 5)
+    lemma_byteseq_equal_read_bits(b.buffer(), buf, 13, 0, 8)
+    buf = b.buffer()
+    b.write_bits(39, 6)
+    lemma_byteseq_equal_read_bits(b.buffer(), buf, 19, 0, 8)
+    lemma_byteseq_equal_read_bits(b.buffer(), buf, 19, 13, 5)
     
     b.reset()
     
     assert b.read_bits(8) == 255
+    assert b.read_bits(5) == 7
+    assert b.read_bits(6) == 39
 
 
 # client()

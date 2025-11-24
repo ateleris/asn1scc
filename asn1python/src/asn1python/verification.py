@@ -65,7 +65,7 @@ def byteseq_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
 
 @Pure
 @Opaque  
-def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix: int) -> bool:
+def __lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix: int) -> bool:
     """Proof that byteseq equality is monotonic"""
     Requires(len(b1) <= len(b2))
     Requires(0 <= prefix and prefix <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
@@ -92,6 +92,20 @@ def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix: 
         bits_lemma = _lemma_byte_read_bits_equal_monotonic(byte1, byte2, end_bit_position, prefix_bit_position)
            
     return prefix_equal
+
+@Pure
+@Opaque  
+def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
+    """Proof that byteseq equality is monotonic"""
+    Requires(len(b1) <= len(b2))
+    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
+    Requires(byteseq_equal_until(b1, b2, end))
+    Decreases(None)
+    Ensures(Forall(int, lambda i: (Implies(0 <= i and i <= end, byteseq_equal_until(b1, b2, i)))))
+    Ensures(Result())
+    
+    Assert(Forall(int, lambda i: (Implies(0 <= i and i <= end, __lemma_byteseq_equal_monotonic(b1, b2, end, i)))))
+    return True
 
 @Pure
 @Opaque
@@ -626,7 +640,7 @@ def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int
     bit = bool(value % 2)
     new_seq = byteseq_set_bit(rec_seq, bit, position + length - 1)
     lemma_set_bit = _lemma_byteseq_set_bit(rec_seq, bit, position + length - 1)
-    lemma_equal_monotonic = lemma_byteseq_equal_monotonic(new_seq, rec_seq, position + length - 1, position)
+    lemma_equal_monotonic = __lemma_byteseq_equal_monotonic(new_seq, rec_seq, position + length - 1, position)
     Assert(byteseq_equal_until(new_seq, rec_seq, position))
     lemma_equal_transitiv = _lemma_byteseq_equal_until_transitiv(new_seq, rec_seq, byteseq, position)
     return byteseq_equal_until(new_seq, byteseq, position)
