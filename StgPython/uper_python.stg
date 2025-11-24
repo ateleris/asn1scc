@@ -580,6 +580,11 @@ nStringLength: int = decoded_result.decoded_value
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
+loopFixedItem_dec (i, fixedSize,  sInternalItem)::= /*nogen*/<<
+for <i> in range(<fixedSize>):
+    <sInternalItem>
+>>
+
 seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 # uper_python.stg 500
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
@@ -587,7 +592,10 @@ seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 
 seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 # uper_python.stg 505
+instance_arr = [None] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+    instance_arr[i1] = instance_arr_arr
+instance = <sTasName>(instance_arr)
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<

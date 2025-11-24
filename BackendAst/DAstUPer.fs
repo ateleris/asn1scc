@@ -70,7 +70,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                                 (us:State)  =
     let typeDef = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcName = lm.lg.getUPerFuncName r codec t typeDef
-    let errCodeName = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errCodeName = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
     let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment = lm.uper.EmitTypeAssignment

@@ -80,7 +80,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let sStar = lm.lg.getStar p.accessPath
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
-    let errCodeName         = ToC ("ERR_XER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errCodeName         = ToC ("ERR_XER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")))
     let defaultErrCode, ns = getNextValidErrorCode us errCodeName None
     let xerFuncBody = (xerFuncBody_e defaultErrCode)
 
