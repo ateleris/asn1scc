@@ -148,12 +148,30 @@ type LangGeneric_python() =
         ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
     
     override _.asSelectionIdentifier (sel: AccessPath) =
-        List.fold (fun str accessor ->
-            match accessor with
-            | ValueAccess (id, _, _) -> $"{str}_{ToC id}"
-            | PointerAccess (id, _, _) -> $"{str}_{ToC id}"
-            | ArrayAccess (id, _) -> $"{str}[{id}]"
-        )  sel.rootId sel.steps
+        let len = sel.steps.Length
+        let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
+        let fold =
+            List.fold (fun str (ix, accessor) ->
+                    let accStr =
+                        match accessor with
+                        | ValueAccess (id, _, isOpt) -> $"_{id}"
+                        | PointerAccess (id, _, isOpt) -> $"_{id}"
+                        | _ -> ""
+                        
+                    let arrIndex =
+                        match accessor with
+                        | ArrayAccess (ix, _) -> $"[{ix}]"
+                        | _ -> ""
+                    $"{str}{accStr}"
+                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+        
+        List.fold (fun str (ix, accessor) ->                       
+                    let arrIndex =
+                        match accessor with
+                        | ArrayAccess (ix, _) -> $"[{ix}]"
+                        | _ -> ""
+                    $"{str}{arrIndex}"
+                ) fold (List.indexed sel.steps)
   
     
     override this.getAccess (sel: AccessPath) = "."
