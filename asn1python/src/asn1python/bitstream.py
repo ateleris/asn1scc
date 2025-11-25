@@ -8,7 +8,7 @@ that match the behavior of the C and Scala bitstream implementations.
 from nagini_contracts.contracts import *
 from typing import Optional, List, Tuple
 from verification import *
-from segment import Segment, segments_contained, segment_invariant, segments_invariant
+from segment import Segment, segments_invariant, lemma_byteseq_equal_segments_contained, segments_total_length, segments_contained, lemma_segments_contained_monotonic
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -73,7 +73,16 @@ class BitStream:
 
     @Predicate
     def segments_predicate(self) -> bool:
-        return (self.bitstream_invariant() and Acc(self.segments) and segments_invariant(self.buffer(), self.segments))
+        return (self.bitstream_invariant() and Acc(self._segments) and segments_invariant(self.buffer(), self._segments) and 
+                Acc(self._segments_read_index) and 0 <= self._segments_read_index and self._segments_read_index <= len(self._segments))
+    
+    @Pure
+    def segments_read_aligned(self, read_length: int) -> bool:
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate())
+        return (segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits and
+                self.segments_read_index < len(self.segments) and 
+                self.segments[self.segments_read_index].length == read_length)
 
     #endregion
 
@@ -88,7 +97,8 @@ class BitStream:
         self._buffer = bytearray(data)
         self._current_bit = 0  # Current bit within byte (0-7)
         self._current_byte = 0  # Current byte position (0-based)
-        self.segments: PSeq[Segment] = PSeq()
+        self._segments: PSeq[Segment] = PSeq()
+        self._segments_read_index = 0
         #@nagini Fold(self.bitstream_invariant())
         Fold(self.segments_predicate())
         
@@ -157,6 +167,22 @@ class BitStream:
         Ensures(len(Result()) == self.buffer_size)
         return Unfolding(Rd(self.bitstream_invariant()), ToByteSeq(self._buffer))
 
+    @property
+    def segments(self) -> PSeq[Segment]:
+        Requires(Rd(self.segments_predicate()))
+        # Requires(Rd(self.bitstream_invariant()))
+        Ensures(segments_invariant(Unfolding(Rd(self.segments_predicate()), self.buffer()), Result()))
+        Unfold(Rd(self.segments_predicate()))
+        return self._segments
+    
+    @property
+    def segments_read_index(self) -> int:
+        Requires(Rd(self.segments_predicate()))
+        # Requires(Rd(self.bitstream_invariant()))
+        Ensures(0 <= Result() and Result() <= len(self.segments))
+        Unfold(Rd(self.segments_predicate()))
+        return self._segments_read_index
+
     #endregion    
 
     def set_position(self, bit_position: int, byte_position: int) -> None:
@@ -209,6 +235,17 @@ class BitStream:
 
         new_index = self.current_used_bits + amount
         self.set_bit_index(new_index)
+    
+    def _increment_segment_read_index(self) -> None:
+        Requires(self.segments_predicate())
+        Requires(self.segments_read_index < len(self.segments))
+        Ensures(self.segments_predicate())
+        Ensures(self.segments == Old(self.segments))
+        Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
+        
+        Unfold(self.segments_predicate())
+        self._segments_read_index += 1
+        Fold(self.segments_predicate())
     
     #region Read                   
         
@@ -264,16 +301,18 @@ class BitStream:
     def read_bits(self, bit_count: PInt) -> int:
         """Read up to 8 bits"""
         #@nagini Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate())
         #@nagini Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
         #@nagini Requires(self.validate_offset(bit_count))
         #@nagini Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
         #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
-
-        if bit_count == 0:
-            return 0
-        
+        Ensures(self.segments == Old(self.segments))
+        Ensures(Implies(Old(self.segments_read_aligned(bit_count)), Result() == self.segments[Old(self.segments_read_index)].value))
+        Ensures(Implies(Old(self.segments_read_aligned(bit_count)), self.segments_read_index == Old(self.segments_read_index + 1)))
+       
         value = 0
         i = 0
         while i < bit_count:
@@ -290,6 +329,29 @@ class BitStream:
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
             ghost = lemma_byteseq_read_bits_induction_lsb(self.buffer(), Old(self.current_used_bits), i + 1)
             i = i + 1
+
+        if Old(self.segments_read_aligned(bit_count)):
+            Unfold(self.segments_predicate())
+            Fold(self.segments_predicate())
+            
+            Assert(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count) == value)
+            Assert(self.segments[self.segments_read_index].length == bit_count)
+            
+            
+            segments_until_current = self.segments.take(self.segments_read_index + 1)
+            Assert(segments_contained(self.buffer(), self.segments))
+            lemma_segments = lemma_segments_contained_monotonic(self.buffer(), self.segments, self.segments_read_index + 1)
+            Assert(segments_contained(self.buffer(), segments_until_current))
+            
+            segment = segments_until_current[self.segments_read_index]
+            Assert(byteseq_read_bits(self.buffer(), segments_total_length(segments_until_current.take(self.segments_read_index)), segment.length) == segment.value)
+            
+            Assert(segment == self.segments[self.segments_read_index])
+            # Assert(byteseq_read_bits(self.buffer(), segments_total_length(self.segments.take(self.segments_read_index)), segment.length) == segment.value)
+            
+            Assert(self.segments[self.segments_read_index].value == value)
+            
+            self._increment_segment_read_index()
 
         return value
 
@@ -371,6 +433,7 @@ class BitStream:
             
             updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
             i = i + 1
+            
         Assert(ghost_current_value == value)
         lemma = lemma_byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count)
     
@@ -404,19 +467,24 @@ class BitStream:
         Requires(self.validate_offset(length))
         Requires(self.segments_predicate())
         
+        # self.current_used_bits could theoretically be less than segments_total_length, because of reads and resets
+        Requires(segments_total_length(self.segments) == self.current_used_bits)
+        
         Ensures(self.bitstream_invariant())
         Ensures(self.current_used_bits == Old(self.current_used_bits + length))
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.segments_predicate())
-        Ensures(Unfolding(self.segments_predicate(), self.segments == self.segments + PSeq(Segment(length, value))))
-        
-        # We want to show that the new value has been appended
-        # We want to guarantee that all segments are in the PByteSeq respectively the bytearray
+        Ensures(self.segments == Old(self.segments) + PSeq(Segment(length, value)))
+        Ensures(segments_total_length(self.segments) == self.current_used_bits)
         
         self.write_bits(value, length)
         
         Unfold(self.segments_predicate())
-        self.segments = self.segments + PSeq(Segment(length, value))
+        lemma_byteseq_equal_segments_contained(Old(self.buffer()), self.buffer(), Old(self.current_used_bits), self._segments)
+        rec_segments = self._segments
+        self._segments = self._segments + PSeq(Segment(length, value))
+        
+        Assert(self._segments.take(len(self._segments) - 1) == rec_segments)        
         Fold(self.segments_predicate())
         
         

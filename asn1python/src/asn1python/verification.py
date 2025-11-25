@@ -34,8 +34,7 @@ def floor_align_byte(position: PInt) -> int:
 #@nagini @UsePrimitiveType
 def byteseq_bytes_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [0, end["""
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1))
+    Requires(0 <= end and end <= len(b1) and end <= len(b2))
     Decreases(None)
     return b1.take(end) == b2.take(end)
 
@@ -43,10 +42,10 @@ def byteseq_bytes_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
 @Opaque
 def byteseq_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the bit range [0, end["""
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE and end <= len(b2) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
     Ensures(Implies(b1 == b2, Result()))
+    # Ensures(Result() == byteseq_equal_until(b2, b1, end))
 
     if end == 0:
         return True
@@ -61,14 +60,15 @@ def byteseq_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
         byte2 = b2[full_bytes]
         return full_bytes_eq and byte_read_bits(byte1, 0, bit_position) == byte_read_bits(byte2, 0, bit_position)
 
+    reverse = byteseq_equal_until(b2, b1, end)
+
     return full_bytes_eq
 
 @Pure
 @Opaque  
 def __lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix: int) -> bool:
     """Proof that byteseq equality is monotonic"""
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= prefix and prefix <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= prefix and prefix <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE and end <= len(b2) * NO_OF_BITS_IN_BYTE)
     Requires(byteseq_equal_until(b1, b2, end))
     Decreases(None)
     Ensures(byteseq_equal_until(b1, b2, prefix))
@@ -93,19 +93,19 @@ def __lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix
            
     return prefix_equal
 
-@Pure
-@Opaque  
-def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
-    """Proof that byteseq equality is monotonic"""
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-    Requires(byteseq_equal_until(b1, b2, end))
-    Decreases(None)
-    Ensures(Forall(int, lambda i: (Implies(0 <= i and i <= end, byteseq_equal_until(b1, b2, i)))))
-    Ensures(Result())
+# @Pure
+# @Opaque  
+# def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
+#     """Proof that byteseq equality is monotonic"""
+#     Requires(len(b1) <= len(b2))
+#     Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
+#     Requires(byteseq_equal_until(b1, b2, end))
+#     Decreases(None)
+#     Ensures(Forall(int, lambda i: (Implies(0 <= i and i <= end, byteseq_equal_until(b1, b2, i)), [[]])))
+#     Ensures(Result())
     
-    Assert(Forall(int, lambda i: (Implies(0 <= i and i <= end, __lemma_byteseq_equal_monotonic(b1, b2, end, i)))))
-    return True
+#     Assert(Forall(int, lambda i: (Implies(0 <= i and i <= end, __lemma_byteseq_equal_monotonic(b1, b2, end, i)))))
+#     return True
 
 @Pure
 @Opaque
@@ -315,8 +315,7 @@ def lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, leng
 @Opaque
 def lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, position: int, length: int) -> bool:
     """Proof that byteseq equality implies equality of byteseq_read_bits within that range. """
-    Requires(len(b1) <= len(b2))
-    Requires(0 <= equal_end and equal_end <= len(b1) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= equal_end and equal_end <= len(b1) * NO_OF_BITS_IN_BYTE and equal_end <= len(b2) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
     Requires(0 <= position and position + length <= equal_end)
     Requires(byteseq_equal_until(b1, b2, equal_end))
