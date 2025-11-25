@@ -657,7 +657,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let localVar, intVal =
-            let varName = $"intVal_{ToC p.accessPath.asIdentifier}"
+            let varName = $"intVal_{ToC (p.accessPath.asIdentifier lm.lg)}"
             let lv =
                 match lm.lg.decodingKind with
                 | Copy -> []
@@ -837,7 +837,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             let pvalue, ptr, resultExpr =
                 match codec, lm.lg.decodingKind with
                 | Decode, Copy ->
-                    let resExpr = p.accessPath.asIdentifier
+                    let resExpr = (p.accessPath.asIdentifier lm.lg)
                     resExpr, resExpr, Some resExpr
                 | _ -> lm.lg.getValue p.accessPath, lm.lg.getPointer p.accessPath, None
             let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
@@ -2307,7 +2307,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     else
                         let existTd = (lm.lg.getSequenceTypeDefinition o.typeDef).exist
                         [lm.init.initSequenceExpr existTd childrenExistVar []]
-                let resultExpr = p.accessPath.asIdentifier
+                let resultExpr = (p.accessPath.asIdentifier lm.lg)
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) p.accessPath.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec

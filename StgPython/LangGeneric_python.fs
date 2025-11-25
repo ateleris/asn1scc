@@ -147,6 +147,15 @@ type LangGeneric_python() =
             $"{str}{accStr}"
         ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
     
+    override _.asSelectionIdentifier (sel: AccessPath) =
+        List.fold (fun str accessor ->
+            match accessor with
+            | ValueAccess (id, _, _) -> $"{str}_{ToC id}"
+            | PointerAccess (id, _, _) -> $"{str}_{ToC id}"
+            | ArrayAccess (id, _) -> $"{str}[{id}]"
+        )  sel.rootId sel.steps
+  
+    
     override this.getAccess (sel: AccessPath) = "."
 
     override this.getAccess2 (acc: AccessStep) =

@@ -28,27 +28,27 @@ let adaptArgument (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenSco
         match lm.lg.decodingKind with
         | InPlace -> lm.lg.getPointer p.accessPath, None
         | Copy ->
-            let res = p.accessPath.asIdentifier
+            let res = p.accessPath.asIdentifier lm.lg
             res, Some res
 
 let adaptArgumentPtr (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenScope): string * string option =
     match codec, lm.lg.decodingKind with
     | Decode, Copy ->
-        let res = p.accessPath.asIdentifier
+        let res = p.accessPath.asIdentifier lm.lg
         res, Some res
     | _ -> lm.lg.getPointer p.accessPath, None
 
 let adaptArgumentValue (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenScope): string * string option =
     match codec, lm.lg.decodingKind with
     | Decode, Copy ->
-        let res = p.accessPath.asIdentifier
+        let res = p.accessPath.asIdentifier lm.lg
         res, Some res
     | _ -> lm.lg.getValue p.accessPath, None
 
 let joinedOrAsIdentifier (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenScope) : string * string option =
     match codec, lm.lg.decodingKind with
     | Decode, Copy ->
-        let resExpr = p.accessPath.asIdentifier
+        let resExpr = p.accessPath.asIdentifier lm.lg
         resExpr, Some resExpr
     | _ -> p.accessPath.joined lm.lg, None
 
@@ -157,7 +157,6 @@ let castPp (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) codec pp (intClass:Asn1Acn
 
 let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) =
     let pp, resultExpr = adaptArgument lm codec p
-
     let IntNoneRequired         = lm.uper.IntNoneRequired
     let IntFullyConstraintPos   = lm.uper.IntFullyConstraintPos
     let IntFullyConstraint      = lm.uper.IntFullyConstraint
@@ -616,7 +615,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
             let chFunc = child.getUperFunction codec
             let chp =
-                let recv = if lm.lg.decodingKind = Copy then AccessPath.emptyPath p.accessPath.asIdentifier p.accessPath.selectionType else p.accessPath
+                let recv = if lm.lg.decodingKind = Copy then AccessPath.emptyPath (p.accessPath.asIdentifier lm.lg) p.accessPath.selectionType else p.accessPath
                 {p with accessPath = lm.lg.getArrayItem recv i child.isIA5String}
             let internalItem = chFunc.funcBody childNestingScope chp fromACN
 
