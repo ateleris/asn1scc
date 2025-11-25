@@ -208,11 +208,10 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
 # init_python.stg 213
-<sResVar>_arr = [None] * <nSize>
+<sResVar> = [None] * <nSize>
 for <i> in range(<nSize>):
     <arrsInnerItems; separator="\n">
-    #<sResVar>_list.append(<sResVar>_arr_arr)
-<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_arr)
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>)
 >>
 
 
@@ -252,7 +251,7 @@ initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTy
 # init_python.stg 255
 <sChildContent>
 # init_python.stg 257
-<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>_data)
+<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>)
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<

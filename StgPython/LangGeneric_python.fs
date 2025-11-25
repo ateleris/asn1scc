@@ -136,19 +136,29 @@ type LangGeneric_python() =
     override _.joinSelectionUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) =
         let len = sel.steps.Length
         let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
-        List.fold (fun str (ix, accessor) ->
-            let accStr =
-                match accessor with
-                | ValueAccess (id, _, isOpt) ->
-                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
-                | PointerAccess (id, _, isOpt) ->
-                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
-                | ArrayAccess (ix, _) -> $"[{ix}]"
-            $"{str}{accStr}"
-        ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+        
+        let fold =
+            List.fold (fun str (ix, accessor) ->
+                    let accStr =
+                        match accessor with
+                        | ValueAccess (id, _, isOpt) ->
+                            if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                        | PointerAccess (id, _, isOpt) ->
+                            if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                        | _ -> ""
+
+                    $"{str}{accStr}"
+                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+        
+        List.fold (fun str (ix, accessor) ->                       
+                    let arrIndex =
+                        match accessor with
+                        | ArrayAccess (ix, _) -> $"[{ix}]"
+                        | _ -> ""
+                    $"{str}{arrIndex}"
+                ) fold (List.indexed sel.steps)
     
     override _.asSelectionIdentifier (sel: AccessPath) =
-        let len = sel.steps.Length
         let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
         let fold =
             List.fold (fun str (ix, accessor) ->
@@ -157,11 +167,7 @@ type LangGeneric_python() =
                         | ValueAccess (id, _, isOpt) -> $"_{id}"
                         | PointerAccess (id, _, isOpt) -> $"_{id}"
                         | _ -> ""
-                        
-                    let arrIndex =
-                        match accessor with
-                        | ArrayAccess (ix, _) -> $"[{ix}]"
-                        | _ -> ""
+                       
                     $"{str}{accStr}"
                 ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
         
