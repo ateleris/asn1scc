@@ -45,23 +45,6 @@ def segments_total_length(segments: PSeq[Segment]) -> int:
     segment = segments[last_elem]
 
     return segments_total_length(rec_segments) + segment.length    
-        
-@Pure
-@Opaque
-def __lemma_segments_total_length(a: PSeq[Segment], b: PSeq[Segment]) -> bool:
-    Requires(Forall(a, lambda seg: segment_invariant(seg)))
-    Requires(Forall(b, lambda seg: segment_invariant(seg)))
-    Requires(len(b) <= 1)
-    Decreases(len(b))
-    Ensures(segments_total_length(a + b) == segments_total_length(a) + segments_total_length(b))
-    Ensures(Result())
-    
-    if len(a) == 0 or len(b) == 0:
-        return True
-    
-    combined = a + b
-    Assert(a == combined.take(len(combined) - 1))
-    return segments_total_length(a + b) == segments_total_length(a) + segments_total_length(b)
 
 @Pure
 @Opaque
@@ -98,28 +81,6 @@ def segments_contained(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
     contained = byteseq_read_bits(byteseq, segments_total_length(rec_segments), segment.length) == segment.value
     rec = segments_contained(byteseq, rec_segments)
     return contained and rec
-
-@Pure
-@Opaque
-def lemma_segments_contained_monotonic(byteseq: PByteSeq, segments: PSeq[Segment], prefix: int) -> bool:
-    """Asserts that segments_contained implies segments_contained for prefixes of the segments."""
-    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    Requires(segments_total_length(segments) <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Requires(0 <= prefix and prefix <= len(segments))
-    Requires(segments_contained(byteseq, segments))
-    Decreases(len(segments) - prefix)
-    Ensures(segments_contained(byteseq, segments_take(segments, prefix)))
-    Ensures(Result())
-        
-    if prefix == len(segments):
-        return True
-    
-    rec_lemma = lemma_segments_contained_monotonic(byteseq, segments, prefix + 1)
-    rec_segments = segments_take(segments, prefix + 1)
-    new_seq = segments_take(segments, prefix)
-    # TODO, necessary step 
-    Assert(segments_take(rec_segments, prefix) == new_seq)
-    return rec_lemma and segments_contained(byteseq, new_seq)
     
 
 @Pure
@@ -161,6 +122,7 @@ def lemma_byteseq_equal_segments_contained(b1: PByteSeq, b2: PByteSeq, equal_end
 @Pure
 @Opaque
 def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], index: int) -> bool:
+    """Proof that reading any of the contained segments from the byte sequence returns its value"""
     Requires(segments_invariant(byteseq, segments))
     Requires(0 <= index and index < len(segments))
     Decreases(len(segments))

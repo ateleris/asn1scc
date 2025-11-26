@@ -93,23 +93,9 @@ def __lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int, prefix
            
     return prefix_equal
 
-# @Pure
-# @Opaque  
-# def lemma_byteseq_equal_monotonic(b1: PByteSeq, b2: PByteSeq, end: int) -> bool:
-#     """Proof that byteseq equality is monotonic"""
-#     Requires(len(b1) <= len(b2))
-#     Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
-#     Requires(byteseq_equal_until(b1, b2, end))
-#     Decreases(None)
-#     Ensures(Forall(int, lambda i: (Implies(0 <= i and i <= end, byteseq_equal_until(b1, b2, i)), [[]])))
-#     Ensures(Result())
-    
-#     Assert(Forall(int, lambda i: (Implies(0 <= i and i <= end, __lemma_byteseq_equal_monotonic(b1, b2, end, i)))))
-#     return True
-
 @Pure
 @Opaque
-def _lemma_byteseq_equal_until_transitiv(b1: PByteSeq, b2: PByteSeq, b3: PByteSeq, end: int) -> bool:
+def __lemma_byteseq_equal_until_transitiv(b1: PByteSeq, b2: PByteSeq, b3: PByteSeq, end: int) -> bool:
     Requires(len(b1) <= len(b2))
     Requires(len(b2) <= len(b3))
     Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE)
@@ -150,7 +136,7 @@ def byte_read_bits(byte: PInt, position: PInt, length: PInt) -> int:
 
 @Pure
 @Opaque
-def _lemma_byte_read_bit_equal(byte: int, position: int) -> bool:
+def __lemma_byte_read_bit_equal(byte: int, position: int) -> bool:
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
     Ensures(int(byte_read_bit(byte, position)) == byte_read_bits(byte, position, 1))
@@ -537,7 +523,7 @@ def __lemma_byteseq_set_bit_value(byteseq: PByteSeq, bit: bool, position: int) -
     lemma_byte = __lemma_byte_set_bits_value(byte, bit, bit_position, 1)
     
     from_bits_read = bool(byte_read_bits(new_byte, bit_position, 1))
-    lemma_byte_read = _lemma_byte_read_bit_equal(new_byte, bit_position)
+    lemma_byte_read = __lemma_byte_read_bit_equal(new_byte, bit_position)
     from_bit_read = byte_read_bit(new_byte, bit_position)
     
     from_seq_bit = Reveal(byteseq_read_bit(new_seq, position))
@@ -606,18 +592,6 @@ def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PIn
 
 @Pure
 @Opaque
-def _lemma_byteseq_set_bits_equal(byteseq: PByteSeq, value: bool, position: int) -> bool:
-    Requires(0 <= position and position + 1 <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Decreases(None)
-    Ensures(byteseq_set_bits(byteseq, value, position, 1) == byteseq_set_bit(byteseq, value, position))
-    Ensures(Result())
-
-    repeated = Reveal(byteseq_set_bits(byteseq, value, position, 1))
-    single = byteseq_set_bit(byteseq, value, position)
-    return repeated == single
-
-@Pure
-@Opaque
 def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
     """Proof that `byteseq_set_bits()` preserves previous bits in the sequence."""
     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
@@ -641,7 +615,7 @@ def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int
     lemma_set_bit = _lemma_byteseq_set_bit(rec_seq, bit, position + length - 1)
     lemma_equal_monotonic = __lemma_byteseq_equal_monotonic(new_seq, rec_seq, position + length - 1, position)
     Assert(byteseq_equal_until(new_seq, rec_seq, position))
-    lemma_equal_transitiv = _lemma_byteseq_equal_until_transitiv(new_seq, rec_seq, byteseq, position)
+    lemma_equal_transitiv = __lemma_byteseq_equal_until_transitiv(new_seq, rec_seq, byteseq, position)
     return byteseq_equal_until(new_seq, byteseq, position)
 
 @Pure
@@ -693,28 +667,6 @@ def lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length:
     return lemma_prefix and lemma_value
 
 #endregion
-
-# def test_set() -> None:
-#     seq = PByteSeq(0)
-#     value = 1
-#     bit_index = 0
-#     length = 1
-#     seq = byteseq_set_bit_index(seq, byte_read_bit(value, NO_OF_BITS_IN_BYTE - length + 0), bit_index + 0)
-#     read = byteseq_read_bits(seq, length, bit_index)
-
-#     assert value == read
-
-# def client(b: int, pos: int, val: bool) -> None:
-#     Requires(0 <= b and b <= 0xFF)
-#     Requires(0 <= pos and pos < NO_OF_BITS_IN_BYTE)
-#     prev = b
-#     b = byte_set_bit(b, val, pos)
-#     assert byte_read_bit(b, pos) == val
-    
-#     i = 0
-#     while i < NO_OF_BITS_IN_BYTE:
-#         if i != pos:
-#             assert byte_read_bit(b, i) == byte_read_bit(prev, i)
 
 # def validate_integer_constraints(value: int,
 #                                 min_val: Optional[int] = None,
