@@ -492,7 +492,7 @@ type ILangGeneric () =
                 match accessor with
                 | ValueAccess (id, _, _) -> ToC id
                 | PointerAccess (id, _, _) -> ToC id
-                | ArrayAccess (id, _) -> $"arr[{id}]"
+                | ArrayAccess (id, _) -> "arr"
             $"{str}_{acc}") sel.rootId sel.steps
     
 
