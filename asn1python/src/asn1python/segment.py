@@ -158,8 +158,6 @@ def lemma_byteseq_equal_segments_contained(b1: PByteSeq, b2: PByteSeq, equal_end
     rec = lemma_byteseq_equal_segments_contained(b1, b2, equal_end, rec_segments)
     return b1_value == b2_value and rec
 
-# TODO
-# Proof that reading any of the segments within the contained range produces the value of said segment
 @Pure
 @Opaque
 def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], index: int) -> bool:
