@@ -23,7 +23,7 @@ def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Decreases(None)
     Ensures(Result() == segments.take(length))
     Ensures(Forall(segments.take(length), lambda seg: segment_invariant(seg)))
-    Ensures(segments_total_length(segments.take(length)) <= segments_total_length(segments))
+    Ensures(Implies(length < len(segments), segments_total_length(Result()) + segments[length].length <= segments_total_length(segments)))
     
     lemma_length_monotonic = __lemma_segments_total_length_monotonic(segments, length)
     return segments.take(length)
@@ -70,6 +70,7 @@ def __lemma_segments_total_length_monotonic(segments: PSeq[Segment], prefix: int
     Requires(0 <= prefix and prefix <= len(segments))
     Decreases(len(segments) - prefix)
     Ensures(segments_total_length(segments.take(prefix)) <= segments_total_length(segments))
+    Ensures(Implies(prefix < len(segments), segments_total_length(segments.take(prefix)) + segments[prefix].length <= segments_total_length(segments)))
     
     if len(segments) == prefix:
         return True
@@ -123,6 +124,7 @@ def lemma_segments_contained_monotonic(byteseq: PByteSeq, segments: PSeq[Segment
 
 @Pure
 def segments_invariant(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
+    Decreases(None)
     return (Forall(segments, lambda seg: segment_invariant(seg)) and
             segments_total_length(segments) <= len(byteseq) * NO_OF_BITS_IN_BYTE and
             segments_contained(byteseq, segments))
@@ -163,12 +165,19 @@ def lemma_byteseq_equal_segments_contained(b1: PByteSeq, b2: PByteSeq, equal_end
 def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], index: int) -> bool:
     Requires(segments_invariant(byteseq, segments))
     Requires(0 <= index and index < len(segments))
+    Decreases(len(segments))
     Ensures(byteseq_read_bits(byteseq, segments_total_length(segments_take(segments, index)), segments[index].length) == segments[index].value)
     Ensures(Result())
     
-    lemma_contained = lemma_segments_contained_monotonic(byteseq, segments, index)
-    prefix_segments = segments_take(segments, index)
-    segment = segments[index]
+    if len(segments) - 1 == index:
+        return True
     
-    equal = byteseq_read_bits(byteseq, segments_total_length(prefix_segments), segment.length) == segment.value
-    return equal
+    rec_segments = segments.take(len(segments) - 1)
+    rec_lemma = lemma_segments_contained_read(byteseq, rec_segments, index)
+    
+    prefix_segments = segments_take(segments, index)
+    Assert(prefix_segments == segments_take(rec_segments, index))
+    segment = segments[index]
+    Assert(segment == rec_segments[index])
+    
+    return rec_lemma and byteseq_read_bits(byteseq, segments_total_length(segments_take(segments, index)), segment.length) == segment.value
