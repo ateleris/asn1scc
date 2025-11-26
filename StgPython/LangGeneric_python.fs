@@ -1,4 +1,6 @@
 module LangGeneric_python
+
+open System.Linq
 open AbstractMacros
 open Asn1AcnAst
 open CommonTypes
@@ -171,13 +173,16 @@ type LangGeneric_python() =
                     $"{str}{accStr}"
                 ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
         
-        List.fold (fun str (ix, accessor) ->                       
-                    let arrIndex =
-                        match accessor with
-                        | ArrayAccess (ix, _) -> $"[{ix}]"
-                        | _ -> ""
-                    $"{str}{arrIndex}"
-                ) fold (List.indexed sel.steps)
+        if sel.steps.IsEmpty then
+            fold
+        else
+            let last = (sel.steps.Reverse ()).First()
+            let accStr =
+                match last with
+                | ArrayAccess (ix, _) -> $"[{ix}]"
+                | _ -> ""
+            $"{fold}{accStr}"
+
   
     
     override this.getAccess (sel: AccessPath) = "."
