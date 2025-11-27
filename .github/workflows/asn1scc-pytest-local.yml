@@ -32,7 +32,7 @@ jobs:
             -v ${{ github.workspace }}:/src \
             -w /src \
             asn1scc \
-            bash -c "uv python install 3.10 && uv add pytest"
+            bash -c "uv venv --python 3.10 && uv add pytest"
           
       - name: Run ASN1 Tests
         run: |
