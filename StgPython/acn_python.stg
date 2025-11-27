@@ -1122,7 +1122,7 @@ list(<sExtFld>) == list(<arruVal:{b|0x<b;format="X2">}; separator=", ">)
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
-if <arrsConditions; separator=" and ">:
+<if(bFirst)>if<else>elif<endif> <arrsConditions; separator=" and ">:
     # acn_python.stg 952
     <if(bIsPrimitive)>
     <sChildBody>
@@ -1203,6 +1203,9 @@ if <sChPath> is not None:
 else:
     <sV> = None
 <endif>
+
+# workaround for acn enc/dec
+instance_<sV> = <sV>
 >>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
