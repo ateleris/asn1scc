@@ -47,7 +47,7 @@ RUN wget -O gnat-2021-x86_64-linux-bin https://community.download.adacore.com/v1
 
 # Add UV for efficient python version management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-ENV UV_HOME=/src/.uv
+ENV UV_HOME=/app/.uv
 
 # Set back to the appropriate user
 USER $USERNAME
