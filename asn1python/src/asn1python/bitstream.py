@@ -258,25 +258,49 @@ class BitStream:
         self._segments_read_index += 1
         Fold(self.segments_predicate(self.buffer()))
     
-    # def align_to_byte(self) -> None:
-    #     Requires(self.bitstream_invariant())
-    #     Requires(self.segments_predicate(self.buffer()))
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.segments_predicate(self.buffer()))
-
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits) + (0 if self.current_bit_position == 0 else NO_OF_BITS_IN_BYTE - self.current_bit_position))
+    def write_align_to_byte(self) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate(self.buffer()))
+        Requires(segments_total_length(self.segments) == self.current_used_bits)
         
+        Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate(self.buffer()))
+        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(self.current_used_bits == Old(self.current_used_bits + ((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE)))
+        Ensures(segments_total_length(self.segments) == self.current_used_bits)
+        Ensures(Let(Old((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE), bool, lambda length:
+            self.segments == Old(self.segments) + PSeq(Segment(length, byteseq_read_bits(self.buffer(), Old(self.current_used_bits), length)))))
         
-        # Requires(segments_total_length(self.segments) == self.current_used_bits)
+        length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
+        self._shift_bit_index(length)
+        
+        value = byteseq_read_bits(self.buffer(), Old(self.current_used_bits), length)
+        Unfold(self.segments_predicate(self.buffer()))
+        
+        rec_segments = self._segments
+        self._segments = self._segments + PSeq(Segment(length, value))
+        
+        Assert(self._segments.take(len(self._segments) - 1) == rec_segments)        
+        Fold(self.segments_predicate(self.buffer()))
+    
+    def read_align_to_byte(self) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate(self.buffer()))
+        Requires(self.segments_read_index < len(self.segments))
+        
+        Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate(self.buffer()))
+        
+        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(self.current_used_bits == Old(self.current_used_bits + ((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE)))
+        Ensures(self.segments == Old(self.segments))
+        Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
+        
+        length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
+        self._shift_bit_index(length)   
+        self._increment_segment_read_index()
 
-    #     Ensures(self.bitstream_invariant())
-    #     Ensures(self.segments_predicate(self.buffer()))
-    #     Ensures(self.buffer_size == Old(self.buffer_size))
-    #     Ensures(self.buffer() == Old(self.buffer()))
-    #     Ensures(Implies(self.cu))
-    #     Ensures(self.segments_read_index == Old(self.segments_read_index))
-
-    #     Ensures(self.segments == Old(self.segments) + PSeq(Segment(bit_count, value)))
+    #     Ensures()
     #     Ensures(segments_total_length(self.segments) == self.current_used_bits)
     #     """Align the current position to the next byte boundary"""
 
@@ -507,12 +531,14 @@ def client() -> None:
     b = BitStream(bytearray([0,0,0,0]))
     b.write_bits(255, 8)
     b.write_bits(7, 5)
+    b.write_align_to_byte()
     b.write_bits(39, 6)
     
     b.reset()
     
     assert b.read_bits(8) == 255
     assert b.read_bits(5) == 7
+    b.read_align_to_byte()
     assert b.read_bits(6) == 39
 
 
