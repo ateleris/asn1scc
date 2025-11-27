@@ -652,13 +652,12 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of decode_constrained_whole_number failed: {decoded_result.error_message}")
-<p>_nCount = decoded_result.decoded_value
+instance_arr_nCount = decoded_result.decoded_value
 # decode payload
-decoded_result = codec.decode_octet_string_no_length_vec(int(<p>_nCount))
+decoded_result = codec.decode_octet_string_no_length_vec(int(instance_arr_nCount))
 if not decoded_result:
     raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decoded_result.error_message}")
-<p>_arr = decoded_result.decoded_value
-<p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+<p> = <sTypeDefName>(instance_arr_nCount, decoded_result.decoded_value)
 >>
 
 /* BIT STRING*/

@@ -215,6 +215,7 @@ type ILangGeneric () =
     abstract member getValueUnchecked: AccessPath -> UncheckedAccessKind -> string
     abstract member joinSelection: AccessPath -> string;
     abstract member joinSelectionUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member asSelectionIdentifier: AccessPath -> string;
     abstract member getAccess       : AccessPath -> string;
     abstract member getAccess2      : AccessStep  -> string;
     abstract member getStar         : AccessPath -> string;
@@ -484,7 +485,16 @@ type ILangGeneric () =
     default _.getBoardNames _ = []
     default _.getBoardDirs  _ = []
     default _.getTypeBasedSuffix _ _ = ""
-
+       
+    default _.asSelectionIdentifier sel: string = 
+        List.fold (fun str accessor ->
+            let acc =
+                match accessor with
+                | ValueAccess (id, _, _) -> ToC id
+                | PointerAccess (id, _, _) -> ToC id
+                | ArrayAccess (id, _) -> "arr"
+            $"{str}_{acc}") sel.rootId sel.steps
+    
 
 type LanguageMacros = {
     lg      : ILangGeneric;
@@ -505,11 +515,5 @@ type AccessPath with
         lg.joinSelection this
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
-    member this.asIdentifier: string =
-        List.fold (fun str accessor ->
-            let acc =
-                match accessor with
-                | ValueAccess (id, _, _) -> ToC id
-                | PointerAccess (id, _, _) -> ToC id
-                | ArrayAccess _ -> "arr"
-            $"{str}_{acc}") this.rootId this.steps
+    member this.asIdentifier (lg: ILangGeneric): string =
+        lg.asSelectionIdentifier this

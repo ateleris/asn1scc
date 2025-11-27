@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: self-hosted
+    runs-on: server-manu
 
     steps:
     - name: Set owner of working dir recurively (Hotfix)

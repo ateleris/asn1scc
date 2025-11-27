@@ -1,4 +1,6 @@
 module LangGeneric_python
+
+open System.Linq
 open AbstractMacros
 open Asn1AcnAst
 open CommonTypes
@@ -136,16 +138,52 @@ type LangGeneric_python() =
     override _.joinSelectionUnchecked (sel: AccessPath) (kind: UncheckedAccessKind) =
         let len = sel.steps.Length
         let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
-        List.fold (fun str (ix, accessor) ->
+        
+        let fold =
+            List.fold (fun str (ix, accessor) ->
+                    let accStr =
+                        match accessor with
+                        | ValueAccess (id, _, isOpt) ->
+                            if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                        | PointerAccess (id, _, isOpt) ->
+                            if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                        | _ -> ""
+
+                    $"{str}{accStr}"
+                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+        
+        List.fold (fun str (ix, accessor) ->                       
+                    let arrIndex =
+                        match accessor with
+                        | ArrayAccess (ix, _) -> $"[{ix}]"
+                        | _ -> ""
+                    $"{str}{arrIndex}"
+                ) fold (List.indexed sel.steps)
+    
+    override _.asSelectionIdentifier (sel: AccessPath) =
+        let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
+        let fold =
+            List.fold (fun str (ix, accessor) ->
+                    let accStr =
+                        match accessor with
+                        | ValueAccess (id, _, isOpt) -> $"_{id}"
+                        | PointerAccess (id, _, isOpt) -> $"_{id}"
+                        | _ -> ""
+                       
+                    $"{str}{accStr}"
+                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+        
+        if sel.steps.IsEmpty then
+            fold
+        else
+            let last = (sel.steps.Reverse ()).First()
             let accStr =
-                match accessor with
-                | ValueAccess (id, _, isOpt) ->
-                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
-                | PointerAccess (id, _, isOpt) ->
-                    if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}" else $".{id}"
+                match last with
                 | ArrayAccess (ix, _) -> $"[{ix}]"
-            $"{str}{accStr}"
-        ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+                | _ -> ""
+            $"{fold}{accStr}"
+
+  
     
     override this.getAccess (sel: AccessPath) = "."
 
