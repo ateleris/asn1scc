@@ -1,0 +1,39 @@
+name: Python Unit Tests
+
+on:
+  push:
+  workflow_dispatch: 
+
+jobs:
+  build-and-test:
+    runs-on: self-hosted
+
+    steps:
+    - name: Set owner of working dir recursively (Hotfix)
+      run: sudo chown -R $(id -u):$(id -g) .
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build -t asn1scc .
+
+    - name: Build Source
+      run: |
+        source "$HOME/.sdkman/bin/sdkman-init.sh"
+        dotnet build Antlr/
+        dotnet build parseStg2/
+        dotnet build "asn1scc.sln"
+    
+    - name: Generate Python Output
+      run: ./generate-local-tests.sh
+
+    - name: Run ASN1 Tests
+      run: pytest -k "not (test_case_ACN_000509 or test_case_ACN_000884 or test_case_ACN_000875)" generated-python-output/asn1
+
+    - name: Run ACN Tests
+      run: pytest generated-python-output/acn
+
+    - name: Run Testlib Tests
+      run: pytest generated-python-output/testlib
+    
