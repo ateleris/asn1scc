@@ -207,12 +207,19 @@ class BitStream:
     def reset(self) -> None:
         """Reset the bit position to the beginning"""
         #@nagini Requires(self.bitstream_invariant())
+        #@nagini Requires(self.segments_predicate(self.buffer()))
         #@nagini Ensures(self.bitstream_invariant())
+        #@nagini Ensures(self.segments_predicate(self.buffer()))
         #@nagini Ensures(self.current_bit_position == 0)
         #@nagini Ensures(self.current_byte_position == 0)
         #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.segments == Old(self.segments))
+        #@nagini Ensures(self.segments_read_index == 0)
 
         self.set_position(0, 0)
+        #@nagini Unfold(self.segments_predicate(self.buffer()))     
+        #@nagini self._segments_read_index = 0
+        #@nagini Fold(self.segments_predicate(self.buffer()))
 
     def set_bit_index(self, bit_index: int) -> None:
         """Set the current bit index"""
@@ -257,11 +264,13 @@ class BitStream:
     #     Ensures(self.bitstream_invariant())
     #     Ensures(self.segments_predicate(self.buffer()))
 
-    #     Requires(segments_total_length(self.segments) == self.current_used_bits)
+    #     Ensures(self.current_used_bits == Old(self.current_used_bits) + (0 if self.current_bit_position == 0 else NO_OF_BITS_IN_BYTE - self.current_bit_position))
+        
+        
+        # Requires(segments_total_length(self.segments) == self.current_used_bits)
 
     #     Ensures(self.bitstream_invariant())
     #     Ensures(self.segments_predicate(self.buffer()))
-    #     Ensures(self.current_used_bits == Old(self.current_used_bits) + (0 if self.current_bit_position == 0 else NO_OF_BITS_IN_BYTE - self.current_bit_position))
     #     Ensures(self.buffer_size == Old(self.buffer_size))
     #     Ensures(self.buffer() == Old(self.buffer()))
     #     Ensures(Implies(self.cu))
@@ -432,7 +441,6 @@ class BitStream:
         Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
         Ensures(self.segments == Old(self.segments) + PSeq(Segment(bit_count, value)))
         Ensures(segments_total_length(self.segments) == self.current_used_bits)
-        Ensures(self.segments_read_index == Old(self.segments_read_index))
         
         ghost_current_value = 0
         i: int = 0
@@ -490,7 +498,6 @@ class BitStream:
         Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
         Ensures(self.segments == Old(self.segments) + PSeq(Segment(NO_OF_BITS_IN_BYTE, value)))
         Ensures(segments_total_length(self.segments) == self.current_used_bits)
-        Ensures(self.segments_read_index == Old(self.segments_read_index))
 
         self.write_bits(value, 8)
         
