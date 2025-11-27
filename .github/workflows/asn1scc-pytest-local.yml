@@ -32,7 +32,7 @@ jobs:
             -v ${{ github.workspace }}:/src \
             -w /src \
             asn1scc \
-            bash -c 'python3 -m pip install pytest && pytest --junitxml=test-results-asn1.xml -k "not (test_case_ACN_000509 or test_case_ACN_000884 or test_case_ACN_000875)" generated-python-output/asn1'
+            bash -c 'python3 -m pytest --junitxml=test-results-asn1.xml -k "not (test_case_ACN_000509 or test_case_ACN_000884 or test_case_ACN_000875)" generated-python-output/asn1'
   
       - name: Run ACN Tests
         run: |
@@ -40,7 +40,7 @@ jobs:
             -v ${{ github.workspace }}:/src \
             -w /src \
             asn1scc \
-            bash -c 'python3 -m pip install pytest && pytest --junitxml=test-results-acn.xml generated-python-output/acn'
+            bash -c 'python3 -m pytest --junitxml=test-results-acn.xml generated-python-output/acn'
   
       - name: Run Testlib Tests
         run: |
@@ -48,7 +48,7 @@ jobs:
             -v ${{ github.workspace }}:/src \
             -w /src \
             asn1scc \
-            bash -c 'python3 -m pip install pytest && pytest --junitxml=test-results-testlib.xml generated-python-output/testlib'
+            bash -c 'python3 -m pytest --junitxml=test-results-testlib.xml generated-python-output/testlib'
   
       - name: Upload test results
         uses: actions/upload-artifact@v4
