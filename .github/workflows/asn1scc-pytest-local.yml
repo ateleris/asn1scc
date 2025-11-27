@@ -24,7 +24,7 @@ jobs:
           -v ${{ github.workspace }}:/src \
           -w /src \
           asn1scc \
-          ./generate-local-tests.sh
+          bash -c 'source "$HOME/.sdkman/bin/sdkman-init.sh" && dotnet build Antlr && dotnet build parseStg2 && ./generate-local-tests.sh'
   
       - name: Run ASN1 Tests
         run: |
