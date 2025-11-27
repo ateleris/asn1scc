@@ -45,6 +45,9 @@ RUN wget -O gnat-2021-x86_64-linux-bin https://community.download.adacore.com/v1
     && gnat_community_install_script/install_package.sh ./gnat-2021-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
     && rm -rf /gnat_tmp/
 
+# Add UV for efficient python version management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Set back to the appropriate user
 USER $USERNAME
 WORKDIR /app/
