@@ -5,19 +5,25 @@ on:
   workflow_dispatch: 
 
 jobs:
-  build-and-test:
+  build-docker-image:
     runs-on: self-hosted
 
     steps:
-    - name: Set owner of working dir recursively (Hotfix)
-      run: sudo chown -R $(id -u):$(id -g) .
+      - name: Set owner of working dir recursively (Hotfix)
+        run: sudo chown -R $(id -u):$(id -g) .
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Build Docker image
-      run: docker build -t asn1scc .
+      - name: Build Docker image
+        run: docker build -t asn1scc .
+        
+  build-and-test:
+    runs-on: self-hosted
+    container:
+      image: asn1scc:latest
 
+    steps:
     - name: Build Source
       run: |
         source "$HOME/.sdkman/bin/sdkman-init.sh"
