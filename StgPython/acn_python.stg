@@ -885,7 +885,7 @@ if instanceof(res, Asn1SccError):
 
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 722
-if <p><sAcc><sChName>:
+if <p><sAcc><sChName> is not None:
     codec.append_bit(True)
 else:
     codec.append_bit(False)
