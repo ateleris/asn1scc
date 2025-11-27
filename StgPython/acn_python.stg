@@ -1027,10 +1027,10 @@ if <soExistVar>:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+    <p>_<sChName>: Optional[<sChildTypedef>] = <sChildTypedef>.decode(codec, check_constraints)
     <endif>
 else:
-    <p>_<sChName>: Optional[<sChildTypedef>] = <sChildTypedef>()
+    <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
