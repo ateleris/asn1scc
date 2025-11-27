@@ -362,9 +362,13 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
+        let name = match s with
+                    | "1" -> "self"
+                    | "2" -> "other"
+                    | _ -> "param" + s
         let recvId = match t.Kind with
-                        | Asn1AcnAst.Enumerated _ -> "param" + s + ".val"
-                        | _ -> "param" + s
+                        | Asn1AcnAst.Enumerated _ -> name + ".val"
+                        | _ -> name
 
         {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
         // {p with accessPath.rootId = p.accessPath.rootId + s}
