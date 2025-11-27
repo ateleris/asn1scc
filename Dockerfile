@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y wget apt-transport-https && \
 RUN set -xe \
     && DEBIAN_FRONTEND=noninteractive apt-get update -y \
     && apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
-        python3 python3-distutils gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
+        python3 python3-distutils python3-pytest gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
     && apt-get clean 
