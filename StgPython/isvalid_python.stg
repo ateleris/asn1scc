@@ -27,7 +27,7 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
-return Asn1ConstraintValidResult(True)
+return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -37,23 +37,21 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-constraint = <sIsValidExp>
-if not issubclass(type(constraint), Asn1Boolean) and not issubclass(type(constraint), int) and not issubclass(type(constraint), float) and not constraint:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=424242)
-else:
-    ret = Asn1ConstraintValidResult(is_valid=True)
+ret = Asn1ConstraintValidResult(is_valid=True) if (<sIsValidExp>) else Asn1ConstraintValidResult(is_valid=False, error_code=88888)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 # isvalid_python.stg 43
 ret = <sIsValidExp>
 if not ret:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 # isvalid_python.stg 48
 <sStatement>
+if not ret:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -213,13 +211,16 @@ while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>n
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> bool:
+def chars_are_valid(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i: int = 0
     while valid and i \< len(self) and self[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
-    return valid
+    if valid:
+        return Asn1ConstraintValidResult(is_valid=valid)
+    else:
+        return Asn1ConstraintValidResult(is_valid=valid, error_code=4444)
 
 >>
 
@@ -271,7 +272,7 @@ call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 # isvalid_python.stg 264
-if (not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>):
+if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>:
     <sInnerStatement>
 else:
     ret = Asn1ConstraintValidResult(is_valid=True)
@@ -284,7 +285,7 @@ ret = Asn1SccError(<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-<p><sAcc><sChName>
+<p><sAcc><sChName> is not None if <sPresOrAbs> else <p><sAcc><sChName> is None
 >>
 
 /* SEQUENCE end*/
@@ -336,6 +337,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 332
+ret = Asn1ConstraintValidResult(is_valid=True)
 for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <sInnerStatement>
     if not ret:

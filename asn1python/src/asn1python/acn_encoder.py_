@@ -40,11 +40,16 @@ class ACNEncoder(Encoder):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self, buffer_byte_size: int = 1024 * 1024) -> None:
-        super().__init__(buffer_byte_size=buffer_byte_size)
+    def __init__(self, buffer: bytearray) -> None:
+        super().__init__(buffer)
 
-    def _construct(self, buffer: bytearray) -> 'ACNEncoder':
-        return ACNEncoder(buffer)
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'ACNEncoder':
+        return cls(bytearray(buffer_byte_size))
+
+    @classmethod
+    def _construct(cls, buffer: bytearray) -> 'ACNEncoder':
+        return cls(buffer)
 
     def get_decoder(self) -> ACNDecoder:
         return ACNDecoder(self.get_bitstream_buffer())

@@ -632,6 +632,118 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
+    def read_bits_null_terminated(self, terminator_pattern: bytearray,
+                                  terminator_size_in_bits: int,
+                                  max_read_bits: int) -> DecodeResult[bytearray]:
+        """
+        Read bits until a null terminator pattern is found.
+
+        Reads bits one by one until the specified terminator pattern is encountered
+        at the current position, or until max_read_bits are read.
+
+        Matches C: BitStream_ReadBits_nullterminated(pBitStrm, bit_terminated_pattern,
+                                                      bit_terminated_pattern_size_in_bits,
+                                                      BuffToWrite, nMaxReadBits, bitsRead)
+
+        Args:
+            terminator_pattern: Byte array containing the terminator bit pattern
+            terminator_size_in_bits: Size of the terminator pattern in bits
+            max_read_bits: Maximum number of bits to read (excluding terminator)
+
+        Returns:
+            DecodeResult with:
+            - decoded_value: bytearray containing the read bits (excluding terminator)
+            - bits_consumed: Number of bits read (excluding terminator)
+
+        Note: This method does NOT consume the terminator pattern itself
+        """
+        try:
+            bits_read = 0
+
+            # Calculate buffer size needed for output
+            buffer_size = (max_read_bits + 7) // 8
+            output_buffer = bytearray(buffer_size)
+
+            # Create temporary bitstream for writing output
+            from .bitstream import BitStream
+            tmp_stream = BitStream(output_buffer)
+
+            # Read bits until pattern found or max reached
+            while bits_read < max_read_bits:
+                # Check if terminator pattern is present at current position
+                pattern_result = self.check_bit_pattern_present(terminator_pattern, terminator_size_in_bits)
+                if not pattern_result.success:
+                    return DecodeResult(
+                        success=False,
+                        error_code=pattern_result.error_code,
+                        error_message=pattern_result.error_message
+                    )
+
+                pattern_check = pattern_result.decoded_value
+
+                if pattern_check == 0:
+                    # Error - not enough bits
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INSUFFICIENT_DATA,
+                        error_message="Not enough bits remaining to check terminator pattern"
+                    )
+                elif pattern_check == 2:
+                    # Terminator pattern found!
+                    return DecodeResult(
+                        success=True,
+                        error_code=DECODE_OK,
+                        decoded_value=tmp_stream.get_data(),
+                        bits_consumed=bits_read
+                    )
+                # pattern_check == 1: pattern not present, keep reading
+
+                # Read one bit and append to output
+                if self._bitstream.remaining_bits < 1:
+                    return DecodeResult(
+                        success=False,
+                        error_code=ERROR_INSUFFICIENT_DATA,
+                        error_message="Unexpected end of bitstream"
+                    )
+
+                bit_val = self._bitstream.read_bit()
+                tmp_stream.write_bit(bit_val)
+                bits_read += 1
+
+            # Reached max_read_bits - check pattern one more time
+            pattern_result = self.check_bit_pattern_present(terminator_pattern, terminator_size_in_bits)
+            if not pattern_result.success:
+                return DecodeResult(
+                    success=False,
+                    error_code=pattern_result.error_code,
+                    error_message=pattern_result.error_message
+                )
+
+            pattern_check = pattern_result.decoded_value
+
+            if pattern_check == 2:
+                # Terminator pattern found at the end
+                return DecodeResult(
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=tmp_stream.get_data(),
+                    bits_consumed=bits_read
+                )
+            else:
+                # Terminator pattern not found within max_read_bits
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Terminator pattern not found within {max_read_bits} bits"
+                )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def decode_unsigned_integer(self, num_bits: int) -> DecodeResult[int]:
         """
         Decode unsigned integer with specified number of bits.

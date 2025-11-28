@@ -6,7 +6,6 @@ that match the behavior of the C and Scala runtime libraries.
 """
 
 import abc
-import ctypes
 from codecs import Codec
 from dataclasses import dataclass
 from enum import Enum
@@ -93,36 +92,6 @@ class Asn1Base(abc.ABC):
 
 # Integer types using ctypes for automatic range validation and conversion
 
-# Unsigned integer types
-UInt8 = ctypes.c_uint8    # 8-bit unsigned integer (0 to 255)
-UInt16 = ctypes.c_uint16  # 16-bit unsigned integer (0 to 65535)  
-UInt32 = ctypes.c_uint32  # 32-bit unsigned integer (0 to 4294967295)
-UInt64 = ctypes.c_uint64  # 64-bit unsigned integer (0 to 18446744073709551615)
-
-# Signed integer types
-Int8 = ctypes.c_int8      # 8-bit signed integer (-128 to 127)
-Int16 = ctypes.c_int16    # 16-bit signed integer (-32768 to 32767)
-Int32 = ctypes.c_int32    # 32-bit signed integer (-2147483648 to 2147483647)
-Int64 = ctypes.c_int64    # 64-bit signed integer (-9223372036854775808 to 9223372036854775807)
-
-# Byte type aliases
-UByte = ctypes.c_uint8    # Unsigned byte (0 to 255)
-Byte = ctypes.c_int8      # Signed byte (-128 to 127)
-    
-
-# ASN.1 compiler size types
-Asn1SccSint32 = Int32
-Asn1SccUint32 = UInt32
-Asn1SccSint64 = UInt32
-Asn1SccUint64 = UInt64
-Asn1SccUint = int
-Asn1SccSint = int
-
-# ASN.1 semantic types - simplified to match C/Scala approach
-
-# ASN.1 Real type - matches Scala "type asn1Real = Double" and C "typedef double asn1Real"
-Asn1Real = float
-
 # ASN.1 Boolean type - matches primitive bool in C and Scala
 @total_ordering
 class Asn1Boolean(Asn1Base):
@@ -196,13 +165,6 @@ class NullType(Asn1Base):
 
     __slots__ = ()
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
     # --- Core protocol ---
     def __bool__(self):
         return False
@@ -248,14 +210,6 @@ class NullType(Asn1Base):
     @staticmethod
     def decode_pure(codec: Decoder, check_constraints: bool = True):
         return NullType()
-
-
-# Floating point types for different precisions
-Asn1Real32 = float  # matches C typedef float asn1Real32
-Asn1Real64 = float  # matches C typedef double asn1Real64
-
-# ASCII character type
-ASCIIChar = int  # matches UByte in Scala
 
 # Constants to match C and Scala implementations
 OBJECT_IDENTIFIER_MAX_LENGTH = 20

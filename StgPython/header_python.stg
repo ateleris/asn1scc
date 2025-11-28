@@ -55,13 +55,13 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 Python TYPES
 */
 
-Declare_Integer() ::="int" // TODO: is this really 64 bit? 
-Declare_PosInteger() ::="int" // TODO: is this really 64 bit?
+Declare_Integer() ::="int"
+Declare_PosInteger() ::="int"
 Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
 Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
 
 Declare_Boolean() ::= "Asn1Boolean"
-Declare_Real() ::= "Asn1Real"
+Declare_Real() ::= "float"
 
 Declare_Int8() ::="int"
 Declare_UInt8() ::="int"
@@ -72,8 +72,8 @@ Declare_UInt32() ::="int"
 Declare_Int64() ::="int"
 Declare_UInt64() ::="int"
 
-Declare_Real32() ::= "Asn1Real32"
-Declare_Real64() ::= "Asn1Real64"
+Declare_Real32() ::= "float"
+Declare_Real64() ::= "float"
 
 Declare_BooleanNoRTL() ::= "Asn1Boolean"
 Declare_RealNoRTL() ::= "RealNoRTL"
@@ -126,15 +126,15 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 # header_python.stg 130
-class <td.typeName>_Enum(IntEnum):
-    __all__.append("<td.typeName>_Enum")
+class <td.asn1Name>_Enum(IntEnum):
+    __all__.append("<td.asn1Name>_Enum")
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 @dataclass(frozen=True)
-class <td.typeName>(Asn1Base):
-    __all__.append("<td.typeName>")
+class <td.asn1Name>(Asn1Base):
+    __all__.append("<td.asn1Name>")
     # initialize val with the first enum element by default
-    val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
+    val: <td.asn1Name>_Enum = <td.asn1Name>_Enum.<first(arrsEnumNames)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
@@ -317,7 +317,8 @@ class <td.typeName>(Asn1Base):
     kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>
     
     # actual selection element
-    data: Union[<arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
+    # TODO should NullType be included here
+    data: Union[NullType, <arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
 
     <arrsSizeDefinition; separator="\n\n">
 >>

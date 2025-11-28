@@ -143,23 +143,27 @@ if not decoded_result:
 /* INTEGER START*/
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 139
 res = codec.encode_constrained_whole_number(<p>, <nMin>, <nMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, sType) ::= <<
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 144
 decoded_result = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 # uper_python.stg 150
 <soRangeAssert>
 res = codec.encode_constrained_pos_whole_number(<p>, <nMin>, <nMax>)
@@ -167,27 +171,36 @@ if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, sType) ::= <<
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 # uper_python.stg 156
 decoded_result = codec.decode_constrained_pos_whole_number(<nMin>, <nMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(decoded_result.decoded_value)
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, sType) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, sType) ::= << 
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= << 
 # uper_python.stg 163
-res = codec.decode_unconstrained_whole_number()
-if res is None:
+decoded_result = codec.decode_unconstrained_whole_number()
+if not decoded_result:
     # uper_python.stg 166
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p> = <sType>(res.decoded_value)
+    raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
+<if(soType)>
+<p> = <soType>(decoded_result.decoded_value)
+<else>
+<p> = decoded_result.decoded_value
+<endif>
+
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
@@ -203,10 +216,10 @@ if decoded_result:
     <if(soCheckExp)>
     if not <soCheckExp>: 
         # uper_python.stg 179
-        raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+        raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
     <else>
     # uper_python.stg 182
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+    raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
     <endif>
 >>
 
@@ -239,14 +252,18 @@ if not decoded_result:
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode, sType) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
 # uper_python.stg 207
 # No need to encode the val <p>, it will always be <sConst> 
 # NOPs
 >>
-IntNoneRequired_decode(p, sConst, sErrCode, sType) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 # uper_python.stg 212
-<p> = <sType>(<sConst>)
+<if(soType)>
+<p> = <soType>(<sConst>)
+<else>
+<p> = <sConst>
+<endif>
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
@@ -267,7 +284,7 @@ if decoded_result:
     if not extBit: # ext bit is zero ==> value is expected with root range
         <sIntBody>
     else
-        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="True")>
+        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
 else
     ret = <sErrCode>
 >>
@@ -530,8 +547,6 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 # todo: replace with better call to:
 #codec.enc_string_char_index_external_field_determinant(<nIntItemMaxSize>, allowedCharSet, "".join([chr(k) for k in self]))
-
-<soCallAux>
 >>
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
@@ -539,15 +554,13 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>_arr = [None] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 <p> = cls(<p>_arr)
-
-<soCallAux>
 >>
 
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
 nStringLength: int = len(<p>)
-# ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>
+# ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
@@ -567,14 +580,22 @@ nStringLength: int = decoded_result.decoded_value
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
+loopFixedItem_dec (i, fixedSize,  sInternalItem)::= /*nogen*/<<
+for <i> in range(<fixedSize>):
+    <sInternalItem>
+>>
+
 seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 # uper_python.stg 500
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 >>
 
 seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 # uper_python.stg 505
-<soCallAux>
+instance_arr = [None] * <nFixedSize>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+    instance_arr[i1] = instance_arr_arr
+instance = <sTasName>(instance_arr)
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
@@ -586,7 +607,7 @@ seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
@@ -597,7 +618,7 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 
 <p>_nCount = int(codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>))
 
-<soCallAux>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
@@ -631,27 +652,26 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of decode_constrained_whole_number failed: {decoded_result.error_message}")
-<p>_nCount = decoded_result.decoded_value
+instance_arr_nCount = decoded_result.decoded_value
 # decode payload
-decoded_result = codec.decode_octet_string_no_length_vec(int(<p>_nCount))
+decoded_result = codec.decode_octet_string_no_length_vec(int(instance_arr_nCount))
 if not decoded_result:
     raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decoded_result.error_message}")
-<p>_arr = decoded_result.decoded_value
-<p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+<p> = <sTypeDefName>(instance_arr_nCount, decoded_result.decoded_value)
 >>
 
 /* BIT STRING*/
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 557
-codec.append_bits(<p><sAcc>arr, <nFixedSize>)
+codec.append_bits(bytearray(<p><sAcc>arr), <nFixedSize>)
 >>
 
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 # uper_python.stg 563
-ret = codec.read_bits(int(<nFixedSize>))
+ret = codec.read_bits(<nFixedSize>)
 if not ret:
-     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {ret.error_message}")
-<p> = <sTypeDefName>(ret.decoded_value)
+     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {ret.error_message}")
+<p> = <sTypeDefName>(list(ret.decoded_value))
 >>
 
 bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
@@ -752,7 +772,7 @@ Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sCurBlockSize>: int = 0
 <sCurOffset>: int = 0
 <sBlockIndex>: int = 0
-while <sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>:
+while <sRemainingItemsVar> >= 0x4000 and <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>:
     if <sRemainingItemsVar> >= 0x10000:
         <sCurBlockSize> = 0x10000
         res = codec.encode_constrained_whole_number(0xC4, 0, 0xFF)
@@ -822,7 +842,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret: int = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-    check = (ret == 0) && (<sRemainingItemsVar> == 0xC4)
+    check = (ret == 0) and (<sRemainingItemsVar> == 0xC4)
     ret = 0 if check else Asn1SccError(<sErrCodeName>)
     if ret == 0:
         <if(bIsBitStringType)>
@@ -848,7 +868,7 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 # decode a single Block with <nBlockSize> items
 <sCurBlockSize> = <nBlockSize>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
-val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>)
+val check = (ret == 0) and (<sRemainingItemsVar> == <sBlockId>)
 ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
 if not isinstance(ret, Asn1SccError):
     <if(bIsBitStringType)>

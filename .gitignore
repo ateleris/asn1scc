@@ -1419,6 +1419,7 @@ details-docs/
 /asn1python/build/
 **/__pycache__/
 /generated-python-output/
+/generated-testlib-output/
 /generated-scala-output/
 /generated-c-output/
 /output

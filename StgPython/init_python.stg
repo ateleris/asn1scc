@@ -134,9 +134,9 @@ initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefi
 <else>
 <if(bAlpha)>
 allowed_char_set = [<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
-<sResVar> = <td.asn1name>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
+<sResVar> = <td.typeName>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
 <else>
-<sResVar> = <td.asn1name>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
+<sResVar> = <td.typeName>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
 <endif>
 <endif>
 >>
@@ -208,11 +208,10 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
 # init_python.stg 213
-<sResVar>_list = []
+<sResVar>_arr: list = [None] * <nSize>
 for <i> in range(<nSize>):
     <arrsInnerItems; separator="\n">
-    <sResVar>_list.append(<sResVar>_arr_arr)
-<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_list)
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_arr)
 >>
 
 
@@ -251,7 +250,8 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
 # init_python.stg 255
 <sChildContent>
-<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>)
+# init_python.stg 257
+<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>_data)
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<

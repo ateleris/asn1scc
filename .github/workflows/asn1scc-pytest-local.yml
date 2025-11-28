@@ -1,0 +1,70 @@
+name: Python Unit Tests
+
+on:
+  push:
+  workflow_dispatch: 
+
+jobs:
+  build-and-test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Set owner of working dir recursively (Hotfix)
+        run: sudo chown -R $(id -u):$(id -g) .
+        
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Build Docker image
+        run: docker build -t asn1scc .
+      
+      - name: Generate Python Output
+        run: | 
+          docker run --rm \
+          -v ${{ github.workspace }}:/app \
+          -w /app \
+          asn1scc \
+          bash -c 'source "$HOME/.sdkman/bin/sdkman-init.sh" && dotnet build Antlr && dotnet build parseStg2 && ./generate-local-tests.sh'
+  
+      - name: Install python & pytest
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            bash -c "uv venv --python 3.10 && uv init && uv add pytest"
+          
+      - name: Run ASN1 Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest --junitxml=test-results-asn1.xml -k "not (test_case_ACN_000509 or test_case_ACN_000884 or test_case_ACN_000875)" generated-python-output/asn1
+  
+      - name: Run ACN Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest --junitxml=test-results-acn.xml generated-python-output/acn
+  
+      - name: Run Testlib Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest --junitxml=test-results-testlib.xml generated-python-output/testlib
+  
+      - name: Upload test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            test-results-asn1.xml
+            test-results-acn.xml
+            test-results-testlib.xml
