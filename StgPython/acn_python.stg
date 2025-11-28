@@ -551,6 +551,7 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 if <p> == <sName>:
+    # acn_python.stg 554
     <sIntVal> = <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
@@ -571,9 +572,8 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-<sIntVal>: int = 0
-
-<arrsItem; separator="\n">
+# acn_python.stg 574
+<arrsItem; separator="\nel">
 
 <sActualCodecFunc>
 >>
