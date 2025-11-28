@@ -214,10 +214,12 @@ type ILangGeneric () =
     abstract member getValue        : AccessPath -> string;
     abstract member getValueUnchecked: AccessPath -> UncheckedAccessKind -> string
     abstract member joinSelection: AccessPath -> string;
+    abstract member joinSelectionEnum: AccessPath -> string;
     abstract member joinSelectionUnchecked: AccessPath -> UncheckedAccessKind -> string;
     abstract member asSelectionIdentifier: AccessPath -> string;
     abstract member getAccess       : AccessPath -> string;
     abstract member getAccess2      : AccessStep  -> string;
+    abstract member getAccess3      : AccessStep  -> string;
     abstract member getStar         : AccessPath -> string;
     abstract member getPtrPrefix    : AccessPath -> string;
     abstract member getPtrSuffix    : AccessPath -> string;
@@ -478,7 +480,11 @@ type ILangGeneric () =
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ = []
     default this.joinSelection sel = List.fold (fun str accessor -> $"{str}{this.getAccess2 accessor}") sel.rootId sel.steps
+    
+    default this.joinSelectionEnum sel = List.fold (fun str accessor -> $"{str}{this.getAccess3 accessor}") sel.rootId sel.steps
 
+    default this.getAccess3(acc: AccessStep) = ""
+    
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
     default _.isFilenameCaseSensitive = false
@@ -513,6 +519,13 @@ type LanguageMacros = {
 type AccessPath with
     member this.joined (lg: ILangGeneric): string =
         lg.joinSelection this
+        
+    member this.joinedEnum (lg: ILangGeneric): string =
+        if ProgrammingLanguage.ActiveLanguages.Head = Python then 
+            lg.joinSelectionEnum this
+        else
+            lg.joinSelection this
+        
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
     member this.asIdentifier (lg: ILangGeneric): string =

@@ -1165,8 +1165,8 @@ if <p> == <sEnmName>:
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 997
-# <p> = match <sEnmExtFld>:
-<arrsChildren; separator="\n">
+<p> = <sEnmExtFld>.val
+<arrsChildren; separator="\nel">
 >>
 
 /* Updates */

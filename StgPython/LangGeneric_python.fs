@@ -192,6 +192,12 @@ type LangGeneric_python() =
             | ValueAccess (sel, _, _) -> $".{sel}"
             | PointerAccess (sel, _, _) -> $".{sel}"
             | ArrayAccess (ix, _) -> $"[{ix}]"
+            
+    override this.getAccess3 (acc: AccessStep) =
+        match acc with
+            | ValueAccess (sel, _, _) -> $"_{sel}"
+            | PointerAccess (sel, _, _) -> $"_{sel}"
+            | ArrayAccess (ix, _) -> $"[{ix}]"
 
     override this.getPtrPrefix _ = ""
 
