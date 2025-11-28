@@ -1027,7 +1027,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams) ::= <<
 -- Encode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.Exist.<sChName> = 1 then
@@ -1035,7 +1035,7 @@ if <p>.Exist.<sChName> = 1 then
 end if;
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams) ::= <<
 -- Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.Exist.<sChName> = 1 then
