@@ -1146,14 +1146,14 @@ else:
 
 /* Choice with Enum determinant */
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-# acn_python.stg 978
 if <p>.kind == <sChildID>:
+    # acn_python.stg 978
     <sChildBody>
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 991
-<arrsChildren; separator="\n">
+<arrsChildren; separator="\nel">
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
