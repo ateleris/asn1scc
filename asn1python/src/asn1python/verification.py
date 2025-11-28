@@ -31,7 +31,6 @@ def floor_align_byte(position: PInt) -> int:
 #region Byteseq equality
 
 @Pure
-#@nagini @UsePrimitiveType
 def byteseq_bytes_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
     """Compares if the two bytearrays b1 and b2 are equal in the range [0, end["""
     Requires(0 <= end and end <= len(b1) and end <= len(b2))

@@ -6,7 +6,6 @@ that match the behavior of the C and Scala bitstream implementations.
 """
 
 from nagini_contracts.contracts import *
-from typing import Optional, List, Tuple
 from verification import *
 from segment import Segment, segments_invariant, lemma_byteseq_equal_segments_contained, segments_total_length, lemma_segments_contained_read, segments_contained
 
@@ -40,22 +39,6 @@ class BitStream:
         #@nagini Requires(0 <= bit_position and 0 <= byte_position and 0 <= buf_length)
         #@nagini Requires(BitStream.position_invariant(bit_position, byte_position, buf_length))
         return (buf_length * NO_OF_BITS_IN_BYTE) - BitStream.to_bit_index(bit_position, byte_position)
-    
-    #@nagini @Pure
-    @staticmethod
-    def _bit_index(bit_position: int, byte_position: int, buf_length: int) -> int:
-        #@nagini Requires(BitStream.position_invariant(bit_position, byte_position, buf_length))
-        #@nagini Ensures(0 <= Result() and Result() <= buf_length * NO_OF_BITS_IN_BYTE)
-        #@nagini Ensures(Result() == buf_length * NO_OF_BITS_IN_BYTE - BitStream._remaining_bits(bit_position, byte_position, buf_length))
-        return BitStream.to_bit_index(bit_position, byte_position)
-    
-    #@nagini @Pure
-    @staticmethod
-    def _validate_offset_bits(bit_position: int, byte_position: int, buf_length: int, bits: int) -> bool:
-        #@nagini Requires(0 <= bit_position and 0 <= byte_position and 0 <= buf_length)
-        #@nagini Requires(BitStream.position_invariant(bit_position, byte_position, buf_length))
-        #@nagini Requires(0 <= bits)
-        return BitStream._remaining_bits(bit_position, byte_position, buf_length) >= bits
 
     #@nagini @Pure
     def validate_offset(self, bits: int) -> bool:
@@ -63,7 +46,7 @@ class BitStream:
         #@nagini Requires(0 <= bits)
         Ensures(Implies(Result(), bits <= self.remaining_bits))
         #@nagini Unfold(Rd(self.bitstream_invariant()))
-        return BitStream._validate_offset_bits(self._current_bit, self._current_byte, len(self._buffer), bits)
+        return BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer)) >= bits
     
     @Predicate
     def bitstream_invariant(self) -> bool:
@@ -146,6 +129,7 @@ class BitStream:
 
     @property
     def current_used_bits(self) -> int:
+        """Get the number of bits currently used"""
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Ensures(0 <= Result() and Result() <= self.buffer_size_bits)
         #@nagini Unfold(Rd(self.bitstream_invariant()))
@@ -158,6 +142,7 @@ class BitStream:
 
     @property
     def remaining_bits(self) -> int:
+        """Get the number of bits remaining to be read"""
         #@nagini Requires(Rd(self.bitstream_invariant()))
         #@nagini Ensures(Result() == Unfolding(Rd(self.bitstream_invariant()), BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer))))
         #@nagini Ensures(Result() == self.buffer_size_bits - self.current_used_bits)
@@ -299,17 +284,6 @@ class BitStream:
         length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
         self._shift_bit_index(length)   
         self._increment_segment_read_index()
-
-    #     Ensures()
-    #     Ensures(segments_total_length(self.segments) == self.current_used_bits)
-    #     """Align the current position to the next byte boundary"""
-
-    #     NO_OF_BITS_IN_BYTE - self.current_bit_position
-
-    #     if self._current_bit != 0:
-    #         self._current_bit += (8 - self._bit_in_byte)
-    #         self._bit_in_byte = 0
-    #         self._current_byte += 1
 
     #region Read                   
         
@@ -556,10 +530,6 @@ def client() -> None:
     #     for _ in range(byte_count):
     #         result.append(self.read_byte())
     #     return result
-
-    # def bits_remaining(self) -> int:
-    #     """Get the number of bits remaining to be read"""
-    #     return max(0, self._size_in_bits - self._current_bit)
 
     # def is_at_end(self) -> bool:
     #     """Check if we're at the end of the bitstream"""
