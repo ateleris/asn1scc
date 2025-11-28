@@ -2058,33 +2058,35 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                       |> List.filter(fun d ->
                           d.asn1Type = child.Type.id &&
                           match d.dependencyKind with
-                          | AcnDepRefTypeArgument _ -> true
-                          | AcnDepSizeDeterminant _ -> true
+                          | AcnDepRefTypeArgument _
+                          | AcnDepSizeDeterminant _
+                          | AcnDepChoiceDeterminant _ -> true
                           | _ -> false)
                       |> List.choose(fun d ->
                           // Extract the target parameter name from the dependency kind
                           let targetParamName =
                               match d.dependencyKind with
                               | AcnDepRefTypeArgument acnPrm -> acnPrm.c_name
-                              | AcnDepSizeDeterminant _ ->
-                                  // For size determinants, use the determinant's c_name directly
+                              | AcnDepSizeDeterminant _
+                              | AcnDepChoiceDeterminant _ ->
+                                  // For size and choice determinants, use the determinant's c_name directly
                                   match d.determinant with
                                   | AcnChildDeterminant acnCh -> acnCh.c_name
                                   | AcnParameterDeterminant acnPrm -> acnPrm.c_name
-                              | _ -> ""  // Should never happen given our filter
+                              | _ -> "" // This should not happen given our filter
 
                           match d.determinant with
                           | AcnChildDeterminant acnCh ->
                               // The parameter gets its value from an ACN child that was encoded earlier
                               // Find the variable name that holds the ACN child's value
-                              let found = s.acnChildrenEncoded |> List.tryFind(fun (varName, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
+                              let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
                               // Return "parameterName=variableName" format
-                              found |> Option.map(fun (varName, _) -> sprintf "%s=instance_%s" targetParamName varName)
+                              found |> Option.map(fun (varName, _) -> sprintf "%s=%s" targetParamName varName)
                           | AcnParameterDeterminant acnPrm ->
                               // The parameter gets its value from a parent parameter
                               // Only include this if the parent actually has this parameter
                               match acnArgs |> List.tryFind(fun (_, prm) -> prm.id = acnPrm.id) with
-                              | Some _ -> Some (sprintf "%s=instance_%s" targetParamName acnPrm.c_name)
+                              | Some _ -> Some (sprintf "%s=%s" targetParamName acnPrm.c_name)
                               | None -> None
                       )
               | AcnChild _ -> []
@@ -2249,7 +2251,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            // Workaround: 0 # assigns 0 to the response variable and puts everything else behind a line comment.
                             let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 

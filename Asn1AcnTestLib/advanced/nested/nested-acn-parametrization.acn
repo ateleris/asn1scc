@@ -40,7 +40,7 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
     {
         packet [],
         nested [],
-        complex []
+        cmplex []
     }
 
 END

@@ -24,8 +24,8 @@ PresentWhenChoice DEFINITIONS ::= BEGIN
 
     Message []
     {
-        msgType MessageType [],
         hasPayload BOOLEAN [],
+        msgType MessageType [],
         payload <msgType> [present-when hasPayload]
     }
 

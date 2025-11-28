@@ -33,7 +33,7 @@ NestedAcnParametrization DEFINITIONS ::= BEGIN
     TestStruct ::= SEQUENCE {
         packet DataPacket,
         nested NestedConfig,
-        complex ComplexNested
+        cmplex ComplexNested
     }
 
 END
