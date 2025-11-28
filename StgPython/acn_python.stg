@@ -1160,13 +1160,13 @@ ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 if <p> == <sEnmName>:
     # acn_python.stg 984
     <sChildBody>
-    <p> = cls(kind=<p>, data=<p>_data)
+    <p> = cls(kind=<sEnmName>, data=<p>_data)
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 997
 # <p> = match <sEnmExtFld>:
-<!<arrsChildren; separator="\n">!>
+<arrsChildren; separator="\n">
 >>
 
 /* Updates */
