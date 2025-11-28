@@ -171,7 +171,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
     
-    let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId p        
+    let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId p
 
     let rangeAssert =
         match typeId.topLevelTas with

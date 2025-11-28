@@ -443,7 +443,8 @@ type LangGeneric_python() =
         | None -> None
         | Some k ->
             let tasName = ToC k.tasName
-            Some (if p.modName <> k.modName then k.modName + "." + tasName else tasName)
+            let modName = ToC k.modName
+            Some (if p.modName <> modName then modName + "." + tasName else tasName)
         
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
