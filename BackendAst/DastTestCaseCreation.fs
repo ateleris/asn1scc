@@ -69,7 +69,10 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             | None -> ""
         | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
-    let valueType = lm.lg.getLongTypedefName v.Type.typeDefinitionOrReference
+    let valueType = match v.Type.typeDefinitionOrReference with
+                    | TypeDefinition  td -> modName + "." + td.typedefName
+                    | ReferenceToExistingDefinition ref -> modName + "." + ref.typedefName
+    
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement =
         match ProgrammingLanguage.ActiveLanguages.Head, resolveReferenceType v.Type.Kind with
