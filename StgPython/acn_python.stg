@@ -1172,7 +1172,6 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefiniti
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 # acn_python.stg 1004
-# todo: should already be checked in is_constraint_valid, right? Do we need to encode this part here according to acn docs?
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
     raise Asn1Exception(f"Exception while checking size dependency: Error Code 860")
