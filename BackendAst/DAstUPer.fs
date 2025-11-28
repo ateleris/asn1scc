@@ -448,9 +448,10 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let typeDefinitionName = lm.lg.getLongTypedefName typeDefinition
 
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
+        let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let internalItem =
             match o.uperCharSet.Length = 128 with
-            | true  -> InternalItem_string_no_alpha (p.accessPath.joined lm.lg) errCode.errCodeName i codec
+            | true  -> InternalItem_string_no_alpha pp errCode.errCodeName i codec
             | false ->
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
