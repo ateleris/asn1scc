@@ -49,8 +49,6 @@ class Decoder(Codec):
             # Decode the offset value as unsigned
             offset_value = self._bitstream.read_bits(bits_needed)
 
-            print(f"READ VALUE {offset_value}")
-
             # Apply offset decoding: add min_val to get actual value
             value = offset_value + min_val
 
