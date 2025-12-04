@@ -49,7 +49,10 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
 # equal_python.stg 51
-def __eq__(self, other) -> bool:
+def __eq__(self, other: object) -> bool:
+    if not isinstance(other, <sTypeDefName>):
+        return NotImplemented
+
      ret: bool = True
      <arrsLocalVars; separator="\n">
  
@@ -64,7 +67,7 @@ equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sConte
 # equal_python.stg 64
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):
-            return NotImplemented
+        return NotImplemented
     <if(bExpression)>
     # equal_python.stg 67
     return <sContent>
@@ -166,7 +169,7 @@ call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 # equal_python.stg 199
-ret = <sIsValidExp>
+ret = ret and <sIsValidExp>
 >>
 
 
