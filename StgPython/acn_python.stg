@@ -1100,9 +1100,9 @@ else:
 /* Choice with presence determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
-# acn_python.stg 938
-if <p>.kind == <sChildID>:
     <if(bIsPrimitive)>
+if <arrsConditions; separator=" and ">:
+    # acn_python.stg 938
     <sChildBody>
     <else>
     self.data.encode(codec, check_constraints)
@@ -1127,13 +1127,8 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 >>
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
-<!"""
-<p>
-<sAcc>
-<sErrCode>
-"""!>
 # acn_python.stg 963
-<arrsChildren; separator="\n">
+<arrsChildren; separator="\nel">
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
@@ -1207,8 +1202,8 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
-# acn_python.stg 1041
 if choice == <sChildNamePresent>:
+    # acn_python.stg 1041
     <v> = <sChildRetVal>
 >>
 
@@ -1220,8 +1215,8 @@ if choice == <sChildNamePresent>:
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 # acn_python.stg 1053
-choice = <sChPath>
-<arrsChoiceItems; separator="\n">
+choice = <sChPath>.kind
+<arrsChoiceItems; separator="\nel">
 else:
     raise Asn1Exception(f"Encoding Exception! No match found for <sChPath>!")
 >>
