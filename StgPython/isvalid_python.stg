@@ -37,7 +37,7 @@ return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 # isvalid_python.stg 38
-ret = Asn1ConstraintValidResult(is_valid=True) if (<sIsValidExp>) else Asn1ConstraintValidResult(is_valid=False, error_code=88888)
+ret = Asn1ConstraintValidResult(is_valid=True) if <sIsValidExp> else Asn1ConstraintValidResult(is_valid=False, error_code=88888)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
@@ -101,7 +101,7 @@ ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
 ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
-ExpOr(sExp1, sExp2) ::= "((<sExp1>) or (<sExp2>))"
+ExpOr(sExp1, sExp2) ::= "(<sExp1> or <sExp2>)"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> and <sExp2>)"
 ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" and ">
