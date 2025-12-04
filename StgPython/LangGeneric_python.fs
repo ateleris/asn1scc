@@ -368,14 +368,11 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
-        let name = match s with
-                    | "1" -> "self"
-                    | "2" -> "other"
-                    | _ -> "param" + s
-        let recvId = match t.Kind with
-                        | Asn1AcnAst.Enumerated _ -> name + ".val"
-                        | _ -> name
-
+        let recvId = 
+            match s with
+            | "1" -> "self"
+            | "2" -> "other"
+            | _ -> "param" + s
         {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
         // {p with accessPath.rootId = p.accessPath.rootId + s}
     
@@ -385,12 +382,10 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
-        let recvId = match c with
-                        | Decode -> "instance"
-                        | Encode ->
-                            match t.Kind with
-                            | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
-                            | _ -> "self"                           // For class methods, the receiver is always "self"
+        let recvId = match t.Kind, c with
+                        | _, Decode -> "instance"
+                        | Asn1AcnAst.Enumerated _, Encode -> "self.val" // For enums, we encapsulate the inner value into a "val" object
+                        | _, Encode -> "self"                           // For class methods, the receiver is always "self"
 
         {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
     
@@ -585,11 +580,11 @@ type LangGeneric_python() =
     //     []
 
     override this.adaptAcnFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
-        match childType with
-            | Sequence _ ->
-                match codec with
-                | Encode -> u.call_base_type_func "self.data" childTypeDef codec
-                | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+        match childType, codec with
+            | Sequence _, Encode -> u.call_base_type_func "self.data" childTypeDef codec
+            | Sequence _, Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+            | Enumerated _, Encode -> u.call_base_type_func "self.data" childTypeDef codec
+            | Enumerated _, Decode -> u.call_base_type_func "self_data" (childTypeDef + ".decode") codec
             | _ -> childContent_funcBody
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
