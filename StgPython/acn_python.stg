@@ -1100,9 +1100,9 @@ else:
 /* Choice with presence determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
-    <if(bIsPrimitive)>
 if <arrsConditions; separator=" and ">:
     # acn_python.stg 938
+    <if(bIsPrimitive)>
     <sChildBody>
     <else>
     self.data.encode(codec, check_constraints)
