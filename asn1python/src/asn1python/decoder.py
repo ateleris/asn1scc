@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .codec import Codec, BitStreamError #, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 
 
 class Decoder(Codec):
@@ -82,20 +82,6 @@ class Decoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-
-    @property
-    def bit_index(self) -> int:
-        """
-        Get the current bit position in the bitstream.
-
-        Matches C: BitStream.currentBit + BitStream.currentByte * 8
-        Matches Scala: BitStream.bitIndex
-        Used by: ACN for tracking position, calculating sizes
-
-        Returns:
-            Current bit position (0-based index)
-        """
-        return self._bitstream.current_used_bits
 
     def align_to_byte(self) -> DecodeResult[None]:
         """

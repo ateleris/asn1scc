@@ -7,7 +7,7 @@ that match the behavior of the C and Scala bitstream implementations.
 
 from nagini_contracts.contracts import *
 from verification import *
-from segment import Segment, segments_invariant, lemma_byteseq_equal_segments_contained, segments_total_length, lemma_segments_contained_read, segments_contained
+from segment import *
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""

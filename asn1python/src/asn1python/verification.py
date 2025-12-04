@@ -7,7 +7,7 @@ This module provides constraint validation functions for ASN.1 types.
 from nagini_contracts.contracts import *
 from typing import Final, Tuple, Union, Optional, List, Any, Callable
 
-NO_OF_BITS_IN_BYTE = 8
+NO_OF_BITS_IN_BYTE: int = 8
 # import re
 # from .asn1_types import Asn1Error
 
