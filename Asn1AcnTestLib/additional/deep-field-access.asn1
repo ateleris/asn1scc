@@ -1,0 +1,27 @@
+
+DeepFieldAccess DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+
+FlagType ::= INTEGER (0 .. 3)
+
+Packet ::= SEQUENCE
+{
+    intOne INTEGER,
+    subPacket SubPacket,
+    intTwo INTEGER,
+    dataField DataField
+}
+
+SubPacket ::= SEQUENCE
+{
+    subIntOne INTEGER,
+    subIntTwo INTEGER
+}
+
+DataField ::= CHOICE
+{
+    dataWithSecondaryHeader INTEGER,
+    dataNoSecondaryHeader BOOLEAN
+}
+
+END
