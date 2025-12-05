@@ -902,6 +902,44 @@ sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpr
 <soExistVar> = <sAcnExpression>
 >>
 
+/* Present-when templates for SEQUENCE optional fields with deep field access
+ *
+ * In ACN, optional sequence fields can have their presence determined by fields
+ * at different nesting levels (deep field access). For example:
+ *
+ *   Packet ::= SEQUENCE {
+ *       primaryHeader SEQUENCE {
+ *           secHeaderFlag BOOLEAN
+ *       },
+ *       secondaryHeader SEQUENCE {...} OPTIONAL
+ *   }
+ *
+ * With ACN: secondaryHeader [present-when primaryHeader.secHeaderFlag]
+ *
+ * IMPLEMENTATION FOR PYTHON:
+ * These templates are intentionally EMPTY for the Python backend because:
+ *
+ * 1. Python's object-oriented design allows direct field access via self/parent references
+ * 2. The external field expression is passed directly as soExistVar to sequence_optional_child_decode
+ * 3. No intermediate variable or exist struct is needed (unlike C which uses p.exist.childName)
+ *
+ * Example generated decode code:
+ *   self.primaryHeader = PrimaryHeader.decode(codec)
+ *   if self.primaryHeader.secHeaderFlag:  # soExistVar = "self.primaryHeader.secHeaderFlag"
+ *       self.secondaryHeader = SecondaryHeader.decode(codec)
+ *   else:
+ *       self.secondaryHeader = None
+ *
+ * The bitstream order is guaranteed because:
+ * - DAstACN.fs processes sequence children in declaration order
+ * - primaryHeader is decoded before secondaryHeader
+ * - The external field value is available when needed
+ *
+ * NOTE: The pres_int and pres_str variants are not used for SEQUENCE optional fields.
+ * They exist for API compatibility but are only relevant for CHOICE alternatives,
+ * which use different templates (ChoiceChild_preWhen_int_condition, etc.)
+ */
+
 sequence_presence_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
 sequence_presence_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= ""
 
@@ -935,12 +973,18 @@ sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 # acn_python.stg 772
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
+<!<sChildContent>!>
+<if(bIsPrimitive)>
 <sChildContent>
+<else>
+<sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 779
 # Decode <sChName>
+# todo: this is not adjusted for isPrimitive
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
