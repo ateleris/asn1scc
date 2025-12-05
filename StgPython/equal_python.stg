@@ -49,13 +49,16 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
 # equal_python.stg 51
-def __eq__(self, other) -> bool:
-     ret: bool = True
-     <arrsLocalVars; separator="\n">
- 
-     <sContent>
-     # equal_python.stg 57
-     return ret
+def __eq__(self, other: object) -> bool:
+    if not isinstance(other, <sTypeDefName>):
+        return NotImplemented
+
+    ret: bool = True
+    <arrsLocalVars; separator="\n">
+
+    <sContent>
+    # equal_python.stg 57
+    return ret
 >>
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
@@ -64,7 +67,7 @@ equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sConte
 # equal_python.stg 64
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):
-            return NotImplemented
+        return NotImplemented
     <if(bExpression)>
     # equal_python.stg 67
     return <sContent>
@@ -89,7 +92,7 @@ isEqual_String(p1, p2) ::= <<
 
 isEqual_Integer(p1, p2) ::= "int(<p1>) == int(<p2>)"
 
-isEqual_Enumerated(p1, p2) ::= "<p1> == <p2>"
+isEqual_Enumerated(p1, p2) ::= "<p1>.val == <p2>.val"
 
 isEqual_Boolean(p1, p2) ::= "bool(<p1>) == bool(<p2>)"
 
@@ -166,7 +169,7 @@ call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 # equal_python.stg 199
-ret = <sIsValidExp>
+ret = ret and <sIsValidExp>
 >>
 
 
