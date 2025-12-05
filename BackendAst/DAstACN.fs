@@ -1809,6 +1809,7 @@ type private SequenceChildState = {
     acnAccBits: bigint
     acnChildrenEncoded: (string * AcnChild) list
     processedAsn1Children: (string * Asn1Child) list  // Track Asn1Children for nested ACN child lookup
+    acnChildrenFromSiblings: Map<string, (string * AcnChild)>  // Key: ACN child ID string, Value: (sibling_name, acnChild) - for deep field access
 }
 type private SequenceChildResult = {
     stmts: SequenceChildStmt list
@@ -2031,6 +2032,87 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     [AcnInsertedChild(bitStreamPositionsLocalVar, td.extension_function_positions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
                 | _ ->  localVariables, None, None, None
 
+        // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
+        // so that sibling children can reference them (deep field access pattern)
+        let analyzeAcnChildrenToReturn (): Map<string, (string * AcnChild) list> =
+            // For Python backend only
+            if ProgrammingLanguage.ActiveLanguages.Head <> Python then
+                Map.empty
+            else
+                let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
+
+                // For each ASN.1 child in this sequence
+                for i in 0 .. asn1Children.Length - 1 do
+                    let child = asn1Children.[i]
+                    let childName = lm.lg.getAsn1ChildBackendName child
+
+                    // Look at all ACN children in the current sequence
+                    for acnChild in acnChildren do
+                        // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
+                        for j in (i+1) .. asn1Children.Length - 1 do
+                            let siblingChild = asn1Children.[j]
+
+                            // Find dependencies where the sibling depends on this ACN child
+                            let hasDependency =
+                                deps.acnDependencies
+                                |> List.exists (fun d ->
+                                    d.asn1Type = siblingChild.Type.id &&
+                                    match d.determinant with
+                                    | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
+                                    | _ -> false
+                                )
+
+                            if hasDependency then
+                                // This ASN.1 child needs to return this ACN child
+                                if not (result.ContainsKey(childName)) then
+                                    result.[childName] <- ResizeArray()
+                                if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
+                                    result.[childName].Add((acnChild.c_name, acnChild))
+
+                result
+                |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
+                |> Map.ofSeq
+
+        let acnChildrenToReturn = analyzeAcnChildrenToReturn()
+
+        // Identify which ACN children are defined inline for each Asn1Child (inline encoding)
+        // These need to be decoded at the parent level instead of calling child's decode
+        let inlineAcnChildren =
+            let result = System.Collections.Generic.Dictionary<string, AcnChild list>()
+            for child in children do
+                match child with
+                | Asn1Child asn1Ch ->
+                    let childName = lm.lg.getAsn1ChildBackendName asn1Ch
+                    // Find ACN children whose ID path includes this child as a parent
+                    // by checking if the ACN child is a sibling (same parent context) but logically belongs to this child's encoding
+                    let inlineAcns =
+                        acnChildren
+                        |> List.filter (fun acnCh ->
+                            // Check if this ACN child is defined in the context of this Asn1 child
+                            // by looking at the ID path structure
+                            let acnIdStr = acnCh.id.AsString
+                            // The ACN child is inline if its path includes the Asn1 child's name followed by the ACN child's own name
+                            // For example: TC-CCSDS-Packet.packet-ID.secondaryHeaderFlag is inline for packet-ID
+                            acnIdStr.Contains(asn1Ch.Name.Value + ".") || acnIdStr.EndsWith("." + asn1Ch.Name.Value + ")")
+                        )
+                    if not inlineAcns.IsEmpty then
+                        result.[childName] <- inlineAcns
+                | _ -> ()
+            result |> Seq.map (fun kvp -> (kvp.Key, kvp.Value)) |> Map.ofSeq
+
+        // DEBUG: Log inline ACN children mapping
+        if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
+            printfn "=== DEBUG: %s inlineAcnChildren ===" t.id.AsString
+            printfn "  Asn1 children:"
+            for child in asn1Children do
+                printfn "    %s" child.Name.Value
+            printfn "  ACN children and their ID paths:"
+            for acnCh in acnChildren do
+                printfn "    %s -> ID: %s" acnCh.Name.Value (acnCh.id.AsString)
+            printfn "  Map entries: %d" inlineAcnChildren.Count
+            for kvp in inlineAcnChildren do
+                printfn "    %s -> [%s]" kvp.Key (String.concat ", " (kvp.Value |> List.map (fun acn -> acn.Name.Value)))
+
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
             //let stateHash = getStateHash s.us
@@ -2084,9 +2166,21 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                           match d.determinant with
                           | AcnChildDeterminant acnCh ->
                               // The parameter gets its value from an ACN child that was encoded earlier
-                              // Find the variable name that holds the ACN child's value
+                              // First try to find it in the current sequence's ACN children
                               let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
-                              found |> Option.map(fun (varName, _) -> sprintf "%s=%s" targetParamName varName)
+                              match found with
+                              | Some (varName, _) ->
+                                  Some (sprintf "%s=%s" targetParamName varName)
+                              | None ->
+                                  // If not found in current sequence, check if it was returned by a sibling SEQUENCE
+                                  match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
+                                  | Some (siblingName, _) ->
+                                      // Generate code to access ACN child from sibling's returned dict
+                                      // Format: secondaryHeaderFlag=packet_ID_acn_children['secondaryHeaderFlag']
+                                      Some (sprintf "%s=%s_acn_children['%s']" targetParamName siblingName acnCh.c_name)
+                                  | None ->
+                                      // Not found - this might be an error, but let the original behavior handle it
+                                      None
                           | AcnParameterDeterminant acnPrm ->
                               Some (sprintf "%s=%s" targetParamName acnPrm.c_name)
                       )
@@ -2104,6 +2198,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let childP =
                     let newArg = if lm.lg.usesWrappedOptional && childSel.isOptional && codec = Encode then childSel.asLast else childSel
                     {p with accessPath = newArg}
+
                 let childContentResult, ns1 =
                     match chFunc with
                     | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName bitStreamPositionsLocalVar
@@ -2200,11 +2295,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match (lm.lg.getTypeDefinition child.Type.FT_TypeDefinition) with
                             | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
                             | _ -> false
-      
+
+                        // Check if this child has ACN children to return to siblings
+                        let childHasAcnChildrenToReturn = acnChildrenToReturn.ContainsKey childName
+
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
-                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate codec
+                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
                             | Some Asn1AcnAst.AlwaysAbsent ->
                                 sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
                             | Some Asn1AcnAst.AlwaysPresent ->
@@ -2214,10 +2312,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let pp, _ = joinedOrAsIdentifier lm codec p
                                 match opt.defaultValue with
                                 | None ->
-                                    sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate codec
+                                    sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
                                 | Some v ->
                                     let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
-                                    sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
+                                    sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType childHasAcnChildrenToReturn codec
                         let lvs =
                             match child.Optionality with
                             | Some Asn1AcnAst.AlwaysAbsent -> []
@@ -2237,9 +2335,21 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
                 let icdResult = icd_asn1_child child stmts.icdComments
                 let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
+
+                // Check if this ASN.1 child needs to return ACN children to siblings
+                let newAcnChildrenFromSiblings =
+                    match acnChildrenToReturn.TryFind childName with
+                    | Some acnChildrenList ->
+                        // Add these ACN children to the map so siblings can reference them
+                        acnChildrenList
+                        |> List.fold (fun acc (acnCName, acnCh) ->
+                            acc |> Map.add (acnCh.id.ToString()) (childName, acnCh)
+                        ) s.acnChildrenFromSiblings
+                    | None -> s.acnChildrenFromSiblings
+
                 // Keep the accumulated ACN children so subsequent children can reference them
                 // Also track processed Asn1Children so their nested ACN children can be referenced
-                let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded; processedAsn1Children = (childName, child) :: s.processedAsn1Children}
+                let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded; processedAsn1Children = (childName, child) :: s.processedAsn1Children; acnChildrenFromSiblings = newAcnChildrenFromSiblings}
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
@@ -2277,7 +2387,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate codec)
+                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate false codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2286,7 +2396,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
@@ -2296,7 +2406,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let icdResult = icd_acn_child acnChild icdComments
                 let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult}
                 // Record this ACN child so subsequent Asn1 children can reference it
-                let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; acnChildrenEncoded = (acnChild.c_name, acnChild) :: s.acnChildrenEncoded; processedAsn1Children = s.processedAsn1Children}
+                let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; acnChildrenEncoded = (acnChild.c_name, acnChild) :: s.acnChildrenEncoded; processedAsn1Children = s.processedAsn1Children; acnChildrenFromSiblings = s.acnChildrenFromSiblings}
                 res, newAcc
 
 
@@ -2314,9 +2424,29 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | Some (Optional opt) -> if opt.acnPresentWhen.IsNone then 1I else 0I
             | _ -> 0I
         )
-        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits; acnChildrenEncoded = []; processedAsn1Children = []}
+        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits; acnChildrenEncoded = []; processedAsn1Children = []; acnChildrenFromSiblings = Map.empty}
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
+
+        // Check if this sequence has inline ACN children that need to be returned to parent
+        let hasAcnChildrenToReturn =
+            codec = Decode &&
+            ProgrammingLanguage.ActiveLanguages.Head = Python &&
+            not scs.acnChildrenEncoded.IsEmpty
+
+        // DEBUG: Log generated statements for inline encoding context
+        if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
+            let hasAcnChild = children |> List.exists (fun c -> match c with AcnChild _ -> true | _ -> false)
+            if hasAcnChild then
+                printfn "=== DEBUG: Generated statements for %s (with ACN children) ===" t.id.AsString
+                printfn "  ACN children encoded: %d" scs.acnChildrenEncoded.Length
+                for (varName, acnCh) in scs.acnChildrenEncoded do
+                    printfn "    %s -> %s" varName acnCh.Name.Value
+                printfn "  hasAcnChildrenToReturn: %b" hasAcnChildrenToReturn
+                for stmt in childrenStatements0 do
+                    match stmt.body with
+                    | Some body -> printfn "Statement body (first 100 chars): %s" (if body.Length > 100 then body.Substring(0, 100) else body)
+                    | None -> printfn "Statement body: None"
 
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
@@ -2357,9 +2487,39 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let resultExpr = (p.accessPath.asIdentifier lm.lg)
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) p.accessPath.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
+
+        // Build ACN children dictionary and tuple return for Python decode
+        let acnChildrenDictStmts, tupleReturn =
+            if hasAcnChildrenToReturn then
+                // Build dictionary entries: {'acn_child_name': acn_child_var}
+                let dictEntries =
+                    scs.acnChildrenEncoded
+                    |> List.rev  // Reverse to get original order
+                    |> List.map (fun (varName, acnCh) ->
+                        sprintf "'%s': %s" acnCh.c_name varName
+                    )
+                    |> String.concat ", "
+
+                let dictStmt = sprintf "%s_acn_children = {%s}" (p.accessPath.lastIdOrArr) dictEntries
+                let tupleReturnStmt = sprintf "return %s, %s_acn_children" (p.accessPath.asIdentifier lm.lg) (p.accessPath.lastIdOrArr)
+                [Some dictStmt], Some tupleReturnStmt
+            else
+                [], None
+
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
+
+        // Include ACN children dictionary in sequence content
+        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@(seqBuild |> List.map Some)@acnChildrenDictStmts@proof) |> nestChildItems lm codec
+
+        // Replace standard return with tuple return if needed
+        let seqContent =
+            match tupleReturn, seqContent with
+            | Some tupleRet, Some content ->
+                // Replace "return instance" with "return instance, acn_children"
+                let modifiedContent = System.Text.RegularExpressions.Regex.Replace(content, @"return\s+" + (p.accessPath.asIdentifier lm.lg) + @"\s*$", tupleRet)
+                Some modifiedContent
+            | _, _ -> seqContent
 
         let icdFnc fieldName sPresent comments  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
