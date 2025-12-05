@@ -2502,7 +2502,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 let dictStmt = sprintf "%s_acn_children = {%s}" (p.accessPath.lastIdOrArr) dictEntries
                 let tupleReturnStmt = sprintf "return %s, %s_acn_children" (p.accessPath.asIdentifier lm.lg) (p.accessPath.lastIdOrArr)
-                [Some dictStmt], Some tupleReturnStmt
+                [dictStmt], Some tupleReturnStmt
             else
                 [], None
 
@@ -2510,7 +2510,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
 
         // Include ACN children dictionary in sequence content
-        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@(seqBuild |> List.map Some)@acnChildrenDictStmts@proof) |> nestChildItems lm codec
+        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@acnChildrenDictStmts@proof) |> nestChildItems lm codec
 
         // Replace standard return with tuple return if needed
         let seqContent =
