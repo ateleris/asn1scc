@@ -2513,13 +2513,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@acnChildrenDictStmts@proof) |> nestChildItems lm codec
 
         // Replace standard return with tuple return if needed
-        let seqContent =
-            match tupleReturn, seqContent with
-            | Some tupleRet, Some content ->
-                // Replace "return instance" with "return instance, acn_children"
-                let modifiedContent = System.Text.RegularExpressions.Regex.Replace(content, @"return\s+" + (p.accessPath.asIdentifier lm.lg) + @"\s*$", tupleRet)
-                Some modifiedContent
-            | _, _ -> seqContent
+        // let seqContent =
+        //     match tupleReturn, seqContent with
+        //     | Some tupleRet, Some content ->
+        //         // Replace "return instance" with "return instance, acn_children"
+        //         let modifiedContent = System.Text.RegularExpressions.Regex.Replace(content, @"return\s+" + (p.accessPath.asIdentifier lm.lg) + @"\s*$", tupleRet)
+        //         Some modifiedContent
+        //     | _, _ -> seqContent
+        // todo: fix return - where?
 
         let icdFnc fieldName sPresent comments  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
