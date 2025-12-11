@@ -408,6 +408,10 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.Type ac curState
                 (fun p ->
                     let child_arg = l.lg.getSeqChild p.accessPath (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
+                    let child_arg =
+                        match ProgrammingLanguage.ActiveLanguages.Head, ch.Type.ActualType.Kind with
+                        | ProgrammingLanguage.Python, Enumerated _ -> child_arg.appendSelection "val" ByValue false
+                        | _ -> child_arg
                     let chp = {p with accessPath = child_arg}
                     fnc chp), ns
 
