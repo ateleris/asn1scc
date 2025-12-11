@@ -1198,7 +1198,7 @@ instance_<sV> = <sV>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 # acn_python.stg 1036
-<v> = <sSeqPath><sAcc><sChildName> is not None
+<v> = self<sAcc><sChildName> is not None
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
