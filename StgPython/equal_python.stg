@@ -50,15 +50,8 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
 # equal_python.stg 51
 def __eq__(self, other: object) -> bool:
-    if not isinstance(other, <sTypeDefName>):
-        return NotImplemented
-
-    ret: bool = True
-    <arrsLocalVars; separator="\n">
-
-    <sContent>
     # equal_python.stg 57
-    return ret
+    return super().__eq__(other)
 >>
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
