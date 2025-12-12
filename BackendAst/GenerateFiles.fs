@@ -96,6 +96,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let (definitionsContntent, srcBody) =
         match r.lang with
         | Python ->
+            
+            
+            
             // Flatten and deduplicate types:
             // - Collect all types (including nested ones) from all TASes
             // - Keep track of which TAS each type came from (for tasInfo)
@@ -136,6 +139,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         // Skip: ReferenceTypes (already resolved), primitive fields
                         let allChildren =
                             allChildrenRaw
+                            // Remove all children that are not defined in the current PU -> No deep field access over module boundaries according to ACN User Manual Chapter 4.2
+                            |> List.filter (fun t -> ToC t.moduleName = ToC pu.name)
                             |> List.filter (fun t ->
                                 match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
                                 | true, _ -> true  // Keep all types with TypeDefinition
@@ -155,9 +160,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     allTypesFromAllTases
                     |> List.groupBy (fun (tas, t) ->
                         // Group by the base type name using tasInfo
-                        match t.tasInfo with
-                        | Some ti -> $"{ti.modName}.{ti.tasName}"
-                        | None -> t.id.AsString  // Fallback to full path if no tasInfo
+                        t.id.AsString
+                        // match t.tasInfo with
+                        // | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        // | None -> t.id.AsString  // Fallback to full path if no tasInfo
                     )
                     |> List.map (fun (typeKey, tasTypePairs) ->
                         // Pick the "richest" version - the one with more children in its Sequence
@@ -180,12 +186,21 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let acnDeepAccessDefinitionType = cls
                     
                     // Then we overwrite cls with the tas or rootLevelTas type
-                    let isFullDefinition, cls  = 
+                    let isFullDefinition, cls  =
                         match cls.typeDefinitionOrReference with
-                        | TypeDefinition td -> true, tas.Type
+                        | TypeDefinition td ->
+                            Console.WriteLine($"[1] Input: %s{cls.id.AsString}. Output: {tas.Type.id.AsString}")
+                            true, tas.Type
                         | ReferenceToExistingDefinition ref ->
-                            let myTas = tases |> List.filter(fun tas -> tas.Name.Value = ref.typedefName) |> List.head
-                            false, myTas.Type
+                            let myTas = tases |> List.filter(fun tas -> ToC tas.python_name = ToC ref.typedefName)
+                            if myTas.Length = 0 then
+                                Console.WriteLine($"[2] Input: %s{cls.id.AsString}. Output: {tas.Type.id.AsString}")
+                                // Console.WriteLine($"Had some issues getting the original reference for %s{ref.typedefName}. Using other instead. Check manually!")
+                                false, tas.Type
+                            else
+                                let myTas = myTas |> List.head
+                                Console.WriteLine($"[3] Input: %s{cls.id.AsString}. Output: {myTas.Type.id.AsString}")
+                                false, myTas.Type
 
                     let type_definition =
                         match cls.typeDefinitionOrReference with
