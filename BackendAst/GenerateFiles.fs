@@ -276,62 +276,69 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
             // STEP 2: Process tases in original order, using map for deep field access types
             let typeDefs =
-                tases |> List.map(fun tas ->
+                tases |> List.collect(fun tas ->
                     let typeId = tas.Type.id.AsString
 
                     // Check if this type is in the deep field access map
                     if deepFieldAccessMap.ContainsKey(typeId) then
                         // Use pre-processed result with correct ACN context
-                        deepFieldAccessMap.[typeId]
+                        [deepFieldAccessMap.[typeId]]
                     else
                         // Use simple approach for types without deep field access
+                        // Get all nested children (just like the old code did)
+                        let allChildren = GetMySelfAndChildren tas.Type
+                                          |> List.filter _.typeDefinitionOrReference.IsTypeDefinition
+
                         let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                         let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
 
-                        let type_definition =
-                            match tas.Type.typeDefinitionOrReference with
-                            | TypeDefinition td -> td.typedefBodyOnly ()
-                            | ReferenceToExistingDefinition _ -> raise(BugErrorException "Type Assignment with no Type Definition")
+                        // Generate code for each child type (including the top-level type itself)
+                        allChildren |> List.map(fun cls ->
+                            let type_definition =
+                                match cls.typeDefinitionOrReference with
+                                | TypeDefinition td -> td.typedefBodyOnly ()
+                                | ReferenceToExistingDefinition _ -> raise(BugErrorException "Type Assignment with no Type Definition")
 
-                        let init_funcs =
-                            match r.callersSet |> Set.contains (f InitFunctionType) with
-                            | true -> match tas.Type.initFunction.initProcedure with | Some k -> k.body | None -> ""
-                            | false -> ""
+                            let init_funcs =
+                                match r.callersSet |> Set.contains (f InitFunctionType) with
+                                | true -> match cls.initFunction.initProcedure with | Some k -> k.body | None -> ""
+                                | false -> ""
 
-                        let special_init_funcs =
-                            tas.Type.initFunction.user_aux_functions |> List.map fst
+                            let special_init_funcs =
+                                cls.initFunction.user_aux_functions |> List.map fst
 
-                        let equal_funcs =
-                            match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                            | true -> combineStringOpts tas.Type.equalFunction.isEqualFuncDef tas.Type.equalFunction.isEqualFunc
-                            | false -> ""
+                            let equal_funcs =
+                                match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                                | true -> combineStringOpts cls.equalFunction.isEqualFuncDef cls.equalFunction.isEqualFunc
+                                | false -> ""
 
-                        let is_valid_funcs =
-                            match r.callersSet |> Set.contains (f IsValidFunctionType) with
-                            | false -> ""
-                            | true ->
-                                match tas.Type.isValidFunction with
-                                | None -> ""
-                                | Some f -> combineStringOpts f.funcDef f.func
+                            let is_valid_funcs =
+                                match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                                | false -> ""
+                                | true ->
+                                    match cls.isValidFunction with
+                                    | None -> ""
+                                    | Some f -> combineStringOpts f.funcDef f.func
 
-                        let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts tas.Type.uperEncFunction.funcDef tas.Type.uperEncFunction.func) | false -> None
-                        let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts tas.Type.uperDecFunction.funcDef tas.Type.uperDecFunction.func) | false -> None
+                            let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperEncFunction.funcDef cls.uperEncFunction.func) | false -> None
+                            let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperDecFunction.funcDef cls.uperDecFunction.func) | false -> None
 
-                        let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
-                        let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+                            let xerEncFunc = match cls.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+                            let xerDecFunc = match cls.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
 
-                        let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-                        let acnEncFunc, sEncodingSizeConstant =
-                            match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
-                            | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
-                            | _ -> None, None
-                        let acnDecFunc =
-                            match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
-                            | true, Some x -> Some(combineStringOpts x.funcDef x.func)
-                            | _ -> None
+                            let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                            let acnEncFunc, sEncodingSizeConstant =
+                                match hasAcnEncDec && requiresAcn, cls.acnEncFunction with
+                                | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
+                                | _ -> None, None
+                            let acnDecFunc =
+                                match hasAcnEncDec && requiresAcn, cls.acnDecFunction with
+                                | true, Some x -> Some(combineStringOpts x.funcDef x.func)
+                                | _ -> None
 
-                        let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-                        lm.typeDef.Define_TAS type_definition allProcs
+                            let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+                            lm.typeDef.Define_TAS type_definition allProcs
+                        )
                 )
 
             let arrsValues =
