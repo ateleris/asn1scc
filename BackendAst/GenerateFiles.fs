@@ -1,4 +1,6 @@
 ﻿module GenerateFiles
+
+open System
 open System.IO
 
 open FsUtils
@@ -91,65 +93,187 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let requiresUPER = encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
 
+    // let isOnlyUsedWithInlineAcnEncoding (tas: TypeAssignment) (r: AstRoot) : bool =
+    //     // Check if this type is referenced from other types
+    //     // AND those references have inline ACN children defined
+    //     // This requires analyzing the ACN AST to see where inline encoding occurs
+    //     false
+      
     let (definitionsContntent, srcBody) =
         match r.lang with
-        | Python ->            
+        | Python ->
             // Python content
+            //
+            // Flatten and deduplicate types:
+            // - Collect all types (including nested ones) from all TASes
+            // - Keep track of which TAS each type came from (for tasInfo)
+            // - Deduplicate by type ID, keeping the "richest" version (with most ACN children)
             let typeDefs =
-                tases |>
-                List.map(fun tas ->
-                    // todo: maybe remove struct type from children?
-                    let allChildren = GetMySelfAndChildren tas.Type |> List.filter _.typeDefinitionOrReference.IsTypeDefinition
+                // Collect ALL types from ALL tases, pairing each with its source TAS
+                let allTypesFromAllTases =
+                    tases |>
+                    List.collect(fun tas ->
+                        Console.WriteLine($"Processing TAS: {tas.Name.Value}")
+                        
+
+                        // Custom recursive function that follows references and gets RESOLVED types
+                        let rec getMyselfAndChildrenResolved (t:Asn1Type) : Asn1Type list =
+                            [
+                                // Yield the current type (might be a reference or actual type)
+                                yield t
+
+                                // Recursively process children based on kind
+                                match t.Kind with
+                                | SequenceOf o ->
+                                    yield! getMyselfAndChildrenResolved o.childType
+                                | Sequence o   ->
+                                    for ch in o.Asn1Children do
+                                        yield! getMyselfAndChildrenResolved ch.Type
+                                | Choice o ->
+                                    for ch in o.children do
+                                        yield! getMyselfAndChildrenResolved ch.chType
+                                | ReferenceType rt ->
+                                    // KEY: Follow the reference and get the RESOLVED type
+                                    // This resolved type will have the ACN context from where it's used
+                                    Console.WriteLine($"    Following reference: {t.id.AsString} -> {rt.resolvedType.id.AsString}")
+                                    yield! getMyselfAndChildrenResolved rt.resolvedType
+                                | _ -> ()
+                            ]
+
+                        let allChildrenRaw = getMyselfAndChildrenResolved tas.Type
+                        Console.WriteLine($"  Got {allChildrenRaw.Length} total types (with resolved references)")
+
+                        // Debug: show what we got
+                        for child in allChildrenRaw do
+                            let isTypeDef = child.typeDefinitionOrReference.IsTypeDefinition
+                            let childCount = match child.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                            Console.WriteLine($"    - {child.id.AsString} (isTypeDef: {isTypeDef}, kind: {child.Kind.GetType().Name}, children: {childCount})")
+
+                        // Keep types that should generate code:
+                        // 1. Types with TypeDefinition (top-level TAS types)
+                        // 2. Resolved Sequences/Choices (even if they don't have TypeDefinition)
+                        // Skip: ReferenceTypes (already resolved), primitive fields
+                        let allChildren =
+                            allChildrenRaw
+                            |> List.filter (fun t ->
+                                match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
+                                | true, _ -> true  // Keep all types with TypeDefinition
+                                | false, Sequence _ -> true  // Keep resolved Sequences
+                                | false, SequenceOf _ -> true  // Keep resolved SequenceOfs
+                                | false, Choice _ -> true    // Keep resolved Choices
+                                | false, _ -> false  // Skip everything else (primitives, references)
+                            )
+
+                        Console.WriteLine($"  After filter: {allChildren.Length} types to generate code for")
+                        // Debug: show what we got
+                        for child in allChildren do
+                            let isTypeDef = child.typeDefinitionOrReference.IsTypeDefinition
+                            let childCount = match child.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                            Console.WriteLine($"    - {child.id.AsString} (isTypeDef: {isTypeDef}, kind: {child.Kind.GetType().Name}, children: {childCount})")
+
+                        // Pair each type with its source TAS so we can access tasInfo later
+                        allChildren |> List.map (fun t -> (tas, t))
+                    )
+
+                // Deduplicate by TYPE NAME (not full path), keeping the version with MORE children
+                // (which will be the one with inline ACN encoding from parent context)
+                let deduplicatedTypes =
+                    allTypesFromAllTases
+                    |> List.groupBy (fun (tas, t) ->
+                        // Group by the base type name using tasInfo
+                        // This ensures SubPacket and Packet.subPacket are treated as the same type
+                        match t.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> t.id.AsString  // Fallback to full path if no tasInfo
+                    )
+                    |> List.map (fun (typeKey, tasTypePairs) ->
+                        Console.WriteLine($"  Deduplicating type: {typeKey}")
+                        for (tas, t) in tasTypePairs do
+                            let childCount = match t.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                            Console.WriteLine($"    Candidate from TAS {tas.Name.Value}: {childCount} children (id: {t.id.AsString})")
+
+                        // Pick the "richest" version - the one with more children in its Sequence
+                        // This ensures we get types with inline ACN children from parent context
+                        let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
+                            match t.Kind with
+                            | Sequence seq -> seq.children.Length
+                            | _ -> 0
+                        )
+                        let (chosenTas, chosenType) = chosen
+                        let chosenChildCount = match chosenType.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                        Console.WriteLine($"    => Chose version from TAS {chosenTas.Name.Value} with {chosenChildCount} children (id: {chosenType.id.AsString})")
+                        // Debug: show the children
+                        match chosenType.Kind with
+                        | Sequence seq ->
+                            Console.WriteLine($"       Children:")
+                            for child in seq.children do
+                                match child with
+                                | Asn1Child ch -> Console.WriteLine($"         ASN.1: {ch.Name.Value}")
+                                | AcnChild acn -> Console.WriteLine($"         ACN: {acn.Name.Value}")
+                        | _ -> ()
+                        chosen
+                    )
+
+                // Generate code for each unique type (with correct ACN context)
+                deduplicatedTypes |> List.map(fun (tas, cls) ->
+                    // Use the parent TAS's tasInfo for Caller construction
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
                     
-                    allChildren |> List.map(fun cls ->                         
-                        let type_definition =
-                            match cls.typeDefinitionOrReference with
-                            | TypeDefinition td -> td.typedefBodyOnly ()
-                            | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")                    
-                        
-                        let init_funcs        = 
-                            match r.callersSet |> Set.contains (f InitFunctionType) with
-                            | true -> match cls.initFunction.initProcedure with | Some k -> k.body | None -> ""
-                            | false -> ""
-                        
-                        // todo: do we need special init funcs? how can they look like?
-                        let special_init_funcs =
-                            cls.initFunction.user_aux_functions |> List.map fst
+                    let acnDeepAccessDefinitionType = cls
+                    let isFullDefinition, cls  = 
+                        match cls.typeDefinitionOrReference with
+                        | TypeDefinition td -> true, tas.Type
+                        | ReferenceToExistingDefinition ref ->
+                            let myTas = tases |> List.filter(fun tas -> tas.Name.Value = ref.typedefName) |> List.head
+                            false, myTas.Type
 
-                        let equal_funcs =
-                            match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
-                            | true  -> combineStringOpts cls.equalFunction.isEqualFuncDef cls.equalFunction.isEqualFunc
-                            | false -> ""
-                            
-                        let is_valid_funcs =
-                            match r.callersSet |> Set.contains (f IsValidFunctionType) with
-                            | false -> ""
-                            | true  -> 
-                                match cls.isValidFunction with
-                                | None      -> ""
-                                | Some f    -> combineStringOpts f.funcDef f.func
+                    let type_definition =
+                        match cls.typeDefinitionOrReference with
+                        | TypeDefinition td -> td.typedefBodyOnly ()
+                        | ReferenceToExistingDefinition _ -> raise(BugErrorException "Type Assignment with no Type Definition")
 
-                        let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperEncFunction.funcDef cls.uperEncFunction.func) | false -> None
-                        let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts cls.uperDecFunction.funcDef cls.uperDecFunction.func) | false -> None
-                        
-                        let xerEncFunc = match cls.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
-                        let xerDecFunc = match cls.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
-                            
-                        let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-                        let acnEncFunc, sEncodingSizeConstant =
-                            match hasAcnEncDec && requiresAcn, cls.acnEncFunction with
-                            | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
-                            | _  -> None, None
-                        let acnDecFunc =
-                            match hasAcnEncDec && requiresAcn, cls.acnDecFunction with
-                            | true, Some x -> Some(combineStringOpts x.funcDef x.func)
-                            | _ -> None
+                    let init_funcs        =
+                        match r.callersSet |> Set.contains (f InitFunctionType) with
+                        | true -> match cls.initFunction.initProcedure with | Some k -> k.body | None -> ""
+                        | false -> ""
 
-                        let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-                        lm.typeDef.Define_TAS type_definition allProcs
-                    ) |> List.reduce (fun a b -> a+"\n\n"+b)
+                    // todo: do we need special init funcs? how can they look like?
+                    let special_init_funcs =
+                        cls.initFunction.user_aux_functions |> List.map fst
+
+                    let equal_funcs =
+                        match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
+                        | true  -> combineStringOpts cls.equalFunction.isEqualFuncDef cls.equalFunction.isEqualFunc
+                        | false -> ""
+
+                    let is_valid_funcs =
+                        match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                        | false -> ""
+                        | true  ->
+                            match cls.isValidFunction with
+                            | None      -> ""
+                            | Some f    -> combineStringOpts f.funcDef f.func
+
+                    let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts acnDeepAccessDefinitionType.uperEncFunction.funcDef acnDeepAccessDefinitionType.uperEncFunction.func) | false -> None
+                    let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> Some(combineStringOpts acnDeepAccessDefinitionType.uperDecFunction.funcDef acnDeepAccessDefinitionType.uperDecFunction.func) | false -> None
+
+                    let xerEncFunc = match acnDeepAccessDefinitionType.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+                    let xerDecFunc = match acnDeepAccessDefinitionType.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+
+                    let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    let acnEncFunc, sEncodingSizeConstant =
+                        match hasAcnEncDec && requiresAcn, acnDeepAccessDefinitionType.acnEncFunction with
+                        | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
+                        | _  -> None, None
+                    let acnDecFunc =
+                        match hasAcnEncDec && requiresAcn, acnDeepAccessDefinitionType.acnDecFunction with
+                        | true, Some x -> Some(combineStringOpts x.funcDef x.func)
+                        | _ -> None
+
+                    let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+                    lm.typeDef.Define_TAS type_definition allProcs
+                    // ) |> List.reduce (fun a b -> a+"\n\n"+b)
                 )
             let arrsValues =
                 vases |>
@@ -169,6 +293,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
 
             let fileName = Path.Combine(outDir, pu.specFileName)
+            // Console.WriteLine("CONTENT STUFF: " + definitionsContent)
             File.WriteAllText(fileName, definitionsContent.Replace("\r",""))
             File.AppendAllText(Path.Combine(outDir, "__init__.py"), $"import asn1pylib.asn1src.{pu.name}\n")
 

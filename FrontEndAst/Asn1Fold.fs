@@ -1,5 +1,6 @@
 ﻿module Asn1Fold
 
+open System
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 (*
@@ -470,6 +471,7 @@ let foldType2
     (us:'UserState) : 'b
     =
     let rec loopType (pi : ParentInfo<'T> option) (t:Asn1Type) (us:'UserState) =
+        Console.WriteLine("LoopType: " + t.Kind.GetType().ToString() + " (" + t.id.dropModule.AsString + ")")
         let newKind=
             match t.Kind with
             | Integer        ti -> intFunc pi t ti us

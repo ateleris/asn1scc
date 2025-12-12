@@ -4,6 +4,8 @@ EXPORTS ALL;
 
 FlagType ::= INTEGER (0 .. 3)
 
+IndependentNumber ::= INTEGER (3..77)
+
 Packet ::= SEQUENCE
 {
     intOne INTEGER,

@@ -2078,40 +2078,42 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         // Identify which ACN children are defined inline for each Asn1Child (inline encoding)
         // These need to be decoded at the parent level instead of calling child's decode
         let inlineAcnChildren =
-            let result = System.Collections.Generic.Dictionary<string, AcnChild list>()
+            let result = System.Collections.Generic.Dictionary<string, AcnChild>()
             for child in children do
                 match child with
-                | Asn1Child asn1Ch ->
-                    let childName = lm.lg.getAsn1ChildBackendName asn1Ch
-                    // Find ACN children whose ID path includes this child as a parent
-                    // by checking if the ACN child is a sibling (same parent context) but logically belongs to this child's encoding
-                    let inlineAcns =
-                        acnChildren
-                        |> List.filter (fun acnCh ->
-                            // Check if this ACN child is defined in the context of this Asn1 child
-                            // by looking at the ID path structure
-                            let acnIdStr = acnCh.id.AsString
-                            // The ACN child is inline if its path includes the Asn1 child's name followed by the ACN child's own name
-                            // For example: TC-CCSDS-Packet.packet-ID.secondaryHeaderFlag is inline for packet-ID
-                            acnIdStr.Contains(asn1Ch.Name.Value + ".") || acnIdStr.EndsWith("." + asn1Ch.Name.Value + ")")
-                        )
-                    if not inlineAcns.IsEmpty then
-                        result.[childName] <- inlineAcns
-                | _ -> ()
+                | Asn1Child asn1Ch -> ()
+                    // let childName = lm.lg.getAsn1ChildBackendName asn1Ch
+                    // // Find ACN children whose ID path includes this child as a parent
+                    // // by checking if the ACN child is a sibling (same parent context) but logically belongs to this child's encoding
+                    // let inlineAcns =
+                    //     acnChildren
+                    //     |> List.filter (fun acnCh ->
+                    //         // Check if this ACN child is defined in the context of this Asn1 child
+                    //         // by looking at the ID path structure
+                    //         let acnIdStr = acnCh.id.AsString
+                    //         // The ACN child is inline if its path includes the Asn1 child's name followed by the ACN child's own name
+                    //         // For example: TC-CCSDS-Packet.packet-ID.secondaryHeaderFlag is inline for packet-ID
+                    //         acnIdStr.Contains(asn1Ch.Name.Value + ".") || acnIdStr.EndsWith("." + asn1Ch.Name.Value + ")")
+                    //     )
+                    // if not inlineAcns.IsEmpty then
+                    //     result.[childName] <- inlineAcns
+                | AcnChild acnChild ->
+                    result.[acnChild.c_name] <- acnChild
+                    ()
             result |> Seq.map (fun kvp -> (kvp.Key, kvp.Value)) |> Map.ofSeq
 
         // DEBUG: Log inline ACN children mapping
-        if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
-            printfn "=== DEBUG: %s inlineAcnChildren ===" t.id.AsString
-            printfn "  Asn1 children:"
-            for child in asn1Children do
-                printfn "    %s" child.Name.Value
-            printfn "  ACN children and their ID paths:"
-            for acnCh in acnChildren do
-                printfn "    %s -> ID: %s" acnCh.Name.Value (acnCh.id.AsString)
-            printfn "  Map entries: %d" inlineAcnChildren.Count
-            for kvp in inlineAcnChildren do
-                printfn "    %s -> [%s]" kvp.Key (String.concat ", " (kvp.Value |> List.map (fun acn -> acn.Name.Value)))
+        // if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
+        // printfn "=== DEBUG: %s inlineAcnChildren ===" t.id.AsString
+        // printfn "  Asn1 children:"
+        // for child in asn1Children do
+        //     printfn "    %s" child.Name.Value
+        // printfn "  ACN children and their ID paths:"
+        // for acnCh in acnChildren do
+        //     printfn "    %s -> ID: %s" acnCh.Name.Value (acnCh.id.AsString)
+        // printfn "  Map entries: %d" inlineAcnChildren.Count
+        // for kvp in inlineAcnChildren do
+        //     printfn "    %s -> [%s]" kvp.Key kvp.Value.c_name
 
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
@@ -2185,7 +2187,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                               Some (sprintf "%s=%s" targetParamName acnPrm.c_name)
                       )
               | AcnChild acnChild ->
-                  Console.WriteLine("ACN Child: " + acnChild.c_name)
+                  // Console.WriteLine("ACN Child: " + acnChild.c_name)
                   []
 
             match childInfo with
@@ -2353,7 +2355,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
-                printfn "DEBUG: Processing ACN child: %s" acnChild.Name.Value
+                // printfn "DEBUG: Processing ACN child: %s" acnChild.Name.Value
                 let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
 
                 let updateStatement, ns1 =
@@ -2371,7 +2373,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let childEncDecStatement, auxiliaries, ns2 =
                     let chFunc = acnChild.funcBody codec
                     let childContentResult = chFunc [] childNestingScope childP bitStreamPositionsLocalVar
-                    printfn "DEBUG: ACN child %s contentResult is %s" acnChild.Name.Value (if childContentResult.IsSome then "Some" else "None")
+                    // printfn "DEBUG: ACN child %s contentResult is %s" acnChild.Name.Value (if childContentResult.IsSome then "Some" else "None")
                     match childContentResult with
                     | None              -> None, [], ns1
                     | Some childContent ->
