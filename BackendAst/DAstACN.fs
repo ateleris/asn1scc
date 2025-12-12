@@ -2163,7 +2163,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                   match d.determinant with
                                   | AcnChildDeterminant acnCh -> acnCh.c_name
                                   | AcnParameterDeterminant acnPrm -> acnPrm.c_name
-                              | _ -> "HARD_ISSUE" // This should not happen given our filter
+                              | _ -> raise(BugErrorException "Unfiltered DependencyKind - Should not happen!")
 
                           match d.determinant with
                           | AcnChildDeterminant acnCh ->
@@ -2172,23 +2172,21 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                               let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
                               match found with
                               | Some (varName, _) ->
-                                  Some (sprintf "%s=%s" targetParamName varName)
+                                  Some $"%s{targetParamName}=%s{varName}"
                               | None ->
                                   // If not found in current sequence, check if it was returned by a sibling SEQUENCE
                                   match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
                                   | Some (siblingName, _) ->
                                       // Generate code to access ACN child from sibling's returned dict
                                       // Format: secondaryHeaderFlag=packet_ID_acn_children['secondaryHeaderFlag']
-                                      Some (sprintf "%s=%s_acn_children['%s']" targetParamName siblingName acnCh.c_name)
+                                      Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
                                   | None ->
                                       // Not found - this might be an error, but let the original behavior handle it
                                       None
                           | AcnParameterDeterminant acnPrm ->
-                              Some (sprintf "%s=%s" targetParamName acnPrm.c_name)
+                              Some $"%s{targetParamName}=%s{acnPrm.c_name}"
                       )
-              | AcnChild acnChild ->
-                  // Console.WriteLine("ACN Child: " + acnChild.c_name)
-                  []
+              | AcnChild _ -> []
 
             match childInfo with
             | Asn1Child child   ->
@@ -2229,7 +2227,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 // instead of using the flat C-style name (primaryHeader_secHeaderFlag)
                                 let extField =
                                     match relPath with
-                                    | AcnGenericTypes.RelativePath  [] ->
+                                    | RelativePath  [] ->
                                         // Empty path - fallback to old behavior
                                         let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
                                             let filterDependency (d:AcnDependency) =
@@ -2238,10 +2236,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                                 | _                    -> false
                                             getExternalField0 r deps asn1TypeIdWithDependency filterDependency
                                         getExternalField r deps child.Type.id
-                                    | AcnGenericTypes.RelativePath (x1::_) ->
+                                    | RelativePath (_ ::_) ->
                                         // Build language-specific access path for deep field reference
                                         // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
-                                        let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (AcnGenericTypes.RelativePath lp) =
+                                        let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
                                             match lp with
                                             | []    -> pSeq
                                             | x1::xs ->
@@ -2355,7 +2353,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
-                // printfn "DEBUG: Processing ACN child: %s" acnChild.Name.Value
                 let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
 
                 let updateStatement, ns1 =
@@ -2373,7 +2370,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let childEncDecStatement, auxiliaries, ns2 =
                     let chFunc = acnChild.funcBody codec
                     let childContentResult = chFunc [] childNestingScope childP bitStreamPositionsLocalVar
-                    // printfn "DEBUG: ACN child %s contentResult is %s" acnChild.Name.Value (if childContentResult.IsSome then "Some" else "None")
                     match childContentResult with
                     | None              -> None, [], ns1
                     | Some childContent ->
@@ -2436,20 +2432,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             ProgrammingLanguage.ActiveLanguages.Head = Python &&
             not scs.acnChildrenEncoded.IsEmpty
 
-        // DEBUG: Log generated statements for inline encoding context
-        if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
-            let hasAcnChild = children |> List.exists (fun c -> match c with AcnChild _ -> true | _ -> false)
-            if hasAcnChild then
-                printfn "=== DEBUG: Generated statements for %s (with ACN children) ===" t.id.AsString
-                printfn "  ACN children encoded: %d" scs.acnChildrenEncoded.Length
-                for (varName, acnCh) in scs.acnChildrenEncoded do
-                    printfn "    %s -> %s" varName acnCh.Name.Value
-                printfn "  hasAcnChildrenToReturn: %b" hasAcnChildrenToReturn
-                for stmt in childrenStatements0 do
-                    match stmt.body with
-                    | Some body -> printfn "Statement body (first 100 chars): %s" (if body.Length > 100 then body.Substring(0, 100) else body)
-                    | None -> printfn "Statement body: None"
-
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
                 match child with
@@ -2498,12 +2480,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     scs.acnChildrenEncoded
                     |> List.rev  // Reverse to get original order
                     |> List.map (fun (varName, acnCh) ->
-                        sprintf "'%s': %s" acnCh.c_name varName
+                        $"'%s{acnCh.c_name}': %s{varName}"
                     )
                     |> String.concat ", "
 
-                let dictStmt = sprintf "%s_acn_children = {%s}" (p.accessPath.lastIdOrArr) dictEntries
-                let tupleReturnStmt = sprintf "return %s, %s_acn_children" (p.accessPath.asIdentifier lm.lg) (p.accessPath.lastIdOrArr)
+                let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
+                let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier lm.lg}, %s{p.accessPath.lastIdOrArr}_acn_children"
                 [dictStmt], Some tupleReturnStmt
             else
                 [], None
@@ -2513,16 +2495,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
         // Include ACN children dictionary in sequence content
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@acnChildrenDictStmts@proof) |> nestChildItems lm codec
-
-        // Replace standard return with tuple return if needed
-        // let seqContent =
-        //     match tupleReturn, seqContent with
-        //     | Some tupleRet, Some content ->
-        //         // Replace "return instance" with "return instance, acn_children"
-        //         let modifiedContent = System.Text.RegularExpressions.Regex.Replace(content, @"return\s+" + (p.accessPath.asIdentifier lm.lg) + @"\s*$", tupleRet)
-        //         Some modifiedContent
-        //     | _, _ -> seqContent
-        // todo: fix return - where?
 
         let icdFnc fieldName sPresent comments  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
@@ -2558,7 +2530,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
                 | Some ret ->
                     Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
-            | Encode, _ ->
+            | _, _ ->
                 let determinantUsage =
                     match errChild.Type with
                     | Asn1AcnAst.AcnInteger               _-> "length"

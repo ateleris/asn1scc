@@ -729,7 +729,6 @@ TEMPLATE_INFO=""
 
 echo "Running Asn1SCC Compiler for DEBUG..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
-exit
 
 echo "Running Asn1SCC Compiler for ASN1..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 

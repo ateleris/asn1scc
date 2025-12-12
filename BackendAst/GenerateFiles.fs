@@ -92,18 +92,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
     let requiresUPER = encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
-
-    // let isOnlyUsedWithInlineAcnEncoding (tas: TypeAssignment) (r: AstRoot) : bool =
-    //     // Check if this type is referenced from other types
-    //     // AND those references have inline ACN children defined
-    //     // This requires analyzing the ACN AST to see where inline encoding occurs
-    //     false
       
     let (definitionsContntent, srcBody) =
         match r.lang with
         | Python ->
-            // Python content
-            //
             // Flatten and deduplicate types:
             // - Collect all types (including nested ones) from all TASes
             // - Keep track of which TAS each type came from (for tasInfo)
@@ -113,9 +105,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 let allTypesFromAllTases =
                     tases |>
                     List.collect(fun tas ->
-                        Console.WriteLine($"Processing TAS: {tas.Name.Value}")
-                        
-
                         // Custom recursive function that follows references and gets RESOLVED types
                         let rec getMyselfAndChildrenResolved (t:Asn1Type) : Asn1Type list =
                             [
@@ -133,21 +122,13 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                     for ch in o.children do
                                         yield! getMyselfAndChildrenResolved ch.chType
                                 | ReferenceType rt ->
-                                    // KEY: Follow the reference and get the RESOLVED type
+                                    // Follow the reference and get the resolved type
                                     // This resolved type will have the ACN context from where it's used
-                                    Console.WriteLine($"    Following reference: {t.id.AsString} -> {rt.resolvedType.id.AsString}")
                                     yield! getMyselfAndChildrenResolved rt.resolvedType
                                 | _ -> ()
                             ]
 
                         let allChildrenRaw = getMyselfAndChildrenResolved tas.Type
-                        Console.WriteLine($"  Got {allChildrenRaw.Length} total types (with resolved references)")
-
-                        // Debug: show what we got
-                        for child in allChildrenRaw do
-                            let isTypeDef = child.typeDefinitionOrReference.IsTypeDefinition
-                            let childCount = match child.Kind with | Sequence seq -> seq.children.Length | _ -> 0
-                            Console.WriteLine($"    - {child.id.AsString} (isTypeDef: {isTypeDef}, kind: {child.Kind.GetType().Name}, children: {childCount})")
 
                         // Keep types that should generate code:
                         // 1. Types with TypeDefinition (top-level TAS types)
@@ -164,34 +145,21 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 | false, _ -> false  // Skip everything else (primitives, references)
                             )
 
-                        Console.WriteLine($"  After filter: {allChildren.Length} types to generate code for")
-                        // Debug: show what we got
-                        for child in allChildren do
-                            let isTypeDef = child.typeDefinitionOrReference.IsTypeDefinition
-                            let childCount = match child.Kind with | Sequence seq -> seq.children.Length | _ -> 0
-                            Console.WriteLine($"    - {child.id.AsString} (isTypeDef: {isTypeDef}, kind: {child.Kind.GetType().Name}, children: {childCount})")
-
                         // Pair each type with its source TAS so we can access tasInfo later
                         allChildren |> List.map (fun t -> (tas, t))
                     )
 
-                // Deduplicate by TYPE NAME (not full path), keeping the version with MORE children
+                // Deduplicate by type name (not full path), keeping the version with more children
                 // (which will be the one with inline ACN encoding from parent context)
                 let deduplicatedTypes =
                     allTypesFromAllTases
                     |> List.groupBy (fun (tas, t) ->
                         // Group by the base type name using tasInfo
-                        // This ensures SubPacket and Packet.subPacket are treated as the same type
                         match t.tasInfo with
                         | Some ti -> $"{ti.modName}.{ti.tasName}"
                         | None -> t.id.AsString  // Fallback to full path if no tasInfo
                     )
                     |> List.map (fun (typeKey, tasTypePairs) ->
-                        Console.WriteLine($"  Deduplicating type: {typeKey}")
-                        for (tas, t) in tasTypePairs do
-                            let childCount = match t.Kind with | Sequence seq -> seq.children.Length | _ -> 0
-                            Console.WriteLine($"    Candidate from TAS {tas.Name.Value}: {childCount} children (id: {t.id.AsString})")
-
                         // Pick the "richest" version - the one with more children in its Sequence
                         // This ensures we get types with inline ACN children from parent context
                         let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
@@ -199,18 +167,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             | Sequence seq -> seq.children.Length
                             | _ -> 0
                         )
-                        let (chosenTas, chosenType) = chosen
-                        let chosenChildCount = match chosenType.Kind with | Sequence seq -> seq.children.Length | _ -> 0
-                        Console.WriteLine($"    => Chose version from TAS {chosenTas.Name.Value} with {chosenChildCount} children (id: {chosenType.id.AsString})")
-                        // Debug: show the children
-                        match chosenType.Kind with
-                        | Sequence seq ->
-                            Console.WriteLine($"       Children:")
-                            for child in seq.children do
-                                match child with
-                                | Asn1Child ch -> Console.WriteLine($"         ASN.1: {ch.Name.Value}")
-                                | AcnChild acn -> Console.WriteLine($"         ACN: {acn.Name.Value}")
-                        | _ -> ()
                         chosen
                     )
 
@@ -220,7 +176,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
                     
+                    // We backup the deep access definition type - we need that for acn enc/dec functions
                     let acnDeepAccessDefinitionType = cls
+                    
+                    // Then we overwrite cls with the tas or rootLevelTas type
                     let isFullDefinition, cls  = 
                         match cls.typeDefinitionOrReference with
                         | TypeDefinition td -> true, tas.Type
@@ -273,7 +232,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                     let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
                     lm.typeDef.Define_TAS type_definition allProcs
-                    // ) |> List.reduce (fun a b -> a+"\n\n"+b)
                 )
             let arrsValues =
                 vases |>
