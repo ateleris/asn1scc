@@ -346,8 +346,8 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) baseEqName p1.accessPath.isOptional p2.accessPath.isOptional
             Some(makeExpressionToStatement lm exp, [])
 
-        let val1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode
-        let val2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode
+        let val1 = lm.lg.getParamTypeSuffixForEquals t "1" CommonTypes.Codec.Encode
+        let val2 = lm.lg.getParamTypeSuffixForEquals t "2" CommonTypes.Codec.Encode
 
         let stgMacroDefFunc = lm.equal.PrintEqualDefinitionComposite
         let ns =

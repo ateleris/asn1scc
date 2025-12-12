@@ -580,10 +580,12 @@ type LangGeneric_python() =
     //     []
 
     override this.adaptAcnFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
-        match childType, codec with
-            | (Sequence _ | Enumerated _), Encode -> u.call_base_type_func "self.data" childTypeDef codec
-            | (Sequence _ | Enumerated _), Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
-            | _ -> childContent_funcBody
+        match childType with
+        | Sequence _ | Enumerated _| IA5String _ ->
+            match codec with
+            | Encode -> u.call_base_type_func "self.data" childTypeDef codec
+            | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+        | _ -> "# " + childType.GetType().ToString() + "\n" + childContent_funcBody
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody

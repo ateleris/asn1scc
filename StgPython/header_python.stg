@@ -324,8 +324,11 @@ class <td.typeName>(Asn1Base):
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+<td.typeName>InUse = <prTd.typeName>InUse
+
 class <td.typeName>(<prTd.typeName>): # header_python.stg 300
     __all__.append("<td.typeName>")
+    __all__.append("<td.typeName>InUse")
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<
