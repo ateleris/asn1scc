@@ -70,12 +70,10 @@ let rec collectEqualFuncs (t:Asn1Type) =
     } |> Seq.toList
 
 /// Gets the actual resolved type of any Asn1Type recursively, following references and collecting all children
+/// Returns types in post-order (children before parents) so they can be defined in the correct order
 let rec getResolvedTypeAndChildren (t:Asn1Type) : Asn1Type list =
     [
-        // Yield the current type (might be a reference or actual type)
-        yield t
-
-        // Recursively process children based on kind
+        // Recursively process children FIRST (post-order traversal)
         match t.Kind with
         | SequenceOf o ->
             yield! getResolvedTypeAndChildren o.childType
@@ -90,6 +88,10 @@ let rec getResolvedTypeAndChildren (t:Asn1Type) : Asn1Type list =
             // This resolved type will have the ACN context from where it's used
             yield! getResolvedTypeAndChildren rt.resolvedType
         | _ -> ()
+
+        // Yield the current type LAST (after all children)
+        // This ensures children are defined before parents
+        yield t
     ]
 
 
@@ -402,7 +404,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
 
                     let typeDefsGenerated =
-                        childrenNotInMap |> List.map(fun cls ->
+                        childrenNotInMap
+                        |> List.filter (fun cls -> cls.typeDefinitionOrReference.IsTypeDefinition)  // Only generate for types with TypeDefinition
+                        |> List.map(fun cls ->
                             let printInit = r.callersSet |> Set.contains (f InitFunctionType)
                             let printEquals = r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType))
                             let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
