@@ -217,11 +217,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let deduplicatedTypes =
                         allTypesFromAllTases
                         |> List.groupBy (fun (tas, t) ->
-                            // Group by the base type name using tasInfo
-                            t.id.AsString
-                            // match t.tasInfo with
-                            // | Some ti -> $"{ti.modName}.{ti.tasName}"
-                            // | None -> t.id.AsString  // Fallback to full path if no tasInfo
+                            // Group by canonical type name using tasInfo when available
+                            // This groups together the same logical type from different contexts
+                            match t.tasInfo with
+                            | Some ti -> $"{ti.modName}.{ti.tasName}"
+                            | None -> t.id.AsString  // Fallback to full path if no tasInfo
                         )
                         |> List.map (fun (typeKey, tasTypePairs) ->
                             // Pick the "richest" version - the one with more children in its Sequence
@@ -231,52 +231,133 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 | Sequence seq -> seq.children.Length
                                 | _ -> 0
                             )
-                            chosen
+                            (typeKey, chosen)
                         )
 
                     // Generate code for each unique type (with correct ACN context)
-                    deduplicatedTypes |> List.map(fun (tas, encDecCls) ->
-                        let f cl = {Caller.typeId = tas.Type.id.tasInfo.Value; funcType = cl}
-                        let printInit = r.callersSet |> Set.contains (f InitFunctionType)
-                        let printEquals = r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType))
-                        let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
-                        let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
-                        let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    // and store with multiple keys for flexible lookup
+                    let mapEntries =
+                        deduplicatedTypes |> List.collect(fun (canonicalKey, (parentTas, encDecCls)) ->
+                            // DEBUG: Print what we're generating in STEP 1
+                            printfn "[STEP 1] Generating for key: %s" canonicalKey
+                            printfn "  encDecCls.id.AsString: %s" encDecCls.id.AsString
+                            printfn "  encDecCls.id.tasInfo: %A" encDecCls.id.tasInfo
+                            printfn "  parentTas: %s" (match parentTas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> "None")
 
-                        let isFullDefinition, fullCls  =
-                            match encDecCls.typeDefinitionOrReference with
-                            | TypeDefinition td ->
-                                true, tas.Type
-                            | ReferenceToExistingDefinition ref ->
-                                let myTas = tasesNeedingDeepFieldAccess |> List.filter(fun tas -> ToC tas.python_name = ToC ref.typedefName)
-                                if myTas.Length = 0 then
-                                    false, tas.Type
+                            // Find the correct TAS for this type using the canonicalKey
+                            // This ensures each type gets its own class name, not the parent's
+                            // The canonicalKey is in format "ModuleName.TypeName"
+                            let correctTas =
+                                let parts = canonicalKey.Split('.')
+                                if parts.Length >= 2 then
+                                    let modName = parts.[0]
+                                    let tasName = parts.[parts.Length - 1]  // Last part is the TAS name
+                                    printfn "  Looking for TAS: %s.%s (from canonicalKey)" modName tasName
+
+                                    let found = tases |> List.tryFind (fun tas ->
+                                        match tas.Type.id.tasInfo with
+                                        | Some ti ->
+                                            let matches = ti.modName = modName && ti.tasName = tasName
+                                            if matches then printfn "    FOUND matching TAS: %s.%s" ti.modName ti.tasName
+                                            matches
+                                        | None -> false
+                                    )
+
+                                    match found with
+                                    | Some tas ->
+                                        printfn "  Using correctTas: %s.%s" modName tasName
+                                        tas
+                                    | None ->
+                                        printfn "  NOT FOUND - falling back to parentTas"
+                                        parentTas
                                 else
-                                    let myTas = myTas |> List.head
-                                    false, myTas.Type
+                                    printfn "  Invalid canonicalKey format - using parentTas"
+                                    parentTas
+
+                            let f cl = {Caller.typeId = correctTas.Type.id.tasInfo.Value; funcType = cl}
+                            let printInit = r.callersSet |> Set.contains (f InitFunctionType)
+                            let printEquals = r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType))
+                            let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
+                            let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                            let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+
+                            let isFullDefinition, fullCls  =
+                                match encDecCls.typeDefinitionOrReference with
+                                | TypeDefinition td ->
+                                    true, correctTas.Type
+                                | ReferenceToExistingDefinition ref ->
+                                    let myTas = tasesNeedingDeepFieldAccess |> List.filter(fun tas -> ToC tas.python_name = ToC ref.typedefName)
+                                    if myTas.Length = 0 then
+                                        false, correctTas.Type
+                                    else
+                                        let myTas = myTas |> List.head
+                                        false, myTas.Type
 
 
-                        let typeDef = printUnitInternal tas fullCls encDecCls lm printInit printEquals printIsValid printUper printAcn
+                            let typeDef = printUnitInternal correctTas fullCls encDecCls lm printInit printEquals printIsValid printUper printAcn
 
-                        // Store each type individually by its actual ID (encDecCls is the resolved type with ACN context)
-                        (encDecCls.id.AsString, typeDef)
-                    )
-                    |> Map.ofList
+                            // Store with multiple keys so it can be looked up flexibly:
+                            // 1. Full scope path from encDecCls
+                            // 2. Canonical name (modName.tasName) if available
+                            // This allows lookup from different contexts
+                            let keys =
+                                [
+                                    encDecCls.id.AsString  // Full path
+                                    canonicalKey           // Canonical name
+                                ] |> List.distinct
+
+                            keys |> List.map (fun key -> (key, typeDef))
+                        )
+
+                    mapEntries |> Map.ofList
 
             // STEP 2: Process tases in original order, using map for deep field access types
+            let tryFindInMap (t: Asn1Type) =
+                // Try multiple key strategies to find the type
+                let canonicalKey =
+                    match t.tasInfo with
+                    | Some ti -> Some $"{ti.modName}.{ti.tasName}"  // Canonical name
+                    | None -> None
+
+                let possibleKeys = [Some t.id.AsString; canonicalKey] |> List.choose id
+
+                possibleKeys
+                |> List.tryPick (fun key ->
+                    if deepFieldAccessMap.ContainsKey(key) then
+                        Some (deepFieldAccessMap.[key])
+                    else
+                        None
+                )
+
             let typeDefs =
                 tases |> List.collect(fun tas ->
+                    // DEBUG: Print what we're processing
+                    printfn "=== Processing TAS: %s ===" (match tas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> tas.Type.id.AsString)
+
                     // Get all children (including the type itself) with resolved references
+                    // Use same filtering logic as STEP 1 to ensure consistency
                     let allChildren = getResolvedTypeAndChildren tas.Type
-                                      |> List.filter _.typeDefinitionOrReference.IsTypeDefinition
+                                      |> List.filter (fun t ->
+                                          match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
+                                          | true, _ -> true  // Keep all types with TypeDefinition
+                                          | false, Sequence _ -> true  // Keep resolved Sequences
+                                          | false, SequenceOf _ -> true  // Keep resolved SequenceOfs
+                                          | false, Choice _ -> true    // Keep resolved Choices
+                                          | false, _ -> false  // Skip everything else (primitives, references)
+                                      )
+
+                    printfn "  All children: %A" (allChildren |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
                     // Separate children into those with deep field access (in map) and those without
                     let childrenInMap, childrenNotInMap =
-                        allChildren |> List.partition (fun t -> deepFieldAccessMap.ContainsKey(t.id.AsString))
+                        allChildren |> List.partition (fun t -> tryFindInMap t |> Option.isSome)
+
+                    printfn "  Children in map: %A" (childrenInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+                    printfn "  Children NOT in map: %A" (childrenNotInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
                     // For types in the map, use the pre-generated code (with correct ACN context)
                     let typeDefsFromMap =
-                        childrenInMap |> List.map (fun t -> deepFieldAccessMap.[t.id.AsString])
+                        childrenInMap |> List.choose tryFindInMap
 
                     // For types not in the map, generate code normally
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
@@ -289,6 +370,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
                             let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
                             let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                            printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
                             printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn
                         )
 
