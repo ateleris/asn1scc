@@ -9,7 +9,7 @@ IndependentNumber ::= INTEGER (3..77)
 Packet ::= SEQUENCE
 {
     intOne INTEGER,
-    subPacket SubPacket,
+    subPackareet SubPacket,
     intTwo INTEGER,
     dataField DataField
 }

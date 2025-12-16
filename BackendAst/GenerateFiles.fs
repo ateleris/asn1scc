@@ -300,13 +300,14 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             // 1. Full scope path from encDecCls
                             // 2. Canonical name (modName.tasName) if available
                             // This allows lookup from different contexts
+                            // Also store the canonicalKey so we can identify which TAS this type belongs to
                             let keys =
                                 [
                                     encDecCls.id.AsString  // Full path
                                     canonicalKey           // Canonical name
                                 ] |> List.distinct
 
-                            keys |> List.map (fun key -> (key, typeDef))
+                            keys |> List.map (fun key -> (key, (typeDef, canonicalKey)))
                         )
 
                     mapEntries |> Map.ofList
@@ -355,9 +356,46 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     printfn "  Children in map: %A" (childrenInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
                     printfn "  Children NOT in map: %A" (childrenNotInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
+                    // Filter childrenInMap to exclude types that have their own top-level TAS
+                    // (they'll be generated when processing their own TAS, not as children)
+                    let childrenInMapToGenerate =
+                        childrenInMap |> List.filter (fun child ->
+                            // Get the canonicalKey for this child from the map
+                            match tryFindInMap child with
+                            | Some (_, childCanonicalKey) ->
+                                match tas.Type.id.tasInfo with
+                                | Some tasInfo ->
+                                    let currentTasCanonicalKey = $"{tasInfo.modName}.{tasInfo.tasName}"
+                                    // Is this the TAS itself?
+                                    if childCanonicalKey = currentTasCanonicalKey then
+                                        true  // It's the TAS itself, include it
+                                    else
+                                        // It's a different type - check if it has its own TAS
+                                        // Parse canonicalKey to extract modName and tasName
+                                        let parts = childCanonicalKey.Split('.')
+                                        if parts.Length >= 2 then
+                                            let modName = parts.[0]
+                                            let tasName = parts.[parts.Length - 1]
+                                            let hasOwnTas = tases |> List.exists (fun otherTas ->
+                                                match otherTas.Type.id.tasInfo with
+                                                | Some otherInfo ->
+                                                    otherInfo.modName = modName && otherInfo.tasName = tasName
+                                                | None -> false
+                                            )
+                                            not hasOwnTas  // Exclude if it has its own TAS
+                                        else
+                                            true  // Can't parse, include it
+                                | None -> true  // Current TAS has no tasInfo, include child
+                            | None -> false  // Not in map, shouldn't happen here but exclude for safety
+                        )
+
+                    printfn "  Children to generate from map: %A" (childrenInMapToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+
                     // For types in the map, use the pre-generated code (with correct ACN context)
                     let typeDefsFromMap =
-                        childrenInMap |> List.choose tryFindInMap
+                        childrenInMapToGenerate |> List.choose (fun child ->
+                            tryFindInMap child |> Option.map fst  // Extract just the typeDef, not the canonicalKey
+                        )
 
                     // For types not in the map, generate code normally
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value

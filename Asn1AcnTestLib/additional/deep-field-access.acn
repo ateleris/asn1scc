@@ -4,13 +4,13 @@ DeepFieldAccess DEFINITIONS ::= BEGIN
 Packet []
 {
     intOne [],
-    subPacket [] {
+    subPackareet [] {
         subIntOne [],
         theWeirdFlag FlagType [],
         subIntTwo []
     },
     intTwo [],
-    dataField <subPacket.theWeirdFlag> []
+    dataField <subPackareet.theWeirdFlag> []
 }
 
 DataField <INTEGER:theWeirdFlag> []
