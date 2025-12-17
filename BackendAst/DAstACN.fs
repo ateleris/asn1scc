@@ -2184,7 +2184,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                       // Not found - this might be an error, but let the original behavior handle it
                                       None
                           | AcnParameterDeterminant acnPrm ->
-                              Some $"%s{targetParamName}=%s{acnPrm.c_name}"
+                              // ACN parameters from AcnParameterDeterminant are already in scope
+                              // (passed down from parent), so we don't need to pass them again.
+                              // Skip generating a parameter for this case.
+                              None
                       )
               | AcnChild _ -> []
 
