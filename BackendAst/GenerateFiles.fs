@@ -357,42 +357,59 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 )
                 |> Map.ofList
 
-            // Group types by which TAS they belong to (the TAS that matches their canonical key)
-            let typesByOwningTas =
-                deduplicatedTypeMap
-                |> Map.toList
-                |> List.groupBy (fun (canonicalKey, (parentTas, typ)) ->
-                    // Find the TAS that owns this type based on canonicalKey
-                    let parts = canonicalKey.Split('.')
-                    if parts.Length >= 2 then
-                        let modName = parts.[0]
-                        let tasName = parts.[parts.Length - 1]
+            // Helper function to determine which TAS owns a type
+            let getOwningTasKey (canonicalKey: string) (parentTas: TypeAssignment) =
+                let parts = canonicalKey.Split('.')
+                if parts.Length >= 2 then
+                    let modName = parts.[0]
+                    let tasName = parts.[parts.Length - 1]
 
-                        // Find the TAS with matching modName and tasName
-                        let owningTas = tases |> List.tryFind (fun tas ->
-                            match tas.Type.id.tasInfo with
-                            | Some ti -> ti.modName = modName && ti.tasName = tasName
-                            | None -> false
-                        )
+                    // Find the TAS with matching modName and tasName
+                    let owningTas = tases |> List.tryFind (fun tas ->
+                        match tas.Type.id.tasInfo with
+                        | Some ti -> ti.modName = modName && ti.tasName = tasName
+                        | None -> false
+                    )
 
-                        match owningTas with
-                        | Some tas ->
-                            // This type has its own TAS - group it under that TAS
-                            match tas.Type.id.tasInfo with
-                            | Some ti -> $"{ti.modName}.{ti.tasName}"
-                            | None -> canonicalKey
-                        | None ->
-                            // This is a nested type without its own TAS
-                            // Group it under its parent TAS
-                            match parentTas.Type.id.tasInfo with
-                            | Some ti -> $"{ti.modName}.{ti.tasName}"
-                            | None -> canonicalKey
-                    else
-                        // Fallback: use parent TAS
+                    match owningTas with
+                    | Some tas ->
+                        // This type has its own TAS - group it under that TAS
+                        match tas.Type.id.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> canonicalKey
+                    | None ->
+                        // This is a nested type without its own TAS
+                        // Group it under its parent TAS
                         match parentTas.Type.id.tasInfo with
                         | Some ti -> $"{ti.modName}.{ti.tasName}"
                         | None -> canonicalKey
+                else
+                    // Fallback: use parent TAS
+                    match parentTas.Type.id.tasInfo with
+                    | Some ti -> $"{ti.modName}.{ti.tasName}"
+                    | None -> canonicalKey
+
+            // Group types by which TAS they belong to, PRESERVING ORIGINAL ORDER
+            // This is critical for Python where classes must be defined before use
+            let typesByOwningTas =
+                allTypesFromAllTases
+                |> List.choose (fun (tas, typ) ->
+                    // Get the canonical key for this type
+                    let canonicalKey =
+                        match typ.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> typ.id.AsString
+
+                    // Only include if it's in the deduplicated map (i.e., it's the chosen version)
+                    match deduplicatedTypeMap.TryFind(canonicalKey) with
+                    | Some (chosenTas, chosenTyp) when chosenTyp.id.AsString = typ.id.AsString ->
+                        // This is the chosen version (compare by ID, not by value)
+                        let owningTasKey = getOwningTasKey canonicalKey tas
+                        Some (owningTasKey, typ)
+                    | _ -> None
                 )
+                |> List.groupBy fst
+                |> List.map (fun (tasKey, items) -> (tasKey, items |> List.map snd))
                 |> Map.ofList
 
             // Helper function to look up types in the deepFieldAccessMap
@@ -422,13 +439,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                     printfn "=== Processing TAS: %s ===" tasCanonicalKey
 
-                    // Get the types that belong to this TAS
+                    // Get the types that belong to this TAS (already in correct order)
                     let typesToGenerate =
                         match typesByOwningTas.TryFind(tasCanonicalKey) with
-                        | Some typeList ->
-                            typeList
-                            |> List.map snd  // Extract (parentTas, typ) from (canonicalKey, (parentTas, typ))
-                            |> List.map snd  // Extract typ from (parentTas, typ)
+                        | Some typeList -> typeList  // Already just Asn1Type list
                         | None -> []
 
                     printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
