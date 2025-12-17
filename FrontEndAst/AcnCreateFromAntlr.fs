@@ -224,18 +224,25 @@ let private removeTypePrefix (typePrefix : String) (typeName : string)=
 let getAcnDeterminantName (id : ReferenceToType) =
     match id with
     | ReferenceToType path ->
-        match path with
-        | (MD mdName)::(TA tasName)::(PRM prmName)::[] ->
-            ToC2 prmName
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Python ->
+            match path with
+            | (MD mdName)::(TA tasName)::(PRM prmName)::[] -> ToC2 prmName
+            | _ ->
+                // Check if the last element is a PRM (parameter) or SEQ_CHILD (deep field access)
+                // and use just the parameter/field name instead of the full path
+                let lastNode = path |> List.rev |> List.tryHead
+                match lastNode with
+                | Some (PRM prmName) ->
+                    ToC2 prmName
+                | Some (SEQ_CHILD (name, _)) ->
+                    ToC2 name
+                | _ ->
+                    let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
+                    ToC2(longName.Replace("#","elem"))
         | _ ->
-            // Check if the last element is a PRM (parameter) or SEQ_CHILD (deep field access)
-            // and use just the parameter/field name instead of the full path
-            let lastNode = path |> List.rev |> List.tryHead
-            match lastNode with
-            | Some (PRM prmName) ->
-                ToC2 prmName
-            | Some (SEQ_CHILD (name, _)) ->
-                ToC2 name
+            match path with
+            | (MD mdName)::(TA tasName)::(PRM prmName)::[] -> ToC2 prmName
             | _ ->
                 let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
                 ToC2(longName.Replace("#","elem"))
