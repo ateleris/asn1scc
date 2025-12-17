@@ -343,6 +343,30 @@ type LangGeneric_python() =
             let resolvedPath = getChildResult o p relPath
             resolvedPath.accessPath.joined this
     
+    override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
+        // Check if this sequence has inline ACN children that need to be returned to parent
+        let hasAcnChildrenToReturn =
+            codec = Decode &&
+            ProgrammingLanguage.ActiveLanguages.Head = Python &&
+            not acnChildrenEncoded.IsEmpty
+            
+        // Build ACN children dictionary and tuple return for Python decode
+        if hasAcnChildrenToReturn then
+            // Build dictionary entries: {'acn_child_name': acn_child_var}
+            let dictEntries =
+                acnChildrenEncoded
+                |> List.rev  // Reverse to get original order
+                |> List.map (fun (varName, acnCh) ->
+                    $"'%s{acnCh.c_name}': %s{varName}"
+                )
+                |> String.concat ", "
+
+            let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
+            let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier this}, %s{p.accessPath.lastIdOrArr}_acn_children"
+            [dictStmt], Some tupleReturnStmt
+        else
+            [], None
+
     override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
         if typeName = moduleName then moduleName + "." + typeName else typeName
 

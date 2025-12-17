@@ -2298,13 +2298,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits; acnChildrenEncoded = []; processedAsn1Children = []; acnChildrenFromSiblings = Map.empty}
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
-
-        // Check if this sequence has inline ACN children that need to be returned to parent
-        let hasAcnChildrenToReturn =
-            codec = Decode &&
-            ProgrammingLanguage.ActiveLanguages.Head = Python &&
-            not scs.acnChildrenEncoded.IsEmpty
-
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
                 match child with
@@ -2345,23 +2338,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) p.accessPath.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
 
-        // Build ACN children dictionary and tuple return for Python decode
-        let acnChildrenDictStmts, tupleReturn =
-            if hasAcnChildrenToReturn then
-                // Build dictionary entries: {'acn_child_name': acn_child_var}
-                let dictEntries =
-                    scs.acnChildrenEncoded
-                    |> List.rev  // Reverse to get original order
-                    |> List.map (fun (varName, acnCh) ->
-                        $"'%s{acnCh.c_name}': %s{varName}"
-                    )
-                    |> String.concat ", "
-
-                let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
-                let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier lm.lg}, %s{p.accessPath.lastIdOrArr}_acn_children"
-                [dictStmt], Some tupleReturnStmt
-            else
-                [], None
+        let acnChildrenDictStmts, tupleReturn = lm.lg.getAcnChildrenDictStatements codec scs.acnChildrenEncoded p
 
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec

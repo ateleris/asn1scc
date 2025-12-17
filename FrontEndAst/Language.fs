@@ -322,6 +322,8 @@ type ILangGeneric () =
             | AcnDepPresenceBool   -> true
             | _                    -> false
         getExternalField0 filterDependency
+    abstract member getAcnChildrenDictStatements : Codec -> (string * AcnChild) list -> CodegenScope -> (string list * string option)
+    default this.getAcnChildrenDictStatements _ _ _= [], None
         
     // End of additional methods
     
