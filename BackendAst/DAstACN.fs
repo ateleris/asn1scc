@@ -2032,88 +2032,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     [AcnInsertedChild(bitStreamPositionsLocalVar, td.extension_function_positions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
                 | _ ->  localVariables, None, None, None
 
-        // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
-        // so that sibling children can reference them (deep field access pattern)
-        let analyzeAcnChildrenToReturn (): Map<string, (string * AcnChild) list> =
-            // For Python backend only
-            if ProgrammingLanguage.ActiveLanguages.Head <> Python then
-                Map.empty
-            else
-                let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
-
-                // For each ASN.1 child in this sequence
-                for i in 0 .. asn1Children.Length - 1 do
-                    let child = asn1Children.[i]
-                    let childName = lm.lg.getAsn1ChildBackendName child
-
-                    // Look at all ACN children in the current sequence
-                    for acnChild in acnChildren do
-                        // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
-                        for j in (i+1) .. asn1Children.Length - 1 do
-                            let siblingChild = asn1Children.[j]
-
-                            // Find dependencies where the sibling depends on this ACN child
-                            let hasDependency =
-                                deps.acnDependencies
-                                |> List.exists (fun d ->
-                                    d.asn1Type = siblingChild.Type.id &&
-                                    match d.determinant with
-                                    | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
-                                    | _ -> false
-                                )
-
-                            if hasDependency then
-                                // This ASN.1 child needs to return this ACN child
-                                if not (result.ContainsKey(childName)) then
-                                    result.[childName] <- ResizeArray()
-                                if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
-                                    result.[childName].Add((acnChild.c_name, acnChild))
-
-                result
-                |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
-                |> Map.ofSeq
-
-        let acnChildrenToReturn = analyzeAcnChildrenToReturn()
-
-        // Identify which ACN children are defined inline for each Asn1Child (inline encoding)
-        // These need to be decoded at the parent level instead of calling child's decode
-        let inlineAcnChildren =
-            let result = System.Collections.Generic.Dictionary<string, AcnChild>()
-            for child in children do
-                match child with
-                | Asn1Child asn1Ch -> ()
-                    // let childName = lm.lg.getAsn1ChildBackendName asn1Ch
-                    // // Find ACN children whose ID path includes this child as a parent
-                    // // by checking if the ACN child is a sibling (same parent context) but logically belongs to this child's encoding
-                    // let inlineAcns =
-                    //     acnChildren
-                    //     |> List.filter (fun acnCh ->
-                    //         // Check if this ACN child is defined in the context of this Asn1 child
-                    //         // by looking at the ID path structure
-                    //         let acnIdStr = acnCh.id.AsString
-                    //         // The ACN child is inline if its path includes the Asn1 child's name followed by the ACN child's own name
-                    //         // For example: TC-CCSDS-Packet.packet-ID.secondaryHeaderFlag is inline for packet-ID
-                    //         acnIdStr.Contains(asn1Ch.Name.Value + ".") || acnIdStr.EndsWith("." + asn1Ch.Name.Value + ")")
-                    //     )
-                    // if not inlineAcns.IsEmpty then
-                    //     result.[childName] <- inlineAcns
-                | AcnChild acnChild ->
-                    result.[acnChild.c_name] <- acnChild
-                    ()
-            result |> Seq.map (fun kvp -> (kvp.Key, kvp.Value)) |> Map.ofSeq
-
-        // DEBUG: Log inline ACN children mapping
-        // if t.id.AsString.Contains("TC-CCSDS-Packet") && codec = Decode then
-        // printfn "=== DEBUG: %s inlineAcnChildren ===" t.id.AsString
-        // printfn "  Asn1 children:"
-        // for child in asn1Children do
-        //     printfn "    %s" child.Name.Value
-        // printfn "  ACN children and their ID paths:"
-        // for acnCh in acnChildren do
-        //     printfn "    %s -> ID: %s" acnCh.Name.Value (acnCh.id.AsString)
-        // printfn "  Map entries: %d" inlineAcnChildren.Count
-        // for kvp in inlineAcnChildren do
-        //     printfn "    %s -> [%s]" kvp.Key kvp.Value.c_name
+        let acnChildrenToReturn = lm.lg.getAcnChildrenForDeepFieldAccess asn1Children acnChildren deps
 
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
@@ -2134,62 +2053,54 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             
             // Build ACN parameters for child that has dependencies
             let acnParamsForTemplate =
-              match childInfo with
-              | Asn1Child child ->
-                  // Find dependencies of this Asn1Child where the dependency kind is AcnDepRefTypeArgument or AcnDepSizeDeterminant
-                  // This tells us which parameters the child type needs and where they come from
-                  deps.acnDependencies
-                      |> List.filter(fun d ->
-                          d.asn1Type = child.Type.id &&
-                          match d.dependencyKind with
-                          | AcnDepRefTypeArgument _
-                          | AcnDepSizeDeterminant _
-                          | AcnDepChoiceDeterminant _
-                          | AcnDepPresence _
-                          | AcnDepPresenceBool
-                          | AcnDepPresenceStr _ -> true
-                          | _ -> false)
-                      |> List.choose(fun d ->
-                          // Extract the target parameter name from the dependency kind
-                          let targetParamName =
-                              match d.dependencyKind with
-                              | AcnDepRefTypeArgument acnPrm -> acnPrm.c_name
-                              | AcnDepSizeDeterminant _
-                              | AcnDepChoiceDeterminant _
-                              | AcnDepPresence _
-                              | AcnDepPresenceBool
-                              | AcnDepPresenceStr _ ->
+                match childInfo with
+                | Asn1Child child ->
+                    // Find dependencies of this Asn1Child where the dependency kind is AcnDepRefTypeArgument or AcnDepSizeDeterminant
+                    // This tells us which parameters the child type needs and where they come from
+                    deps.acnDependencies
+                        |> List.filter(fun d ->
+                            d.asn1Type = child.Type.id &&
+                            match d.dependencyKind with
+                            | AcnDepRefTypeArgument _
+                            | AcnDepSizeDeterminant _
+                            | AcnDepChoiceDeterminant _
+                            | AcnDepPresence _
+                            | AcnDepPresenceBool
+                            | AcnDepPresenceStr _ -> true
+                            | _ -> false)
+                        |> List.choose(fun d ->
+                            // Extract the target parameter name from the dependency kind
+                            let targetParamName =
                                   // For size and choice determinants, use the determinant's c_name directly
-                                  match d.determinant with
-                                  | AcnChildDeterminant acnCh -> acnCh.c_name
-                                  | AcnParameterDeterminant acnPrm -> acnPrm.c_name
-                              | _ -> raise(BugErrorException "Unfiltered DependencyKind - Should not happen!")
-
-                          match d.determinant with
-                          | AcnChildDeterminant acnCh ->
-                              // The parameter gets its value from an ACN child that was encoded earlier
-                              // First try to find it in the current sequence's ACN children
-                              let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
-                              match found with
-                              | Some (varName, _) ->
-                                  Some $"%s{targetParamName}=%s{varName}"
-                              | None ->
-                                  // If not found in current sequence, check if it was returned by a sibling SEQUENCE
-                                  match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
-                                  | Some (siblingName, _) ->
-                                      // Generate code to access ACN child from sibling's returned dict
-                                      // Format: secondaryHeaderFlag=packet_ID_acn_children['secondaryHeaderFlag']
-                                      Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
-                                  | None ->
-                                      // Not found - this might be an error, but let the original behavior handle it
-                                      None
-                          | AcnParameterDeterminant acnPrm ->
-                              // ACN parameters from AcnParameterDeterminant are already in scope
-                              // (passed down from parent), so we don't need to pass them again.
-                              // Skip generating a parameter for this case.
-                              None
-                      )
-              | AcnChild _ -> []
+                                match d.determinant with
+                                | AcnChildDeterminant acnCh -> acnCh.c_name
+                                | AcnParameterDeterminant acnPrm -> acnPrm.c_name
+                             
+                            match d.determinant with
+                            | AcnChildDeterminant acnCh ->
+                                // The parameter gets its value from an ACN child that was encoded earlier
+                                // First try to find it in the current sequence's ACN children
+                                let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
+                                match found with
+                                | Some (varName, _) ->
+                                    Some $"%s{targetParamName}=%s{varName}"
+                                | None ->
+                                    // If not found in current sequence, check if it was returned by a sibling SEQUENCE
+                                    match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
+                                    | Some (siblingName, _) ->
+                                        // Generate code to access ACN child from sibling's returned dict
+                                        // Format: secondaryHeaderFlag=packet_ID_acn_children['secondaryHeaderFlag']
+                                        Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
+                                    | None ->
+                                        // Not found - this might be an error, but let the original behavior handle it
+                                        None
+                            | AcnParameterDeterminant acnPrm ->
+                                // ACN parameters from AcnParameterDeterminant are already in scope
+                                // (passed down from parent), so we don't need to pass them again.
+                                // Skip generating a parameter for this case.
+                                None
+                        )
+                | AcnChild _ -> []
 
             match childInfo with
             | Asn1Child child   ->
@@ -2225,9 +2136,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match codec with
                             | Encode -> None, [], [], None, ns1
                             | Decode ->
-                                // For present-when with deep field access, we need to build the proper
-                                // language-specific path (e.g., for Python: instance_primaryHeader.secHeaderFlag)
-                                // instead of using the flat C-style name (primaryHeader_secHeaderFlag)
                                 let extField =
                                     match relPath with
                                     | RelativePath  [] ->

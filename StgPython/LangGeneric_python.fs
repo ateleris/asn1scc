@@ -271,6 +271,43 @@ type LangGeneric_python() =
         //     | Some _ -> Some codec.suffix
         // | _     -> None
    
+    // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
+    // so that sibling children can reference them (deep field access pattern)
+    override this.getAcnChildrenForDeepFieldAccess (asn1Children: Asn1Child list) (acnChildren: AcnChild list) (deps: AcnInsertedFieldDependencies) =
+        let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
+
+        // For each ASN.1 child in this sequence
+        for i in 0 .. asn1Children.Length - 1 do
+            let child = asn1Children.[i]
+            let childName = this.getAsn1ChildBackendName child
+
+            // Look at all ACN children in the current sequence
+            for acnChild in acnChildren do
+                // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
+                for j in (i+1) .. asn1Children.Length - 1 do
+                    let siblingChild = asn1Children.[j]
+
+                    // Find dependencies where the sibling depends on this ACN child
+                    let hasDependency =
+                        deps.acnDependencies
+                        |> List.exists (fun d ->
+                            d.asn1Type = siblingChild.Type.id &&
+                            match d.determinant with
+                            | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
+                            | _ -> false
+                        )
+
+                    if hasDependency then
+                        // This ASN.1 child needs to return this ACN child
+                        if not (result.ContainsKey(childName)) then
+                            result.[childName] <- ResizeArray()
+                        if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
+                            result.[childName].Add((acnChild.c_name, acnChild))
+
+        result
+        |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
+        |> Map.ofSeq
+    
     override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
         if typeName = moduleName then moduleName + "." + typeName else typeName
 
