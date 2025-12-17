@@ -377,13 +377,21 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                         match owningTas with
                         | Some tas ->
-                            // Return the canonical key of the owning TAS
+                            // This type has its own TAS - group it under that TAS
                             match tas.Type.id.tasInfo with
                             | Some ti -> $"{ti.modName}.{ti.tasName}"
                             | None -> canonicalKey
-                        | None -> canonicalKey
+                        | None ->
+                            // This is a nested type without its own TAS
+                            // Group it under its parent TAS
+                            match parentTas.Type.id.tasInfo with
+                            | Some ti -> $"{ti.modName}.{ti.tasName}"
+                            | None -> canonicalKey
                     else
-                        canonicalKey
+                        // Fallback: use parent TAS
+                        match parentTas.Type.id.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> canonicalKey
                 )
                 |> Map.ofList
 
