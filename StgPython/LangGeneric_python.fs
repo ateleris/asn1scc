@@ -2,7 +2,9 @@ module LangGeneric_python
 
 open System.Linq
 open AbstractMacros
+open AcnGenericTypes
 open Asn1AcnAst
+open Asn1AcnAstUtilFunctions
 open CommonTypes
 open System.Numerics
 open DAst
@@ -307,6 +309,39 @@ type LangGeneric_python() =
         result
         |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
         |> Map.ofSeq
+    
+    override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
+        match relPath with
+        | RelativePath  [] ->
+            let filterDependency (d:AcnDependency) =
+                match d.dependencyKind with
+                | AcnDepPresenceBool   -> true
+                | _                    -> false
+            getExternalField0 filterDependency
+        | RelativePath (_ ::_) ->
+            // Build language-specific access path for deep field reference
+            // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+                match lp with
+                | []    -> pSeq
+                | x1::xs ->
+                    match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
+                    | None -> pSeq  // Fallback if path not found
+                    | Some ch ->
+                        match ch with
+                        | Asn1AcnAst.Asn1Child ch  ->
+                            let newPath = this.getSeqChild pSeq.accessPath (this.getAsn1ChildBackendName0 ch) false ch.Optionality.IsSome
+                            match ch.Type.ActualType.Kind, xs with
+                            | Asn1AcnAst.Sequence s, _::_ ->
+                                // Continue navigating for nested sequences
+                                getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
+                            | _, _ ->
+                                // Reached the target field
+                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
+                        | Asn1AcnAst.AcnChild ch  -> pSeq
+
+            let resolvedPath = getChildResult o p relPath
+            resolvedPath.accessPath.joined this
     
     override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
         if typeName = moduleName then moduleName + "." + typeName else typeName

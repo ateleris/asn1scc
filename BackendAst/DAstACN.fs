@@ -2068,19 +2068,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | AcnDepPresenceBool
                             | AcnDepPresenceStr _ -> true
                             | _ -> false)
-                        |> List.choose(fun d ->
-                            // Extract the target parameter name from the dependency kind
-                            let targetParamName =
-                                  // For size and choice determinants, use the determinant's c_name directly
-                                match d.determinant with
-                                | AcnChildDeterminant acnCh -> acnCh.c_name
-                                | AcnParameterDeterminant acnPrm -> acnPrm.c_name
-                             
+                        |> List.choose(fun d ->                             
                             match d.determinant with
                             | AcnChildDeterminant acnCh ->
+                                let targetParamName = acnCh.c_name
                                 // The parameter gets its value from an ACN child that was encoded earlier
                                 // First try to find it in the current sequence's ACN children
-                                let found = s.acnChildrenEncoded |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
+                                let found = s.acnChildrenEncoded
+                                            |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
                                 match found with
                                 | Some (varName, _) ->
                                     Some $"%s{targetParamName}=%s{varName}"
@@ -2094,7 +2089,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     | None ->
                                         // Not found - this might be an error, but let the original behavior handle it
                                         None
-                            | AcnParameterDeterminant acnPrm ->
+                            | AcnParameterDeterminant _ ->
                                 // ACN parameters from AcnParameterDeterminant are already in scope
                                 // (passed down from parent), so we don't need to pass them again.
                                 // Skip generating a parameter for this case.
@@ -2136,40 +2131,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match codec with
                             | Encode -> None, [], [], None, ns1
                             | Decode ->
-                                let extField =
-                                    match relPath with
-                                    | RelativePath  [] ->
-                                        // Empty path - fallback to old behavior
-                                        let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
-                                            let filterDependency (d:AcnDependency) =
-                                                match d.dependencyKind with
-                                                | AcnDepPresenceBool   -> true
-                                                | _                    -> false
-                                            getExternalField0 r deps asn1TypeIdWithDependency filterDependency
-                                        getExternalField r deps child.Type.id
-                                    | RelativePath (_ ::_) ->
-                                        // Build language-specific access path for deep field reference
-                                        // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
-                                        let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
-                                            match lp with
-                                            | []    -> pSeq
-                                            | x1::xs ->
-                                                match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
-                                                | None -> pSeq  // Fallback if path not found
-                                                | Some ch ->
-                                                    match ch with
-                                                    | Asn1AcnAst.AcnChild ch  -> pSeq  // Can't navigate through ACN children
-                                                    | Asn1AcnAst.Asn1Child ch  ->
-                                                        let newPath = lm.lg.getSeqChild pSeq.accessPath (lm.lg.getAsn1ChildBackendName0 ch) false ch.Optionality.IsSome
-                                                        match ch.Type.ActualType.Kind, xs with
-                                                        | Asn1AcnAst.Sequence s, _::_ ->
-                                                            // Continue navigating for nested sequences
-                                                            getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
-                                                        | _, _ ->
-                                                            // Reached the target field
-                                                            {pSeq with accessPath = newPath}
-                                        let resolvedPath = getChildResult o p relPath
-                                        resolvedPath.accessPath.joined lm.lg
+                                let extField = lm.lg.getExternalField (getExternalField0 r deps child.Type.id) relPath o p
                                 let body (p: CodegenScope) (existVar: string option): string =
                                     assert existVar.IsSome
                                     sequence_presence_optChild_pres_bool (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName existVar.Value codec
