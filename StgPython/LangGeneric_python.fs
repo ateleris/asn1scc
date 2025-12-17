@@ -2,7 +2,9 @@ module LangGeneric_python
 
 open System.Linq
 open AbstractMacros
+open AcnGenericTypes
 open Asn1AcnAst
+open Asn1AcnAstUtilFunctions
 open CommonTypes
 open System.Numerics
 open DAst
@@ -271,6 +273,100 @@ type LangGeneric_python() =
         //     | Some _ -> Some codec.suffix
         // | _     -> None
    
+    // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
+    // so that sibling children can reference them (deep field access pattern)
+    override this.getAcnChildrenForDeepFieldAccess (asn1Children: Asn1Child list) (acnChildren: AcnChild list) (deps: AcnInsertedFieldDependencies) =
+        let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
+
+        // For each ASN.1 child in this sequence
+        for i in 0 .. asn1Children.Length - 1 do
+            let child = asn1Children.[i]
+            let childName = this.getAsn1ChildBackendName child
+
+            // Look at all ACN children in the current sequence
+            for acnChild in acnChildren do
+                // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
+                for j in (i+1) .. asn1Children.Length - 1 do
+                    let siblingChild = asn1Children.[j]
+
+                    // Find dependencies where the sibling depends on this ACN child
+                    let hasDependency =
+                        deps.acnDependencies
+                        |> List.exists (fun d ->
+                            d.asn1Type = siblingChild.Type.id &&
+                            match d.determinant with
+                            | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
+                            | _ -> false
+                        )
+
+                    if hasDependency then
+                        // This ASN.1 child needs to return this ACN child
+                        if not (result.ContainsKey(childName)) then
+                            result.[childName] <- ResizeArray()
+                        if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
+                            result.[childName].Add((acnChild.c_name, acnChild))
+
+        result
+        |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
+        |> Map.ofSeq
+    
+    override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
+        match relPath with
+        | RelativePath  [] ->
+            let filterDependency (d:AcnDependency) =
+                match d.dependencyKind with
+                | AcnDepPresenceBool   -> true
+                | _                    -> false
+            getExternalField0 filterDependency
+        | RelativePath (_ ::_) ->
+            // Build language-specific access path for deep field reference
+            // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+                match lp with
+                | []    -> pSeq
+                | x1::xs ->
+                    match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
+                    | None -> pSeq  // Fallback if path not found
+                    | Some ch ->
+                        match ch with
+                        | Asn1AcnAst.Asn1Child ch  ->
+                            let newPath = this.getSeqChild pSeq.accessPath (this.getAsn1ChildBackendName0 ch) false ch.Optionality.IsSome
+                            match ch.Type.ActualType.Kind, xs with
+                            | Asn1AcnAst.Sequence s, _::_ ->
+                                // Continue navigating for nested sequences
+                                getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
+                            | _, _ ->
+                                // Reached the target field
+                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
+                        | Asn1AcnAst.AcnChild ch  -> pSeq
+
+            let resolvedPath = getChildResult o p relPath
+            resolvedPath.accessPath.joined this
+    
+    override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
+        // Check if this sequence has inline ACN children that need to be returned to parent
+        let hasAcnChildrenToReturn =
+            codec = Decode &&
+            ProgrammingLanguage.ActiveLanguages.Head = Python &&
+            not acnChildrenEncoded.IsEmpty
+            
+        // Build ACN children dictionary and tuple return for Python decode
+        if hasAcnChildrenToReturn then
+            // Build dictionary entries: {'acn_child_name': acn_child_var}
+            let dictEntries =
+                acnChildrenEncoded
+                |> List.rev  // Reverse to get original order
+                |> List.map (fun (varName, acnCh) ->
+                    $"'%s{acnCh.c_name}': %s{varName}"
+                )
+                |> String.concat ", "
+
+            let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
+            let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier this}, %s{p.accessPath.lastIdOrArr}_acn_children"
+            [dictStmt], Some tupleReturnStmt
+        else
+            [], None
+
     override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
         if typeName = moduleName then moduleName + "." + typeName else typeName
 

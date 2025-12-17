@@ -902,6 +902,44 @@ sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpr
 <soExistVar> = <sAcnExpression>
 >>
 
+/* Present-when templates for SEQUENCE optional fields with deep field access
+ *
+ * In ACN, optional sequence fields can have their presence determined by fields
+ * at different nesting levels (deep field access). For example:
+ *
+ *   Packet ::= SEQUENCE {
+ *       primaryHeader SEQUENCE {
+ *           secHeaderFlag BOOLEAN
+ *       },
+ *       secondaryHeader SEQUENCE {...} OPTIONAL
+ *   }
+ *
+ * With ACN: secondaryHeader [present-when primaryHeader.secHeaderFlag]
+ *
+ * IMPLEMENTATION FOR PYTHON:
+ * These templates are intentionally EMPTY for the Python backend because:
+ *
+ * 1. Python's object-oriented design allows direct field access via self/parent references
+ * 2. The external field expression is passed directly as soExistVar to sequence_optional_child_decode
+ * 3. No intermediate variable or exist struct is needed (unlike C which uses p.exist.childName)
+ *
+ * Example generated decode code:
+ *   self.primaryHeader = PrimaryHeader.decode(codec)
+ *   if self.primaryHeader.secHeaderFlag:  # soExistVar = "self.primaryHeader.secHeaderFlag"
+ *       self.secondaryHeader = SecondaryHeader.decode(codec)
+ *   else:
+ *       self.secondaryHeader = None
+ *
+ * The bitstream order is guaranteed because:
+ * - DAstACN.fs processes sequence children in declaration order
+ * - primaryHeader is decoded before secondaryHeader
+ * - The external field value is available when needed
+ *
+ * NOTE: The pres_int and pres_str variants are not used for SEQUENCE optional fields.
+ * They exist for API compatibility but are only relevant for CHOICE alternatives,
+ * which use different templates (ChoiceChild_preWhen_int_condition, etc.)
+ */
+
 sequence_presence_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
 sequence_presence_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= ""
 
@@ -935,17 +973,23 @@ sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 # acn_python.stg 772
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
+<!<sChildContent>!>
+<if(bIsPrimitive)>
 <sChildContent>
+<else>
+<sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 779
 # Decode <sChName>
+# todo: this is not adjusted for isPrimitive
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
@@ -956,14 +1000,18 @@ self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParam
 <endif>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
+<if(bChildHasAcnChildrenToReturn)>
+instance_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<else>
 instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<endif>
 <endif>
 >>
 
@@ -1001,7 +1049,7 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTyped
 <p>_<sChName> = None
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 836
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
@@ -1013,7 +1061,7 @@ if <p>.<sChName> is not None:
     <endif>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 847
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
@@ -1021,20 +1069,24 @@ if <soExistVar>:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
+    <if(bChildHasAcnChildrenToReturn)>
+    <p>_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    <else>
     <p>_<sChName>: Optional[<sChildTypedef>] = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    <endif>
     <endif>
 else:
     <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 858
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive, bChildHasAcnChildrenToReturn=bChildHasAcnChildrenToReturn)>
 >>
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 864
-<sequence_optional_child_decode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive)>
+<sequence_optional_child_decode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive, bChildHasAcnChildrenToReturn=bChildHasAcnChildrenToReturn)>
 >>
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<

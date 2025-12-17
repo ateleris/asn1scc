@@ -1,4 +1,7 @@
 ﻿module Language
+
+open AcnGenericTypes
+open Asn1AcnAst
 open CommonTypes
 open System.Numerics
 open DAst
@@ -308,6 +311,22 @@ type ILangGeneric () =
 
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope
     abstract member getParamTypeAtc : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope
+    
+    // Additional Methods for ACN Deep Field Access for Object Oriented Languages
+    abstract member getAcnChildrenForDeepFieldAccess : Asn1Child list -> AcnChild list -> AcnInsertedFieldDependencies -> Map<string, (string * AcnChild) list>
+    default this.getAcnChildrenForDeepFieldAccess _ _ _ = Map.empty
+    abstract member getExternalField : ((AcnDependency -> bool) -> string) -> RelativePath -> Asn1AcnAst.Sequence -> CodegenScope -> string
+    default this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) _ _ _ =
+        let filterDependency (d:AcnDependency) =
+            match d.dependencyKind with
+            | AcnDepPresenceBool   -> true
+            | _                    -> false
+        getExternalField0 filterDependency
+    abstract member getAcnChildrenDictStatements : Codec -> (string * AcnChild) list -> CodegenScope -> (string list * string option)
+    default this.getAcnChildrenDictStatements _ _ _= [], None
+        
+    // End of additional methods
+    
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
