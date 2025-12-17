@@ -314,12 +314,84 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                     mapEntries |> Map.ofList
 
-            // STEP 2: Process tases in original order, using map for deep field access types
+            // STEP 2: Build a flattened, deduplicated list of all types to generate
+            // Group by canonical key to determine which TAS owns which types
+
+            // First, collect ALL types from ALL tases
+            let allTypesFromAllTases =
+                tases |> List.collect (fun tas ->
+                    let allChildrenRaw = getResolvedTypeAndChildren tas.Type
+
+                    // Apply same filtering as STEP 1
+                    let allChildren =
+                        allChildrenRaw
+                        |> List.filter (fun t -> ToC t.moduleName = ToC pu.name)
+                        |> List.filter (fun t ->
+                            match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
+                            | true, _ -> true
+                            | false, Sequence _ -> true
+                            | false, SequenceOf _ -> true
+                            | false, Choice _ -> true
+                            | false, _ -> false
+                        )
+
+                    // Pair each type with its owning TAS
+                    allChildren |> List.map (fun t -> (tas, t))
+                )
+
+            // Deduplicate by canonical key, keeping the richest version
+            let deduplicatedTypeMap =
+                allTypesFromAllTases
+                |> List.groupBy (fun (tas, t) ->
+                    match t.tasInfo with
+                    | Some ti -> $"{ti.modName}.{ti.tasName}"
+                    | None -> t.id.AsString
+                )
+                |> List.map (fun (canonicalKey, tasTypePairs) ->
+                    let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
+                        match t.Kind with
+                        | Sequence seq -> seq.children.Length
+                        | _ -> 0
+                    )
+                    (canonicalKey, chosen)
+                )
+                |> Map.ofList
+
+            // Group types by which TAS they belong to (the TAS that matches their canonical key)
+            let typesByOwningTas =
+                deduplicatedTypeMap
+                |> Map.toList
+                |> List.groupBy (fun (canonicalKey, (parentTas, typ)) ->
+                    // Find the TAS that owns this type based on canonicalKey
+                    let parts = canonicalKey.Split('.')
+                    if parts.Length >= 2 then
+                        let modName = parts.[0]
+                        let tasName = parts.[parts.Length - 1]
+
+                        // Find the TAS with matching modName and tasName
+                        let owningTas = tases |> List.tryFind (fun tas ->
+                            match tas.Type.id.tasInfo with
+                            | Some ti -> ti.modName = modName && ti.tasName = tasName
+                            | None -> false
+                        )
+
+                        match owningTas with
+                        | Some tas ->
+                            // Return the canonical key of the owning TAS
+                            match tas.Type.id.tasInfo with
+                            | Some ti -> $"{ti.modName}.{ti.tasName}"
+                            | None -> canonicalKey
+                        | None -> canonicalKey
+                    else
+                        canonicalKey
+                )
+                |> Map.ofList
+
+            // Helper function to look up types in the deepFieldAccessMap
             let tryFindInMap (t: Asn1Type) =
-                // Try multiple key strategies to find the type
                 let canonicalKey =
                     match t.tasInfo with
-                    | Some ti -> Some $"{ti.modName}.{ti.tasName}"  // Canonical name
+                    | Some ti -> Some $"{ti.modName}.{ti.tasName}"
                     | None -> None
 
                 let possibleKeys = [Some t.id.AsString; canonicalKey] |> List.choose id
@@ -332,71 +404,35 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         None
                 )
 
+            // Now process each TAS and generate code only for types that belong to it
             let typeDefs =
                 tases |> List.collect(fun tas ->
-                    // DEBUG: Print what we're processing
-                    printfn "=== Processing TAS: %s ===" (match tas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> tas.Type.id.AsString)
+                    let tasCanonicalKey =
+                        match tas.Type.id.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> tas.Type.id.AsString
 
-                    // Get all children (including the type itself) with resolved references
-                    // Use same filtering logic as STEP 1 to ensure consistency
-                    let allChildren = getResolvedTypeAndChildren tas.Type
-                                      |> List.filter (fun t ->
-                                          match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
-                                          | true, _ -> true  // Keep all types with TypeDefinition
-                                          | false, Sequence _ -> true  // Keep resolved Sequences
-                                          | false, SequenceOf _ -> true  // Keep resolved SequenceOfs
-                                          | false, Choice _ -> true    // Keep resolved Choices
-                                          | false, _ -> false  // Skip everything else (primitives, references)
-                                      )
+                    printfn "=== Processing TAS: %s ===" tasCanonicalKey
 
-                    printfn "  All children: %A" (allChildren |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+                    // Get the types that belong to this TAS
+                    let typesToGenerate =
+                        match typesByOwningTas.TryFind(tasCanonicalKey) with
+                        | Some typeList ->
+                            typeList
+                            |> List.map snd  // Extract (parentTas, typ) from (canonicalKey, (parentTas, typ))
+                            |> List.map snd  // Extract typ from (parentTas, typ)
+                        | None -> []
 
-                    // Separate children into those with deep field access (in map) and those without
-                    let childrenInMap, childrenNotInMap =
-                        allChildren |> List.partition (fun t -> tryFindInMap t |> Option.isSome)
+                    printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
-                    printfn "  Children in map: %A" (childrenInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
-                    printfn "  Children NOT in map: %A" (childrenNotInMap |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+                    // Separate into types with deep field access (in map) and those without
+                    let typesInMap, typesNotInMap =
+                        typesToGenerate |> List.partition (fun t -> tryFindInMap t |> Option.isSome)
 
-                    // Filter childrenInMap to exclude types that have their own top-level TAS
-                    // (they'll be generated when processing their own TAS, not as children)
-                    let childrenInMapToGenerate =
-                        childrenInMap |> List.filter (fun child ->
-                            // Get the canonicalKey for this child from the map
-                            match tryFindInMap child with
-                            | Some (_, childCanonicalKey) ->
-                                match tas.Type.id.tasInfo with
-                                | Some tasInfo ->
-                                    let currentTasCanonicalKey = $"{tasInfo.modName}.{tasInfo.tasName}"
-                                    // Is this the TAS itself?
-                                    if childCanonicalKey = currentTasCanonicalKey then
-                                        true  // It's the TAS itself, include it
-                                    else
-                                        // It's a different type - check if it has its own TAS
-                                        // Parse canonicalKey to extract modName and tasName
-                                        let parts = childCanonicalKey.Split('.')
-                                        if parts.Length >= 2 then
-                                            let modName = parts.[0]
-                                            let tasName = parts.[parts.Length - 1]
-                                            let hasOwnTas = tases |> List.exists (fun otherTas ->
-                                                match otherTas.Type.id.tasInfo with
-                                                | Some otherInfo ->
-                                                    otherInfo.modName = modName && otherInfo.tasName = tasName
-                                                | None -> false
-                                            )
-                                            not hasOwnTas  // Exclude if it has its own TAS
-                                        else
-                                            true  // Can't parse, include it
-                                | None -> true  // Current TAS has no tasInfo, include child
-                            | None -> false  // Not in map, shouldn't happen here but exclude for safety
-                        )
-
-                    printfn "  Children to generate from map: %A" (childrenInMapToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
-
-                    // For types in the map, use the pre-generated code (with correct ACN context)
+                    // For types in the map, use the pre-generated code
                     let typeDefsFromMap =
-                        childrenInMapToGenerate |> List.choose (fun child ->
-                            tryFindInMap child |> Option.map fst  // Extract just the typeDef, not the canonicalKey
+                        typesInMap |> List.choose (fun typ ->
+                            tryFindInMap typ |> Option.map fst
                         )
 
                     // For types not in the map, generate code normally
@@ -404,8 +440,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
 
                     let typeDefsGenerated =
-                        childrenNotInMap
-                        |> List.filter (fun cls -> cls.typeDefinitionOrReference.IsTypeDefinition)  // Only generate for types with TypeDefinition
+                        typesNotInMap
+                        |> List.filter (fun cls -> cls.typeDefinitionOrReference.IsTypeDefinition)
                         |> List.map(fun cls ->
                             let printInit = r.callersSet |> Set.contains (f InitFunctionType)
                             let printEquals = r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType))
@@ -416,8 +452,6 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn
                         )
 
-                    // Return both: types from map + freshly generated types
-                    // Order matters: children before parents (types are already in correct order from getResolvedTypeAndChildren)
                     typeDefsFromMap @ typeDefsGenerated
                 )
 
