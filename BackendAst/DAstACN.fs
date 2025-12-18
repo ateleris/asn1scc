@@ -358,6 +358,18 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                     | Some bodyResult ->
                         bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries, bodyResult.icdResult
 
+                // Determine if this instance needs to return any acn children
+                let bHasAcnChildrenToReturn =
+                    match t.Kind with
+                    | Asn1AcnAst.Sequence sq ->
+                        deps.acnDependencies 
+                        |> List.exists(fun dep ->
+                            match dep.determinant with
+                            | AcnChildDeterminant acnCh ->
+                                acnCh.id.parentTypeId = Some t.id
+                            | _ -> false)
+                    | _ -> false
+
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
@@ -395,6 +407,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | _ -> emitPrm p.c_name prmTypeName
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
+
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
                 // Handler for DastAcnParameter (similar to handleAcnParameter but for DAst types)
                 let handleDastAcnParameter (p:DastAcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -434,12 +448,14 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 // Combine t.acnParameters with additional ACN parameters from additionalAcnPrms
                 let baseAcnParams = t.acnParameters |> List.map handleAcnParameter
                 let additionalPrms = additionalAcnPrms |> List.map handleDastAcnParameter
-                let prms = baseAcnParams @ additionalPrms
+                //let prms = baseAcnParams @ additionalPrms
                 let basePrmNames = t.acnParameters |> List.map (fun p -> p.c_name)
                 let additionalPrmNames = additionalAcnPrms |> List.map (fun p -> p.c_name)
-                let prmNames = basePrmNames @ additionalPrmNames
+                //let prmNames = basePrmNames @ additionalPrmNames
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
+                let prms = t.acnParameters |> List.map handleAcnParameter
+                let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
                 let errCodStr = 
                     errCodes |> 
                     List.groupBy (fun x -> x.errCodeName) |>
@@ -622,7 +638,9 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId errCode nestingScope p
+        // ACN integers don't have type definitions - they're primitive parameters
+        let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p
     let soMapFunMod, soMapFunc  =
         match t.acnProperties.mappingFunction with
         | Some (MappingFunction (soMapFunMod, mapFncName))    ->

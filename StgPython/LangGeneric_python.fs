@@ -529,13 +529,28 @@ type LangGeneric_python() =
         else
             (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
     
-    override this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (p: CodegenScope) : string option =
-        match rf.tasInfo with
-        | None -> None
-        | Some k ->
-            let tasName = ToC k.tasName
-            let modName = ToC k.modName
-            Some (if p.modName <> modName then modName + "." + tasName else tasName)
+    override this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) : string option =
+        match typeDefinition with
+        | TypeDefinition td ->
+            // A new type definition exists - use its name (wrapper class exists)
+            let typeName = td.typedefName
+            // Check if we need module prefix
+            match rf.topLevelTas with
+            | Some k when p.modName <> (ToC k.modName) ->
+                Some ((ToC k.modName) + "." + typeName)
+            | _ ->
+                Some typeName
+        | ReferenceToExistingDefinition _ ->
+            // No new type definition - check if we're referencing a top-level type
+            match rf.tasInfo with
+            | Some k ->
+                // Direct reference to a top-level type assignment
+                let tasName = ToC k.tasName
+                let modName = ToC k.modName
+                Some (if p.modName <> modName then modName + "." + tasName else tasName)
+            | None ->
+                // Inline field with no new type definition - use primitive type (None)
+                None
         
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
