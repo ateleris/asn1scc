@@ -357,6 +357,18 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                     | Some bodyResult ->
                         bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries, bodyResult.icdResult
 
+                // Determine if this instance needs to return any acn children
+                let bHasAcnChildrenToReturn =
+                    match t.Kind with
+                    | Asn1AcnAst.Sequence sq ->
+                        deps.acnDependencies 
+                        |> List.exists(fun dep ->
+                            match dep.determinant with
+                            | AcnChildDeterminant acnCh ->
+                                acnCh.id.parentTypeId = Some t.id
+                            | _ -> false)
+                    | _ -> false
+
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
@@ -396,7 +408,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr = 
                     errCodes |> 

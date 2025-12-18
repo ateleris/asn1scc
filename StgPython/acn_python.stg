@@ -19,7 +19,7 @@ class EncodeConstants:
     <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 36
 <!"""
 <arrsAcnPrms; separator="\n">
@@ -48,10 +48,10 @@ class DecodeConstants:
 
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> '<sTypeDefName>':
+def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -65,13 +65,13 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
             # acn_python.stg 70
             raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
     <endif>
-    return <sVarName>
+    return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 
 @staticmethod
 def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
-    res = <sTypeDefName>.<sFuncName>(cpy, check_constraints<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
+    res<if(bHasAcnChildrenToReturn)>, res_children<endif> = <sTypeDefName>.<sFuncName>(cpy, check_constraints<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
     # acn_python.stg 84
     return cpy, res
 >>
