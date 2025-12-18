@@ -593,7 +593,9 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId errCode nestingScope p
+        // ACN integers don't have type definitions - they're primitive parameters
+        let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p
     let soMapFunMod, soMapFunc  =
         match t.acnProperties.mappingFunction with
         | Some (MappingFunction (soMapFunMod, mapFncName))    ->

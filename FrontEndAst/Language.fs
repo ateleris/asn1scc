@@ -297,7 +297,7 @@ type ILangGeneric () =
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string
     abstract member getLongTypedefNameBasedOnModule : FE_TypeDefinition -> string -> string
-    abstract member getLongTypedefNameFromReferenceToTypeAndCodegenScope : ReferenceToType -> CodegenScope -> string option
+    abstract member getLongTypedefNameFromReferenceToTypeAndCodegenScope : ReferenceToType -> TypeDefinitionOrReference -> CodegenScope -> string option
     abstract member longTypedefName2 : TypeDefinitionOrReference -> bool -> string -> string
     abstract member adjustTypedefWithFullPath : string -> string -> string;
     abstract member getEmptySequenceInitExpression : string -> string
@@ -410,7 +410,7 @@ type ILangGeneric () =
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
     default this.getLongTypedefNameBasedOnModule (fe:FE_TypeDefinition) (currentModule: string) = fe.typeName
-    default this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (p: CodegenScope) = Some rf.AsString
+    default this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) = Some rf.AsString
     default this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         match td with
         | TypeDefinition  td ->
