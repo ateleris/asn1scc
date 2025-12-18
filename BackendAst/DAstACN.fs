@@ -286,6 +286,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                               isTestVaseValid
                               (soSparkAnnotations: string option)
                               (funcDefAnnots: string list)
+                              (additionalAcnPrms: DastAcnParameter list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcNameAndtasInfo   = lm.lg.getACNFuncName r codec t td
@@ -406,11 +407,54 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | _ -> emitPrm p.c_name prmTypeName
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let prms = t.acnParameters |> List.map handleAcnParameter
-                let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
 
+                // Handler for DastAcnParameter (similar to handleAcnParameter but for DAst types)
+                let handleDastAcnParameter (p:DastAcnParameter) =
+                    let intType  = lm.typeDef.Declare_Integer ()
+                    let boolType = lm.typeDef.Declare_Boolean ()
+                    let emitPrm  = lm.acn.EmitAcnParameter
+                    match p.asn1Type with
+                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType
+                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
+                    | AcnGenericTypes.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
+                    | AcnGenericTypes.AcnPrmRefType(md,ts)          ->
+                        let prmTypeName =
+                            match lm.lg.hasModules with
+                            | false         -> ToC2(r.args.TypePrefix + ts.Value)
+                            | true       ->
+                                match md.Value = t.id.ModName with
+                                | true  -> ToC2(r.args.TypePrefix + ts.Value)
+                                | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python ->
+                            // For Python, use basic types: enumerations -> int, strings -> str
+                            let basicType =
+                                try
+                                    let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
+                                    let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
+                                    match refTas with
+                                    | Some tas ->
+                                        match tas.Type.ActualType.Kind with
+                                        | Asn1AcnAst.Enumerated _ -> "int"
+                                        | Asn1AcnAst.IA5String _
+                                        | Asn1AcnAst.NumericString _ -> "str"
+                                        | _ -> "int"  // Default to int for other types
+                                    | None -> "int"  // Default if not found
+                                with
+                                | _ -> "int"  // Default on any error
+                            emitPrm p.c_name basicType
+                        | _ -> emitPrm p.c_name prmTypeName
+                // Combine t.acnParameters with additional ACN parameters from additionalAcnPrms
+                let baseAcnParams = t.acnParameters |> List.map handleAcnParameter
+                let additionalPrms = additionalAcnPrms |> List.map handleDastAcnParameter
+                let prms = baseAcnParams @ additionalPrms
+                let basePrmNames = t.acnParameters |> List.map (fun p -> p.c_name)
+                let additionalPrmNames = additionalAcnPrms |> List.map (fun p -> p.c_name)
+                let prmNames = basePrmNames @ additionalPrmNames
+               
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
-
+               
+                
                 let errCodStr = 
                     errCodes |> 
                     List.groupBy (fun x -> x.errCodeName) |>
@@ -638,7 +682,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             {res with auxiliaries = res.auxiliaries @ aux})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
@@ -744,7 +788,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
             {res with auxiliaries = res.auxiliaries @ aux})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2  (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations  [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations  [] [] us
 
 
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (icdStgFileName:string) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefinitionOrReference) (us:State)  =
@@ -793,7 +837,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
         | _ -> []
-    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations annots us
+    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations annots [] us
 
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
@@ -808,7 +852,7 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnI
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
@@ -823,7 +867,7 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None;}
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
@@ -889,7 +933,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
         let aux = lm.lg.generateBooleanAuxiliaries r ACN t o nestingScope p.accessPath codec
         {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=aux; icdResult = Some icd}
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> Some (funcBody e acnArgs nestingScope p), us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> Some (funcBody e acnArgs nestingScope p), us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnNullType)  (us:State)  =
@@ -957,7 +1001,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=aux; icdResult = Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
@@ -1079,7 +1123,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd} ), ns
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2  (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us) (fun atc -> true) soSparkAnnotations [] [] us
 
 
 let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToIA5String)  (us:State)  =
@@ -1267,7 +1311,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
     let soSparkAnnotations = Some (sparkAnnotations lm td codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
@@ -1318,7 +1362,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
 
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option)  (child:Asn1Type) (us:State)  =
     let oct_sqf_null_terminated = lm.acn.oct_sqf_null_terminated
@@ -1480,7 +1524,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@(lv level)@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] [] us
 
 let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t: Asn1AcnAst.AcnInsertedType): string =
     match t with
@@ -1837,6 +1881,65 @@ type private SequenceChildResult = {
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
 
+// Helper type to store cross-sequence ACN dependency information
+type CrossSequenceAcnDep = {
+    acnChildId: ReferenceToType
+    acnChildCName: string
+    dependency: AcnDependency
+}
+
+// Helper function to find ACN children in a child sequence that have dependencies on fields in the parent sequence
+// Takes the child sequence's ACN children and checks which ones depend on fields outside the child sequence
+// Returns information about the ACN child ID and its dependency
+let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (parentSeqType:Asn1AcnAst.Asn1Type) (childSeqType:Asn1AcnAst.Asn1Type) (childSeqAcnChildren: Asn1AcnAst.AcnChild list) : CrossSequenceAcnDep list =
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Checking child sequence %s (parent: %s) ACN children for cross-sequence dependencies" (childSeqType.id.AsString) (parentSeqType.id.AsString)
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Child sequence has %d ACN children" childSeqAcnChildren.Length
+
+    // For each ACN child in the child sequence, check if it has dependencies on fields in the parent sequence (outside the child sequence)
+    let result =
+        childSeqAcnChildren
+        |> List.choose (fun acnChild ->
+            printfn "[DEBUG] findCrossSequenceAcnDeps: Checking ACN child %s (id: %s) for cross-sequence dependencies" acnChild.Name.Value (acnChild.id.AsString)
+
+            // Find dependencies where this ACN child is the determinant
+            let relevantDeps =
+                deps.acnDependencies
+                |> List.filter (fun d -> d.determinant.id = acnChild.id)
+
+            printfn "[DEBUG] findCrossSequenceAcnDeps: Found %d dependencies for ACN child %s" relevantDeps.Length acnChild.Name.Value
+
+            // Check if any dependency references a field in the parent sequence (outside the child sequence)
+            relevantDeps
+            |> List.tryFind (fun dep ->
+                // Check if the dependency's asn1Type (the field that determines the ACN child's value) is outside the child sequence
+                let depFieldPath = dep.asn1Type.AsString
+                let parentPath = parentSeqType.id.AsString
+                let childPath = childSeqType.id.AsString
+
+                printfn "[DEBUG] findCrossSequenceAcnDeps: Checking dependency - ACN child uses field: %s" depFieldPath
+
+                // The field is in the parent (outside child) if:
+                // 1. It starts with the parent path
+                // 2. It doesn't start with the child path (or is not nested inside child path)
+                let isOutsideChild = depFieldPath.StartsWith(parentPath) && not (depFieldPath.StartsWith(childPath + "#") || depFieldPath.StartsWith(childPath + ".") || depFieldPath = childPath)
+
+                if isOutsideChild then
+                    printfn "[DEBUG] findCrossSequenceAcnDeps: >>> CROSS-SEQUENCE DEPENDENCY FOUND! ACN child %s (in %s) needs to access field %s (outside child sequence)" acnChild.Name.Value childPath depFieldPath
+
+                isOutsideChild
+            )
+            |> Option.map (fun dep ->
+                {
+                    acnChildId = acnChild.id
+                    acnChildCName = getAcnDeterminantName acnChild.id
+                    dependency = dep
+                }
+            )
+        )
+
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Returning %d cross-sequence ACN dependencies" result.Length
+    result
+
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (acnPrms:DastAcnParameter list) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
@@ -2114,9 +2217,127 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
             match childInfo with
             | Asn1Child child   ->
+                printfn "[DEBUG] handleChild: Processing Asn1Child %s in sequence %s" (child.Name.Value) (t.id.AsString)
+
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-                let childTypeDef = if ProgrammingLanguage.ActiveLanguages.Head = Python && childTypeDef.StartsWith((ToC t.moduleName) + ".") then childTypeDef.Substring(t.moduleName.Length + 1) else childTypeDef 
+                let childTypeDef = if ProgrammingLanguage.ActiveLanguages.Head = Python && childTypeDef.StartsWith((ToC t.moduleName) + ".") then childTypeDef.Substring(t.moduleName.Length + 1) else childTypeDef
                 let childName = lm.lg.getAsn1ChildBackendName child
+
+                // Check for cross-sequence ACN dependencies
+                // Find the child's AST type from the parent sequence's children
+                let childAstType =
+                    o.children
+                    |> List.tryPick (fun c ->
+                        match c with
+                        | Asn1AcnAst.Asn1Child astChild when astChild.Name = child.Name -> Some astChild.Type
+                        | _ -> None)
+                    |> Option.defaultWith (fun () -> failwith (sprintf "Could not find AST child %s in parent sequence" child.Name.Value))
+
+                // Extract ACN children from the child sequence type (SubPacket)
+                // These ACN children are defined in the child's encoding, not the parent's
+                printfn "[DEBUG] handleChild: Parent sequence %s has %d children total" (t.id.AsString) o.children.Length
+                printfn "[DEBUG] handleChild: Child sequence %s type" (childAstType.id.AsString)
+
+                // Resolve reference types to get actual sequence
+                let actualChildSeqType =
+                    match childAstType.Kind with
+                    | Asn1AcnAst.ReferenceType refType ->
+                        printfn "[DEBUG] handleChild: Child is a ReferenceType, resolving to %s" (refType.resolvedType.id.AsString)
+                        refType.resolvedType
+                    | _ -> childAstType
+
+                // Get ACN children from the child sequence
+                let childSeqAcnChildren =
+                    match actualChildSeqType.Kind with
+                    | Asn1AcnAst.Sequence childSeq ->
+                        printfn "[DEBUG] handleChild: Child sequence has %d children" childSeq.children.Length
+                        childSeq.children |> List.iteri (fun i c ->
+                            match c with
+                            | Asn1AcnAst.Asn1Child a -> printfn "[DEBUG] handleChild:   Child %d: Asn1Child %s" i a.Name.Value
+                            | Asn1AcnAst.AcnChild a -> printfn "[DEBUG] handleChild:   Child %d: AcnChild %s (id: %s)" i a.Name.Value (a.id.AsString))
+                        childSeq.children
+                        |> List.choose (fun c ->
+                            match c with
+                            | Asn1AcnAst.AcnChild acnCh -> Some acnCh
+                            | _ -> None)
+                    | _ ->
+                        printfn "[DEBUG] handleChild: Child is not a sequence"
+                        []
+
+                printfn "[DEBUG] handleChild: Child sequence has %d ACN children" childSeqAcnChildren.Length
+
+                let crossSeqAcnDeps = findCrossSequenceAcnDeps r deps t childAstType childSeqAcnChildren
+                printfn "[DEBUG] handleChild: Found %d cross-sequence ACN deps for child %s" crossSeqAcnDeps.Length childName
+
+                // Get the module for this type
+                let currentModule = r.Modules |> Seq.find(fun m -> m.Name.Value = t.moduleName)
+
+                // Generate update code for cross-sequence ACN children in the parent context (current sequence)
+                let crossSeqAcnUpdateStmts, crossSeqAcnParamsList, ns0 =
+                    match codec with
+                    | Encode when not crossSeqAcnDeps.IsEmpty ->
+                        printfn "[DEBUG] handleChild: Generating update code for cross-sequence ACN children in parent context"
+
+                        crossSeqAcnDeps
+                        |> List.fold (fun (stmts, paramsList, state) crossDep ->
+                            printfn "[DEBUG] handleChild: Processing cross-sequence ACN child %s (id: %s)" crossDep.acnChildCName (crossDep.acnChildId.AsString)
+
+                            // Get the update function for this ACN child
+                            let funcUpdateStatement, newState = getUpdateFunctionUsedInEncoding r deps lm currentModule crossDep.acnChildId state
+
+                            match funcUpdateStatement with
+                            | Some updateFunc ->
+                                printfn "[DEBUG] handleChild: Found update function, generating update code"
+
+                                // Create a temporary AcnChild record to pass to the update function
+                                // We need to construct this from the dependency information
+                                let tempAcnChild = {
+                                    AcnChild.Name = StringLoc.ByValue crossDep.acnChildCName
+                                    id = crossDep.acnChildId
+                                    c_name = crossDep.acnChildCName
+                                    Type = match crossDep.dependency.determinant with
+                                           | AcnChildDeterminant ch -> ch.Type
+                                           | _ -> failwith "Expected AcnChildDeterminant"
+                                    typeDefinitionBodyWithinSeq = getDeterminantTypeDefinitionBodyWithinSeq r lm crossDep.dependency.determinant
+                                    funcBody = (fun _ _ _ _ _ -> None) // Dummy function body - not used for update (5 parameters)
+                                    funcUpdateStatement = Some updateFunc
+                                    Comments = [||] // Empty array
+                                    deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [crossDep.dependency] }
+                                    initExpression = initExpr r lm currentModule (match crossDep.dependency.determinant with AcnChildDeterminant ch -> ch.Type | _ -> failwith "Expected AcnChildDeterminant")
+                                }
+
+                                // Generate the update code using the parent scope (current sequence)
+                                let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath crossDep.acnChildCName}
+                                let pRoot = lm.lg.getParamType t codec  // Use parent sequence type
+                                let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
+
+                                printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
+
+                                // Create statement for this update
+                                let stmt = {
+                                    SequenceChildStmt.body = Some updateStatement
+                                    lvs = updateFunc.localVariables
+                                    errCodes = updateFunc.errCodes
+                                    icdComments = updateFunc.icdComments
+                                }
+
+                                // Add parameter to pass to child sequence
+                                let param = sprintf "%s=%s" crossDep.acnChildCName crossDep.acnChildCName
+
+                                (stmt :: stmts, param :: paramsList, newState)
+                            | None ->
+                                printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
+                                (stmts, paramsList, newState)
+                        ) ([], [], us)
+                        |> fun (stmts, paramsList, state) -> (List.rev stmts, List.rev paramsList, state)
+                    | _ -> ([], [], us)
+
+                printfn "[DEBUG] handleChild: Generated %d update statements and %d parameters for cross-sequence ACN children" crossSeqAcnUpdateStmts.Length crossSeqAcnParamsList.Length
+
+                // Merge cross-sequence ACN parameters with existing ACN parameters
+                let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
+                printfn "[DEBUG] handleChild: Total ACN parameters for template: %d" acnParamsForTemplate.Length
+
                 let chFunc = child.Type.getAcnFunction codec
                 let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
                 let childP =
@@ -2125,8 +2346,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 let childContentResult, ns1 =
                     match chFunc with
-                    | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName bitStreamPositionsLocalVar
-                    | None -> None, us
+                    | Some chFunc -> chFunc.funcBodyAsSeqComp ns0 [] childNestingScope childP childName bitStreamPositionsLocalVar
+                    | None -> None, ns0
 
                 //handle present-when acn property
                 let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
@@ -2222,7 +2443,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs; errCodes = presentWhenErrs @ childErrs; icdComments = []}
                 let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
                 let icdResult = icd_asn1_child child stmts.icdComments
-                let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
+
+                // Include cross-sequence ACN update statements before the child encode call
+                printfn "[DEBUG] handleChild: Including %d cross-sequence ACN update statements in result" crossSeqAcnUpdateStmts.Length
+                let allStmts = crossSeqAcnUpdateStmts @ [stmts]
+                let res = {stmts=allStmts; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
 
                 // Check if this ASN.1 child needs to return ACN children to siblings
                 let newAcnChildrenFromSiblings =
@@ -2240,18 +2465,43 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded; processedAsn1Children = (childName, child) :: s.processedAsn1Children; acnChildrenFromSiblings = newAcnChildrenFromSiblings}
                 res, newAcc
             | AcnChild acnChild ->
+                printfn "[DEBUG] handleChild: Processing AcnChild %s in sequence %s" acnChild.Name.Value (t.id.AsString)
+
+                // Check if this ACN child has dependencies on fields outside the current sequence
+                let acnChildDeps =
+                    deps.acnDependencies
+                    |> List.filter (fun d -> d.determinant.id = acnChild.id)
+
+                let hasExternalDependency =
+                    acnChildDeps
+                    |> List.exists (fun dep ->
+                        let depFieldPath = dep.asn1Type.AsString
+                        let currentSeqPath = t.id.AsString
+                        // Check if the dependency is outside the current sequence
+                        let isExternal = not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath)
+                        if isExternal then
+                            printfn "[DEBUG] handleChild: ACN child %s has external dependency on %s" acnChild.Name.Value depFieldPath
+                        isExternal
+                    )
+
                 //handle updates
                 let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
 
                 let updateStatement, ns1 =
                     match codec with
                     | Encode ->
-                        let pRoot : CodegenScope = lm.lg.getParamType t codec  //????
-                        let updateStatement, lvs, errCodes, icdComments =
-                            match acnChild.funcUpdateStatement with
-                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments
-                            | None                     -> None, [], [], []
-                        Some {body=updateStatement; lvs=lvs; errCodes=errCodes; icdComments=icdComments}, us
+                        // Skip update code generation if this ACN child has external dependencies
+                        // (it will be provided as a parameter from the parent)
+                        if hasExternalDependency then
+                            printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
+                            None, us
+                        else
+                            let pRoot : CodegenScope = lm.lg.getParamType t codec  //????
+                            let updateStatement, lvs, errCodes, icdComments =
+                                match acnChild.funcUpdateStatement with
+                                | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments
+                                | None                     -> None, [], [], []
+                            Some {body=updateStatement; lvs=lvs; errCodes=errCodes; icdComments=icdComments}, us
                     | Decode -> None, us
 
                 //acn child encode/decode
@@ -2422,7 +2672,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | None                     -> false)
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  [] us
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations [] acnPrms us
 
 
 
@@ -2698,7 +2948,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
 
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us, ec
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] [] us, ec
 
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
@@ -2811,7 +3061,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     addFunctionCallToState us caller callee
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-            let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] ns
+            let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] [] ns
             Some a, ns
 
     | Some encOptions ->
@@ -2882,7 +3132,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             funcBodyResult, ns2)
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-        let a,b = createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p) (fun atc -> true) soSparkAnnotations [] us
+        let a,b = createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p) (fun atc -> true) soSparkAnnotations [] [] us
         Some a, b)
 
 

@@ -631,7 +631,52 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
 
 
 let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list, us:State) =
-    let newPrms, us0 = TL "SQ_mapAcnParameter" (fun () -> t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us)
+    let basePrms, us0 = TL "SQ_mapAcnParameter" (fun () -> t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us)
+
+    // Find ACN children of this sequence that have dependencies on fields outside this sequence
+    // These should be treated as parameters (to be provided by the parent)
+    let externalAcnChildPrms =
+        o.children
+        |> List.choose (fun child ->
+            match child with
+            | Asn1AcnAst.AcnChild acnChild ->
+                // Check if this ACN child depends on external fields
+                let acnChildDeps =
+                    deps.acnDependencies
+                    |> List.filter (fun d -> d.determinant.id = acnChild.id)
+                let hasExternalDep =
+                    acnChildDeps
+                    |> List.exists (fun dep ->
+                        let depFieldPath = dep.asn1Type.AsString
+                        let currentSeqPath = t.id.AsString
+                        not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath))
+                if hasExternalDep then
+                    // Create an ACN parameter for this external ACN child
+                    printfn "[DEBUG] createSequence: Adding external ACN child %s as parameter to %s" acnChild.Name.Value (t.id.AsString)
+                    // Map the ACN child to a DAst ACN parameter
+                    // Get the ACN child's type and convert it to AcnParamType
+                    let acnParamType =
+                        match acnChild.Type with
+                        | Asn1AcnAst.AcnInteger intType -> AcnGenericTypes.AcnPrmInteger intType.Location
+                        | Asn1AcnAst.AcnBoolean boolType -> AcnGenericTypes.AcnPrmBoolean boolType.Location
+                        | Asn1AcnAst.AcnNullType nullType -> AcnGenericTypes.AcnPrmNullType nullType.Location
+                        | Asn1AcnAst.AcnReferenceToEnumerated enumType -> AcnGenericTypes.AcnPrmRefType (enumType.modName, enumType.tasName)
+                        | Asn1AcnAst.AcnReferenceToIA5String strType -> AcnGenericTypes.AcnPrmRefType (strType.modName, strType.tasName)
+
+                    let acnParam = {
+                        DastAcnParameter.asn1Type = acnParamType
+                        name = acnChild.Name.Value
+                        loc = acnChild.Name.Location
+                        id = acnChild.id
+                        c_name = DAstACN.getAcnDeterminantName acnChild.id
+                        typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant acnChild)
+                    }
+                    Some acnParam
+                else
+                    None
+            | _ -> None)
+
+    let newPrms = basePrms @ externalAcnChildPrms
     //let typeDefinition = DAstTypeDefinition.createSequence r l t o children us0
     let defOrRef            =  lm.lg.definitionOrRef o.definitionOrRef //TL "SQ_DAstTypeDefinition" (fun () -> DAstTypeDefinition.createSequence_u r lm t o  children )
     let equalFunction       = TL "SQ_DAstEqual" (fun () -> DAstEqual.createSequenceEqualFunction r lm t o defOrRef children)

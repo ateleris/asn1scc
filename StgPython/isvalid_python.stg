@@ -20,8 +20,9 @@ if ret:
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
-# isvalid_python.stg 22
+# isvalid_python.stg 22 sPart
 <sPart>
+# isvalid_python.stg 11 sNestedPart
 <sNestedPart>
 >>
 
