@@ -6,15 +6,15 @@ This module provides the base codec framework for ASN.1 encoding/decoding operat
 
 from nagini_contracts.contracts import *
 from abc import abstractmethod
-from typing import Optional, Type, TypeVar, Generic, List
-# from dataclasses import dataclass
+from typing import Optional, TypeVar, Generic
+from dataclasses import dataclass
 from enum import IntEnum
-from .bitstream import BitStream, BitStreamError
-from .asn1_types import Asn1Exception
-from .segment import Segment
+from bitstream import BitStream, BitStreamError
+from asn1_types import Asn1Exception
+from segment import Segment
 
 
-class ErrorCode():
+class ErrorCode(IntEnum):
     """Error codes for encoding/decoding operations"""
     SUCCESS = 0
     INSUFFICIENT_DATA = 1
@@ -24,41 +24,43 @@ class ErrorCode():
     UNSUPPORTED_OPERATION = 5
 
 # Constants for common error codes
-# ENCODE_OK = ErrorCode.SUCCESS
-# DECODE_OK = ErrorCode.SUCCESS
-# ERROR_INSUFFICIENT_DATA = ErrorCode.INSUFFICIENT_DATA
-# ERROR_INVALID_VALUE = ErrorCode.INVALID_VALUE
-# ERROR_CONSTRAINT_VIOLATION = ErrorCode.CONSTRAINT_VIOLATION
-# ERROR_BUFFER_OVERFLOW = ErrorCode.BUFFER_OVERFLOW
-# ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
+ENCODE_OK = ErrorCode.SUCCESS
+DECODE_OK = ErrorCode.SUCCESS
+ERROR_INSUFFICIENT_DATA = ErrorCode.INSUFFICIENT_DATA
+ERROR_INVALID_VALUE = ErrorCode.INVALID_VALUE
+ERROR_CONSTRAINT_VIOLATION = ErrorCode.CONSTRAINT_VIOLATION
+ERROR_BUFFER_OVERFLOW = ErrorCode.BUFFER_OVERFLOW
+ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
 
 
-# @dataclass
-# class EncodeResult:
-#     """Result of an encoding operation"""
-#     success: bool
-#     error_code: ErrorCode
-#     encoded_data: Optional[bytearray] = None
-#     bits_encoded: int = 0
-#     error_message: Optional[str] = None
+@dataclass(frozen=True)
+class EncodeResult:
+    """Result of an encoding operation"""
+    success: bool
+    error_code: ErrorCode
+    encoded_data: Optional[bytearray] = None
+    bits_encoded: int = 0
+    error_message: Optional[str] = None
 
-#     def __bool__(self) -> bool:
-#         return self.success
+    @Pure
+    def __bool__(self) -> bool:
+        return self.success
 
 
-# TDVal = TypeVar('TDVal')
+TDVal = TypeVar('TDVal')
 
-# @dataclass
-# class DecodeResult(Generic[TDVal]):
-#     """Result of a decoding operation"""
-#     success: bool
-#     error_code: ErrorCode
-#     decoded_value: Optional[TDVal] = None
-#     bits_consumed: int = 0
-#     error_message: Optional[str] = None
+@dataclass(frozen=True)
+class DecodeResult(Generic[TDVal]):
+    """Result of a decoding operation"""
+    success: bool
+    error_code: ErrorCode
+    decoded_value: Optional[TDVal] = None
+    bits_consumed: int = 0
+    error_message: Optional[str] = None
 
-#     def __bool__(self) -> bool:
-#         return self.success
+    @Pure
+    def __bool__(self) -> bool:
+        return self.success
 
 
 class CodecError(Asn1Exception):
@@ -106,7 +108,7 @@ class Codec(Generic[T]):
     def _construct(cls, buffer: bytearray) -> T:
         pass
     
-    def reset_bitstream(self):
+    def reset_bitstream(self) -> None:
         Requires(self.codec_predicate())
         Ensures(self.codec_predicate())
         Ensures(self.bit_index == 0)
