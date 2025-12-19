@@ -2870,12 +2870,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         Some (choiceChild_Enum (p.accessPath.joinedEnum lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_presWhen  ->
                         let isPrimitiveType =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python -> false  // Python always uses class decode methods
-                            | _ ->
-                                match (lm.lg.getTypeDefinition child.chType.FT_TypeDefinition) with
-                                | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
-                                | _ -> false
+                            match (lm.lg.getTypeDefinition child.chType.FT_TypeDefinition) with
+                            | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                            | _ -> false
                         let handPresenceCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                             match cond with
                             | PresenceInt  (relPath, intLoc)   ->

@@ -248,7 +248,7 @@ type LangGeneric_python() =
     override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
     override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
     override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
-        ch.typeDef[Python].typeName + "." + (ToC c.present_when_name)
+        ch.typeDef[Python].typeName + "InUse." + (ToC c.present_when_name)
 
     override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         methodSuffix
