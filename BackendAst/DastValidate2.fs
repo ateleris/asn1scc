@@ -1046,7 +1046,12 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             let funcBodyContent =
               match p.accessPath.selectionType with
               | ByPointer -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
-              | _ -> callBaseTypeFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+              | _ ->
+                  let pp = (l.lg.getParamValue t p.accessPath Encode)
+                  match pp with
+                  | "self" -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting
+                  
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
