@@ -207,6 +207,13 @@ type SequenceOptionalChild = {
     childBody: CodegenScope -> string option -> string
 }
 
+type public SequenceChildStmt = {
+    body: string option
+    lvs: LocalVariable list
+    errCodes: ErrorCode list
+    icdComments : string list
+}
+
 type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
@@ -324,6 +331,8 @@ type ILangGeneric () =
         getExternalField0 filterDependency
     abstract member getAcnChildrenDictStatements : Codec -> (string * AcnChild) list -> CodegenScope -> (string list * string option)
     default this.getAcnChildrenDictStatements _ _ _= [], None
+    abstract member updateStateForCrossSequenceAcnParams : Asn1AcnAst.AstRoot -> State -> CodegenScope -> Asn1AcnAst.SeqChildInfo list -> Asn1Child -> NestingScope -> AcnInsertedFieldDependencies -> Asn1AcnAst.Asn1Type -> Codec -> (Asn1AcnAst.Asn1Module -> ReferenceToType -> State -> (AcnChildUpdateResult option*State)) -> (Determinant -> string) -> (Asn1AcnAst.Asn1Module -> Asn1AcnAst.AcnInsertedType -> string) -> (SequenceChildStmt list * string list * State)
+    default this.updateStateForCrossSequenceAcnParams _ s _ _ _ _ _ _ _ _ _ _ = [], [], s
         
     // End of additional methods
     
