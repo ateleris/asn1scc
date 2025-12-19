@@ -703,7 +703,7 @@ if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index
 
 oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 # acn_python.stg 553
-codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<p><sAcc>nCount))
+codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <sExtFld>)
 >>
 
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<

@@ -1077,6 +1077,15 @@ let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDep
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
 
+let getExternalFieldChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency : Asn1AcnAst.AcnChild option =
+    try
+        let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency)
+        match dependency.determinant with
+        | Asn1AcnAst.AcnChildDeterminant child -> Some child
+        | _ -> None
+    with
+    | _ -> None
+
 let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)  (defOrRef:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let Acn_String_Ascii_FixSize                            = lm.acn.Acn_String_Ascii_FixSize
     let Acn_String_Ascii_Internal_Field_Determinant         = lm.acn.Acn_String_Ascii_Internal_Field_Determinant
@@ -1311,7 +1320,34 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
     let soSparkAnnotations = Some (sparkAnnotations lm td codec)
-    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] [] us
+
+    // For external field size determinants, add the external field as an ACN parameter
+    let additionalAcnPrms =
+        match o.acnEncodingClass with
+        | SZ_EC_ExternalField _ ->
+            match getExternalFieldChild r deps t.id with
+            | Some child ->
+                let acnParamType =
+                    match child.Type with
+                    | AcnInsertedType.AcnInteger intType -> AcnGenericTypes.AcnPrmInteger intType.Location
+                    | AcnInsertedType.AcnBoolean boolType -> AcnGenericTypes.AcnPrmBoolean boolType.Location
+                    | AcnInsertedType.AcnNullType nullType -> AcnGenericTypes.AcnPrmNullType nullType.Location
+                    | AcnInsertedType.AcnReferenceToEnumerated enumType -> AcnGenericTypes.AcnPrmRefType (enumType.modName, enumType.tasName)
+                    | AcnInsertedType.AcnReferenceToIA5String strType -> AcnGenericTypes.AcnPrmRefType (strType.modName, strType.tasName)
+
+                let acnParam = {
+                    DastAcnParameter.asn1Type = acnParamType
+                    name = child.Name.Value
+                    loc = child.Name.Location
+                    id = child.id
+                    c_name = child.c_name
+                    typeDefinitionBodyWithinSeq = getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant child)
+                }
+                [acnParam]
+            | None -> []
+        | _ -> []
+
+    createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] additionalAcnPrms us
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
