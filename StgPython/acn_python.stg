@@ -1015,23 +1015,27 @@ instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnP
 <endif>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-self.<sChName>.encode(codec, check_constraints)
+self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 813
 # Decode <sChName>
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+<if(bChildHasAcnChildrenToReturn)>
+<p>_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<else>
+<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<endif>
 <endif>
 >>
 
