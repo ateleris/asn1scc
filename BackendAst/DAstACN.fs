@@ -2202,8 +2202,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
                                     | Some (siblingName, _) ->
                                         // Generate code to access ACN child from sibling's returned dict
-                                        // Format: secondaryHeaderFlag=packet_ID_acn_children['secondaryHeaderFlag']
-                                        Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
+                                        // For decode: use siblingName_acn_children['acnChildName']
+                                        // For encode: use targetParamName directly (it's a local variable computed earlier)
+                                        match codec with
+                                        | Decode -> Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
+                                        | Encode -> Some $"%s{targetParamName}=%s{targetParamName}"
                                     | None ->
                                         // Not found - this might be an error, but let the original behavior handle it
                                         None
