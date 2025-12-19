@@ -2186,30 +2186,50 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | AcnDepPresenceBool
                             | AcnDepPresenceStr _ -> true
                             | _ -> false)
-                        |> List.choose(fun d ->                             
+                        |> List.choose(fun d ->
                             match d.determinant with
                             | AcnChildDeterminant acnCh ->
-                                let targetParamName = acnCh.c_name
-                                // The parameter gets its value from an ACN child that was encoded earlier
-                                // First try to find it in the current sequence's ACN children
-                                let found = s.acnChildrenEncoded
-                                            |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
-                                match found with
-                                | Some (varName, _) ->
-                                    Some $"%s{targetParamName}=%s{varName}"
-                                | None ->
-                                    // If not found in current sequence, check if it was returned by a sibling SEQUENCE
-                                    match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
-                                    | Some (siblingName, _) ->
-                                        // Generate code to access ACN child from sibling's returned dict
-                                        // For decode: use siblingName_acn_children['acnChildName']
-                                        // For encode: use targetParamName directly (it's a local variable computed earlier)
-                                        match codec with
-                                        | Decode -> Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
-                                        | Encode -> Some $"%s{targetParamName}=%s{targetParamName}"
+                                // Check if child sequence produces this ACN child locally
+                                // If so, don't pass it as a parameter (for decode only)
+                                let childProducesAcnChild =
+                                    match codec with
+                                    | Decode ->
+                                        // Check if the child sequence has this ACN child in its own children list
+                                        match child.Type.Kind with
+                                        | Sequence childSeq ->
+                                            childSeq.children
+                                            |> List.exists(fun c ->
+                                                match c with
+                                                | AcnChild childAcnCh -> childAcnCh.id = acnCh.id
+                                                | _ -> false)
+                                        | _ -> false
+                                    | Encode -> false  // For encode, always pass parameters
+
+                                if childProducesAcnChild then
+                                    // Skip this parameter - child produces it itself during decode
+                                    None
+                                else
+                                    let targetParamName = acnCh.c_name
+                                    // The parameter gets its value from an ACN child that was encoded earlier
+                                    // First try to find it in the current sequence's ACN children
+                                    let found = s.acnChildrenEncoded
+                                                |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
+                                    match found with
+                                    | Some (varName, _) ->
+                                        Some $"%s{targetParamName}=%s{varName}"
                                     | None ->
-                                        // Not found - this might be an error, but let the original behavior handle it
-                                        None
+                                        // If not found in current sequence, check if it was returned by a sibling SEQUENCE
+                                        match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
+                                        | Some (siblingName, _) ->
+                                            // Generate code to access ACN child from sibling's returned dict
+                                            // For decode: use siblingName_acn_children['acnChildName']
+                                            // For encode: use targetParamName directly (it's a local variable computed earlier)
+                                            match codec with
+                                            | Decode -> Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
+                                            | Encode -> Some $"%s{targetParamName}=%s{targetParamName}"
+                                        | None ->
+                                            // Not found - this might be an error, but let the original behavior handle it
+                                            None
                             | AcnParameterDeterminant _ ->
                                 // ACN parameters from AcnParameterDeterminant are already in scope
                                 // (passed down from parent), so we don't need to pass them again.

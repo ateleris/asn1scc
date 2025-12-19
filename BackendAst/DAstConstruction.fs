@@ -676,7 +676,24 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     None
             | _ -> None)
 
-    let newPrms = basePrms @ externalAcnChildPrms
+    // For encode: include all external ACN children (they need to be encoded)
+    let encNewPrms = basePrms @ externalAcnChildPrms
+
+    // For decode: exclude ACN children that are locally produced by this sequence
+    // (they're decoded from bitstream, not passed as parameters)
+    let locallyProducedAcnChildren =
+        o.children
+        |> List.choose (fun child ->
+            match child with
+            | Asn1AcnAst.AcnChild acnChild -> Some acnChild.id
+            | _ -> None)
+        |> Set.ofList
+
+    let decNewPrms =
+        basePrms @
+        (externalAcnChildPrms
+         |> List.filter (fun p -> not (locallyProducedAcnChildren.Contains p.id)))
+
     //let typeDefinition = DAstTypeDefinition.createSequence r l t o children us0
     let defOrRef            =  lm.lg.definitionOrRef o.definitionOrRef //TL "SQ_DAstTypeDefinition" (fun () -> DAstTypeDefinition.createSequence_u r lm t o  children )
     let equalFunction       = TL "SQ_DAstEqual" (fun () -> DAstEqual.createSequenceEqualFunction r lm t o defOrRef children)
@@ -685,8 +702,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
     let uperEncFunction, s2     = TL "SQ_DAstUPer_encode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Encode t o defOrRef isValidFunction children s1)
     let uperDecFunction, s3     = TL "SQ_DAstUPer_decode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Decode t o defOrRef isValidFunction children s2)
-    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children newPrms s3)
-    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children newPrms s4)
+    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children encNewPrms s3)
+    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children decNewPrms s4)
     let uperEncDecTestFunc,s6         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
     let xerEncFunction, s8      = TL "SQ_DAstXer" (fun () ->XER r (fun () ->   DAstXer.createSequenceFunction  r lm Codec.Encode t o defOrRef isValidFunction children s7) s7)
@@ -715,7 +732,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             constraintsAsn1Str = DAstAsn1.createSequenceFunction r t o children
             xerEncDecTestFunc   = xerEncDecTestFunc
         }
-    ((Sequence ret),newPrms), s10
+    // Return encNewPrms since this is used for the type definition (encode-side parameters)
+    ((Sequence ret),encNewPrms), s10
 
 let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
