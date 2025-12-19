@@ -361,13 +361,10 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 // Determine if this instance needs to return any acn children
                 let bHasAcnChildrenToReturn =
                     match t.Kind with
-                    | Asn1AcnAst.Sequence sq ->
-                        deps.acnDependencies 
-                        |> List.exists(fun dep ->
-                            match dep.determinant with
-                            | AcnChildDeterminant acnCh ->
-                                acnCh.id.parentTypeId = Some t.id
-                            | _ -> false)
+                    | Asn1AcnAst.Sequence _ ->
+                        // Root types (like Message) receive no parameters, so return just instance
+                        // Child types (like DynamicDataWithPosition) receive parameters, so return tuple with acn_children
+                        t.acnParameters.Length > 0
                     | _ -> false
 
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
