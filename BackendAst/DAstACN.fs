@@ -2257,7 +2257,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match codec with
                             | Encode -> None, [], [], None, ns1
                             | Decode ->
-                                let extField = lm.lg.getExternalField (getExternalField0 r deps child.Type.id) relPath o p
+                                // let extField = lm.lg.getExternalField (getExternalField0 r deps child.Type.id) relPath o p
+                                let extField = relPath.AsString
                                 let body (p: CodegenScope) (existVar: string option): string =
                                     assert existVar.IsSome
                                     sequence_presence_optChild_pres_bool (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName existVar.Value codec
