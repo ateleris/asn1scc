@@ -722,8 +722,11 @@ TESTLIB_FILES="./Asn1AcnTestLib/primitives/boolean/boolean-basic.asn1 \
                ./Asn1AcnTestLib/additional/determinant_color.acn"
               
 DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
-              ./Asn1AcnTestLib/additional/deep-field-access.acn"
-
+             ./Asn1AcnTestLib/additional/deep-field-access.acn \
+             ./Asn1AcnTestLib/additional/determinant_color.asn1 \
+             ./Asn1AcnTestLib/additional/determinant_color.acn"
+          
+                             
 #TEMPLATE_INFO="-printTemplateInfo"
 TEMPLATE_INFO=""
 
