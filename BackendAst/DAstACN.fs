@@ -414,6 +414,20 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
+                // Handler for AcnChild (extracts type from AcnInsertedType and creates parameter representation)
+                let handleAcnChild (ch:Asn1AcnAst.AcnChild) =
+                    let intType  = lm.typeDef.Declare_Integer ()
+                    let boolType = lm.typeDef.Declare_Boolean ()
+                    let emitPrm  = lm.acn.EmitAcnParameter
+                    match ch.Type with
+                    | Asn1AcnAst.AcnInteger  _ -> emitPrm ch.c_name intType
+                    | Asn1AcnAst.AcnNullType _ -> emitPrm ch.c_name boolType
+                    | Asn1AcnAst.AcnBoolean  _ -> emitPrm ch.c_name boolType
+                    | Asn1AcnAst.AcnReferenceToEnumerated a ->
+                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value))
+                    | Asn1AcnAst.AcnReferenceToIA5String a ->
+                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value))
+
                 // Handler for DastAcnParameter (similar to handleAcnParameter but for DAst types)
                 let handleDastAcnParameter (p:DastAcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -455,11 +469,58 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let additionalPrms = additionalAcnPrms |> List.map handleDastAcnParameter
                 let basePrmNames = t.acnParameters |> List.map (fun p -> p.c_name)
                 let additionalPrmNames = additionalAcnPrms |> List.map (fun p -> p.c_name)
-                let prmNames = basePrmNames @ additionalPrmNames
+
+                // Also include ACN parameters that are PASSED TO this type as determinants from parent types
+                // These are parameters that other types reference when decoding this type
+                // Extract both AcnParameterDeterminant and AcnChildDeterminant separately
+                let matchingDeps = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = t.id)
+
+                // Extract AcnParameterDeterminant items
+                let incomingAcnParams =
+                    matchingDeps
+                    |> List.choose(fun d ->
+                        match d.determinant with
+                        | AcnParameterDeterminant acnPrm -> Some acnPrm
+                        | _ -> None
+                    )
+
+                // Extract AcnChildDeterminant items
+                let incomingAcnChildren =
+                    matchingDeps
+                    |> List.choose(fun d ->
+                        match d.determinant with
+                        | AcnChildDeterminant acnCh -> Some acnCh
+                        | _ -> None
+                    )
+
+                // DEBUG: Check all dependencies for this type
+                if matchingDeps.Length > 0 then
+                    printfn "[DEBUG createAcnFunction] Found %d matching acnDependencies"
+                        matchingDeps.Length
+                    matchingDeps
+                    |> List.iter(fun d ->
+                        printfn "  - determinant: %s"
+                            (match d.determinant with
+                             | AcnParameterDeterminant p -> sprintf "AcnPrm(%s)" p.c_name
+                             | AcnChildDeterminant c -> sprintf "AcnChild(%s)" c.c_name)
+                    )
+
+                // Process both parameter types through their respective handlers
+                let incomingAcnParamStrings = incomingAcnParams |> List.map handleAcnParameter
+                let incomingChildStrings = incomingAcnChildren |> List.map handleAcnChild
+                let incomingPrmNames = (incomingAcnParams |> List.map (fun p -> p.c_name)) @ (incomingAcnChildren |> List.map (fun c -> c.c_name))
+
+                // DEBUG: Log all parameters found
+                let allParamCount = baseAcnParams.Length + additionalPrms.Length + incomingAcnParams.Length + incomingAcnChildren.Length
+                if allParamCount > 0 then
+                    printfn "DEBUG: baseAcnParams=%d, additionalPrms=%d, incomingAcnParams=%d, incomingChildren=%d, total=%d"
+                        baseAcnParams.Length additionalPrms.Length incomingAcnParams.Length incomingAcnChildren.Length allParamCount
+
+                let prmNames = basePrmNames @ additionalPrmNames @ incomingPrmNames
                 // Deduplicate by keeping first occurrence
                 let prmNamesDistinct = prmNames |> Seq.distinct |> Seq.toList
                 // Also deduplicate the prms list to match prmNamesDistinct - pair names with params and filter
-                let allPrmsWithNames = List.zip prmNames (baseAcnParams @ additionalPrms)
+                let allPrmsWithNames = List.zip prmNames (baseAcnParams @ additionalPrms @ incomingAcnParamStrings @ incomingChildStrings)
                 let seenNames = System.Collections.Generic.HashSet<string>()
                 let prms = allPrmsWithNames |> List.filter (fun (name, _) -> seenNames.Add(name)) |> List.map snd
                
