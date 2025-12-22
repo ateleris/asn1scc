@@ -761,7 +761,7 @@ sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 # acn_python.stg 602
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
-    <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
+    <p> = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
     <soCallAux>
 else:
     raise Asn1Exception(f"{<sErrCode>}")
@@ -1007,11 +1007,13 @@ sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatemen
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<if(bChildHasAcnChildrenToReturn)>
-instance_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-<else>
-instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-<endif>
+
+instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode, tuple):
+    instance_<sChName>, <sChName>_acn_children = instance_decode
+else:
+    instance_<sChName> = instance_decode
+
 <endif>
 >>
 
@@ -1073,11 +1075,13 @@ if <soExistVar>:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <if(bChildHasAcnChildrenToReturn)>
-    <p>_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    <else>
-    <p>_<sChName>: Optional[<sChildTypedef>] = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    <endif>
+    
+    instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    if isinstance(instance_decode, tuple):
+        <p>_<sChName>, <sChName>_acn_children = instance_decode
+    else:
+        <p>_<sChName> = instance_decode
+   
     <endif>
 else:
     <p>_<sChName>: Optional[<sChildTypedef>] = None
