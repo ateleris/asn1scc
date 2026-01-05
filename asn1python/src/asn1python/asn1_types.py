@@ -551,11 +551,3 @@ FAILED_READ_ERR_CODE = 5400
 #         if isinstance(other, Asn1DateTimeWithTimeZone):
 #             return self.date == other.date and self.time == other.time
 #         return False
-
-
-# Timezone class enum to match Scala implementation
-# class Asn1TimeZoneClass(Enum):
-#     """ASN.1 timezone class enumeration"""
-#     Asn1TC_LocalTimeStamp = "Asn1TC_LocalTimeStamp"
-#     Asn1TC_UtcTimeStamp = "Asn1TC_UtcTimeStamp"
-#     Asn1TC_LocalTimeTZStamp = "Asn1TC_LocalTimeTZStamp"

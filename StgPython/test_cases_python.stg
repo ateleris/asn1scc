@@ -35,7 +35,12 @@ decoder = encoder.get_decoder()
 
 # Decode value
 try:
-    decodedPDU = <sTasName>.decode(decoder)
+    res = <sTasName>.decode(decoder)
+    if isinstance(res, tuple):
+        decodedPDU, _ = res
+    else:
+        decodedPDU = res
+
 except Exception as e:
     raise Asn1TestcaseDecodeFailedError(e)
 

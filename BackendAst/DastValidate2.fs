@@ -408,6 +408,10 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.Type ac curState
                 (fun p ->
                     let child_arg = l.lg.getSeqChild p.accessPath (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
+                    let child_arg =
+                        match ProgrammingLanguage.ActiveLanguages.Head, ch.Type.ActualType.Kind with
+                        | ProgrammingLanguage.Python, Enumerated _ -> child_arg.appendSelection "val" ByValue false
+                        | _ -> child_arg
                     let chp = {p with accessPath = child_arg}
                     fnc chp), ns
 
@@ -1042,7 +1046,12 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             let funcBodyContent =
               match p.accessPath.selectionType with
               | ByPointer -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
-              | _ -> callBaseTypeFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+              | _ ->
+                  let pp = (l.lg.getParamValue t p.accessPath Encode)
+                  match pp with
+                  | "self" -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting
+                  
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))

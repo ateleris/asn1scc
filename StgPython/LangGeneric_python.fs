@@ -2,7 +2,9 @@ module LangGeneric_python
 
 open System.Linq
 open AbstractMacros
+open AcnGenericTypes
 open Asn1AcnAst
+open Asn1AcnAstUtilFunctions
 open CommonTypes
 open System.Numerics
 open DAst
@@ -96,7 +98,66 @@ let isClassVariable (receiverId: string) : bool =
         // Class methods are generated via EmitTypeAssignment_composite template which expects self parameter
         // We detect this by checking if we're in a context where the receiverId should reference the class instance
         receiverId = "self" || receiverId.StartsWith("self")
-        
+
+// Helper type to store cross-sequence ACN dependency information
+type CrossSequenceAcnDep = {
+    acnChildId: ReferenceToType
+    acnChildCName: string
+    dependency: AcnDependency
+}
+
+// Helper function to find ACN children in a child sequence that have dependencies on fields in the parent sequence
+// Takes the child sequence's ACN children and checks which ones depend on fields outside the child sequence
+// Returns information about the ACN child ID and its dependency
+let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (parentSeqType:Asn1AcnAst.Asn1Type) (childSeqType:Asn1AcnAst.Asn1Type) (childSeqAcnChildren: Asn1AcnAst.AcnChild list) : CrossSequenceAcnDep list =
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Checking child sequence %s (parent: %s) ACN children for cross-sequence dependencies" (childSeqType.id.AsString) (parentSeqType.id.AsString)
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Child sequence has %d ACN children" childSeqAcnChildren.Length
+
+    // For each ACN child in the child sequence, check if it has dependencies on fields in the parent sequence (outside the child sequence)
+    let result =
+        childSeqAcnChildren
+        |> List.choose (fun acnChild ->
+            printfn "[DEBUG] findCrossSequenceAcnDeps: Checking ACN child %s (id: %s) for cross-sequence dependencies" acnChild.Name.Value (acnChild.id.AsString)
+
+            // Find dependencies where this ACN child is the determinant
+            let relevantDeps =
+                deps.acnDependencies
+                |> List.filter (fun d -> d.determinant.id = acnChild.id)
+
+            printfn "[DEBUG] findCrossSequenceAcnDeps: Found %d dependencies for ACN child %s" relevantDeps.Length acnChild.Name.Value
+
+            // Check if any dependency references a field in the parent sequence (outside the child sequence)
+            relevantDeps
+            |> List.tryFind (fun dep ->
+                // Check if the dependency's asn1Type (the field that determines the ACN child's value) is outside the child sequence
+                let depFieldPath = dep.asn1Type.AsString
+                let parentPath = parentSeqType.id.AsString
+                let childPath = childSeqType.id.AsString
+
+                printfn "[DEBUG] findCrossSequenceAcnDeps: Checking dependency - ACN child uses field: %s" depFieldPath
+
+                // The field is in the parent (outside child) if:
+                // 1. It starts with the parent path
+                // 2. It doesn't start with the child path (or is not nested inside child path)
+                let isOutsideChild = depFieldPath.StartsWith(parentPath) && not (depFieldPath.StartsWith(childPath + "#") || depFieldPath.StartsWith(childPath + ".") || depFieldPath = childPath)
+
+                if isOutsideChild then
+                    printfn "[DEBUG] findCrossSequenceAcnDeps: >>> CROSS-SEQUENCE DEPENDENCY FOUND! ACN child %s (in %s) needs to access field %s (outside child sequence)" acnChild.Name.Value childPath depFieldPath
+
+                isOutsideChild
+            )
+            |> Option.map (fun dep ->
+                {
+                    acnChildId = acnChild.id
+                    acnChildCName = AcnCreateFromAntlr.getAcnDeterminantName acnChild.id
+                    dependency = dep
+                }
+            )
+        )
+
+    printfn "[DEBUG] findCrossSequenceAcnDeps: Returning %d cross-sequence ACN dependencies" result.Length
+    result
+    
 type LangGeneric_python() =
     inherit ILangGeneric()
     
@@ -192,6 +253,12 @@ type LangGeneric_python() =
             | ValueAccess (sel, _, _) -> $".{sel}"
             | PointerAccess (sel, _, _) -> $".{sel}"
             | ArrayAccess (ix, _) -> $"[{ix}]"
+            
+    override this.getAccess3 (acc: AccessStep) =
+        match acc with
+            | ValueAccess (sel, _, _) -> $"_{sel}"
+            | PointerAccess (sel, _, _) -> $"_{sel}"
+            | ArrayAccess (ix, _) -> $"[{ix}]"
 
     override this.getPtrPrefix _ = ""
 
@@ -240,7 +307,7 @@ type LangGeneric_python() =
     override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
     override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
     override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
-        ch.typeDef[Python].typeName + "." + (ToC c.present_when_name)
+        ch.typeDef[Python].typeName + "InUse." + (ToC c.present_when_name)
 
     override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         methodSuffix
@@ -265,6 +332,261 @@ type LangGeneric_python() =
         //     | Some _ -> Some codec.suffix
         // | _     -> None
    
+    // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
+    // so that sibling children can reference them (deep field access pattern)
+    override this.getAcnChildrenForDeepFieldAccess (asn1Children: Asn1Child list) (acnChildren: AcnChild list) (deps: AcnInsertedFieldDependencies) =
+        let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
+
+        // For each ASN.1 child in this sequence
+        for i in 0 .. asn1Children.Length - 1 do
+            let child = asn1Children.[i]
+            let childName = this.getAsn1ChildBackendName child
+
+            // Look at all ACN children in the current sequence
+            for acnChild in acnChildren do
+                // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
+                for j in (i+1) .. asn1Children.Length - 1 do
+                    let siblingChild = asn1Children.[j]
+
+                    // Find dependencies where the sibling depends on this ACN child
+                    let hasDependency =
+                        deps.acnDependencies
+                        |> List.exists (fun d ->
+                            d.asn1Type = siblingChild.Type.id &&
+                            match d.determinant with
+                            | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
+                            | _ -> false
+                        )
+
+                    if hasDependency then
+                        // This ASN.1 child needs to return this ACN child
+                        if not (result.ContainsKey(childName)) then
+                            result.[childName] <- ResizeArray()
+                        if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
+                            result.[childName].Add((acnChild.c_name, acnChild))
+
+            // Also check ACN children INSIDE this child if it's a SEQUENCE
+            // This handles deep field access where a later sibling depends on an ACN child nested inside this child sequence
+            let childActualType =
+                match child.Type.Kind with
+                | ReferenceType refType -> refType.resolvedType
+                | _ -> child.Type
+
+            match childActualType.Kind with
+            | Sequence childSeq ->
+                // Get ACN children from the child sequence
+                let childSeqAcnChildren =
+                    childSeq.children
+                    |> List.choose (fun c ->
+                        match c with
+                        | AcnChild acnCh -> Some acnCh
+                        | _ -> None)
+
+                // For each ACN child inside this child sequence
+                for nestedAcnChild in childSeqAcnChildren do
+                    // Check if any later sibling depends on this nested ACN child
+                    for j in (i+1) .. asn1Children.Length - 1 do
+                        let siblingChild = asn1Children.[j]
+
+                        // Find dependencies where the sibling depends on this nested ACN child
+                        let hasDependency =
+                            deps.acnDependencies
+                            |> List.exists (fun d ->
+                                d.asn1Type = siblingChild.Type.id &&
+                                match d.determinant with
+                                | AcnChildDeterminant acnCh when acnCh.id = nestedAcnChild.id -> true
+                                | _ -> false
+                            )
+
+                        if hasDependency then
+                            // This ASN.1 child sequence needs to return this nested ACN child
+                            if not (result.ContainsKey(childName)) then
+                                result.[childName] <- ResizeArray()
+                            if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = nestedAcnChild.id)) then
+                                result.[childName].Add((nestedAcnChild.c_name, nestedAcnChild))
+            | _ -> ()
+
+        result
+        |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
+        |> Map.ofSeq
+    
+    override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
+        match relPath with
+        | RelativePath  [] ->
+            let filterDependency (d:AcnDependency) =
+                match d.dependencyKind with
+                | AcnDepPresenceBool   -> true
+                | _                    -> false
+            getExternalField0 filterDependency
+        | RelativePath (_ ::_) ->
+            // Build language-specific access path for deep field reference
+            // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+                match lp with
+                | []    -> pSeq
+                | x1::xs ->
+                    match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
+                    | None -> pSeq  // Fallback if path not found
+                    | Some ch ->
+                        match ch with
+                        | Asn1AcnAst.Asn1Child ch  ->
+                            let newPath = this.getSeqChild pSeq.accessPath (this.getAsn1ChildBackendName0 ch) false ch.Optionality.IsSome
+                            match ch.Type.ActualType.Kind, xs with
+                            | Asn1AcnAst.Sequence s, _::_ ->
+                                // Continue navigating for nested sequences
+                                getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
+                            | _, _ ->
+                                // Reached the target field
+                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
+                        | Asn1AcnAst.AcnChild ch  -> pSeq
+
+            let resolvedPath = getChildResult o p relPath
+            resolvedPath.accessPath.joined this
+    
+    override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
+        // Check if this sequence has inline ACN children that need to be returned to parent
+        let hasAcnChildrenToReturn =
+            codec = Decode &&
+            ProgrammingLanguage.ActiveLanguages.Head = Python &&
+            not acnChildrenEncoded.IsEmpty
+            
+        // Build ACN children dictionary and tuple return for Python decode
+        if hasAcnChildrenToReturn then
+            // Build dictionary entries: {'acn_child_name': acn_child_var}
+            let dictEntries =
+                acnChildrenEncoded
+                |> List.rev  // Reverse to get original order
+                |> List.map (fun (varName, acnCh) ->
+                    $"'%s{acnCh.c_name}': %s{varName}"
+                )
+                |> String.concat ", "
+
+            let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
+            let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier this}, %s{p.accessPath.lastIdOrArr}_acn_children"
+            [dictStmt], Some tupleReturnStmt
+        else
+            [], None
+    
+    override this.updateStateForCrossSequenceAcnParams (r: Asn1AcnAst.AstRoot) (state: State) (p: CodegenScope) (oChildren: Asn1AcnAst.SeqChildInfo list) (child: Asn1Child) (childNestingScope: NestingScope) (deps: AcnInsertedFieldDependencies) (t: Asn1AcnAst.Asn1Type) (codec: Codec) updateFncInEncoding getDeterminantTypeFunc initExpr =
+        let childName = this.getAsn1ChildBackendName child
+        
+        // Check for cross-sequence ACN dependencies
+        // Find the child's AST type from the parent sequence's children
+        let childAstType =
+            oChildren
+            |> List.tryPick (fun c ->
+                match c with
+                | Asn1AcnAst.Asn1Child astChild when astChild.Name = child.Name -> Some astChild.Type
+                | _ -> None)
+            |> Option.defaultWith (fun () -> failwith (sprintf "Could not find AST child %s in parent sequence" child.Name.Value))
+        
+        // Extract ACN children from the child sequence type (SubPacket)
+        // These ACN children are defined in the child's encoding, not the parent's
+        printfn "[DEBUG] handleChild: Parent sequence %s has %d children total" (t.id.AsString) oChildren.Length
+        printfn "[DEBUG] handleChild: Child sequence %s type" (childAstType.id.AsString)
+        
+        // Resolve reference types to get actual sequence
+        let actualChildSeqType =
+            match childAstType.Kind with
+            | Asn1AcnAst.ReferenceType refType ->
+                printfn "[DEBUG] handleChild: Child is a ReferenceType, resolving to %s" (refType.resolvedType.id.AsString)
+                refType.resolvedType
+            | _ -> childAstType
+        
+        // Get ACN children from the child sequence
+        let childSeqAcnChildren =
+            match actualChildSeqType.Kind with
+            | Asn1AcnAst.Sequence childSeq ->
+                printfn "[DEBUG] handleChild: Child sequence has %d children" childSeq.children.Length
+                childSeq.children |> List.iteri (fun i c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child a -> printfn "[DEBUG] handleChild:   Child %d: Asn1Child %s" i a.Name.Value
+                    | Asn1AcnAst.AcnChild a -> printfn "[DEBUG] handleChild:   Child %d: AcnChild %s (id: %s)" i a.Name.Value (a.id.AsString))
+                childSeq.children
+                |> List.choose (fun c ->
+                    match c with
+                    | Asn1AcnAst.AcnChild acnCh -> Some acnCh
+                    | _ -> None)
+            | _ ->
+                printfn "[DEBUG] handleChild: Child is not a sequence"
+                []
+        
+        printfn "[DEBUG] handleChild: Child sequence has %d ACN children" childSeqAcnChildren.Length
+        
+        let crossSeqAcnDeps = findCrossSequenceAcnDeps r deps t childAstType childSeqAcnChildren
+        printfn "[DEBUG] handleChild: Found %d cross-sequence ACN deps for child %s" crossSeqAcnDeps.Length childName
+        
+        // Get the module for this type
+        let currentModule = r.Modules |> Seq.find(fun m -> m.Name.Value = t.moduleName)
+        
+        // Generate update code for cross-sequence ACN children in the parent context (current sequence)
+        let crossSeqAcnUpdateStmts, crossSeqAcnParamsList, ns0 =
+            match codec with
+            | Encode when not crossSeqAcnDeps.IsEmpty ->
+                printfn "[DEBUG] handleChild: Generating update code for cross-sequence ACN children in parent context"
+        
+                crossSeqAcnDeps
+                |> List.fold (fun (stmts, paramsList, state) crossDep ->
+                    printfn "[DEBUG] handleChild: Processing cross-sequence ACN child %s (id: %s)" crossDep.acnChildCName (crossDep.acnChildId.AsString)
+        
+                    // Get the update function for this ACN child
+                    let funcUpdateStatement, newState = updateFncInEncoding currentModule crossDep.acnChildId state
+        
+                    match funcUpdateStatement with
+                    | Some updateFunc ->
+                        printfn "[DEBUG] handleChild: Found update function, generating update code"
+        
+                        // Create a temporary AcnChild record to pass to the update function
+                        // We need to construct this from the dependency information
+                        let tempAcnChild = {
+                            AcnChild.Name = StringLoc.ByValue crossDep.acnChildCName
+                            id = crossDep.acnChildId
+                            c_name = crossDep.acnChildCName
+                            Type = match crossDep.dependency.determinant with
+                                   | AcnChildDeterminant ch -> ch.Type
+                                   | _ -> failwith "Expected AcnChildDeterminant"
+                            typeDefinitionBodyWithinSeq = getDeterminantTypeFunc crossDep.dependency.determinant
+                            funcBody = (fun _ _ _ _ _ -> None) // Dummy function body - not used for update (5 parameters)
+                            funcUpdateStatement = Some updateFunc
+                            Comments = [||] // Empty array
+                            deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [crossDep.dependency] }
+                            initExpression = initExpr currentModule (match crossDep.dependency.determinant with AcnChildDeterminant ch -> ch.Type | _ -> failwith "Expected AcnChildDeterminant")
+                        }
+        
+                        // Generate the update code using the parent scope (current sequence)
+                        let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath crossDep.acnChildCName}
+                        let pRoot = this.getParamType t codec  // Use parent sequence type
+                        let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
+        
+                        printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
+        
+                        // Create statement for this update
+                        let stmt = {
+                            SequenceChildStmt.body = Some updateStatement
+                            lvs = updateFunc.localVariables
+                            errCodes = updateFunc.errCodes
+                            icdComments = updateFunc.icdComments
+                        }
+        
+                        // Add parameter to pass to child sequence
+                        let param = sprintf "%s=%s" crossDep.acnChildCName crossDep.acnChildCName
+        
+                        (stmt :: stmts, param :: paramsList, newState)
+                    | None ->
+                        printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
+                        (stmts, paramsList, newState)
+                ) ([], [], state)
+                |> fun (stmts, paramsList, state) -> (List.rev stmts, List.rev paramsList, state)
+            | _ -> ([], [], state)
+        
+        printfn "[DEBUG] handleChild: Generated %d update statements and %d parameters for cross-sequence ACN children" crossSeqAcnUpdateStmts.Length crossSeqAcnParamsList.Length
+        
+        // // Merge cross-sequence ACN parameters with existing ACN parameters
+        // let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
+        // printfn "[DEBUG] handleChild: Total ACN parameters for template: %d" acnParamsForTemplate.Length
+        crossSeqAcnUpdateStmts, crossSeqAcnParamsList, ns0
+        
+        
     override this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) =
         if typeName = moduleName then moduleName + "." + typeName else typeName
 
@@ -362,14 +684,11 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
-        let name = match s with
-                    | "1" -> "self"
-                    | "2" -> "other"
-                    | _ -> "param" + s
-        let recvId = match t.Kind with
-                        | Asn1AcnAst.Enumerated _ -> name + ".val"
-                        | _ -> name
-
+        let recvId = 
+            match s with
+            | "1" -> "self"
+            | "2" -> "other"
+            | _ -> "param" + s
         {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
         // {p with accessPath.rootId = p.accessPath.rootId + s}
     
@@ -379,12 +698,10 @@ type LangGeneric_python() =
             | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
-        let recvId = match c with
-                        | Decode -> "instance"
-                        | Encode ->
-                            match t.Kind with
-                            | Asn1AcnAst.Enumerated _ -> "self.val" // For enums, we encapsulate the inner value into a "val" object
-                            | _ -> "self"                           // For class methods, the receiver is always "self"
+        let recvId = match t.Kind, c with
+                        | _, Decode -> "instance"
+                        | Asn1AcnAst.Enumerated _, Encode -> "self.val" // For enums, we encapsulate the inner value into a "val" object
+                        | _, Encode -> "self"                           // For class methods, the receiver is always "self"
 
         {CodegenScope.modName = ToC t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
     
@@ -432,12 +749,28 @@ type LangGeneric_python() =
         else
             (if tdr.programUnit.Length > 0 then tdr.programUnit + "." else "") + tdr.typeName
     
-    override this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (p: CodegenScope) : string option =
-        match rf.tasInfo with
-        | None -> None
-        | Some k ->
-            let tasName = ToC k.tasName
-            Some (if p.modName <> k.modName then k.modName + "." + tasName else tasName)
+    override this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) : string option =
+        match typeDefinition with
+        | TypeDefinition td ->
+            // A new type definition exists - use its name (wrapper class exists)
+            let typeName = td.typedefName
+            // Check if we need module prefix
+            match rf.topLevelTas with
+            | Some k when p.modName <> (ToC k.modName) ->
+                Some ((ToC k.modName) + "." + typeName)
+            | _ ->
+                Some typeName
+        | ReferenceToExistingDefinition _ ->
+            // No new type definition - check if we're referencing a top-level type
+            match rf.tasInfo with
+            | Some k ->
+                // Direct reference to a top-level type assignment
+                let tasName = ToC k.tasName
+                let modName = ToC k.modName
+                Some (if p.modName <> modName then modName + "." + tasName else tasName)
+            | None ->
+                // Inline field with no new type definition - use primitive type (None)
+                None
         
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
@@ -579,11 +912,11 @@ type LangGeneric_python() =
 
     override this.adaptAcnFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
         match childType with
-            | Sequence _ ->
-                match codec with
-                | Encode -> u.call_base_type_func "self.data" childTypeDef codec
-                | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
-            | _ -> childContent_funcBody
+        | Sequence _ | Enumerated _| IA5String _ ->
+            match codec with
+            | Encode -> u.call_base_type_func "self.data" childTypeDef codec
+            | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+        | _ -> "# " + childType.GetType().ToString() + "\n" + childContent_funcBody
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody

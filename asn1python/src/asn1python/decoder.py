@@ -49,8 +49,6 @@ class Decoder(Codec):
             # Decode the offset value as unsigned
             offset_value = self._bitstream.read_bits(bits_needed)
 
-            print(f"READ VALUE {offset_value}")
-
             # Apply offset decoding: add min_val to get actual value
             value = offset_value + min_val
 
@@ -517,7 +515,7 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list]:
+    def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list[int]]:
         """
         Decode octet string without length prefix, returning as list.
 
@@ -531,7 +529,7 @@ class Decoder(Codec):
             DecodeResult containing list of byte values
         """
         result = self.decode_octet_string_no_length(num_bytes)
-        if result.success:
+        if result.success and result.decoded_value != None:
             # Convert bytes to list
             return DecodeResult(
                 success=True,

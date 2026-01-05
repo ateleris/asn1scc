@@ -123,8 +123,9 @@ let private createInteger (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
     let isValidFunction, s1     = TL "DastValidate2" (fun () -> DastValidate2.createIntegerFunction r lm t o defOrRef  us)
     let uperEncFunction, s2     = TL "DAstUPer" (fun () -> DAstUPer.createIntegerFunction r lm Codec.Encode t o defOrRef None isValidFunction s1)
     let uperDecFunction, s3     = TL "DAstUPer" (fun () -> DAstUPer.createIntegerFunction r lm Codec.Decode t o defOrRef None isValidFunction s2)
-    let acnEncFunction, s4      = TL "DAstACN" (fun () -> DAstACN.createIntegerFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3)
-    let acnDecFunction, s5      = TL "DAstACN" (fun () -> DAstACN.createIntegerFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4)
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = TL "DAstACN" (fun () -> DAstACN.createIntegerFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction newPrms s3)
+    let acnDecFunction, s5      = TL "DAstACN" (fun () -> DAstACN.createIntegerFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction newPrms s4)
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
@@ -167,8 +168,9 @@ let private createReal (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
     let isValidFunction, s1     = DastValidate2.createRealFunction r lm t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createRealFunction r lm Codec.Encode t o defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createRealFunction r lm Codec.Decode t o defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createRealFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createRealFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = DAstACN.createRealFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createRealFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction newPrms s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
@@ -215,8 +217,8 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let isValidFunction, s1     = DastValidate2.createStringFunction r lm t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createIA5StringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createStringFunction r deps lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createStringFunction r deps lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createStringFunction r deps lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createStringFunction r deps lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     //let automaticTestCasesValues      = EncodeDecodeTestCase.StringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (StringValue x))
@@ -260,8 +262,8 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let initFunction            = DAstInitialize.createOctetStringInitFunc r lm t o defOrRef isValidFunction
     let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createOctetStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createOctetStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.OctetStringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (OctetStringValue x))
@@ -302,8 +304,9 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
     let initFunction        = DAstInitialize.createNullTypeInitFunc r lm t o defOrRef
     let uperEncFunction, s2     = DAstUPer.createNullTypeFunction r lm Codec.Encode t o defOrRef None None us
     let uperDecFunction, s3     = DAstUPer.createNullTypeFunction r lm Codec.Decode t o defOrRef None None s2
-    let acnEncFunction, s4      = DAstACN.createNullTypeFunction r deps lm Codec.Encode t o defOrRef None  s3
-    let acnDecFunction, s5      = DAstACN.createNullTypeFunction r deps lm Codec.Decode t o defOrRef None  s4
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = DAstACN.createNullTypeFunction r deps lm Codec.Encode t o defOrRef None newPrms s3
+    let acnDecFunction, s5      = DAstACN.createNullTypeFunction r deps lm Codec.Decode t o defOrRef None newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction None (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction None (Some acnEncFunction) (Some acnDecFunction) s6
     let xerEncFunction, s8      = XER r (fun () ->   DAstXer.createNullTypeFunction  r lm Codec.Encode t o defOrRef None s7) s7
@@ -345,8 +348,8 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     let uperEncFunction, s2     = DAstUPer.createBitStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBitStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createBitStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createBitStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createBitStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createBitStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.BitStringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (BitStringValue x))
@@ -387,8 +390,9 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
     let isValidFunction, s1     = DastValidate2.createBoolFunction r lm t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createBooleanFunction r lm Codec.Encode t o defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBooleanFunction r lm Codec.Decode t o defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createBooleanFunction r deps lm Codec.Encode t o defOrRef None isValidFunction  s3
-    let acnDecFunction, s5      = DAstACN.createBooleanFunction r deps lm Codec.Decode t o defOrRef None isValidFunction  s4
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = DAstACN.createBooleanFunction r deps lm Codec.Encode t o defOrRef None isValidFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createBooleanFunction r deps lm Codec.Decode t o defOrRef None isValidFunction newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (BooleanValue x))
@@ -428,8 +432,9 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (dep
     let isValidFunction, s1             = TL "EN_04" (fun () -> DastValidate2.createEnumeratedFunction r lm t o defOrRef us)
     let uperEncFunction, s2             = TL "EN_05" (fun () -> DAstUPer.createEnumeratedFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1)
     let uperDecFunction, s3             = TL "EN_06" (fun () -> DAstUPer.createEnumeratedFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2)
-    let acnEncFunction, s4              = TL "EN_07" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3)
-    let acnDecFunction, s5              = TL "EN_08" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4)
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4              = TL "EN_07" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction newPrms s3)
+    let acnDecFunction, s5              = TL "EN_08" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction newPrms s4)
     let uperEncDecTestFunc,s6           = TL "EN_09" (fun () -> EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7           = TL "EN_10" (fun () -> EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
 //    let automaticTestCasesValues        TL "EN_11" (fun () -> = EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (EnumValue x)))
@@ -479,8 +484,9 @@ let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnI
     let uperEncFunction, s2     = DAstUPer.createObjectIdentifierFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createObjectIdentifierFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
 
-    let acnEncFunction, s4      = DAstACN.createObjectIdentifierFunction r deps lm Codec.Encode t o defOrRef  isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createObjectIdentifierFunction r deps lm Codec.Decode t o defOrRef  isValidFunction uperDecFunction s4
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = DAstACN.createObjectIdentifierFunction r deps lm Codec.Encode t o defOrRef  isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createObjectIdentifierFunction r deps lm Codec.Decode t o defOrRef  isValidFunction uperDecFunction newPrms s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
@@ -525,8 +531,9 @@ let private createTimeType (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
     let uperEncFunction, s2     = DAstUPer.createTimeTypeFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createTimeTypeFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
 
-    let acnEncFunction, s4      = DAstACN.createTimeTypeFunction r deps lm Codec.Encode t o defOrRef  isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createTimeTypeFunction r deps lm Codec.Decode t o defOrRef  isValidFunction uperDecFunction s4
+    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
+    let acnEncFunction, s4      = DAstACN.createTimeTypeFunction r deps lm Codec.Encode t o defOrRef  isValidFunction uperEncFunction newPrms s3
+    let acnDecFunction, s5      = DAstACN.createTimeTypeFunction r deps lm Codec.Decode t o defOrRef  isValidFunction uperDecFunction newPrms s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
@@ -577,8 +584,8 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let isValidFunction, s1     = DastValidate2.createSequenceOfFunction r lm t o defOrRef childType equalFunction us0
     let uperEncFunction, s2     = DAstUPer.createSequenceOfFunction r lm Codec.Encode t o  defOrRef None isValidFunction childType s1
     let uperDecFunction, s3     = DAstUPer.createSequenceOfFunction r lm Codec.Decode t o  defOrRef None isValidFunction childType s2
-    let acnEncFunction, s4      = DAstACN.createSequenceOfFunction r deps lm Codec.Encode t o defOrRef isValidFunction childType s3
-    let acnDecFunction, s5      = DAstACN.createSequenceOfFunction r deps lm Codec.Decode t o defOrRef isValidFunction childType s4
+    let acnEncFunction, s4      = DAstACN.createSequenceOfFunction r deps lm Codec.Encode t o defOrRef isValidFunction childType newPrms s3
+    let acnDecFunction, s5      = DAstACN.createSequenceOfFunction r deps lm Codec.Decode t o defOrRef isValidFunction childType newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let xerEncFunction, s8      = XER r (fun () ->   DAstXer.createSequenceOfFunction  r lm Codec.Encode t o defOrRef isValidFunction childType s7) s7
@@ -631,7 +638,69 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
 
 
 let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list, us:State) =
-    let newPrms, us0 = TL "SQ_mapAcnParameter" (fun () -> t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us)
+    let basePrms, us0 = TL "SQ_mapAcnParameter" (fun () -> t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us)
+
+    // Find ACN children of this sequence that have dependencies on fields outside this sequence
+    // These should be treated as parameters (to be provided by the parent)
+    let externalAcnChildPrms =
+        o.children
+        |> List.choose (fun child ->
+            match child with
+            | Asn1AcnAst.AcnChild acnChild ->
+                // Check if this ACN child depends on external fields
+                let acnChildDeps =
+                    deps.acnDependencies
+                    |> List.filter (fun d -> d.determinant.id = acnChild.id)
+                let hasExternalDep =
+                    acnChildDeps
+                    |> List.exists (fun dep ->
+                        let depFieldPath = dep.asn1Type.AsString
+                        let currentSeqPath = t.id.AsString
+                        not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath))
+                if hasExternalDep then
+                    // Create an ACN parameter for this external ACN child
+                    printfn "[DEBUG] createSequence: Adding external ACN child %s as parameter to %s" acnChild.Name.Value (t.id.AsString)
+                    // Map the ACN child to a DAst ACN parameter
+                    // Get the ACN child's type and convert it to AcnParamType
+                    let acnParamType =
+                        match acnChild.Type with
+                        | Asn1AcnAst.AcnInteger intType -> AcnGenericTypes.AcnPrmInteger intType.Location
+                        | Asn1AcnAst.AcnBoolean boolType -> AcnGenericTypes.AcnPrmBoolean boolType.Location
+                        | Asn1AcnAst.AcnNullType nullType -> AcnGenericTypes.AcnPrmNullType nullType.Location
+                        | Asn1AcnAst.AcnReferenceToEnumerated enumType -> AcnGenericTypes.AcnPrmRefType (enumType.modName, enumType.tasName)
+                        | Asn1AcnAst.AcnReferenceToIA5String strType -> AcnGenericTypes.AcnPrmRefType (strType.modName, strType.tasName)
+
+                    let acnParam = {
+                        DastAcnParameter.asn1Type = acnParamType
+                        name = acnChild.Name.Value
+                        loc = acnChild.Name.Location
+                        id = acnChild.id
+                        c_name = DAstACN.getAcnDeterminantName acnChild.id
+                        typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant acnChild)
+                    }
+                    Some acnParam
+                else
+                    None
+            | _ -> None)
+
+    // For encode: include all external ACN children (they need to be encoded)
+    let encNewPrms = basePrms @ externalAcnChildPrms
+
+    // For decode: exclude ACN children that are locally produced by this sequence
+    // (they're decoded from bitstream, not passed as parameters)
+    let locallyProducedAcnChildren =
+        o.children
+        |> List.choose (fun child ->
+            match child with
+            | Asn1AcnAst.AcnChild acnChild -> Some acnChild.id
+            | _ -> None)
+        |> Set.ofList
+
+    let decNewPrms =
+        basePrms @
+        (externalAcnChildPrms
+         |> List.filter (fun p -> not (locallyProducedAcnChildren.Contains p.id)))
+
     //let typeDefinition = DAstTypeDefinition.createSequence r l t o children us0
     let defOrRef            =  lm.lg.definitionOrRef o.definitionOrRef //TL "SQ_DAstTypeDefinition" (fun () -> DAstTypeDefinition.createSequence_u r lm t o  children )
     let equalFunction       = TL "SQ_DAstEqual" (fun () -> DAstEqual.createSequenceEqualFunction r lm t o defOrRef children)
@@ -640,8 +709,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
     let uperEncFunction, s2     = TL "SQ_DAstUPer_encode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Encode t o defOrRef isValidFunction children s1)
     let uperDecFunction, s3     = TL "SQ_DAstUPer_decode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Decode t o defOrRef isValidFunction children s2)
-    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children newPrms s3)
-    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children newPrms s4)
+    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children encNewPrms s3)
+    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children decNewPrms s4)
     let uperEncDecTestFunc,s6         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
     let xerEncFunction, s8      = TL "SQ_DAstXer" (fun () ->XER r (fun () ->   DAstXer.createSequenceFunction  r lm Codec.Encode t o defOrRef isValidFunction children s7) s7)
@@ -670,7 +739,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             constraintsAsn1Str = DAstAsn1.createSequenceFunction r t o children
             xerEncDecTestFunc   = xerEncDecTestFunc
         }
-    ((Sequence ret),newPrms), s10
+    // Return encNewPrms since this is used for the type definition (encode-side parameters)
+    ((Sequence ret),encNewPrms), s10
 
 let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
@@ -744,8 +814,8 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType s0
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2
-    let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType s3
-    let acnDecFunction, s5      = DAstACN.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType s4
+    let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType newPrms s3
+    let acnDecFunction, s5      = DAstACN.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType newPrms s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction acnEncFunction acnDecFunction s6

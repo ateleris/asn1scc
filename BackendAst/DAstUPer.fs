@@ -155,7 +155,7 @@ let castPp (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) codec pp (intClass:Asn1Acn
     | CommonTypes.Decode -> pp
 
 
-let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) =
+let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (typeDefinition:TypeDefinitionOrReference) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) =
     let pp, resultExpr = adaptArgument lm codec p
     let IntNoneRequired         = lm.uper.IntNoneRequired
     let IntFullyConstraintPos   = lm.uper.IntFullyConstraintPos
@@ -170,8 +170,8 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
-    
-    let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId p        
+
+    let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId typeDefinition p
 
     let rangeAssert =
         match typeId.topLevelTas with
@@ -180,9 +180,9 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | None -> None
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange with
-        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName (Some (ToC typeId.dropModule.AsString)) codec, codec=Decode, true, None
-        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert (Some (ToC typeId.dropModule.AsString)) codec, false, false, Some (FullyConstrainedPositive (min, max))
-        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName (Some (ToC typeId.dropModule.AsString)) codec, false, false, Some (FullyConstrained (min, max))
+        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName sType codec, codec=Decode, true, None
+        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert sType codec, false, false, Some (FullyConstrainedPositive (min, max))
+        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName sType codec, false, false, Some (FullyConstrained (min, max))
         | PosInf a  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false, Some (SemiConstrainedPositive a)
         | PosInf a -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false, Some (SemiConstrained a)
         | NegInf max -> IntUnconstrainedMax pp max None errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
@@ -215,7 +215,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id errCode nestingScope p
+        getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id typeDefinition errCode nestingScope p
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations [] us
 
@@ -448,9 +448,10 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let typeDefinitionName = lm.lg.getLongTypedefName typeDefinition
 
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
+        let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let internalItem =
             match o.uperCharSet.Length = 128 with
-            | true  -> InternalItem_string_no_alpha (p.accessPath.joined lm.lg) errCode.errCodeName i codec
+            | true  -> InternalItem_string_no_alpha pp errCode.errCodeName i codec
             | false ->
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
