@@ -7,7 +7,7 @@ JoinItems(sPart, soNestedPart) ::= <<
 # isvalid_python.stg 6
 <sPart>
 <if(soNestedPart)>
-if not isinstance(ret, Asn1SccError):
+if ret.is_valid:
     <soNestedPart>
 <endif>
 >>
@@ -283,7 +283,7 @@ else:
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 # isvalid_python.stg 271
-ret = Asn1SccError(<sErrCode>)
+ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<

@@ -859,7 +859,7 @@ ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 # acn_python.stg 700
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>;// 3031<endif>}; separator="\n">
 res = <sName>_ACN_Encode(<p>, codec, pErrCode, FALSE<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if instanceof(res, Asn1SccError):
+if not res.is_valid:
     # acn_python.stg 704
     return res
 >>
@@ -868,15 +868,13 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 # acn_python.stg 709
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>; // 3030<endif>}; separator="\n">
 res = <sName>_ACN_Decode(<p>, codec, pErrCode<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if instanceof(res, Asn1SccError):
+if not res.is_valid:
     # acn_python.stg 713
     return res
 >>
 
 
 /* SEQUENCE*/
-
-
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 722
 if <p><sAcc><sChName> is not None:
@@ -895,7 +893,7 @@ sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpr
 # acn_python.stg 732
 if <p><sAcc><sChName>.isDefined != <sAcnExpression>:
     # acn_python.stg 734
-    return Asn1SccError(<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
 # acn_python.stg 738
@@ -1118,14 +1116,14 @@ ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) :
 # acn_python.stg 893
 if <p> == <sChildID>:
     # acn_python.stg 895
-    return Asn1SccError(<sErrorCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 # acn_python.stg 900
 if <p> == <nChildIndex>:
     # acn_python.stg 902
-    return Asn1SccError(<sErrorCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -1373,7 +1371,7 @@ if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
     match codec.decode_octet_string_no_length_vec(<sExtField>):
         case NoneMut():
             # acn_python.stg 1152
-            return Asn1SccError(<pErrCode>)
+            return Asn1ConstraintValidResult(is_valid=False, error_code=<pErrCode>)
         case SomeMut(arr):
             bitStrm.buf = arr
 
@@ -1397,7 +1395,7 @@ if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
     match codec.read_bits((int)<sExtField>):
         case NoneMut():
             # acn_python.stg 1176
-            return Asn1SccError(<pErrCode>)
+            return Asn1ConstraintValidResult(is_valid=False, error_code=<pErrCode>)
         case SomeMut(arr):
             bitStrm.buf = arr
 
@@ -1444,7 +1442,7 @@ bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 arr = codec.decode_octet_string_no_length(<nMinSize>):
 if arr is None:
     # acn_python.stg 1223
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     bitStrm.buf = arr
 <else>
@@ -1453,14 +1451,14 @@ nCount: int = 0
 x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
 if x is None:
     # acn_python.stg 1232
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     nCount = x
 
 arr = codec.decode_octet_string_no_length(nCount)
 if arr is None:
     # acn_python.stg 1239
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     bitStrm.buf = arr
 
@@ -1505,7 +1503,7 @@ codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
 arr = codec.read_bits(<nMinSize>)
 if arr is None:
     # acn_python.stg 1284
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     bitStrm.buf = arr
 
@@ -1519,14 +1517,14 @@ nCount: int = 0
 x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
 if x is None:
     # acn_python.stg 1298
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     nCount = x
 
 arr = codec.read_bits(nCount)
 if arr is None:
     # acn_python.stg 1305
-    return Asn1SccError(pErrCode)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
 else:
     bitStrm.buf = arr
 

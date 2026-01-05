@@ -100,7 +100,7 @@ InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 # uper_python.stg 101
 if not codec.read_byte(<p><sAcc>arr(<i>)):
     # uper_python.stg 103
-    return Asn1SccError(<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
@@ -397,7 +397,7 @@ match codec.decode_constrained_whole_number(0, <nLastItemIndex>): # uper:277
     <arrsItem; separator="\n">
     case _:
         # uper_python.stg 317
-        return Asn1SccError(<sErrCode>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
@@ -446,7 +446,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # uper_python.stg 366
-    return Asn1SccError(<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 <p> = instance
 >>
 
@@ -842,7 +842,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret: int = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
     check = (ret == 0) and (<sRemainingItemsVar> == 0xC4)
-    ret = 0 if check else Asn1SccError(<sErrCodeName>)
+    ret = 0 if check else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
     if ret == 0:
         <if(bIsBitStringType)>
         ret = int(codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
@@ -868,11 +868,11 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) and (<sRemainingItemsVar> == <sBlockId>)
-ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
-if not isinstance(ret, Asn1SccError):
+ret = if (check) then 0 else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
+if ret.is_valid:
     <if(bIsBitStringType)>
         ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt) # TODO call wrong
-        ret = 0 if (ret == 0) else Asn1SccError(<sErrCodeName>)
+        ret = 0 if (ret == 0) else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
     
     <else>
         <sBLI> = <sCurOffset>
@@ -898,7 +898,7 @@ ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingI
 if ret == 0:
     <if(bIsBitStringType)>
     ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt) # TODO call wrong
-    ret = 0 if not isinstance(ret, Asn1SccError) else Asn1SccError(<sErrCodeName>)
+    ret = 0 if ret.is_valid else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     <else>
     <sBLI> = int(<sCurOffset>)
@@ -940,11 +940,11 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
         <sCurBlockSize> = 0x4000
     else:
         # uper_python.stg 800
-        return Asn1SccError(<sErrCodeName>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     if <sCurOffset> + <sCurBlockSize> > <nSizeMax>:
         # uper_python.stg 804
-        return Asn1SccError(<sErrCodeName>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     <if(bIsBitStringType)>
     if not codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
@@ -974,7 +974,7 @@ if (<sRemainingItemsVar> & 0x80) > 0:
 
 if <sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>:
     # uper_python.stg 834
-    return Asn1SccError(<sErrCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 <if(bIsBitStringType)>
 if not codec.read_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
@@ -1001,7 +1001,7 @@ if (<sLengthTmp> >= <nSizeMin>) and (<sLengthTmp> \<= <nSizeMax>):
     <endif>
 else
     # uper_python.stg 861
-    return Asn1SccError(<sErrCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 <else>
 
