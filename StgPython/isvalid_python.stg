@@ -122,7 +122,7 @@ ret = <sExp1>
 StatementOrStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 114
 <sStat1>
-if isinstance(ret, Asn1SccError):
+if not ret.is_valid:
     <sStat2>
 >>
 
