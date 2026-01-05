@@ -869,7 +869,7 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) and (<sRemainingItemsVar> == <sBlockId>)
 ret = if (check) then 0 else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
-if ret.is_valid:
+if ret:
     <if(bIsBitStringType)>
         ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt) # TODO call wrong
         ret = 0 if (ret == 0) else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
@@ -898,7 +898,7 @@ ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingI
 if ret == 0:
     <if(bIsBitStringType)>
     ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt) # TODO call wrong
-    ret = 0 if ret.is_valid else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
+    ret = 0 if ret else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     <else>
     <sBLI> = int(<sCurOffset>)

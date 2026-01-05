@@ -859,7 +859,7 @@ ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 # acn_python.stg 700
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>;// 3031<endif>}; separator="\n">
 res = <sName>_ACN_Encode(<p>, codec, pErrCode, FALSE<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if not res.is_valid:
+if not res:
     # acn_python.stg 704
     return res
 >>
@@ -868,7 +868,7 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 # acn_python.stg 709
 <arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>; // 3030<endif>}; separator="\n">
 res = <sName>_ACN_Decode(<p>, codec, pErrCode<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if not res.is_valid:
+if not res:
     # acn_python.stg 713
     return res
 >>

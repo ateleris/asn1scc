@@ -7,7 +7,7 @@ JoinItems(sPart, soNestedPart) ::= <<
 # isvalid_python.stg 6
 <sPart>
 <if(soNestedPart)>
-if ret.is_valid:
+if ret:
     <soNestedPart>
 <endif>
 >>
@@ -122,49 +122,49 @@ ret = <sExp1>
 StatementOrStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 114
 <sStat1>
-if not ret.is_valid:
+if not ret:
     <sStat2>
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 121
 ret = <sExp1>
-if not ret.is_valid:
+if not ret:
     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 128
 <sStat1>
-if not ret.is_valid:
+if not ret:
     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 135
 <sStat1>
-if ret.is_valid:
+if ret:
     <sStat2>
 >>
 
 ExpressionAndStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 142
 ret = <sExp1>
-if ret.is_valid:
+if ret:
     <sStat2>
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 149
 <sStat1>
-if ret.is_valid:
+if ret:
     ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
 # isvalid_python.stg 156
 <sStat>
-if ret.is_valid:
+if ret:
     ret = Asn1ConstraintValidResult(is_valid=False, error_code=142)
 else:
     ret = Asn1ConstraintValidResult(is_valid=True)
@@ -173,9 +173,9 @@ else:
 StatementExceptStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 165
 <sStat1>
-if ret.is_valid:
+if ret:
     <sStat2>
-    if ret.is_valid:
+    if ret:
         ret = Asn1ConstraintValidResult(is_valid=False, error_code=152)
     else:
         ret = Asn1ConstraintValidResult(is_valid=True)
@@ -184,9 +184,9 @@ if ret.is_valid:
 ExpressionExceptStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 176
 ret = <sExp1>
-if ret.is_valid:
+if ret:
     <sStat2>
-    if ret.is_valid:
+    if ret:
         ret = Asn1ConstraintValidResult(is_valid=False, error_code=162)
     else:
         ret = Asn1ConstraintValidResult(is_valid=True)
@@ -195,9 +195,9 @@ if ret.is_valid:
 StatementExceptExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 187
 <sStat1>
-if ret.is_valid:
+if ret:
     <sExp2>
-    if not x.is_valid:
+    if not x:
         ret = Asn1ConstraintValidResult(is_valid=False, error_code=171)
     else:
         ret = Asn1ConstraintValidResult(is_valid=True)
@@ -206,7 +206,7 @@ if ret.is_valid:
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 198
 <i>: int = 0
-while ret.is_valid and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
 >>
