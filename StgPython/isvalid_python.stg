@@ -129,89 +129,87 @@ if not ret.is_valid:
 ExpressionOrStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 121
 ret = <sExp1>
-if isinstance(ret, Asn1SccError):
+if not ret.is_valid:
     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 128
 <sStat1>
-if isinstance(ret, Asn1SccError):
+if not ret.is_valid:
     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 135
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret.is_valid:
     <sStat2>
 >>
 
 ExpressionAndStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 142
 ret = <sExp1>
-if not isinstance(ret, Asn1SccError)::
+if ret.is_valid:
     <sStat2>
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 149
 <sStat1>
-if not isinstance(ret, Asn1SccError)::
+if ret.is_valid:
     ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
 # isvalid_python.stg 156
 <sStat>
-if not isinstance(ret, Asn1SccError):
-    ret = Asn1SccError(142)
+if ret.is_valid:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=142)
 else:
-    ret = 0
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementExceptStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 165
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret.is_valid:
     <sStat2>
-    if not isinstance(ret, Asn1SccError):
-        ret = Asn1SccError(152)
+    if ret.is_valid:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=152)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 ExpressionExceptStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 176
 ret = <sExp1>
-if not isinstance(ret, Asn1SccError):
+if ret.is_valid:
     <sStat2>
-    if not isinstance(ret, Asn1SccError):
-        ret = Asn1SccError(162)
+    if ret.is_valid:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=162)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 187
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret.is_valid:
     <sExp2>
-    if isinstance(x, Asn1SccError):
-        ret = Asn1SccError(171)
+    if not x.is_valid:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=171)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 198
 <i>: int = 0
-while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+while ret.is_valid and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
 >>
-
-
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
