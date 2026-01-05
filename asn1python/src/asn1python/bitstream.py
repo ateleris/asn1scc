@@ -48,6 +48,25 @@ class BitStream:
         #@nagini Unfold(Rd(self.bitstream_invariant()))
         return BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer)) >= bits
     
+    # TODO is there a way to set up the predicates like this?
+    # @Predicate
+    # def bitstream_redicate(self) -> bool:
+    #     return (Acc(self._current_bit) and Acc(self._current_byte) and
+    #             Acc(self._buffer) and Acc(bytearray_pred(self._buffer)) and
+    #             Acc(self._segments) and Acc(self._segments_read_index) and
+    #             segments_invariant(ToByteSeq(self._buffer), self._segments) and
+    #             0 <= self._segments_read_index and self._segments_read_index <= len(self._segments) and
+    #             BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
+
+    # @Predicate
+    # def bitstream_read_predicate(self) -> bool:
+    #     return (Acc(self._current_bit) and Acc(self._current_byte) and
+    #             Acc(self._buffer, 1/20) and Acc(bytearray_pred(self._buffer), 1/20) and
+    #             Acc(self._segments, 1/20) and Acc(self._segments_read_index) and
+    #             segments_invariant(ToByteSeq(self._buffer), self._segments) and
+    #             0 <= self._segments_read_index and self._segments_read_index <= len(self._segments) and
+    #             BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
+
     @Predicate
     def bitstream_invariant(self) -> bool:
         return (Acc(self._current_bit) and Acc(self._current_byte) and 

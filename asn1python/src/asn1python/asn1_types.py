@@ -7,9 +7,9 @@ that match the behavior of the C and Scala runtime libraries.
 
 # import abc
 # from codecs import Codec
-# from dataclasses import dataclass
-# from enum import Enum
+from dataclasses import dataclass
 # from functools import total_ordering
+from nagini_contracts.contracts import *
 
 
 # Error classes
@@ -53,21 +53,24 @@ class Asn1TestcaseDifferentResultError(Asn1TestcaseError):
     """Raised when the decoding of the encoded object yields a different result in a testcase"""
     pass
 
-# @dataclass(frozen=True)
-# class Asn1ConstraintValidResult:
-#     is_valid: bool
-#     error_code: int = 0
-#     message: str = ""
+@dataclass(frozen=True)
+class Asn1ConstraintValidResult:
+    is_valid: bool
+    error_code: int = 0
+    message: str = ""
 
-#     def __bool__(self):
-#         return self.is_valid
+    @Pure
+    def __bool__(self) -> bool:
+        return self.is_valid
 
-#     def __post_init__(self):
-#         if not self.is_valid and self.error_code <= 0:
-#             raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
+    def __post_init__(self) -> None:
+        Requires((self.is_valid and self.error_code <= 0) or (not self.is_valid and self.error_code > 0))
 
-#         if self.is_valid and self.error_code > 0:
-#             raise Exception("No error code must be set if the constraint is valid.")
+        if not self.is_valid and self.error_code <= 0:
+            raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
+
+        if self.is_valid and self.error_code > 0:
+            raise Exception("No error code must be set if the constraint is valid.")
 
 # class Asn1Base(abc.ABC):
 #     from .encoder import Encoder

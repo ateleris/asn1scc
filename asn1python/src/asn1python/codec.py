@@ -4,14 +4,16 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from nagini_contracts.contracts import *
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
-from bitstream import BitStream, BitStreamError
 from asn1_types import Asn1Exception
+
+from bitstream import BitStream, BitStreamError
 from segment import Segment
+
+from nagini_contracts.contracts import *
 
 
 class ErrorCode(IntEnum):
@@ -68,8 +70,9 @@ class CodecError(Asn1Exception):
     pass
 
 
-T = TypeVar('T', bound='Codec')
-class Codec(Generic[T]):
+# T = TypeVar('T', bound='Codec')
+T = TypeVar('T')
+class Codec(ABC, Generic[T]):
     """
     Base class for ASN.1 codecs.
 
@@ -79,7 +82,7 @@ class Codec(Generic[T]):
 
     @Predicate
     def codec_predicate(self) -> bool:
-        return (Acc(self._bitstream) and self._bitstream.bitstream_invariant() and self._bitstream.segments_predicate(self.buffer))
+        return (Acc(self._bitstream) and self._bitstream.bitstream_invariant() and self._bitstream.segments_predicate(self._bitstream.buffer()))
         
 
     def __init__(self, buffer: bytearray) -> None:
@@ -90,23 +93,29 @@ class Codec(Generic[T]):
         
         Fold(self.codec_predicate())
 
-    # def copy(self) -> T:
-    #     """Creates and returns a copy of this codec instance"""
-    #     bit_index = self._bitstream.current_used_bits
-    #     new_codec = self._construct(self._bitstream.get_data_copy())
-    #     new_codec._bitstream.set_bit_index(bit_index)
-    #     return new_codec
+#     # def copy(self) -> T:
+#     #     """Creates and returns a copy of this codec instance"""
+#     #     @Requires(Acc(self.codec_predicate(), 1/20))
+#     #     @Ensures(Acc(self.codec_predicate(), 1/20))
+#     #     @Ensures(isinstance(Result(), T))
+#     #     @Ensures(Codec.codec_predicate(Result()))
 
-    @classmethod
-    @abstractmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> T:
-        """Create a new codec with a buffer of length buffer_byte_size."""
-        pass
+#     #     bit_index = self._bitstream.current_used_bits
+#     #     new_codec = self._construct(self._bitstream.get_data_copy())
+#     #     new_codec._bitstream.set_bit_index(bit_index)
+#     #     return new_codec
 
-    @classmethod
-    @abstractmethod
-    def _construct(cls, buffer: bytearray) -> T:
-        pass
+#     @classmethod
+#     @abstractmethod
+#     def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> T:
+#         """Create a new codec with a buffer of length buffer_byte_size."""
+#         pass
+
+    # @classmethod
+    # @abstractmethod
+    # def _construct(cls, buffer: bytearray) -> T:
+    #     Ensures(Result())
+    #     pass
     
     def reset_bitstream(self) -> None:
         Requires(self.codec_predicate())
@@ -116,8 +125,8 @@ class Codec(Generic[T]):
         Ensures(self.segments_read_index == Old(self.segments_read_index))
         self._bitstream.reset()
     
-    # def get_bitstream_buffer(self) -> bytearray:
-    #     return self._bitstream.get_data()
+#     # def get_bitstream_buffer(self) -> bytearray:
+#     #     return self._bitstream.get_data()
 
     @property
     def bit_index(self) -> int:
@@ -135,6 +144,12 @@ class Codec(Generic[T]):
         Unfold(Rd(self.codec_predicate()))
         return self._bitstream.current_used_bits
     
+    @property
+    def remaining_bits(self) -> int:
+        Requires(Rd(self.codec_predicate()))
+        Unfold(Rd(self.codec_predicate()))
+        return self._bitstream.remaining_bits
+
     #region Ghost
     
     @property
