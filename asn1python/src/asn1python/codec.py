@@ -64,15 +64,11 @@ class DecodeResult(Generic[TDVal]):
     def __bool__(self) -> bool:
         return self.success
 
-
 class CodecError(Asn1Exception):
     """Base class for codec errors"""
     pass
 
-
-# T = TypeVar('T', bound='Codec')
-T = TypeVar('T')
-class Codec(ABC, Generic[T]):
+class Codec(ABC):
     """
     Base class for ASN.1 codecs.
 
@@ -93,7 +89,7 @@ class Codec(ABC, Generic[T]):
         
         Fold(self.codec_predicate())
 
-#     # def copy(self) -> T:
+#     # def copy(self) -> 'Codec':
 #     #     """Creates and returns a copy of this codec instance"""
 #     #     @Requires(Acc(self.codec_predicate(), 1/20))
 #     #     @Ensures(Acc(self.codec_predicate(), 1/20))
@@ -105,17 +101,12 @@ class Codec(ABC, Generic[T]):
 #     #     new_codec._bitstream.set_bit_index(bit_index)
 #     #     return new_codec
 
-#     @classmethod
-#     @abstractmethod
-#     def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> T:
-#         """Create a new codec with a buffer of length buffer_byte_size."""
-#         pass
-
-    # @classmethod
-    # @abstractmethod
-    # def _construct(cls, buffer: bytearray) -> T:
-    #     Ensures(Result())
-    #     pass
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'Codec':
+        """Create a new codec with a buffer of length buffer_byte_size."""
+        Ensures(isinstance(Result(), cls))
+        Ensures(Result().codec_predicate())
+        return cls(bytearray(buffer_byte_size))
     
     def reset_bitstream(self) -> None:
         Requires(self.codec_predicate())

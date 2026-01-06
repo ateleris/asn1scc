@@ -47,25 +47,6 @@ class BitStream:
         Ensures(Implies(Result(), bits <= self.remaining_bits))
         #@nagini Unfold(Rd(self.bitstream_invariant()))
         return BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer)) >= bits
-    
-    # TODO is there a way to set up the predicates like this?
-    # @Predicate
-    # def bitstream_redicate(self) -> bool:
-    #     return (Acc(self._current_bit) and Acc(self._current_byte) and
-    #             Acc(self._buffer) and Acc(bytearray_pred(self._buffer)) and
-    #             Acc(self._segments) and Acc(self._segments_read_index) and
-    #             segments_invariant(ToByteSeq(self._buffer), self._segments) and
-    #             0 <= self._segments_read_index and self._segments_read_index <= len(self._segments) and
-    #             BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
-
-    # @Predicate
-    # def bitstream_read_predicate(self) -> bool:
-    #     return (Acc(self._current_bit) and Acc(self._current_byte) and
-    #             Acc(self._buffer, 1/20) and Acc(bytearray_pred(self._buffer), 1/20) and
-    #             Acc(self._segments, 1/20) and Acc(self._segments_read_index) and
-    #             segments_invariant(ToByteSeq(self._buffer), self._segments) and
-    #             0 <= self._segments_read_index and self._segments_read_index <= len(self._segments) and
-    #             BitStream.position_invariant(self._current_bit, self._current_byte, len(self._buffer)))
 
     @Predicate
     def bitstream_invariant(self) -> bool:
@@ -82,7 +63,9 @@ class BitStream:
     def segments_read_aligned(self, read_length: int) -> bool:
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
-        return (segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits and
+        Decreases(None)
+        return (self.remaining_bits >= read_length and # Should be implicit by the remaining conditions
+                segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits and
                 self.segments_read_index < len(self.segments) and 
                 self.segments[self.segments_read_index].length == read_length)
 
@@ -297,7 +280,7 @@ class BitStream:
         
         Ensures(self.buffer() == Old(self.buffer()))
         Ensures(self.current_used_bits == Old(self.current_used_bits + ((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE)))
-        Ensures(self.segments == Old(self.segments))
+        Ensures(self.segments is Old(self.segments))
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
         
         length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
@@ -338,13 +321,13 @@ class BitStream:
         return bit_pos_eq and byte_eq and ghost_bit == read_bit 
 
 
-    def read_bit(self) -> bool:
+    def _read_bit(self) -> bool:
         """Read a single bit"""
         Requires(self.bitstream_invariant())
         Requires(1 <= self.remaining_bits)
         Ensures(self.bitstream_invariant())
         Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
-        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(self.buffer() is Old(self.buffer()))
         Ensures(Result() == Old(byteseq_read_bit(self.buffer(), self.current_used_bits)))
         Ensures(int(Result()) == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), 1))
 
@@ -364,9 +347,9 @@ class BitStream:
         #@nagini Ensures(self.bitstream_invariant())
         Ensures(self.segments_predicate(self.buffer()))
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
         #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
-        Ensures(self.segments == Old(self.segments))
+        Ensures(self.segments is Old(self.segments))
         Ensures(Implies(Old(self.segments_read_aligned(bit_count)), Result() == self.segments[Old(self.segments_read_index)].value))
         Ensures(Implies(Old(self.segments_read_aligned(bit_count)), self.segments_read_index == Old(self.segments_read_index + 1)))
        
@@ -380,7 +363,7 @@ class BitStream:
             Invariant(self.buffer() == Old(self.buffer()))
             Invariant(value == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), i))
 
-            next_bit = int(self.read_bit())
+            next_bit = int(self._read_bit())
             value = (value << 1) + next_bit
             
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
@@ -405,9 +388,9 @@ class BitStream:
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.segments_predicate(self.buffer()))
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + NO_OF_BITS_IN_BYTE))
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
         #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), NO_OF_BITS_IN_BYTE))
-        #@nagini Ensures(self.segments == Old(self.segments))
+        #@nagini Ensures(self.segments is Old(self.segments))
         #@nagini Ensures(Implies(Old(self.segments_read_aligned(NO_OF_BITS_IN_BYTE)), Result() == self.segments[Old(self.segments_read_index)].value))
         #@nagini Ensures(Implies(Old(self.segments_read_aligned(NO_OF_BITS_IN_BYTE)), self.segments_read_index == Old(self.segments_read_index + 1)))
         return self.read_bits(NO_OF_BITS_IN_BYTE)
@@ -420,7 +403,7 @@ class BitStream:
     #
     # |x|x|x|b|?|?|?|?|
     #  0 1 2 3 4 5 6 7
-    def write_bit(self, bit: bool) -> None:
+    def _write_bit(self, bit: bool) -> None:
         """Write a single bit"""
         Requires(self.bitstream_invariant())
         Requires(self.validate_offset(1))
@@ -476,7 +459,7 @@ class BitStream:
             bit = bool((value >> (bit_count - 1 - i)) % 2)
             ghost_current_value = (ghost_current_value << 1) + bit
             
-            self.write_bit(bit)
+            self._write_bit(bit)
             
             updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
             i = i + 1

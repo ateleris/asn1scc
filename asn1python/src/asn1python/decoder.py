@@ -4,7 +4,7 @@ from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, 
 from nagini_contracts.contracts import *
 
 
-class Decoder(Codec['Decoder']):
+class Decoder(Codec):
 
     def __init__(self, buffer: bytearray) -> None:
         Requires(Acc(bytearray_pred(buffer), 1/20))
@@ -15,7 +15,7 @@ class Decoder(Codec['Decoder']):
     #region Ghost
 
     @Pure
-    def read_aligned(self, bit_count: int) -> bool:
+    def read_aligned(self, bit_count: PInt) -> bool:
         Requires(self.codec_predicate())
         Unfold(self.codec_predicate())
         return self._bitstream.segments_read_aligned(bit_count)
@@ -29,47 +29,42 @@ class Decoder(Codec['Decoder']):
 
     #endregion
 
-    # def read_bit(self) -> DecodeResult[bool]:
-    #     """
-    #     Read a single bit from the bitstream.
+    def read_bit(self) -> DecodeResult[bool]:
+        """
+        Read a single bit from the bitstream.
 
-    #     Matches C: BitStream_ReadBit(pBitStrm, pBit)
-    #     Matches Scala: BitStream.readBit(): Boolean
-    #     Used by: ACN for boolean decoding, optional field markers
+        Matches C: BitStream_ReadBit(pBitStrm, pBit)
+        Matches Scala: BitStream.readBit(): Boolean
+        Used by: ACN for boolean decoding, optional field markers
 
-    #     Returns:
-    #         DecodeResult containing boolean value (True = 1, False = 0)
-    #     """
-    #     Requires(self.codec_predicate())
-    #     Ensures(self.segments == Old(self.segments))
-    #     Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
-    #     Ensures(Result().success == Old(self.remaining_bits >= 1))
-    #     Ensures(Implies(Old(self.read_aligned(1)), Result().decoded_value == Old(bool(self.current_segment_value()))))
-    #     Ensures(self.codec_predicate())
+        Returns:
+            DecodeResult containing boolean value (True = 1, False = 0)
+        """
+        Requires(self.codec_predicate())
+        Requires(self.read_aligned(1))
+        Ensures(self.codec_predicate())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(Result().success == Old(self.remaining_bits >= 1))
+        Ensures(Implies(Old(self.read_aligned(1)), self.segments_read_index == Old(self.segments_read_index) + 1))
+        Ensures(Implies(Old(self.read_aligned(1)), Result().decoded_value == Old(bool(self.current_segment_value()))))
 
-    #     try:
-    #         if self.remaining_bits < 1:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message="Insufficient data to read bit"
-    #             )
+        if self.remaining_bits < 1:
+            return DecodeResult[bool](
+                success=False,
+                error_code=ERROR_INSUFFICIENT_DATA,
+                error_message="Insufficient data to read bit"
+            )
 
-    #         Unfold(self.codec_predicate())
-    #         bit_value = bool(self._bitstream.read_bits(1))
-    #         Fold(self.codec_predicate())
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=bit_value,
-    #             bits_consumed=1
-    #         )
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
+        Unfold(self.codec_predicate())
+        bit_value = bool(self._bitstream.read_bits(1))
+        Fold(self.codec_predicate())
+        
+        return DecodeResult[bool](
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=bit_value,
+            bits_consumed=1
+        )
 
     # def decode_integer(self,
     #                   min_val: int,
