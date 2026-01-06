@@ -724,7 +724,8 @@ TESTLIB_FILES="./Asn1AcnTestLib/primitives/boolean/boolean-basic.asn1 \
 DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
              ./Asn1AcnTestLib/additional/deep-field-access.acn \
              ./Asn1AcnTestLib/additional/determinant_color.asn1 \
-             ./Asn1AcnTestLib/additional/determinant_color.acn"
+             ./Asn1AcnTestLib/additional/determinant_color.acn \
+             ./Asn1AcnTestLib/advanced/subtyping/subtyping-value-constraints.asn1"
           
                              
 #TEMPLATE_INFO="-printTemplateInfo"
