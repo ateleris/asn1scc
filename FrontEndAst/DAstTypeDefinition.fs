@@ -334,9 +334,9 @@ let createBitString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Map<
             let invariants = lm.lg.generateBitStringInvariants minSize maxSize 
             let completeDefinition = define_new_bit_string td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (BigInteger (getBitStringMaxOctets maxSize)) nblist invariants
             Some completeDefinition
-        | NonPrimitiveNewSubTypeDefinition subDef     ->
-            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-            let completeDefinition = define_subType_bit_string td subDef otherProgramUnit (minSize.uper = maxSize.uper)
+        | NonPrimitiveNewSubTypeDefinition parentDef     ->
+            let otherProgramUnit = if td.programUnit = parentDef.programUnit then None else (Some parentDef.programUnit)
+            let completeDefinition = define_subType_bit_string td parentDef otherProgramUnit minSize.uper maxSize.uper (minSize.uper = maxSize.uper)
             Some completeDefinition
         | NonPrimitiveReference2OtherType            -> None
     let aaa = createBitString ()

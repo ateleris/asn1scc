@@ -195,11 +195,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 # header_python.stg 175
 <arrsNamedBits:{it|<it>}; separator="\n">
 
-<if(!bFixedSize)>
-# nCount equals to Number of bits in the array. Max value is : <nMax>
-
-<endif>
-
+<if(!bFixedSize)># nCount equals to Number of bits in the array. Max value is : <nMax><endif>
 @dataclass(frozen=True)
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
@@ -209,9 +205,16 @@ class <td.typeName>(Asn1Base):
     <arrsInvariants; separator="\n">
 >>
 
-Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-class <td.typeName>(<prTd.typeName>): # header_python.stg 194
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
+# header_python.stg 194 - Define_subType_bit_string
+@dataclass(frozen=True)
+class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
+    
+    <if(bFixedSize)>
+    def __init__(self, arr: List[int]):
+        super().__init__(<nMin>, arr)
+    <endif>
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
