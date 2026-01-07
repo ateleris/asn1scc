@@ -2219,16 +2219,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | Asn1Child child ->
                     // Find dependencies of this Asn1Child where the dependency kind is AcnDepRefTypeArgument or AcnDepSizeDeterminant
                     // This tells us which parameters the child type needs and where they come from
+                    // NOTE: Presence determinants (AcnDepPresence, AcnDepPresenceBool, AcnDepPresenceStr) control
+                    // whether to decode the child at all, not what to pass to the child's decode function.
+                    // They should NOT be included in the parameter list.
                     deps.acnDependencies
                         |> List.filter(fun d ->
                             d.asn1Type = child.Type.id &&
                             match d.dependencyKind with
                             | AcnDepRefTypeArgument _
                             | AcnDepSizeDeterminant _
-                            | AcnDepChoiceDeterminant _
-                            | AcnDepPresence _
-                            | AcnDepPresenceBool
-                            | AcnDepPresenceStr _ -> true
+                            | AcnDepChoiceDeterminant _ -> true
                             | _ -> false)
                         |> List.choose(fun d ->
                             match d.determinant with
@@ -2259,8 +2259,18 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     let found = s.acnChildrenEncoded
                                                 |> List.tryFind(fun (_, encodedAcnCh) -> encodedAcnCh.id = acnCh.id)
                                     match found with
-                                    | Some (varName, _) ->
-                                        Some $"%s{targetParamName}=%s{varName}"
+                                    | Some (varName, encodedAcnCh) ->
+                                        // For Python, if the ACN child is an enumeration determinant,
+                                        // we need to append .val to access the underlying enum value
+                                        let valueExpr =
+                                            match ProgrammingLanguage.ActiveLanguages.Head, codec with
+                                            | Python, Decode ->
+                                                // Check if this is an enumeration type by pattern matching on the ACN inserted type
+                                                match encodedAcnCh.Type with
+                                                | AcnReferenceToEnumerated _ -> $"%s{varName}.val"
+                                                | _ -> varName
+                                            | _ -> varName
+                                        Some $"%s{targetParamName}=%s{valueExpr}"
                                     | None ->
                                         // If not found in current sequence, check if it was returned by a sibling SEQUENCE
                                         match s.acnChildrenFromSiblings.TryFind (acnCh.id.ToString()) with
@@ -2301,8 +2311,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 
                 // Merge cross-sequence ACN parameters with existing ACN parameters
                 let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
-                printfn "[DEBUG] handleChild: Total ACN parameters for template: %d" acnParamsForTemplate.Length
-        
+                printfn "[DEBUG] handleChild: Total ACN parameters for template: %d [%A]" acnParamsForTemplate.Length acnParamsForTemplate
+
                 let chFunc = child.Type.getAcnFunction codec
                 let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
                 let childP =

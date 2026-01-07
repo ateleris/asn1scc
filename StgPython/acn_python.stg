@@ -574,8 +574,12 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 # acn_python.stg 574
 <arrsItem; separator="\nel">
+else:
+    # acn_python.stg 577
+    <sIntVal> = None
 
-<sActualCodecFunc>
+if <sIntVal> is not None:
+    <sActualCodecFunc>
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
@@ -1224,7 +1228,7 @@ if <p> == <sEnmName>:
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 # acn_python.stg 997
-<p> = <sEnmExtFld>.val
+<p> = <sEnmExtFld>
 <arrsChildren; separator="\nel">
 >>
 
