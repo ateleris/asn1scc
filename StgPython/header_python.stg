@@ -39,7 +39,6 @@ Define_TAS(sTypeDefinition, arrsClassFuncs) ::= <<
 # header_python.stg 29
 <sTypeDefinition>
 
-    # class implementation indented
     <arrsClassFuncs:{proc|<proc>}; separator="\n\n">
 
 # End of class and related functions

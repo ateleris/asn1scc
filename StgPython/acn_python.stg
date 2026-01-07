@@ -755,13 +755,19 @@ decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 # acn_python.stg 597
+for <i> in range(<p><sAcc>nCount):
+    <sInternalItem>
 <soCallAux>
 >>
 
 sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 # acn_python.stg 602
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
-    <p> = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
+    <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
+    <p>_arr = [None] * <p>_nCount
+    for <i> in range(<p>_nCount):
+        <sInternalItem>
+    <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
     <soCallAux>
 else:
     raise Asn1Exception(f"{<sErrCode>}")
@@ -810,7 +816,7 @@ elif checkBitPatternPresentResult == 2:
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 # acn_python.stg 654
-codec.append_bits(<p><sAcc>arr, <p><sAcc>nCount)
+codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>nCount)
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -819,7 +825,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<sExtFld>)
     if not decode_result:
         raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decode_result.error_message}")
-    <p> = <sTypeDefName>(<sExtFld>, decode_result.decoded_value)
+    <p> = <sTypeDefName>(<sExtFld>, List[int](decode_result.decoded_value))
 else:
     raise Asn1Exception(f"{cls.DecodeConstants.<sErrCode>}")
 >>
