@@ -2320,10 +2320,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         | Some (siblingName, _) ->
                                             // Generate code to access ACN child from sibling's returned dict
                                             // For decode: use siblingName_acn_children['acnChildName']
-                                            // For encode: use targetParamName directly (it's a local variable computed earlier)
+                                            // For encode: use the ACN child's c_name as the variable name
                                             match codec with
                                             | Decode -> Some $"%s{targetParamName}=%s{siblingName}_acn_children['%s{acnCh.c_name}']"
-                                            | Encode -> Some $"%s{targetParamName}=%s{targetParamName}"
+                                            | Encode -> Some $"%s{targetParamName}=%s{acnCh.c_name}"
                                         | None ->
                                             // Not found - this might be an error, but let the original behavior handle it
                                             None

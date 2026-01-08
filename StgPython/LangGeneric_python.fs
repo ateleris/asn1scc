@@ -587,7 +587,7 @@ type LangGeneric_python() =
                         let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
         
                         printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
-        
+
                         // Create statement for this update
                         let stmt = {
                             SequenceChildStmt.body = Some updateStatement
@@ -596,10 +596,10 @@ type LangGeneric_python() =
                             userDefinedFunctions = []
                             icdComments = updateFunc.icdComments
                         }
-        
+
                         // Add parameter to pass to child sequence
                         let param = sprintf "%s=%s" crossDep.acnChildCName crossDep.acnChildCName
-        
+
                         (stmt :: stmts, param :: paramsList, newState)
                     | None ->
                         printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
