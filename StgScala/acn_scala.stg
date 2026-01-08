@@ -753,13 +753,13 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>

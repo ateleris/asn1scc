@@ -997,18 +997,18 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<p><sAcc><sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
@@ -1071,7 +1071,7 @@ if <p>.<sChName> is not None:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    self.<sChName>.encode(codec, check_constraints)
+    self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     <endif>
 >>
 

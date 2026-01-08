@@ -2387,7 +2387,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
-                                sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
+                                sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
                             | Some Asn1AcnAst.AlwaysAbsent ->
                                 sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
                             | Some Asn1AcnAst.AlwaysPresent ->
@@ -2405,7 +2405,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match child.Optionality with
                             | Some Asn1AcnAst.AlwaysAbsent -> []
                             | _ -> childContent.localVariables
-                        Some childBody, lvs, childContent.errCodes, childContent.resultExpr, childContent.auxiliaries, ns2
+                        // For non-primitive children in decode mode for python, the template generates variables as instance_<childName>
+                        // So we need to override the resultExpr to match what the template generates
+                        let adjustedResultExpr =
+                            match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
+                            | Decode, Copy, false, Python -> Some $"instance_%s{childName}"
+                            | _ -> childContent.resultExpr
+                        Some childBody, lvs, childContent.errCodes, adjustedResultExpr, childContent.auxiliaries, ns2
 
                 let optAux, theCombinedBody =
                     if presentWhenStmts.IsNone && childBody.IsNone then [], None
@@ -2499,7 +2505,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate false codec)
+                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate false codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2508,7 +2514,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false codec)
+                            let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false codec)
                             Some {body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
