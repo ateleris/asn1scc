@@ -724,8 +724,9 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
         let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
         let enumValue =
             match ProgrammingLanguage.ActiveLanguages.Head with
-            | Python -> 
-                if tk.programUnit <> p.modName then
+            | Python ->
+                // Check if module prefix is already present (from getNamedItemBackendName fix)
+                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
                     // In test cases (different module), qualify the enum with the enum type's module
                     tk.programUnit + "." + enumValueBase
                 else
@@ -746,7 +747,8 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                             match ProgrammingLanguage.ActiveLanguages.Head with
                             | Python ->
                                 let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
-                                if tk.programUnit <> p.modName then
+                                // Check if module prefix is already present
+                                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
                                     // In test cases (different module), qualify the enum with the enum type's module
                                     tk.programUnit + "." + enumValueBase
                                 else

@@ -278,8 +278,24 @@ type LangGeneric_python() =
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
         let itemname =
             match defOrRef with
-            | Some (TypeDefinition td) -> td.typedefName + "_Enum." + ToC nm.python_name
-            | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "_Enum." + ToC nm.python_name
+            | Some (TypeDefinition td) ->
+                // For TypeDefinition, check if it has a baseType with programUnit
+                match td.baseType with
+                | Some bt when bt.programUnit.IsSome && bt.programUnit.Value <> "" ->
+                    // Add module prefix: Module.TypeName_Enum.item
+                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + ToC nm.python_name
+                | _ ->
+                    // No module prefix needed
+                    td.typedefName + "_Enum." + ToC nm.python_name
+            | Some (ReferenceToExistingDefinition rted) ->
+                // For ReferenceToExistingDefinition, check if it has programUnit
+                match rted.programUnit with
+                | Some pu when pu <> "" ->
+                    // Add module prefix: Module.TypeName_Enum.item
+                    pu + "." + rted.typedefName + "_Enum." + ToC nm.python_name
+                | _ ->
+                    // No module prefix needed
+                    rted.typedefName + "_Enum." + ToC nm.python_name
             | _ -> ToC nm.python_name
         itemname
 
