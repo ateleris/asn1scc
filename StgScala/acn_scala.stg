@@ -962,7 +962,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 val <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 <if(bIsOptional)>
 case SomeMut(<sChildCIDHolder>.<sChildCID>(_)) =>
 <else>

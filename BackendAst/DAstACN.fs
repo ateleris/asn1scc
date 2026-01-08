@@ -1858,10 +1858,11 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates =
                 chc.children |>
-                List.map(fun ch ->
+                List.mapi(fun idx ch ->
                     let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                     let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
-                    choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) isOptional)
+                    // Pass the choice index (0, 1, etc.) for discriminator comparison
+                    choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) idx isOptional)
             let updateStatement = choiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
             // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
             // accessing enums fields instead of a compiler-unchecked access
@@ -2291,12 +2292,25 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     | Some (varName, encodedAcnCh) ->
                                         // For Python, if the ACN child is an enumeration determinant,
                                         // we need to append .val to access the underlying enum value
+                                        // EXCEPT for choice determinants, which need the wire value (discriminator)
                                         let valueExpr =
                                             match ProgrammingLanguage.ActiveLanguages.Head, codec with
                                             | Python, Decode ->
                                                 // Check if this is an enumeration type by pattern matching on the ACN inserted type
                                                 match encodedAcnCh.Type with
-                                                | AcnReferenceToEnumerated _ -> $"%s{varName}.val"
+                                                | AcnReferenceToEnumerated _ ->
+                                                    // For enumerated determinants, check the dependency kind
+                                                    match d.dependencyKind with
+                                                    | AcnDepChoiceDeterminant _ ->
+                                                        // Direct choice determinant - use wire value
+                                                        $"%s{varName}_discriminator"
+                                                    | AcnDepRefTypeArgument param ->
+                                                        // Enum parameter being passed - use discriminator for choice params
+                                                        // (enum parameters are typically used as choice determinants)
+                                                        $"%s{varName}_discriminator"
+                                                    | _ ->
+                                                        // For other uses, use the enum value
+                                                        $"%s{varName}.val"
                                                 | _ -> varName
                                             | _ -> varName
                                         Some $"%s{targetParamName}=%s{valueExpr}"

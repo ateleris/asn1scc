@@ -1288,7 +1288,7 @@ when <sChildNamePresent> =>
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 when <sChildCID> =>
     <v>_is_initialized := True;
 	<v> := <sEnumCName>;

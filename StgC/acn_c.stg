@@ -1051,7 +1051,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 case <sChildCID>:
     <v>_is_initialized = TRUE;
 	<v> = <sEnumCName>;

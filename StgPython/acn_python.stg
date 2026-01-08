@@ -593,6 +593,8 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 <sActualCodecFunc>
 
 <arrsItem; separator="\n">
+# Save wire value as discriminator for choice determinants
+<p>_discriminator = <sIntVal>
 <p> = <td.typeName>(<sIntVal>_val)
 >>
 
@@ -1257,17 +1259,25 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<>>
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
+if <v> == <nChoiceIdx>:
+    <v> = <sEnumCName>
+>>
 
 ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 # acn_python.stg 1027
+# Map choice discriminator to ASN.1 enum value
 <if(!bIsOptional)>
 <sV> = <sChPath>.kind
 <sV>_is_initialized = True
+# Convert discriminator to ASN.1 enum
+<arrsChoiceEnumItems; separator="\nel">
 <else>
 if <sChPath> is not None:
     <sV> = <sChPath>.kind
     <sV>_is_initialized = True
+    # Convert discriminator to ASN.1 enum
+    <arrsChoiceEnumItems; separator="\nel">
 else:
     <sV> = None
 <endif>
