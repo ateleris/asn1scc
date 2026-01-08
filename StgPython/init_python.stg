@@ -208,10 +208,10 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
 # init_python.stg 213
-<sResVar>_arr: list = [None] * (<nSize> % 10)
-for <i> in range(<nSize> % 10):
+<sResVar>_arr: list = [None] * <nSize>
+for <i> in range(<nSize>):
     <arrsInnerItems; separator="\n">
-<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize> % 10<endif>, <endif><sResVar>_arr)
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_arr)
 >>
 
 
