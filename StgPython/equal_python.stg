@@ -80,7 +80,7 @@ def __eq__(self, other: object) -> bool:
 isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
 
 isEqual_String(p1, p2) ::= <<
-<p1>[:<p1>.find(b'\x00') if b'\x00' in <p1> else len(<p1>)] == <p2>[:<p2>.find(b'\x00') if b'\x00' in <p2> else len(<p2>)]
+<p1>.arr[:<p1>.arr.index(0) if 0 in <p1>.arr else len(<p1>.arr)] == <p2>.arr[:<p2>.arr.index(0) if 0 in <p2>.arr else len(<p2>.arr)]
 >>
 
 isEqual_Integer(p1, p2) ::= "int(<p1>) == int(<p2>)"

@@ -2268,7 +2268,21 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     // Skip this parameter - child produces it itself during decode
                                     None
                                 else
-                                    let targetParamName = acnCh.c_name
+                                    // Extract parameter name from the dependency kind
+                                    // The determinant (acnCh) tells us which value to pass, but the dependency's
+                                    // AcnDepRefTypeArgument contains the parameter with the correct name to use
+                                    let targetParamName =
+                                        match d.dependencyKind with
+                                        | AcnDepRefTypeArgument param ->
+                                            // Use the parameter name from child type's ACN parameter declaration
+                                            param.c_name
+                                        | AcnDepChoiceDeterminant _ ->
+                                            // For choice determinants, use the determinant's c_name
+                                            acnCh.c_name
+                                        | _ ->
+                                            // For other dependency kinds (e.g., size determinants), use determinant's c_name
+                                            acnCh.c_name
+
                                     // The parameter gets its value from an ACN child that was encoded earlier
                                     // First try to find it in the current sequence's ACN children
                                     let found = s.acnChildrenEncoded

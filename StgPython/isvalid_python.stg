@@ -111,7 +111,7 @@ ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" and ">
 >>
 ExpNot(sExp) ::= "(not <sExp>)"
-StrLen(sExp) ::= "len(<sExp>)"
+StrLen(sExp) ::= "len(<sExp>.arr)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
@@ -216,7 +216,7 @@ Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 def chars_are_valid(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i: int = 0
-    while valid and i \< len(self) and self[i] != 0x0:
+    while valid and i \< len(self.arr) and self.arr[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
     if valid:
