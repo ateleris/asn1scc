@@ -187,7 +187,11 @@ type LangGeneric_python() =
     override _.doubleValueToString (v:double) =
         v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-    override _.initializeString stringSize = sprintf "\"0\" * %d" stringSize
+    override _.initializeString (asciiCode:BigInteger option) (stringSize: int) =
+        match asciiCode with
+        | Some ac -> $"\"%c{char ac}\" * %d{stringSize} + \"\\x00\""
+        | None -> $"\"\\x00\" * %d{stringSize}"
+
 
     override _.supportsInitExpressions = true
 
@@ -565,6 +569,7 @@ type LangGeneric_python() =
                             SequenceChildStmt.body = Some updateStatement
                             lvs = updateFunc.localVariables
                             errCodes = updateFunc.errCodes
+                            userDefinedFunctions = []
                             icdComments = updateFunc.icdComments
                         }
         
@@ -865,6 +870,8 @@ type LangGeneric_python() =
     override this.init =
         {
             Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+            zeroOctetString_localVars                   = fun _ -> []
+            zeroBitString_localVars                     = fun _ -> []
             choiceComponentTempInit                     = false
             initMethSuffix                              = initMethSuffix
         }

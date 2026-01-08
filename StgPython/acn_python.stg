@@ -104,6 +104,12 @@ for <i> in range(int(<fixedSize>)):
     <sInternalItem>
 >>
 
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+>>
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
+>>
+
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 # acn_python.stg 105
 codec.align_to_<sAlignmentValue>()
@@ -1148,6 +1154,12 @@ if <p> == <nChildIndex>:
     # acn_python.stg 914
     <sChildContent>
     instance = cls(kind=<sChildID>, data=instance_data)
+>>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
