@@ -115,7 +115,7 @@ allowedCharSet: bytes = bytes([<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, ancho
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 # uper_python.stg 113
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-charIndex: int = allowedCharSet.index(<p>[<i>])
+charIndex: int = allowedCharSet.index(<p>.arr[<i>])
 res = codec.encode_constrained_whole_number(charIndex, 0, <nLastItemIndex>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
@@ -131,7 +131,7 @@ if decoded_result:
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 # uper_python.stg 126
-res = codec.encode_constrained_whole_number(<p>[<i>], 0, 127)
+res = codec.encode_constrained_whole_number(<p>.arr[<i>], 0, 127)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
@@ -555,7 +555,7 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 473
-<p>_arr = [""] * <nFixedSize>
+<p>_arr = [0] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 <p> = cls(<p>_arr)
 >>
@@ -563,7 +563,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
-nStringLength: int = len(<p>)
+nStringLength: int = len(<p>.arr)
 # ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
@@ -578,7 +578,7 @@ if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 nStringLength: int = decoded_result.decoded_value
 
-<p>_arr = [""] * nStringLength
+<p>_arr = [0] * nStringLength
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 <p> = <sType>(<p>_arr)
 >>

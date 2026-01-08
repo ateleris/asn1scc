@@ -563,7 +563,7 @@ let hasValidationFunc allCons =
 
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self" | _ -> "str"
+    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self.arr" | _ -> "str"
     ({CodegenScope.modName = typeid.ModName; accessPath = (AccessPath.emptyPath prefix ArrayElem).append (ArrayAccess ("i", ByValue))})
 
 type IsValidAux = {
