@@ -4,12 +4,12 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
-from asn1_types import Asn1Exception
 
+from asn1_types import Asn1Exception
 from bitstream import BitStream, BitStreamError
 from segment import Segment
 
@@ -40,7 +40,6 @@ class EncodeResult:
     """Result of an encoding operation"""
     success: bool
     error_code: ErrorCode
-    encoded_data: Optional[bytearray] = None
     bits_encoded: int = 0
     error_message: Optional[str] = None
 
@@ -50,7 +49,6 @@ class EncodeResult:
 
 
 TDVal = TypeVar('TDVal')
-
 @dataclass(frozen=True)
 class DecodeResult(Generic[TDVal]):
     """Result of a decoding operation"""
@@ -80,14 +78,63 @@ class Codec(ABC):
     def codec_predicate(self) -> bool:
         return (Acc(self._bitstream) and self._bitstream.bitstream_invariant() and self._bitstream.segments_predicate(self._bitstream.buffer()))
         
+    @Pure
+    def index_zero(self) -> bool:
+        Requires(Rd(self.codec_predicate()))
+        return self.bit_index == 0 and self.segments_read_index == 0
 
-    def __init__(self, buffer: bytearray) -> None:
+    def __init__(self, bitstream: BitStream) -> None:
+        """
+        Creates a new Codec from the provided Bitstream
+        """
+        Requires(Acc(bitstream.bitstream_invariant(), 1/20) and Acc(bitstream.segments_predicate(bitstream.buffer()), 1/20))
+        Ensures(Acc(bitstream.bitstream_invariant(), 1/20) and Acc(bitstream.segments_predicate(bitstream.buffer()), 1/20))
+        Ensures(self.codec_predicate())
+        Ensures(self.index_zero())
+        Ensures(self.buffer is bitstream.buffer())
+        Ensures(self.segments is bitstream.segments)
+        
+        self._bitstream = BitStream.from_bitstream(bitstream)        
+        Fold(self.codec_predicate())
+
+    @classmethod
+    def from_codec(cls, codec: 'Codec') -> 'Codec':
+        Requires(Acc(codec.codec_predicate(), 1/20))
+        Ensures(Acc(codec.codec_predicate(), 1/20))
+        Ensures(isinstance(Result(), cls))
+        Ensures(Result().codec_predicate())
+        Ensures(Result().index_zero())
+        Ensures(Result().buffer is codec.buffer)
+        Ensures(Result().segments is codec.segments)
+        
+        Unfold(Acc(codec.codec_predicate(), 1/20))
+        instance = cls(codec._bitstream)
+        Fold(Acc(codec.codec_predicate(), 1/20))
+        return instance
+
+    @classmethod
+    def from_buffer(cls, buffer: bytearray) -> 'Codec':
         Requires(Acc(bytearray_pred(buffer), 1/20))
         Ensures(Acc(bytearray_pred(buffer), 1/20))
-        Ensures(self.codec_predicate())
-        self._bitstream = BitStream(buffer)
+        Ensures(ToByteSeq(buffer) is Old(ToByteSeq(buffer)))
+        Ensures(isinstance(Result(), cls))
+        Ensures(Result().codec_predicate())
+        Ensures(Result().index_zero())
+        Ensures(Result().buffer is ToByteSeq(buffer))
+        Ensures(len(Result().segments) == 0)
         
-        Fold(self.codec_predicate())
+        return cls(BitStream(buffer))
+
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'Codec':
+        """Create a new codec with a buffer of length buffer_byte_size."""
+        Ensures(isinstance(Result(), cls))
+        Ensures(Result().codec_predicate())
+        Ensures(Result().index_zero())
+        Ensures(len(Result().buffer) == buffer_byte_size)
+        Ensures(len(Result().segments) == 0)
+        
+        return cls.from_buffer(bytearray(buffer_byte_size))
 
 #     # def copy(self) -> 'Codec':
 #     #     """Creates and returns a copy of this codec instance"""
@@ -100,21 +147,6 @@ class Codec(ABC):
 #     #     new_codec = self._construct(self._bitstream.get_data_copy())
 #     #     new_codec._bitstream.set_bit_index(bit_index)
 #     #     return new_codec
-
-    @classmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'Codec':
-        """Create a new codec with a buffer of length buffer_byte_size."""
-        Ensures(isinstance(Result(), cls))
-        Ensures(Result().codec_predicate())
-        return cls(bytearray(buffer_byte_size))
-    
-    def reset_bitstream(self) -> None:
-        Requires(self.codec_predicate())
-        Ensures(self.codec_predicate())
-        Ensures(self.bit_index == 0)
-        Ensures(self.segments == Old(self.segments))
-        Ensures(self.segments_read_index == Old(self.segments_read_index))
-        self._bitstream.reset()
     
 #     # def get_bitstream_buffer(self) -> bytearray:
 #     #     return self._bitstream.get_data()

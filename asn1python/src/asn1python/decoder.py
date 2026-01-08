@@ -1,16 +1,11 @@
 from typing import List, Optional
 
 from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from bitstream import BitStream
 from nagini_contracts.contracts import *
 
 
 class Decoder(Codec):
-
-    def __init__(self, buffer: bytearray) -> None:
-        Requires(Acc(bytearray_pred(buffer), 1/20))
-        Ensures(Acc(bytearray_pred(buffer), 1/20))
-        Ensures(self.codec_predicate())
-        super().__init__(buffer=buffer)
 
     #region Ghost
 
@@ -44,9 +39,18 @@ class Decoder(Codec):
         Requires(self.read_aligned(1))
         Ensures(self.codec_predicate())
         Ensures(self.segments is Old(self.segments))
-        Ensures(Result().success == Old(self.remaining_bits >= 1))
-        Ensures(Implies(Old(self.read_aligned(1)), self.segments_read_index == Old(self.segments_read_index) + 1))
-        Ensures(Implies(Old(self.read_aligned(1)), Result().decoded_value == Old(bool(self.current_segment_value()))))
+        Ensures(self.bit_index == Old(self.bit_index) + 1)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+        Ensures(Result().decoded_value == (self.segments[Old(self.segments_read_index)] == 1))
+        # Ensures(Result().success == Old(self.remaining_bits >= 1))
+        # Ensures(Implies(Old(self.remaining_bits >= 1), self.bit_index == Old(self.bit_index) + 1))
+        # Ensures(Implies(Old(self.read_aligned(1)),
+        #                 self.segments_read_index == Old(self.segments_read_index) + 1) and
+        #                 Result().decoded_value == Old(bool(self.current_segment_value()))) 
+                        # Assertion (self.segments_read_index < len(self.segments)) might not hold for current_segment_value()
+                        # without the self.read_aligned(1) precondition
+                        # even though this only happens in the Implies case, in which case the precondition holds
 
         if self.remaining_bits < 1:
             return DecodeResult[bool](

@@ -88,13 +88,36 @@ class BitStream:
         Fold(self.segments_predicate(self.buffer()))
         
         #@nagini Ensures(Acc(bytearray_pred(data), 1/20))
+        #@nagini Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_bit_position == 0)
         #@nagini Ensures(self.current_byte_position == 0)
-        #@nagini Ensures(self.buffer() == ToByteSeq(data))
+        #@nagini Ensures(self.buffer() is ToByteSeq(data))
         Ensures(self.segments_predicate(self.buffer()))
         Ensures(len(self.segments) == 0)
         Ensures(self.segments_read_index == 0)
+    
+    @classmethod
+    def from_bitstream(cls, other: 'BitStream') -> 'BitStream':
+        """Ghost method to create a BitStream from an existing BitStream. Copies buffer and segments"""
+        Requires(Acc(other.bitstream_invariant(), 1/20) and Acc(other.segments_predicate(other.buffer()), 1/20))
+        Ensures(Acc(other.bitstream_invariant(), 1/20) and Acc(other.segments_predicate(other.buffer()), 1/20))
+        Ensures(Result().bitstream_invariant())
+        Ensures(Result().current_bit_position == 0)
+        Ensures(Result().current_byte_position == 0)
+        Ensures(Result().buffer() is other.buffer())
+        Ensures(Result().segments_predicate(Result().buffer()))
+        Ensures(Result().segments is other.segments)
+        Ensures(Result().segments_read_index == 0)
+        
+        Unfold(Acc(other.bitstream_invariant(), 1/20))
+        result = cls(other._buffer)
+        Fold(Acc(other.bitstream_invariant(), 1/20))
+        
+        Unfold(result.segments_predicate(result.buffer()))
+        result._segments = other.segments
+        Fold(result.segments_predicate(result.buffer()))
+        return result
     
     #region Properties
 
@@ -181,7 +204,7 @@ class BitStream:
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_bit_position == bit_position)
         #@nagini Ensures(self.current_byte_position == byte_position)
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
 
         if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
             raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
@@ -199,8 +222,8 @@ class BitStream:
         #@nagini Ensures(self.segments_predicate(self.buffer()))
         #@nagini Ensures(self.current_bit_position == 0)
         #@nagini Ensures(self.current_byte_position == 0)
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
-        #@nagini Ensures(self.segments == Old(self.segments))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
+        #@nagini Ensures(self.segments is Old(self.segments))
         #@nagini Ensures(self.segments_read_index == 0)
 
         self.set_position(0, 0)
@@ -214,7 +237,7 @@ class BitStream:
         #@nagini Requires(0 <= bit_index and bit_index <= self.buffer_size_bits)
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == bit_index)
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
 
         bit_position = bit_index % NO_OF_BITS_IN_BYTE
         byte_position = bit_index // NO_OF_BITS_IN_BYTE
@@ -227,7 +250,7 @@ class BitStream:
         #@nagini Requires(self.validate_offset(amount))
         #@nagini Ensures(self.bitstream_invariant())
         #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + amount))
-        #@nagini Ensures(self.buffer() == Old(self.buffer()))
+        #@nagini Ensures(self.buffer() is Old(self.buffer()))
 
         new_index = self.current_used_bits + amount
         self.set_bit_index(new_index)
@@ -252,7 +275,7 @@ class BitStream:
         
         Ensures(self.bitstream_invariant())
         Ensures(self.segments_predicate(self.buffer()))
-        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(self.buffer() is Old(self.buffer()))
         Ensures(self.current_used_bits == Old(self.current_used_bits + ((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE)))
         Ensures(segments_total_length(self.segments) == self.current_used_bits)
         Ensures(Let(Old((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE), bool, lambda length:
@@ -278,7 +301,7 @@ class BitStream:
         Ensures(self.bitstream_invariant())
         Ensures(self.segments_predicate(self.buffer()))
         
-        Ensures(self.buffer() == Old(self.buffer()))
+        Ensures(self.buffer() is Old(self.buffer()))
         Ensures(self.current_used_bits == Old(self.current_used_bits + ((NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE)))
         Ensures(self.segments is Old(self.segments))
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
@@ -360,7 +383,7 @@ class BitStream:
             Invariant(0 <= i and i <= bit_count)
             Invariant(self.validate_offset(bit_count - i))
             Invariant(self.current_used_bits == Old(self.current_used_bits + i))
-            Invariant(self.buffer() == Old(self.buffer()))
+            Invariant(self.buffer() is Old(self.buffer()))
             Invariant(value == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), i))
 
             next_bit = int(self._read_bit())
@@ -454,7 +477,7 @@ class BitStream:
             Invariant(self.validate_offset(bit_count - i))
             Invariant(self.current_used_bits == Old(self.current_used_bits + i))
             Invariant(ghost_current_value == value >> (bit_count - i))
-            Invariant(self.buffer() == byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
+            Invariant(self.buffer() is byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
 
             bit = bool((value >> (bit_count - 1 - i)) % 2)
             ghost_current_value = (ghost_current_value << 1) + bit
