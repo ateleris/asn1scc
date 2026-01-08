@@ -1792,7 +1792,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |>
                 List.map(fun ch ->
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                     let unsigned =
                         match child.Type with
                         | AcnInteger int -> int.isUnsigned
@@ -1826,7 +1826,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |>
                 List.map(fun ch ->
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                     match pres with
                     | PresenceInt   (_, intVal) ->
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))

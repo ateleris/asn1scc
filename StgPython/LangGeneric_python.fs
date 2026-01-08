@@ -326,8 +326,16 @@ type LangGeneric_python() =
     override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with python_name = newValue}
     override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
     override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
-    override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
-        ch.typeDef[Python].typeName + "InUse." + (ToC c.present_when_name)
+    override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) (currentModule:string) : string =
+        let typeDef = ch.typeDef[Python]
+        // Normalize module name (ASN.1 uses hyphens, Python uses underscores)
+        let normalizedCurrentModule = ToC currentModule
+        let baseTypeName =
+            match typeDef.programUnit with
+            | "" -> typeDef.typeName
+            | pu when pu = normalizedCurrentModule -> typeDef.typeName  // Same module - no prefix
+            | pu -> pu + "." + typeDef.typeName                        // Different module - add prefix
+        baseTypeName + "InUse." + (ToC c.present_when_name)
 
     override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         methodSuffix
