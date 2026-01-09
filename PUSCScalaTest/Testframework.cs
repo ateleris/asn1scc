@@ -350,36 +350,63 @@ namespace PUS_C_Scala_Test
 
         private void RunCTests(string outDir, bool printOutput)
         {
-            using (var proc = new Process
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
 
-                    WorkingDirectory = outDir,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = false,
-                    CreateNoWindow = false,
-                }
-            })
-            {
-                proc.Start();
-                var stdout = proc.StandardOutput.ReadToEnd();
-                var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
-                if (!worked)
-                    Console.WriteLine(stdout);
+                WorkingDirectory = outDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false,
+            };
+            proc.Start();
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
+            if (!worked)
+                Console.WriteLine(stdout);
 
-                Assert.IsTrue(worked, "C test cases failed");
-            }
+            Assert.IsTrue(worked, "C test cases failed");
         }
 
         private void RunPythonTests(string outDir, bool printOutput)
         {
-            // TODO
-            // todo: maybe we can make the test cases run using PyTest? Would then be called +/- analog to RunScalaTests
-            throw new NotImplementedException("RunPythonTests is not implemented.");
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
+            {
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx pytest" : "--login -c \"uvx pytest\"",
+
+                WorkingDirectory = outDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false,
+            };
+            proc.Start();
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            if (printOutput)
+            {
+                Console.WriteLine(stdout);
+                if (!string.IsNullOrEmpty(stderr))
+                    Console.WriteLine("STDERR: " + stderr);
+            }
+
+            var worked = proc.ExitCode == 0;
+            if (!worked)
+            {
+                Console.WriteLine(stdout);
+                if (!string.IsNullOrEmpty(stderr))
+                    Console.WriteLine("STDERR: " + stderr);
+            }
+
+            Assert.IsTrue(worked, "python test cases failed");
         }
 
         private void RunMake(string outDir)
