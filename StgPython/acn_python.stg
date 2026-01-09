@@ -992,13 +992,15 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 772
 # Encode <sChName>
-if <sChName>_is_initialized or <sChName> is not None:
-    <soSaveBitStrmPosStatement>
-    <if(bIsPrimitive)>
-    <sChildContent>
-    <else>
-    <sChName>.encode(codec, check_constraints)
-    <endif>
+if not <sChName>_is_initialized and <sChName> is None:
+    # todo: is a default value correct?
+    <sChName> = 0  # Default value for ACN inserted field
+<soSaveBitStrmPosStatement>
+<if(bIsPrimitive)>
+<sChildContent>
+<else>
+<sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
