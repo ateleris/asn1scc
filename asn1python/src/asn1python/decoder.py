@@ -42,7 +42,7 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + 1)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-        Ensures(Result().decoded_value == (self.segments[Old(self.segments_read_index)] == 1))
+        Ensures(Result().decoded_value == bool(Old(self.current_segment_value())))
         # Ensures(Result().success == Old(self.remaining_bits >= 1))
         # Ensures(Implies(Old(self.remaining_bits >= 1), self.bit_index == Old(self.bit_index) + 1))
         # Ensures(Implies(Old(self.read_aligned(1)),

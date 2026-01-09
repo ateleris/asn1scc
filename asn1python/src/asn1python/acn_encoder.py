@@ -81,20 +81,20 @@ class test_class():
         
         assert decoder.current_segment_value() == 1
         read = decoder.read_bit()
-        assert read.success and isinstance(read.decoded_value, bool)
+        assert read.success and read.decoded_value == True
         
         assert decoder.current_segment_value() == 1
         read = decoder.read_bit()
-        assert read.success and isinstance(read.decoded_value, bool)
+        assert read.success and read.decoded_value == True
             
         assert decoder.segments_read_index == 2
         assert decoder.current_segment_value() == 0
         read = decoder.read_bit()
-        assert read.success and isinstance(read.decoded_value, bool)
+        assert read.success and read.decoded_value == False
         
         assert decoder.current_segment_value() == 1
         read = decoder.read_bit()
-        assert read.success and isinstance(read.decoded_value, bool)
+        assert read.success and read.decoded_value == True
 
     # # ============================================================================
     # # INTEGER ENCODING - POSITIVE INTEGER
