@@ -1298,9 +1298,10 @@ if choice == <sChildNamePresent>:
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
-# acn_python.stg 1047
-if choice == <sChildNamePresent>:
-    <v> = List[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">]
+if choice == <sChildNamePresent>: 
+    # acn_python.stg 1047
+    # todo: do we need the type here? Or is the ".encode" afterwards incorrect? Before it was "List[...]" which is incorrect
+    <v> = [<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">]
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
