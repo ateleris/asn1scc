@@ -50,7 +50,7 @@ class EncodeConstants:
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # uper_python.stg 40
 
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPEREncoder, check_constraints: bool = True):
+def <sFuncName>(<sVarName>: '<sTypeDefName>', codec: UPEREncoder, check_constraints: bool = True):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -71,17 +71,18 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPEREncoder, check_constraint
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <if(arrsErrcodes)>
 # uper_python.stg 61
-class DecodeConstants
+class DecodeConstants:
     <arrsErrcodes:{x|<x>}; separator="\n">
 <endif>
+
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefName>, Asn1SccError]: # uper:58
+def <sFuncName>(codec: UPERDecoder, check_constraints: bool = True): Union[<sTypeDefName>, Asn1SccError]: 
+    # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
-    # @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>
@@ -93,8 +94,8 @@ def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefNam
     <endif>
     return <sVarName>
 
-# @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>_pure(codec: UPER, check_constraints: bool = True): (UPER, Union[<sTypeDefName>, Asn1SccError]):
+
+def <sFuncName>_pure(codec: UPERDecoder, check_constraints: bool = True): (UPER, Union[<sTypeDefName>, Asn1SccError]):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     cpy = codec.copy()
     res = <sFuncName>(cpy, check_constraints)
