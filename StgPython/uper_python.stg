@@ -40,7 +40,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <if(arrsErrcodes)>
 # uper_python.stg 33
-class DecodeConstants:
+class EncodeConstants:
     <arrsErrcodes:{x|<x>}; separator="\n">
     <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
     <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
@@ -50,7 +50,7 @@ class DecodeConstants:
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # uper_python.stg 40
 
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, check_constraints: bool = True):
+def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPEREncoder, check_constraints: bool = True):
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -69,8 +69,11 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, check_constraints: bool
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<if(arrsErrcodes)>
 # uper_python.stg 61
-<arrsErrcodes:{x|<x>}; separator="\n">
+class DecodeConstants
+    <arrsErrcodes:{x|<x>}; separator="\n">
+<endif>
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
