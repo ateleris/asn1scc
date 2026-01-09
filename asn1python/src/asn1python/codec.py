@@ -152,6 +152,13 @@ class Codec(ABC):
 #     #     return self._bitstream.get_data()
 
     @property
+    def buffer_size(self) -> int:
+        """Get the buffer size in bytes"""
+        Requires(Rd(self.codec_predicate()))
+        Unfold(Rd(self.codec_predicate()))
+        return self._bitstream.buffer_size
+
+    @property
     def bit_index(self) -> int:
         """
         Get the current bit position in the bitstream.
@@ -170,6 +177,7 @@ class Codec(ABC):
     @property
     def remaining_bits(self) -> int:
         Requires(Rd(self.codec_predicate()))
+        Ensures(Result() == (self.buffer_size * 8) - self.bit_index)
         Unfold(Rd(self.codec_predicate()))
         return self._bitstream.remaining_bits
 

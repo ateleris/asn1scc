@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Optional, List
 
+from asn1_types import NO_OF_BITS_IN_BYTE
 from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
@@ -22,6 +23,14 @@ class Encoder(Codec):
         Ensures(Result().segments == self.segments)
         pass
 
+    @Pure
+    def last_segment(self) -> Segment:
+        Requires(Rd(self.codec_predicate()))
+        Requires(len(self.segments) > 0)
+        return self.segments[len(self.segments) - 1]
+
+    #region Primitive Operations
+
     def append_bit(self, bit_value: bool) -> EncodeResult:
         """
         Append a single bit to the bitstream.
@@ -42,6 +51,7 @@ class Encoder(Codec):
         Ensures(self.codec_predicate())
         Ensures(segments_total_length(self.segments) == self.bit_index)
         Ensures(self.segments == Old(self.segments) + PSeq(Segment(1, bit_value)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
         try:
             Unfold(self.codec_predicate())
             self._bitstream.write_bits(bit_value, 1)
@@ -49,7 +59,6 @@ class Encoder(Codec):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                # encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=1
             )
         except BitStreamError as e:
@@ -58,6 +67,92 @@ class Encoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def append_byte(self, byte_val: int) -> EncodeResult:
+        """
+        Append a single byte to the bitstream.
+
+        Matches Scala: BitStream.appendByte(v: UByte)
+        Used by: ACN, UPER, PER codecs
+
+        Args:
+            byte_val: Byte value (0-255)
+        """
+        Requires(self.codec_predicate())
+        Requires(segments_total_length(self.segments) == self.bit_index)
+        Requires(self.remaining_bits >= 8)
+        Requires(0 <= byte_val and byte_val < 256)
+        Ensures(self.codec_predicate())
+        Ensures(segments_total_length(self.segments) == self.bit_index)
+        Ensures(self.segments == Old(self.segments) + PSeq(Segment(8, byte_val)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        try:
+            if not (0 <= byte_val <= 255):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Byte value must be 0-255, got {byte_val}"
+                )
+
+            Unfold(self.codec_predicate())
+            self._bitstream.write_bits(byte_val, 8)
+            Fold(self.codec_predicate())
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=8
+            )
+        
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    #endregion
+    #region Alignment Operations
+
+    def align_to_byte(self) -> EncodeResult:
+        """
+        Align bitstream to next byte boundary.
+
+        Matches C: Acn_AlignToNextByte(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToByte()
+        Used by: ACN for byte-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        Requires(self.codec_predicate())
+        Requires(segments_total_length(self.segments) == self.bit_index)
+        Requires(self.remaining_bits >= (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
+        Ensures(self.codec_predicate())
+        Ensures(segments_total_length(self.segments) == self.bit_index)
+        Ensures(self.segments.take(Old(len(self.segments))) == Old(self.segments))
+        Ensures(len(self.segments) == Old(len(self.segments)) + 1)
+        Ensures(self.last_segment().length == self.bit_index - Old(self.bit_index))
+        Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        try:
+            Unfold(self.codec_predicate())
+            bits_encoded = self._bitstream.write_align_to_byte()
+            Fold(self.codec_predicate())
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=bits_encoded
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    #endregion
 
     # def encode_integer(self, value: int,
     #                    min_val: int,
@@ -80,6 +175,12 @@ class Encoder(Codec):
     #         max_val: Maximum allowed value (required)
     #         size_in_bits: Optional hint for bits needed (must match range calculation)
     #     """
+    #     Requires(self.codec_predicate())
+    #     Requires(segments_total_length(self.segments) == self.bit_index)
+    #     Requires(self.remaining_bits >= 1)
+    #     Ensures(self.codec_predicate())
+    #     Ensures(segments_total_length(self.segments) == self.bit_index)
+
     #     try:
     #         # Validate constraints
     #         if value < min_val:
@@ -118,35 +219,6 @@ class Encoder(Codec):
     #         )
 
     #     except (BitStreamError, ValueError) as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_byte(self) -> EncodeResult:
-    #     """
-    #     Align bitstream to next byte boundary.
-
-    #     Matches C: Acn_AlignToNextByte(pBitStrm, TRUE)
-    #     Matches Scala: BitStream.alignToByte()
-    #     Used by: ACN for byte-aligned encoding
-
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-    #         self._bitstream.align_to_byte()
-    #         final_pos = self.bit_index
-    #         bits_encoded = final_pos - initial_pos
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_encoded
-    #         )
-    #     except BitStreamError as e:
     #         return EncodeResult(
     #             success=False,
     #             error_code=ERROR_INVALID_VALUE,
@@ -296,38 +368,6 @@ class Encoder(Codec):
     # # ============================================================================
     # # BASE BITSTREAM PRIMITIVES (matching Scala BitStream structure)
     # # ============================================================================
-
-    # def append_byte(self, byte_val: int) -> EncodeResult:
-    #     """
-    #     Append a single byte to the bitstream.
-
-    #     Matches Scala: BitStream.appendByte(v: UByte)
-    #     Used by: ACN, UPER, PER codecs
-
-    #     Args:
-    #         byte_val: Byte value (0-255)
-    #     """
-    #     try:
-    #         if not (0 <= byte_val <= 255):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"Byte value must be 0-255, got {byte_val}"
-    #             )
-
-    #         self._bitstream.write_bits(byte_val, 8)
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=8
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
 
     # def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
     #     """

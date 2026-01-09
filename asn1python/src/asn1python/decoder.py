@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from asn1_types import NO_OF_BITS_IN_BYTE
 from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 from bitstream import BitStream
 from nagini_contracts.contracts import *
@@ -23,6 +24,7 @@ class Decoder(Codec):
         
 
     #endregion
+    #region Primitive Operations
 
     def read_bit(self) -> DecodeResult[bool]:
         """
@@ -69,6 +71,86 @@ class Decoder(Codec):
             decoded_value=bit_value,
             bits_consumed=1
         )
+
+    def read_byte(self) -> DecodeResult[int]:
+        """
+        Read a single byte from the bitstream.
+
+        Matches Scala: BitStream.readByte(): UByte
+        Used by: ACN, UPER, PER codecs
+
+        Returns:
+            DecodeResult containing byte value (0-255)
+        """
+        Requires(self.codec_predicate())
+        Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
+        Ensures(self.codec_predicate())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+        Ensures(Result().decoded_value == Old(self.current_segment_value()))
+
+        if self._bitstream.remaining_bits < NO_OF_BITS_IN_BYTE:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INSUFFICIENT_DATA,
+                error_message="Insufficient data to read byte"
+            )
+
+        Unfold(self.codec_predicate())
+        value = self._bitstream.read_bits(NO_OF_BITS_IN_BYTE)
+        Fold(self.codec_predicate())
+
+        return DecodeResult(
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=value,
+            bits_consumed=8
+        )
+        
+    #endregion
+    #region Alignment Operations
+
+    def align_to_byte(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next byte boundary.
+
+        Matches C: Acn_AlignToNextByte(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToByte()
+        Used by: ACN for byte-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        Requires(self.codec_predicate())
+        Requires(self.read_aligned((NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE))
+        Ensures(self.codec_predicate())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
+        Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+
+        try:
+            Unfold(self.codec_predicate())
+            bits_consumed = self._bitstream.read_align_to_byte()
+            Fold(self.codec_predicate())
+
+            return DecodeResult[None](
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=None,
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult[None](
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
+    #endregion
 
     # def decode_integer(self,
     #                   min_val: int,
@@ -140,35 +222,6 @@ class Decoder(Codec):
     #             bits_consumed=bits_needed
     #         )
 
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_byte(self) -> DecodeResult[None]:
-    #     """
-    #     Align bitstream to next byte boundary.
-
-    #     Matches C: Acn_AlignToNextByte(pBitStrm, FALSE)
-    #     Matches Scala: BitStream.alignToByte()
-    #     Used by: ACN for byte-aligned decoding
-
-    #     Returns:
-    #         DecodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-    #         self._bitstream.align_to_byte()
-    #         final_pos = self.bit_index
-    #         bits_consumed = final_pos - initial_pos
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=None,
-    #             bits_consumed=bits_consumed
-    #         )
     #     except BitStreamError as e:
     #         return DecodeResult(
     #             success=False,
@@ -341,38 +394,6 @@ class Decoder(Codec):
     # # ============================================================================
     # # BASE BITSTREAM PRIMITIVES (matching Scala BitStream structure)
     # # ============================================================================
-
-    # def read_byte(self) -> DecodeResult[int]:
-    #     """
-    #     Read a single byte from the bitstream.
-
-    #     Matches Scala: BitStream.readByte(): UByte
-    #     Used by: ACN, UPER, PER codecs
-
-    #     Returns:
-    #         DecodeResult containing byte value (0-255)
-    #     """
-    #     try:
-    #         if self._bitstream.remaining_bits < 8:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message="Insufficient data to read byte"
-    #             )
-
-    #         value = self._bitstream.read_bits(8)
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=value,
-    #             bits_consumed=8
-    #         )
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
 
     # def read_byte_array(self, num_bytes: int) -> DecodeResult[bytearray]:
     #     """
