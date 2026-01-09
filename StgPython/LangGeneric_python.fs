@@ -362,81 +362,11 @@ type LangGeneric_python() =
    
     // Analyze which ACN children from each Asn1 child SEQUENCE need to be returned
     // so that sibling children can reference them (deep field access pattern)
+    // todo: method could maybe be removed completely?
     override this.getAcnChildrenForDeepFieldAccess (asn1Children: Asn1Child list) (acnChildren: AcnChild list) (deps: AcnInsertedFieldDependencies) =
-        let result = System.Collections.Generic.Dictionary<string, ResizeArray<string * AcnChild>>()
-
-        // For each ASN.1 child in this sequence
-        for i in 0 .. asn1Children.Length - 1 do
-            let child = asn1Children.[i]
-            let childName = this.getAsn1ChildBackendName child
-
-            // Look at all ACN children in the current sequence
-            for acnChild in acnChildren do
-                // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
-                for j in (i+1) .. asn1Children.Length - 1 do
-                    let siblingChild = asn1Children.[j]
-
-                    // Find dependencies where the sibling depends on this ACN child
-                    let hasDependency =
-                        deps.acnDependencies
-                        |> List.exists (fun d ->
-                            d.asn1Type = siblingChild.Type.id &&
-                            match d.determinant with
-                            | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
-                            | _ -> false
-                        )
-
-                    if hasDependency then
-                        // This ASN.1 child needs to return this ACN child
-                        if not (result.ContainsKey(childName)) then
-                            result.[childName] <- ResizeArray()
-                        if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
-                            result.[childName].Add((acnChild.c_name, acnChild))
-
-            // Also check ACN children INSIDE this child if it's a SEQUENCE
-            // This handles deep field access where a later sibling depends on an ACN child nested inside this child sequence
-            let childActualType =
-                match child.Type.Kind with
-                | ReferenceType refType -> refType.resolvedType
-                | _ -> child.Type
-
-            match childActualType.Kind with
-            | Sequence childSeq ->
-                // Get ACN children from the child sequence
-                let childSeqAcnChildren =
-                    childSeq.children
-                    |> List.choose (fun c ->
-                        match c with
-                        | AcnChild acnCh -> Some acnCh
-                        | _ -> None)
-
-                // For each ACN child inside this child sequence
-                for nestedAcnChild in childSeqAcnChildren do
-                    // Check if any later sibling depends on this nested ACN child
-                    for j in (i+1) .. asn1Children.Length - 1 do
-                        let siblingChild = asn1Children.[j]
-
-                        // Find dependencies where the sibling depends on this nested ACN child
-                        let hasDependency =
-                            deps.acnDependencies
-                            |> List.exists (fun d ->
-                                d.asn1Type = siblingChild.Type.id &&
-                                match d.determinant with
-                                | AcnChildDeterminant acnCh when acnCh.id = nestedAcnChild.id -> true
-                                | _ -> false
-                            )
-
-                        if hasDependency then
-                            // This ASN.1 child sequence needs to return this nested ACN child
-                            if not (result.ContainsKey(childName)) then
-                                result.[childName] <- ResizeArray()
-                            if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = nestedAcnChild.id)) then
-                                result.[childName].Add((nestedAcnChild.c_name, nestedAcnChild))
-            | _ -> ()
-
-        result
-        |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
-        |> Map.ofSeq
+        // Return empty map - don't mark children as returning ACN children
+        // The acnChildrenEncoded will be handled directly in the parent's return statement
+        Map.empty
     
     override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
         match relPath with
