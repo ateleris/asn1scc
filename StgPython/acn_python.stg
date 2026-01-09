@@ -1,6 +1,7 @@
 group acn_python;
 
 getStringSize(p) ::= "len(<p>.arr)"
+getStringContent(p) /*nogen*/ ::= "\"\".join([chr(a) for a in <p>.arr])"
 getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.nCount"
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
@@ -609,7 +610,7 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= <<
-res = codec.enc_string_ascii_fix_size(<nAsn1Max>, <p>)
+res = codec.enc_string_ascii_fix_size(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
@@ -621,7 +622,7 @@ decoded_result = codec.dec_string_ascii_fix_size(<nAsn1Max>)
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 477
-res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]), "".join([chr(a) for a in <p>]))
+res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]), <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
@@ -634,7 +635,7 @@ if not decoded_result:
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
-res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <p>)
+res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
@@ -693,9 +694,9 @@ decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Ma
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 533
 bix = codec.get_bit_index()
-res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <p>)
+res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * len(<p>.arr):
+if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <getStringSize(p)>:
     # acn_python.stg 537
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
