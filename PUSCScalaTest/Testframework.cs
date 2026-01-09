@@ -385,8 +385,11 @@ namespace PUS_C_Scala_Test
             proc.WaitForExit();
 
             // Parse pytest output for test results
-            var testSummaryPattern = @"(\d+)\s+failed.*?(\d+)\s+passed";
-            var match = Regex.Match(stdout, testSummaryPattern);
+            var failedMatch = Regex.Match(stdout, @"(\d+)\s+failed");
+            var passedMatch = Regex.Match(stdout, @"(\d+)\s+passed");
+
+            var failedCount = failedMatch.Success ? failedMatch.Groups[1].Value : "0";
+            var passedCount = passedMatch.Success ? passedMatch.Groups[1].Value : "0";
 
             if (printOutput)
             {
@@ -402,11 +405,9 @@ namespace PUS_C_Scala_Test
                 if (!string.IsNullOrEmpty(stderr))
                     Console.WriteLine("STDERR: " + stderr);
             }
-            
-            if (match.Success)
+
+            if (failedMatch.Success || passedMatch.Success)
             {
-                var failedCount = match.Groups[1].Value;
-                var passedCount = match.Groups[2].Value;
                 Console.WriteLine($"Python Tests: {passedCount} passed, {failedCount} failed");
             }
             
