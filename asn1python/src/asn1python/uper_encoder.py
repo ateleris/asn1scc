@@ -1,4 +1,4 @@
-from encoder import Encoder
+from .encoder import Encoder
 
 class UPEREncoder(Encoder):
     """
@@ -19,5 +19,6 @@ class UPEREncoder(Encoder):
     def _construct(cls, buffer: bytearray) -> 'UPEREncoder':
         return cls(buffer)
 
-    def get_decoder(self) -> 'UPEREncoder':
-        return UPEREncoder(self.get_bitstream_buffer())
+    def get_decoder(self) -> 'UPERDecoder':
+        from .uper_decoder import UPERDecoder
+        return UPERDecoder(self.get_bitstream_buffer())

@@ -1,4 +1,4 @@
-from decoder import Decoder
+from .decoder import Decoder
 class UPERDecoder(Decoder):
     """
     UPER decoder implementation.
