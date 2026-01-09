@@ -348,6 +348,13 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
     //let i = sprintf "i%d" ii
     let bAlpha = o.uperCharSet.Length < 128
     let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
+    let firstPrintableAsciiCode =
+        arrAsciiCodes
+        |> Array.tryFind(fun x -> x >= 32I && x <= 126I)
+    let sFirstNonNullChar =
+        match firstPrintableAsciiCode with
+        | Some c  -> sprintf "'%c'" (char (int c))
+        | None    -> "'\0'"
     let testCaseFuncs =
         let seqOfCase (nSize:BigInteger)  =
             let initTestCaseFunc (p:CodegenScope) =
@@ -355,7 +362,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 let i = sprintf "i%d" ii
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
-                let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar
+                let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar sFirstNonNullChar
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
         seq {
@@ -374,11 +381,11 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let i = sprintf "i%d" ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
         let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
-        let funcBody = initTestCaseIA5String (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) ( (o.maxSize.uper+1I)) ( (o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar
+        let funcBody = initTestCaseIA5String (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (o.maxSize.uper) (o.maxSize.uper+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar sFirstNonNullChar
         let lvars = lm.lg.init.zeroIA5String_localVars ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
-    let constantInitExpression () = lm.lg.initializeString (int o.maxSize.uper)
+    let constantInitExpression () = lm.lg.initializeString firstPrintableAsciiCode (int o.maxSize.uper)
     createInitFunctionCommon r lm t typeDefinition funcBody zero testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
 let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.OctetString ) (typeDefinition:TypeDefinitionOrReference) (isValidFunction:IsValidFunction option) =
@@ -449,7 +456,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 let i = sprintf "i%d" ii
                 let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I) resVar
-                let lvars = lm.lg.init.zeroIA5String_localVars ii
+                let lvars = lm.lg.init.zeroOctetString_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
 
             testCaseFuncs, zero
@@ -557,7 +564,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
 
                 let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
-                let lvars = lm.lg.init.zeroIA5String_localVars ii
+                let lvars = lm.lg.init.zeroBitString_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
             testCaseFuncs, zero
         | _ ->
@@ -717,8 +724,9 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
         let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
         let enumValue =
             match ProgrammingLanguage.ActiveLanguages.Head with
-            | Python -> 
-                if tk.programUnit <> p.modName then
+            | Python ->
+                // Check if module prefix is already present (from getNamedItemBackendName fix)
+                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
                     // In test cases (different module), qualify the enum with the enum type's module
                     tk.programUnit + "." + enumValueBase
                 else
@@ -739,7 +747,8 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                             match ProgrammingLanguage.ActiveLanguages.Head with
                             | Python ->
                                 let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
-                                if tk.programUnit <> p.modName then
+                                // Check if module prefix is already present
+                                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
                                     // In test cases (different module), qualify the enum with the enum type's module
                                     tk.programUnit + "." + enumValueBase
                                 else

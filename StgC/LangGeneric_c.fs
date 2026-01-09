@@ -93,7 +93,10 @@ type LangGeneric_c() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
+        override _.initializeString (asciiCode:BigInteger option) stringSize = 
+            match asciiCode with
+            | Some ac -> sprintf "{ [0 ... %d] = 0x%X, [%d] = 0x0}" (stringSize-1) (int ac) stringSize
+            | None ->   sprintf "{ [0 ... %d] = 0x0 }" stringSize
 
         override _.supportsInitExpressions = false
         override _.requiresHandlingOfEmptySequences = true
@@ -162,7 +165,7 @@ type LangGeneric_c() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
@@ -306,6 +309,8 @@ type LangGeneric_c() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+                zeroOctetString_localVars                   = fun _ -> []
+                zeroBitString_localVars                     = fun _ -> []
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = fun _ -> ""
             }

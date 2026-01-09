@@ -187,7 +187,11 @@ type LangGeneric_python() =
     override _.doubleValueToString (v:double) =
         v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-    override _.initializeString stringSize = sprintf "\"0\" * %d" stringSize
+    override _.initializeString (asciiCode:BigInteger option) (stringSize: int) =
+        match asciiCode with
+        | Some ac -> $"\"%c{char ac}\" * %d{stringSize} + \"\\x00\""
+        | None -> $"\"\\x00\" * %d{stringSize}"
+
 
     override _.supportsInitExpressions = true
 
@@ -274,8 +278,24 @@ type LangGeneric_python() =
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
         let itemname =
             match defOrRef with
-            | Some (TypeDefinition td) -> td.typedefName + "_Enum." + ToC nm.python_name
-            | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "_Enum." + ToC nm.python_name
+            | Some (TypeDefinition td) ->
+                // For TypeDefinition, check if it has a baseType with programUnit
+                match td.baseType with
+                | Some bt when bt.programUnit.IsSome && bt.programUnit.Value <> "" ->
+                    // Add module prefix: Module.TypeName_Enum.item
+                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + ToC nm.python_name
+                | _ ->
+                    // No module prefix needed
+                    td.typedefName + "_Enum." + ToC nm.python_name
+            | Some (ReferenceToExistingDefinition rted) ->
+                // For ReferenceToExistingDefinition, check if it has programUnit
+                match rted.programUnit with
+                | Some pu when pu <> "" ->
+                    // Add module prefix: Module.TypeName_Enum.item
+                    pu + "." + rted.typedefName + "_Enum." + ToC nm.python_name
+                | _ ->
+                    // No module prefix needed
+                    rted.typedefName + "_Enum." + ToC nm.python_name
             | _ -> ToC nm.python_name
         itemname
 
@@ -306,8 +326,16 @@ type LangGeneric_python() =
     override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with python_name = newValue}
     override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._python_name
     override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._python_name
-    override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) : string =
-        ch.typeDef[Python].typeName + "InUse." + (ToC c.present_when_name)
+    override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice) (c:Asn1AcnAst.ChChildInfo) (currentModule:string) : string =
+        let typeDef = ch.typeDef[Python]
+        // Normalize module name (ASN.1 uses hyphens, Python uses underscores)
+        let normalizedCurrentModule = ToC currentModule
+        let baseTypeName =
+            match typeDef.programUnit with
+            | "" -> typeDef.typeName
+            | pu when pu = normalizedCurrentModule -> typeDef.typeName  // Same module - no prefix
+            | pu -> pu + "." + typeDef.typeName                        // Different module - add prefix
+        baseTypeName + "InUse." + (ToC c.present_when_name)
 
     override this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
         methodSuffix
@@ -559,18 +587,19 @@ type LangGeneric_python() =
                         let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
         
                         printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
-        
+
                         // Create statement for this update
                         let stmt = {
                             SequenceChildStmt.body = Some updateStatement
                             lvs = updateFunc.localVariables
                             errCodes = updateFunc.errCodes
+                            userDefinedFunctions = []
                             icdComments = updateFunc.icdComments
                         }
-        
+
                         // Add parameter to pass to child sequence
                         let param = sprintf "%s=%s" crossDep.acnChildCName crossDep.acnChildCName
-        
+
                         (stmt :: stmts, param :: paramsList, newState)
                     | None ->
                         printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
@@ -865,6 +894,8 @@ type LangGeneric_python() =
     override this.init =
         {
             Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+            zeroOctetString_localVars                   = fun _ -> []
+            zeroBitString_localVars                     = fun _ -> []
             choiceComponentTempInit                     = false
             initMethSuffix                              = initMethSuffix
         }

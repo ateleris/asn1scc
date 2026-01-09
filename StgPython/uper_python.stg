@@ -17,7 +17,11 @@ call_base_type_func_encode(p, sFuncName) ::= <<
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13
-<p> = <sFuncName>(codec, check_constraints)
+instance_decode = <sFuncName>(codec, check_constraints)
+if isinstance(instance_decode, tuple):
+    <p>, arguments_acn_children = instance_decode
+else:
+    <p> = instance_decode
 >>
 
 /*******************************************************/
@@ -100,7 +104,7 @@ InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 # uper_python.stg 101
 if not codec.read_byte(<p><sAcc>arr(<i>)):
     # uper_python.stg 103
-    return Asn1SccError(<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
@@ -111,7 +115,7 @@ allowedCharSet: bytes = bytes([<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, ancho
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 # uper_python.stg 113
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-charIndex: int = allowedCharSet.index(<p>[<i>])
+charIndex: int = allowedCharSet.index(<p>.arr[<i>])
 res = codec.encode_constrained_whole_number(charIndex, 0, <nLastItemIndex>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
@@ -127,7 +131,7 @@ if decoded_result:
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 # uper_python.stg 126
-res = codec.encode_constrained_whole_number(<p>[<i>], 0, 127)
+res = codec.encode_constrained_whole_number(<p>.arr[<i>], 0, 127)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
@@ -397,7 +401,7 @@ match codec.decode_constrained_whole_number(0, <nLastItemIndex>): # uper:277
     <arrsItem; separator="\n">
     case _:
         # uper_python.stg 317
-        return Asn1SccError(<sErrCode>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
@@ -446,7 +450,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 <arrsChildren: {ch|<ch>}; separator="\n">
 else:
     # uper_python.stg 366
-    return Asn1SccError(<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 <p> = instance
 >>
 
@@ -551,7 +555,7 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 473
-<p>_arr = [""] * <nFixedSize>
+<p>_arr = [0] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 <p> = cls(<p>_arr)
 >>
@@ -559,7 +563,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 483
-nStringLength: int = len(<p>)
+nStringLength: int = len(<p>.arr)
 # ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
 if not res:
@@ -574,7 +578,7 @@ if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 nStringLength: int = decoded_result.decoded_value
 
-<p>_arr = [""] * nStringLength
+<p>_arr = [0] * nStringLength
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 <p> = <sType>(<p>_arr)
 >>
@@ -842,7 +846,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 for <sBlockIndex> in range(0, nBlocks64K>):        
     ret: int = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
     check = (ret == 0) and (<sRemainingItemsVar> == 0xC4)
-    ret = 0 if check else Asn1SccError(<sErrCodeName>)
+    ret = 0 if check else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
     if ret == 0:
         <if(bIsBitStringType)>
         ret = int(codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>))
@@ -868,11 +872,11 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>
 ret = codec.decode_constrained_whole_number(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) and (<sRemainingItemsVar> == <sBlockId>)
-ret = if (check) then 0 else Asn1SccError(<sErrCodeName>)
-if not isinstance(ret, Asn1SccError):
+ret = if (check) then 0 else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
+if ret:
     <if(bIsBitStringType)>
         ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt) # TODO call wrong
-        ret = 0 if (ret == 0) else Asn1SccError(<sErrCodeName>)
+        ret = 0 if (ret == 0) else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCodeName>)
     
     <else>
         <sBLI> = <sCurOffset>
@@ -898,7 +902,7 @@ ret = ret and ((0x8000 & <sRemainingItemsVar>) > 0) and ( (0x7FFF & <sRemainingI
 if ret == 0:
     <if(bIsBitStringType)>
     ret = codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt) # TODO call wrong
-    ret = 0 if not isinstance(ret, Asn1SccError) else Asn1SccError(<sErrCodeName>)
+    ret = 0 if ret else Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     <else>
     <sBLI> = int(<sCurOffset>)
@@ -940,11 +944,11 @@ while (<sRemainingItemsVar> & 0xC0) == 0xC0:
         <sCurBlockSize> = 0x4000
     else:
         # uper_python.stg 800
-        return Asn1SccError(<sErrCodeName>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     if <sCurOffset> + <sCurBlockSize> > <nSizeMax>:
         # uper_python.stg 804
-        return Asn1SccError(<sErrCodeName>)
+        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
     <if(bIsBitStringType)>
     if not codec.read_bits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>):
@@ -974,7 +978,7 @@ if (<sRemainingItemsVar> & 0x80) > 0:
 
 if <sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>:
     # uper_python.stg 834
-    return Asn1SccError(<sErrCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 <if(bIsBitStringType)>
 if not codec.read_bits(<p><sAcc>arr[<sCurOffset>/8], int(<sRemainingItemsVar>))
@@ -1001,7 +1005,7 @@ if (<sLengthTmp> >= <nSizeMin>) and (<sLengthTmp> \<= <nSizeMax>):
     <endif>
 else
     # uper_python.stg 861
-    return Asn1SccError(<sErrCodeName>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 
 <else>
 

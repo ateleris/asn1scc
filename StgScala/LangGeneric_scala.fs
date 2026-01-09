@@ -145,7 +145,8 @@ type LangGeneric_scala() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
+        override _.initializeString (asciiCode:BigInteger option) stringSize = 
+            sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
 
         override _.supportsInitExpressions = false
 
@@ -216,7 +217,7 @@ type LangGeneric_scala() =
         override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with scala_name = newValue}
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             ch.typeDef[Scala].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
@@ -518,6 +519,8 @@ type LangGeneric_scala() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+                zeroOctetString_localVars                   = fun _ -> []
+                zeroBitString_localVars                     = fun _ -> []
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = initMethSuffix
             }

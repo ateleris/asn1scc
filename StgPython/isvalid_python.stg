@@ -7,7 +7,7 @@ JoinItems(sPart, soNestedPart) ::= <<
 # isvalid_python.stg 6
 <sPart>
 <if(soNestedPart)>
-if not isinstance(ret, Asn1SccError):
+if ret:
     <soNestedPart>
 <endif>
 >>
@@ -111,7 +111,7 @@ ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" and ">
 >>
 ExpNot(sExp) ::= "(not <sExp>)"
-StrLen(sExp) ::= "len(<sExp>)"
+StrLen(sExp) ::= "len(<sExp>.arr)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
@@ -122,103 +122,101 @@ ret = <sExp1>
 StatementOrStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 114
 <sStat1>
-if isinstance(ret, Asn1SccError):
+if not ret:
     <sStat2>
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 121
 ret = <sExp1>
-if isinstance(ret, Asn1SccError):
+if not ret:
     <sStat2>
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 128
 <sStat1>
-if isinstance(ret, Asn1SccError):
+if not ret:
     ret = <sExp2>
 >>
 
 StatementAndStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 135
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret:
     <sStat2>
 >>
 
 ExpressionAndStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 142
 ret = <sExp1>
-if not isinstance(ret, Asn1SccError)::
+if ret:
     <sStat2>
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 149
 <sStat1>
-if not isinstance(ret, Asn1SccError)::
+if ret:
     ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
 # isvalid_python.stg 156
 <sStat>
-if not isinstance(ret, Asn1SccError):
-    ret = Asn1SccError(142)
+if ret:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=142)
 else:
-    ret = 0
+    ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementExceptStatement(sStat1, sStat2) ::= <<
 # isvalid_python.stg 165
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret:
     <sStat2>
-    if not isinstance(ret, Asn1SccError):
-        ret = Asn1SccError(152)
+    if ret:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=152)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 ExpressionExceptStatement(sExp1, sStat2) ::= <<
 # isvalid_python.stg 176
 ret = <sExp1>
-if not isinstance(ret, Asn1SccError):
+if ret:
     <sStat2>
-    if not isinstance(ret, Asn1SccError):
-        ret = Asn1SccError(162)
+    if ret:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=162)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
 # isvalid_python.stg 187
 <sStat1>
-if not isinstance(ret, Asn1SccError):
+if ret:
     <sExp2>
-    if isinstance(x, Asn1SccError):
-        ret = Asn1SccError(171)
+    if not x:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=171)
     else:
-        ret = 0
+        ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 198
 <i>: int = 0
-while not isinstance(ret, Asn1SccError) and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
 >>
-
-
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
 def chars_are_valid(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i: int = 0
-    while valid and i \< len(self) and self[i] != 0x0:
+    while valid and i \< len(self.arr) and self.arr[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
     if valid:
@@ -285,7 +283,7 @@ else:
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 # isvalid_python.stg 271
-ret = Asn1SccError(<sErrCode>)
+ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
@@ -318,7 +316,7 @@ choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 <! todo: If the separator gets replaced by "\nel", the consecutive children will start with "elif" instead of "if" !>
 <arrsChildren; separator="\nel">
 else:
-    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {self.__name__}: {self.kind}")
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {type(self).__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/

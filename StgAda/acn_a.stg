@@ -157,6 +157,13 @@ end if;
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+>>
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
+>>
+
+
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
@@ -984,12 +991,12 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 -- Encode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 -- Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -1070,6 +1077,12 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 result := <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs);
+>>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
 >>
 
 
@@ -1275,7 +1288,7 @@ when <sChildNamePresent> =>
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 when <sChildCID> =>
     <v>_is_initialized := True;
 	<v> := <sEnumCName>;

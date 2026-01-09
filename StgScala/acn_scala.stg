@@ -1,5 +1,7 @@
 group scala_acn;
 
+
+
 getStringSize(p) ::= "ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))"
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
@@ -87,6 +89,14 @@ MF(soMF) ::= /*nogen*/ <<
 <if(soMF)>
 <p> = <soMF>_decode(<p>)
 <endif>
+>>
+
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_encode(<sTypeName>);
+>>
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_decode(<sTypeName>);
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
@@ -753,13 +763,13 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -840,6 +850,13 @@ sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStrea
     case Left(err) => return LeftMut(err)
     case Right(_) =>
 >>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
 
 /* SEQUENCE END */
 
@@ -945,7 +962,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 val <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 <if(bIsOptional)>
 case SomeMut(<sChildCIDHolder>.<sChildCID>(_)) =>
 <else>

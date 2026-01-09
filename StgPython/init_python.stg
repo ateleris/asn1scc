@@ -127,7 +127,7 @@ initNull(sVal, bIsOptional, sResVar, sType) ::= <<
 <endif>
 >>
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 # init_python.stg 133
 <if(bZero)>
 <sResVar> = [0] * (<nMaxSizePlusOne> - 1)
