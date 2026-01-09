@@ -462,7 +462,16 @@ type LangGeneric_python() =
                 acnChildrenEncoded
                 |> List.rev  // Reverse to get original order
                 |> List.map (fun (varName, acnCh) ->
-                    $"'%s{acnCh.c_name}': %s{varName}"
+                    // In decode mode, complex types like AcnReferenceToIA5String have 'instance_' prefix
+                    // But primitive types like integers don't
+                    let actualVarName =
+                        if codec = Decode then
+                            match acnCh.Type with
+                            | Asn1AcnAst.AcnReferenceToIA5String _ -> $"instance_%s{varName}"
+                            | _ -> varName
+                        else
+                            varName
+                    $"'%s{acnCh.c_name}': %s{actualVarName}"
                 )
                 |> String.concat ", "
 

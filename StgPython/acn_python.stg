@@ -989,13 +989,13 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 772
 # Encode <sChName>
-<soSaveBitStrmPosStatement>
-<!<sChildContent>!>
-<if(bIsPrimitive)>
-<sChildContent>
-<else>
-<sChName>.encode(codec, check_constraints)
-<endif>
+if <sChName>_is_initialized or <sChName> is not None:
+    <soSaveBitStrmPosStatement>
+    <if(bIsPrimitive)>
+    <sChildContent>
+    <else>
+    <sChName>.encode(codec, check_constraints)
+    <endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
@@ -1195,7 +1195,7 @@ if <arrsConditions; separator=" and ">:
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-list(<sExtFld>) == list(<arruVal:{b|0x<b;format="X2">}; separator=", ">)
+(list(<sExtFld>.arr) if hasattr(<sExtFld>, 'arr') else list(<sExtFld>)) == [<arruVal:{b|0x<b;format="X2">}; separator=", ">]
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
@@ -1245,6 +1245,9 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefiniti
 # acn_python.stg 997
 <p> = <sEnmExtFld>
 <arrsChildren; separator="\nel">
+else:
+    # acn_python.stg 998
+    raise Asn1Exception(cls.DecodeConstants.<sErrCode>)
 >>
 
 /* Updates */
@@ -1296,13 +1299,14 @@ ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
 if choice == <sChildNamePresent>:
     # acn_python.stg 1041
     <v> = <sChildRetVal>
+    <v>_is_initialized = True
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
 if choice == <sChildNamePresent>:
     # acn_python.stg 1047
-    # todo: do we need the type here? Or is the ".encode" afterwards incorrect? Before it was "List[...]" which is incorrect
-    <v> = bytes([<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
+    <v> = <sChildTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
+    <v>_is_initialized = True
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
