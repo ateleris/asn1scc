@@ -743,3 +743,12 @@ echo "Running Asn1SCC Compiler for ACN..."
 echo "Running Asn1SCC Compiler for TestLib..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix PREF -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES
 
+
+
+echo "Running Asn1SCC Compiler for ASN1..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix PREF -o "$BASE_OUT_DIR/asn1_uper" $ASN1_FILES 
+
+echo "Running Asn1SCC Compiler for TestLib..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix PREF -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
+
+
