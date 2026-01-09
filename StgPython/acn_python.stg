@@ -1207,7 +1207,11 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    instance_data = <sChildTypeDef>.decode(codec, check_constraints)
+    instance_decode = <sChildTypeDef>.decode(codec, check_constraints)
+    if isinstance(instance_decode, tuple):
+        instance_data, _ = instance_decode
+    else:
+        instance_data = instance_decode
     <endif>
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
 >>
