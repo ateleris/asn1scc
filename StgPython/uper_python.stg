@@ -447,7 +447,7 @@ choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemI
 # uper_python.stg 340
 if <p>_choice_index == <nChildIndex>:
     <sChildContent>
-    instance = cls(kind=<sChildID>, data=<sChildName>)
+    instance = cls(kind=<sChildID>, data=instance_data)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
@@ -632,7 +632,7 @@ seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=<p><sAcc>nCount)>
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
@@ -641,9 +641,12 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-<p>_nCount = int(codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>))
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+<p>_nCount = int(decoded_result.decoded_value)
 
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=<p>_nCount)>
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
