@@ -33,17 +33,18 @@ else:
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-    # uper_python.stg 26
-    <sErrCode>: ErrorCode = <nErrValue>
-    # TODO: Remove old Scala Code (uper_python.stg):
-    # @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>
+# uper_python.stg 26
+<sErrCode>: ErrorCode = <nErrValue>
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<if(arrsErrcodes)>
 # uper_python.stg 33
-<arrsErrcodes:{x|<x>}; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
-<sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+class DecodeConstants:
+    <arrsErrcodes:{x|<x>}; separator="\n">
+    <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
+    <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+<endif>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
