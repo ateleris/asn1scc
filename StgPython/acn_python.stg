@@ -707,7 +707,10 @@ bix = codec.get_bit_index()
 if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
+# acn_python.stg 424242
+if not decoded_result:
+    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+<p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
 if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
     raise Asn1Exception(f"ERROR TODO")
