@@ -594,8 +594,8 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 <sActualCodecFunc>
 
 <arrsItem; separator="\n">
-# Save wire value as discriminator for choice determinants
-<p>_discriminator = <sIntVal>
+# Save enum value object as discriminator for choice determinants (to enable name-based lookup)
+<p>_discriminator = <sIntVal>_val
 <p> = <td.typeName>(<sIntVal>_val)
 >>
 
@@ -1244,7 +1244,7 @@ Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefiniti
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-if <p> == <sEnmName>:
+if (hasattr(<p>, 'name') and <sEnmName>.name == <p>.name) or <p> == <sEnmName>:  # Map discriminator by enum name if it's an enum object
     # acn_python.stg 984
     <sChildBody>
     <p> = cls(kind=<sEnmName>, data=<p>_data)
