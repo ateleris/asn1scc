@@ -1049,11 +1049,11 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-<if(bChildHasAcnChildrenToReturn)>
-<p>_<sChName>, <sChName>_acn_children = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-<else>
-<p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-<endif>
+instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode, tuple):
+    <p>_<sChName>, <sChName>_acn_children = instance_decode
+else:
+    <p>_<sChName> = instance_decode
 <endif>
 >>
 
@@ -1298,10 +1298,10 @@ if choice == <sChildNamePresent>:
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
-if choice == <sChildNamePresent>: 
+if choice == <sChildNamePresent>:
     # acn_python.stg 1047
     # todo: do we need the type here? Or is the ".encode" afterwards incorrect? Before it was "List[...]" which is incorrect
-    <v> = [<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">]
+    <v> = bytes([<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
