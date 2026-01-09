@@ -1,14 +1,7 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Antlr;
-using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
-
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Logging;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PUS_C_Scala_Test
 {
@@ -391,6 +384,10 @@ namespace PUS_C_Scala_Test
             var stderr = proc.StandardError.ReadToEnd();
             proc.WaitForExit();
 
+            // Parse pytest output for test results
+            var testSummaryPattern = @"(\d+)\s+failed.*?(\d+)\s+passed";
+            var match = Regex.Match(stdout, testSummaryPattern);
+
             if (printOutput)
             {
                 Console.WriteLine(stdout);
@@ -405,7 +402,14 @@ namespace PUS_C_Scala_Test
                 if (!string.IsNullOrEmpty(stderr))
                     Console.WriteLine("STDERR: " + stderr);
             }
-
+            
+            if (match.Success)
+            {
+                var failedCount = match.Groups[1].Value;
+                var passedCount = match.Groups[2].Value;
+                Console.WriteLine($"Python Tests: {passedCount} passed, {failedCount} failed");
+            }
+            
             Assert.IsTrue(worked, "python test cases failed");
         }
 
