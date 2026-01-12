@@ -1,27 +1,33 @@
 from typing import List, Optional
 
-from asn1_types import NO_OF_BITS_IN_BYTE
+from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
 from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 from bitstream import BitStream
+
 from nagini_contracts.contracts import *
+from segment import Segment, segments_total_length
 
 
 class Decoder(Codec):
 
     #region Ghost
+    
+    @Pure
+    def read_invariant(self) -> bool:
+        Requires(self.codec_predicate())
+        return segments_total_length(self.segments.take(self.segments_read_index)) == self.bit_index
 
     @Pure
     def read_aligned(self, bit_count: PInt) -> bool:
         Requires(self.codec_predicate())
         Unfold(self.codec_predicate())
         return self._bitstream.segments_read_aligned(bit_count)
-
+    
     @Pure
-    def current_segment_value(self) -> int:
+    def current_segment(self) -> Segment:
         Requires(self.codec_predicate())
         Requires(self.segments_read_index < len(self.segments))
-        return self.segments[self.segments_read_index].value
-        
+        return self.segments[self.segments_read_index]
 
     #endregion
     #region Primitive Operations
@@ -37,14 +43,14 @@ class Decoder(Codec):
         Returns:
             DecodeResult containing boolean value (True = 1, False = 0)
         """
-        Requires(self.codec_predicate())
+        Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(1))
-        Ensures(self.codec_predicate())
+        Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments))
         Ensures(self.bit_index == Old(self.bit_index) + 1)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-        Ensures(Result().decoded_value == bool(Old(self.current_segment_value())))
+        Ensures(Result().decoded_value == bool(Old(self.current_segment().value)))
         # Ensures(Result().success == Old(self.remaining_bits >= 1))
         # Ensures(Implies(Old(self.remaining_bits >= 1), self.bit_index == Old(self.bit_index) + 1))
         # Ensures(Implies(Old(self.read_aligned(1)),
@@ -82,17 +88,17 @@ class Decoder(Codec):
         Returns:
             DecodeResult containing byte value (0-255)
         """
-        Requires(self.codec_predicate())
+        Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
-        Ensures(self.codec_predicate())
+        Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments))
         Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-        Ensures(Result().decoded_value == Old(self.current_segment_value()))
+        Ensures(Result().decoded_value == Old(self.current_segment().value))
 
-        if self._bitstream.remaining_bits < NO_OF_BITS_IN_BYTE:
-            return DecodeResult(
+        if self.remaining_bits < NO_OF_BITS_IN_BYTE:
+            return DecodeResult[int](
                 success=False,
                 error_code=ERROR_INSUFFICIENT_DATA,
                 error_message="Insufficient data to read byte"
@@ -102,7 +108,7 @@ class Decoder(Codec):
         value = self._bitstream.read_bits(NO_OF_BITS_IN_BYTE)
         Fold(self.codec_predicate())
 
-        return DecodeResult(
+        return DecodeResult[int](
             success=True,
             error_code=DECODE_OK,
             decoded_value=value,
@@ -111,6 +117,46 @@ class Decoder(Codec):
         
     #endregion
     #region Alignment Operations
+
+    def __read_align(self, alignment: int) -> DecodeResult[None]:
+        Requires(alignment == NO_OF_BITS_IN_BYTE or alignment == NO_OF_BITS_IN_WORD or alignment == NO_OF_BITS_IN_DWORD)
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.read_aligned((alignment - self.bit_index) % alignment))
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + (alignment - Old(self.bit_index)) % alignment)
+        Ensures(self.bit_index % alignment == 0)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+        try:
+            alignment_bits = (alignment - self.bit_index) % alignment
+            Assert(self.read_aligned(alignment_bits))
+            Assert(self.current_segment().length == alignment_bits)
+            if self.remaining_bits < alignment_bits:
+                return DecodeResult[None](
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message="Insufficient data for alignment"
+                )
+            
+            Unfold(self.codec_predicate())
+            self._bitstream.read_bits(alignment_bits)
+            Fold(self.codec_predicate())
+            Assert(self.bit_index == Old(self.bit_index) + alignment_bits)
+            Assert(self.read_invariant())
+
+            return DecodeResult[None](
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=None,
+                bits_consumed=alignment_bits
+            )
+        except BitStreamError as e:
+            return DecodeResult[None](
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     def align_to_byte(self) -> DecodeResult[None]:
         """
@@ -123,32 +169,60 @@ class Decoder(Codec):
         Returns:
             DecodeResult with success/failure status
         """
-        Requires(self.codec_predicate())
+        Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE))
-        Ensures(self.codec_predicate())
+        Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
 
-        try:
-            Unfold(self.codec_predicate())
-            bits_consumed = self._bitstream.read_align_to_byte()
-            Fold(self.codec_predicate())
+        return self.__read_align(NO_OF_BITS_IN_BYTE)
+            
+    def align_to_word(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next 16-bit word boundary.
 
-            return DecodeResult[None](
-                success=True,
-                error_code=DECODE_OK,
-                decoded_value=None,
-                bits_consumed=bits_consumed
-            )
-        except BitStreamError as e:
-            return DecodeResult[None](
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
+        Matches C: Acn_AlignToNextWord(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToWord()
+        Used by: ACN for word-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.read_aligned((NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD))
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD)
+        Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+
+        return self.__read_align(NO_OF_BITS_IN_WORD)
+
+    def align_to_dword(self) -> DecodeResult[None]:
+        """
+        Align bitstream to next 32-bit dword boundary.
+
+        Matches C: Acn_AlignToNextDWord(pBitStrm, FALSE)
+        Matches Scala: BitStream.alignToDWord()
+        Used by: ACN for dword-aligned decoding
+
+        Returns:
+            DecodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.read_aligned((NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD))
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD)
+        Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+
+        return self.__read_align(NO_OF_BITS_IN_DWORD)
 
     #endregion
 
@@ -222,95 +296,6 @@ class Decoder(Codec):
     #             bits_consumed=bits_needed
     #         )
 
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_word(self) -> DecodeResult[None]:
-    #     """
-    #     Align bitstream to next 16-bit word boundary.
-
-    #     Matches C: Acn_AlignToNextWord(pBitStrm, FALSE)
-    #     Matches Scala: BitStream.alignToWord()
-    #     Used by: ACN for word-aligned decoding
-
-    #     Returns:
-    #         DecodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-
-    #         # First align to byte
-    #         self._bitstream.align_to_byte()
-
-    #         # Then align to 2-byte (16-bit) boundary
-    #         if self._bitstream.current_byte_position % 2 != 0:
-    #             # Need to skip to next word boundary
-    #             if self._bitstream.remaining_bits < 8:
-    #                 return DecodeResult(
-    #                     success=False,
-    #                     error_code=ERROR_INSUFFICIENT_DATA,
-    #                     error_message="Insufficient data for word alignment"
-    #                 )
-    #             self._bitstream.read_bits(8)
-
-    #         final_pos = self.bit_index
-    #         bits_consumed = final_pos - initial_pos
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=None,
-    #             bits_consumed=bits_consumed
-    #         )
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_dword(self) -> DecodeResult[None]:
-    #     """
-    #     Align bitstream to next 32-bit dword boundary.
-
-    #     Matches C: Acn_AlignToNextDWord(pBitStrm, FALSE)
-    #     Matches Scala: BitStream.alignToDWord()
-    #     Used by: ACN for dword-aligned decoding
-
-    #     Returns:
-    #         DecodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-
-    #         # First align to byte
-    #         self._bitstream.align_to_byte()
-
-    #         # Then align to 4-byte (32-bit) boundary
-    #         current_byte = self._bitstream.current_byte_position
-    #         padding_bytes = (4 - (current_byte % 4)) % 4
-
-    #         if self._bitstream.remaining_bits < padding_bytes * 8:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message="Insufficient data for dword alignment"
-    #             )
-
-    #         for _ in range(padding_bytes):
-    #             self._bitstream.read_bits(8)
-
-    #         final_pos = self.bit_index
-    #         bits_consumed = final_pos - initial_pos
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=None,
-    #             bits_consumed=bits_consumed
-    #         )
     #     except BitStreamError as e:
     #         return DecodeResult(
     #             success=False,

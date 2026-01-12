@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from asn1_types import NO_OF_BITS_IN_BYTE
+from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
 from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
@@ -23,12 +23,20 @@ class Encoder(Codec):
         Ensures(Result().segments == self.segments)
         pass
 
+    #region Ghost
+
+    @Pure
+    def write_invariant(self) -> bool:
+        Requires(self.codec_predicate())
+        return segments_total_length(self.segments) == self.bit_index
+    
     @Pure
     def last_segment(self) -> Segment:
         Requires(Rd(self.codec_predicate()))
         Requires(len(self.segments) > 0)
         return self.segments[len(self.segments) - 1]
 
+    #endregion
     #region Primitive Operations
 
     def append_bit(self, bit_value: bool) -> EncodeResult:
@@ -45,12 +53,10 @@ class Encoder(Codec):
         Returns:
             EncodeResult with success/failure status
         """
-        Requires(self.codec_predicate())
-        Requires(segments_total_length(self.segments) == self.bit_index)
+        Requires(self.codec_predicate() and self.write_invariant())
         Requires(self.remaining_bits >= 1)
-        Ensures(self.codec_predicate())
-        Ensures(segments_total_length(self.segments) == self.bit_index)
-        Ensures(self.segments == Old(self.segments) + PSeq(Segment(1, bit_value)))
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(1, bit_value)))
         Ensures(self.buffer_size == Old(self.buffer_size))
         try:
             Unfold(self.codec_predicate())
@@ -78,13 +84,11 @@ class Encoder(Codec):
         Args:
             byte_val: Byte value (0-255)
         """
-        Requires(self.codec_predicate())
-        Requires(segments_total_length(self.segments) == self.bit_index)
+        Requires(self.codec_predicate() and self.write_invariant())
         Requires(self.remaining_bits >= 8)
         Requires(0 <= byte_val and byte_val < 256)
-        Ensures(self.codec_predicate())
-        Ensures(segments_total_length(self.segments) == self.bit_index)
-        Ensures(self.segments == Old(self.segments) + PSeq(Segment(8, byte_val)))
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(8, byte_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
         try:
             if not (0 <= byte_val <= 255):
@@ -114,6 +118,32 @@ class Encoder(Codec):
     #endregion
     #region Alignment Operations
 
+    def __write_align(self, alignment: int) -> EncodeResult:
+        Requires(alignment == NO_OF_BITS_IN_BYTE or alignment == NO_OF_BITS_IN_WORD or alignment == NO_OF_BITS_IN_DWORD)
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(self.remaining_bits >= (alignment - self.bit_index) % alignment)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment((alignment - Old(self.bit_index)) % alignment, 0)))
+        Ensures(self.bit_index % alignment == 0)
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        try:
+            alignment_bits = (alignment - self.bit_index) % alignment
+            Unfold(self.codec_predicate())
+            self._bitstream.write_bits(0, alignment_bits)
+            Fold(self.codec_predicate())
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=alignment_bits
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+
     def align_to_byte(self) -> EncodeResult:
         """
         Align bitstream to next byte boundary.
@@ -125,32 +155,55 @@ class Encoder(Codec):
         Returns:
             EncodeResult with success/failure status
         """
-        Requires(self.codec_predicate())
-        Requires(segments_total_length(self.segments) == self.bit_index)
+        Requires(self.codec_predicate() and self.write_invariant())
         Requires(self.remaining_bits >= (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
-        Ensures(self.codec_predicate())
-        Ensures(segments_total_length(self.segments) == self.bit_index)
-        Ensures(self.segments.take(Old(len(self.segments))) == Old(self.segments))
-        Ensures(len(self.segments) == Old(len(self.segments)) + 1)
-        Ensures(self.last_segment().length == self.bit_index - Old(self.bit_index))
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment((NO_OF_BITS_IN_BYTE - Old(self.bit_index)) % NO_OF_BITS_IN_BYTE, 0)))
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.buffer_size == Old(self.buffer_size))
-        try:
-            Unfold(self.codec_predicate())
-            bits_encoded = self._bitstream.write_align_to_byte()
-            Fold(self.codec_predicate())
+        
+        return self.__write_align(NO_OF_BITS_IN_BYTE)
+            
+    def align_to_word(self) -> EncodeResult:
+        """
+        Align bitstream to next 16-bit word boundary.
 
-            return EncodeResult(
-                success=True,
-                error_code=ENCODE_OK,
-                bits_encoded=bits_encoded
-            )
-        except BitStreamError as e:
-            return EncodeResult(
-                success=False,
-                error_code=ERROR_INVALID_VALUE,
-                error_message=str(e)
-            )
+        Matches C: Acn_AlignToNextWord(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToWord()
+        Used by: ACN for word-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(self.remaining_bits >= (NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments == Old(self.segments) + PSeq(Segment((NO_OF_BITS_IN_WORD - Old(self.bit_index)) % NO_OF_BITS_IN_WORD, 0)))
+        Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        
+        return self.__write_align(NO_OF_BITS_IN_WORD)
+
+    def align_to_dword(self) -> EncodeResult:
+        """
+        Align bitstream to next 32-bit dword boundary.
+
+        Matches C: Acn_AlignToNextDWord(pBitStrm, TRUE)
+        Matches Scala: BitStream.alignToDWord()
+        Used by: ACN for dword-aligned encoding
+
+        Returns:
+            EncodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(self.remaining_bits >= (NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments == Old(self.segments) + PSeq(Segment((NO_OF_BITS_IN_DWORD - Old(self.bit_index)) % NO_OF_BITS_IN_DWORD, 0)))
+        Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        
+        return self.__write_align(NO_OF_BITS_IN_DWORD)
+
 
     #endregion
 
@@ -219,82 +272,6 @@ class Encoder(Codec):
     #         )
 
     #     except (BitStreamError, ValueError) as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_word(self) -> EncodeResult:
-    #     """
-    #     Align bitstream to next 16-bit word boundary.
-
-    #     Matches C: Acn_AlignToNextWord(pBitStrm, TRUE)
-    #     Matches Scala: BitStream.alignToWord()
-    #     Used by: ACN for word-aligned encoding
-
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-
-    #         # First align to byte
-    #         self._bitstream.align_to_byte()
-
-    #         # Then align to 2-byte (16-bit) boundary
-    #         current_byte = self.bit_index // 8
-    #         if current_byte % 2 != 0:
-    #             # Need to skip to next word boundary
-    #             self._bitstream.write_bits(0, 8)
-
-    #         final_pos = self.bit_index
-    #         bits_encoded = final_pos - initial_pos
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_encoded
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def align_to_dword(self) -> EncodeResult:
-    #     """
-    #     Align bitstream to next 32-bit dword boundary.
-
-    #     Matches C: Acn_AlignToNextDWord(pBitStrm, TRUE)
-    #     Matches Scala: BitStream.alignToDWord()
-    #     Used by: ACN for dword-aligned encoding
-
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         initial_pos = self.bit_index
-
-    #         # First align to byte
-    #         self._bitstream.align_to_byte()
-
-    #         # Then align to 4-byte (32-bit) boundary
-    #         current_byte = self.bit_index // 8
-    #         padding_bytes = (4 - (current_byte % 4)) % 4
-    #         for _ in range(padding_bytes):
-    #             self._bitstream.write_bits(0, 8)
-
-    #         final_pos = self.bit_index
-    #         bits_encoded = final_pos - initial_pos
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_encoded
-    #         )
-    #     except BitStreamError as e:
     #         return EncodeResult(
     #             success=False,
     #             error_code=ERROR_INVALID_VALUE,
