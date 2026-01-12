@@ -115,6 +115,16 @@ class Decoder(Codec):
             bits_consumed=8
         )
         
+    def decode_null(self) -> DecodeResult[None]:
+        """Decode a NULL value (typically no bits)"""
+        Ensures(Result().success)
+        return DecodeResult[None](
+            success=True,
+            error_code=DECODE_OK,
+            decoded_value=None,
+            bits_consumed=0
+        )
+        
     #endregion
     #region Alignment Operations
 
@@ -225,92 +235,90 @@ class Decoder(Codec):
         return self.__read_align(NO_OF_BITS_IN_DWORD)
 
     #endregion
+    #region Integer
 
-    # def decode_integer(self,
-    #                   min_val: int,
-    #                   max_val: int,
-    #                   size_in_bits: Optional[int] = None) -> DecodeResult[int]:
-    #     """
-    #     Decode a constrained integer value using offset decoding.
+    def decode_integer(self,
+                      min_val: int,
+                      max_val: int,
+                      size_in_bits: Optional[int] = None) -> DecodeResult[int]:
+        """
+        Decode a constrained integer value using offset decoding.
 
-    #     This method implements ASN.1 PER constrained integer decoding:
-    #     - Requires both min_val and max_val (range-based decoding)
-    #     - Uses offset decoding: decodes unsigned value and adds min_val
-    #     - Calculates bits needed from range size
+        This method implements ASN.1 PER constrained integer decoding:
+        - Requires both min_val and max_val (range-based decoding)
+        - Uses offset decoding: decodes unsigned value and adds min_val
+        - Calculates bits needed from range size
 
-    #     For unsigned integers without a range, use decode_unsigned_integer().
-    #     For signed integers with two's complement, use dec_int_twos_complement_*().
+        For unsigned integers without a range, use decode_unsigned_integer().
+        For signed integers with two's complement, use dec_int_twos_complement_*().
 
-    #     Args:
-    #         min_val: Minimum allowed value (required)
-    #         max_val: Maximum allowed value (required)
-    #         size_in_bits: Optional hint for bits needed (must match range calculation)
-    #     """
-    #     Requires(self.codec_predicate())
-    #     Ensures(self.codec_predicate())
+        Args:
+            min_val: Minimum allowed value (required)
+            max_val: Maximum allowed value (required)
+            size_in_bits: Optional hint for bits needed (must match range calculation)
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
+        Ensures(Result().success)
+        Ensures(Result().decoded_value == Old(self.current_segment().value))
         
 
-    #     try:
-    #         # Calculate bits needed from range
-    #         range_size = max_val - min_val + 1
-    #         bits_needed = (range_size - 1).bit_length()
+        try:
+            # Calculate bits needed from range
+            range_size = max_val - min_val + 1
+            bits_needed = (range_size - 1).bit_length()
 
-    #         # If size_in_bits is provided, validate it matches
-    #         if size_in_bits is not None and size_in_bits != bits_needed:
-    #             # Note: In practice, callers should ensure size_in_bits matches the range
-    #             # If they don't match, use the range-calculated size (safer)
-    #             pass
+            # If size_in_bits is provided, validate it matches
+            if size_in_bits is not None and size_in_bits != bits_needed:
+                # Note: In practice, callers should ensure size_in_bits matches the range
+                # If they don't match, use the range-calculated size (safer)
+                pass
 
-    #         if self._bitstream.remaining_bits < bits_needed:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.remaining_bits}"
-    #             )
+            if self._bitstream.remaining_bits < bits_needed:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.remaining_bits}"
+                )
 
-    #         # Decode the offset value as unsigned
-    #         offset_value = self._bitstream.read_bits(bits_needed)
+            # Decode the offset value as unsigned
+            offset_value = self._bitstream.read_bits(bits_needed)
 
-    #         # Apply offset decoding: add min_val to get actual value
-    #         value = offset_value + min_val
+            # Apply offset decoding: add min_val to get actual value
+            value = offset_value + min_val
 
-    #         # Validate result is within range
-    #         if value < min_val:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Decoded value {value} below minimum {min_val}"
-    #             )
+            # Validate result is within range
+            if value < min_val:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_CONSTRAINT_VIOLATION,
+                    error_message=f"Decoded value {value} below minimum {min_val}"
+                )
 
-    #         if value > max_val:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Decoded value {value} above maximum {max_val}"
-    #             )
+            if value > max_val:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_CONSTRAINT_VIOLATION,
+                    error_message=f"Decoded value {value} above maximum {max_val}"
+                )
 
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=value,
-    #             bits_consumed=bits_needed
+            return DecodeResult(
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=value,
+                bits_consumed=bits_needed
+            )
+
+        except BitStreamError as e:
+            return DecodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
     #         )
-
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def decode_null(self) -> DecodeResult[None]:
-    #     """Decode a NULL value (typically no bits)"""
-    #     return DecodeResult(
-    #         success=True,
-    #         error_code=DECODE_OK,
-    #         decoded_value=None,
-    #         bits_consumed=0
-    #     )
 
     # def decode_bit_string(self,
     #                      min_length: int,

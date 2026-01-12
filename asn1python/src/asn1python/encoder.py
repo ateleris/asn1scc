@@ -37,7 +37,10 @@ class Encoder(Codec):
         return self.segments[len(self.segments) - 1]
 
     #endregion
-    #region Primitive Operations
+    #region PRIMITIVES
+    # ============================================================================
+    # BASE BITSTREAM PRIMITIVES
+    # ============================================================================
 
     def append_bit(self, bit_value: bool) -> EncodeResult:
         """
@@ -114,6 +117,14 @@ class Encoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+            
+    def encode_null(self) -> EncodeResult:
+        """Encode a NULL value (typically no bits)"""
+        return EncodeResult(
+            success=True,
+            error_code=ENCODE_OK,
+            bits_encoded=0
+        )
 
     #endregion
     #region Alignment Operations
@@ -206,86 +217,82 @@ class Encoder(Codec):
 
 
     #endregion
+    #region Integer
 
-    # def encode_integer(self, value: int,
-    #                    min_val: int,
-    #                    max_val: int,
-    #                    size_in_bits: Optional[int] = None) -> EncodeResult:
-    #     """
-    #     Encode a constrained integer value using offset encoding.
+    def encode_integer(self, value: int,
+                       min_val: int,
+                       max_val: int,
+                       size_in_bits: Optional[int] = None) -> EncodeResult:
+        """
+        Encode a constrained integer value using offset encoding.
 
-    #     This method implements ASN.1 PER constrained integer encoding:
-    #     - Requires both min_val and max_val (range-based encoding)
-    #     - Uses offset encoding: encodes (value - min_val) as unsigned
-    #     - Calculates bits needed from range size
+        This method implements ASN.1 PER constrained integer encoding:
+        - Requires both min_val and max_val (range-based encoding)
+        - Uses offset encoding: encodes (value - min_val) as unsigned
+        - Calculates bits needed from range size
 
-    #     For unsigned integers without a range, use encode_unsigned_integer().
-    #     For signed integers with two's complement, use enc_int_twos_complement_*().
+        For unsigned integers without a range, use encode_unsigned_integer().
+        For signed integers with two's complement, use enc_int_twos_complement_*().
 
-    #     Args:
-    #         value: The integer value to encode
-    #         min_val: Minimum allowed value (required)
-    #         max_val: Maximum allowed value (required)
-    #         size_in_bits: Optional hint for bits needed (must match range calculation)
-    #     """
-    #     Requires(self.codec_predicate())
-    #     Requires(segments_total_length(self.segments) == self.bit_index)
-    #     Requires(self.remaining_bits >= 1)
-    #     Ensures(self.codec_predicate())
-    #     Ensures(segments_total_length(self.segments) == self.bit_index)
+        Args:
+            value: The integer value to encode
+            min_val: Minimum allowed value (required)
+            max_val: Maximum allowed value (required)
+            size_in_bits: Optional hint for bits needed (must match range calculation)
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires((max_val - min_val) < (1 << 32))
+        Requires(self.remaining_bits >= (max_val - min_val).bit_length())
+        Requires(min_val <= value and value <= max_val)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
 
-    #     try:
-    #         # Validate constraints
-    #         if value < min_val:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Value {value} below minimum {min_val}"
-    #             )
+        try:
+            # Validate constraints
+            if value < min_val:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_CONSTRAINT_VIOLATION,
+                    error_message=f"Value {value} below minimum {min_val}"
+                )
 
-    #         if value > max_val:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Value {value} above maximum {max_val}"
-    #             )
+            if value > max_val:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_CONSTRAINT_VIOLATION,
+                    error_message=f"Value {value} above maximum {max_val}"
+                )
 
-    #         # Range-based encoding: ALWAYS use offset encoding
-    #         range_size = max_val - min_val + 1
-    #         bits_needed = (range_size - 1).bit_length()
-    #         offset_value = value - min_val  # Offset encoding - value is now non-negative
+            # Range-based encoding: ALWAYS use offset encoding
+            bits_needed = (max_val - min_val).bit_length()
+            offset_value = value - min_val  # Offset encoding - value is now non-negative
 
-    #         # If size_in_bits is also provided, validate it matches the range
-    #         if size_in_bits is not None and size_in_bits != bits_needed:
-    #             # Note: In practice, callers should ensure size_in_bits matches the range
-    #             # If they don't match, use the range-calculated size (safer)
-    #             pass
+            # If size_in_bits is also provided, validate it matches the range
+            if size_in_bits is not None and size_in_bits != bits_needed:
+                # Note: In practice, callers should ensure size_in_bits matches the range
+                # If they don't match, use the range-calculated size (safer)
+                pass
 
-    #         # Encode the offset value as unsigned
-    #         self._bitstream.write_bits(offset_value, bits_needed)
+            # Encode the offset value as unsigned
+            Unfold(self.codec_predicate())
+            self._bitstream.write_bits(offset_value, bits_needed)
+            Fold(self.codec_predicate())
 
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_needed
-    #         )
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=bits_needed
+            )
 
-    #     except (BitStreamError, ValueError) as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
+        except (BitStreamError) as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
-    # def encode_null(self) -> EncodeResult:
-    #     """Encode a NULL value (typically no bits)"""
-    #     return EncodeResult(
-    #         success=True,
-    #         error_code=ENCODE_OK,
-    #         encoded_data=self._bitstream.get_data_copy(),
-    #         bits_encoded=0
-    #     )
+    #endregion
 
     # def encode_bit_string(self, value: str,
     #                      min_length: Optional[int] = None,
@@ -341,10 +348,6 @@ class Encoder(Codec):
     #             error_code=ERROR_INVALID_VALUE,
     #             error_message=str(e)
     #         )
-
-    # # ============================================================================
-    # # BASE BITSTREAM PRIMITIVES (matching Scala BitStream structure)
-    # # ============================================================================
 
     # def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
     #     """
