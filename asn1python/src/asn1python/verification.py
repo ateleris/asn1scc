@@ -5,9 +5,11 @@ This module provides constraint validation functions for ASN.1 types.
 """
 
 from nagini_contracts.contracts import *
-from typing import Final, Tuple, Union, Optional, List, Any, Callable
 
-NO_OF_BITS_IN_BYTE: int = 8
+from typing import Final, Tuple, Union, Optional, List, Any, Callable
+from asn1_types import NO_OF_BITS_IN_BYTE
+MAX_BITOP_LENGTH = 32
+
 # import re
 # from .asn1_types import Asn1Error
 
@@ -221,7 +223,7 @@ def byteseq_read_bit(byteseq: PByteSeq, position: PInt) -> bool:
 @Opaque
 def byteseq_read_bits(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
     """Read a number of bits from the byte sequence"""
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(length)
     Ensures(0 <= Result() and Result() < (1 << length))
@@ -232,35 +234,6 @@ def byteseq_read_bits(byteseq: PByteSeq, position: PInt, length: PInt) -> int:
     prefix = byteseq_read_bits(byteseq, position, length - 1) << 1
     single = byteseq_read_bit(byteseq, position + length - 1)
     return prefix + single
-
-@Pure
-@Opaque
-def _lemma_byteseq_read_bits_value(byteseq: PByteSeq, position: int, length: int, inner: int) -> bool:
-    Requires(0 < length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= inner and inner < length)
-    Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
-    Decreases(length)
-    Ensures(byte_read_bit(byteseq_read_bits(byteseq, position, length), NO_OF_BITS_IN_BYTE - length + inner) 
-         == byteseq_read_bit(byteseq, position + inner))
-    Ensures(Result())
-    
-    full_read = Reveal(byteseq_read_bits(byteseq, position, length))
-    single_bit = Reveal(byteseq_read_bit(byteseq, position + inner))
-    
-    # Requested bit is LSB
-    if inner == length - 1:
-        full_to_single = Reveal(byte_read_bit(full_read, NO_OF_BITS_IN_BYTE - length + inner))
-        return single_bit == full_to_single
-    
-    
-    lemma_inner = _lemma_byteseq_read_bits_value(byteseq, position, length - 1, inner)
-    rec_full_read = byteseq_read_bits(byteseq, position, length - 1)
-    Assert(rec_full_read == full_read >> 1)
-    full_to_single_rec = Reveal(byte_read_bit(rec_full_read, NO_OF_BITS_IN_BYTE - (length - 1) + inner))
-    Assert(full_to_single_rec == single_bit)
-    
-    full_to_single = Reveal(byte_read_bit(full_read, NO_OF_BITS_IN_BYTE - length + inner))
-    return single_bit == full_to_single
 
 @Pure
 @Opaque
@@ -278,7 +251,7 @@ def lemma_byteseq_read_bits_equal(byteseq: PByteSeq, position: int) -> bool:
 @Pure
 @Opaque
 def lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, length: int) -> bool:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Decreases(length)
     Ensures(Implies(length >= 1, byteseq_read_bits(byteseq, position, length) == 
@@ -301,7 +274,7 @@ def lemma_byteseq_read_bits_induction_lsb(byteseq: PByteSeq, position: int, leng
 def lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, position: int, length: int) -> bool:
     """Proof that byteseq equality implies equality of byteseq_read_bits within that range. """
     Requires(0 <= equal_end and equal_end <= len(b1) * NO_OF_BITS_IN_BYTE and equal_end <= len(b2) * NO_OF_BITS_IN_BYTE)
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= equal_end)
     Requires(byteseq_equal_until(b1, b2, equal_end))
     Decreases(length)
@@ -573,7 +546,7 @@ def _lemma_byteseq_set_bit(byteseq: PByteSeq, bit: bool, position: int) -> bool:
 @Pure
 @Opaque
 def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PInt) -> PByteSeq:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
     Decreases(length)
@@ -593,7 +566,7 @@ def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PIn
 @Opaque
 def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
     """Proof that `byteseq_set_bits()` preserves previous bits in the sequence."""
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
     Decreases(length)
@@ -621,7 +594,7 @@ def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int
 @Opaque
 def __lemma_byteseq_set_bits_value(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
     """Proof that `byteseq_set_bits()` writes the input value."""
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
     Decreases(length)
@@ -653,7 +626,7 @@ def __lemma_byteseq_set_bits_value(byteseq: PByteSeq, value: int, position: int,
 @Pure
 @Opaque
 def lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
     Requires(0 <= value and value < (1 << length))
     Decreases(None)

@@ -263,6 +263,8 @@ class BitStream:
         Ensures(self.segments_predicate(self.buffer()))
         Ensures(self.segments == Old(self.segments))
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
+        Ensures(self.segments.take(self.segments_read_index) ==
+                self.segments.take(Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
         
         Unfold(self.segments_predicate(self.buffer()))
         self._segments_read_index += 1
@@ -366,10 +368,10 @@ class BitStream:
         return res
 
     def read_bits(self, bit_count: PInt) -> int:
-        """Read up to 8 bits"""
+        """Read up to 32 bits"""
         #@nagini Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
-        #@nagini Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE)
+        #@nagini Requires(0 <= bit_count and bit_count <= MAX_BITOP_LENGTH)
         #@nagini Requires(self.validate_offset(bit_count))
         #@nagini Ensures(self.bitstream_invariant())
         Ensures(self.segments_predicate(self.buffer()))
@@ -377,8 +379,10 @@ class BitStream:
         #@nagini Ensures(self.buffer() is Old(self.buffer()))
         #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
         Ensures(self.segments is Old(self.segments))
-        Ensures(Implies(Old(self.segments_read_aligned(bit_count)), Result() == self.segments[Old(self.segments_read_index)].value))
-        Ensures(Implies(Old(self.segments_read_aligned(bit_count)), self.segments_read_index == Old(self.segments_read_index + 1)))
+        Ensures(Implies(Old(self.segments_read_aligned(bit_count)), (
+            Result() == self.segments[Old(self.segments_read_index)].value and
+            self.segments_read_index == Old(self.segments_read_index + 1) and
+            segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits)))
        
         value = 0
         i = 0
@@ -402,7 +406,6 @@ class BitStream:
             Fold(self.segments_predicate(self.buffer()))
             lemma_segments_contained_read(self.buffer(), self.segments, self.segments_read_index)
             
-            
             self._increment_segment_read_index()
 
         return value
@@ -415,7 +418,7 @@ class BitStream:
     #
     # |x|x|x|b|?|?|?|?|
     #  0 1 2 3 4 5 6 7
-    def _write_bit(self, bit: bool) -> None:
+    def __write_bit(self, bit: bool) -> None:
         """Write a single bit"""
         Requires(self.bitstream_invariant())
         Requires(self.validate_offset(1))
@@ -435,12 +438,11 @@ class BitStream:
         Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
 
-
     def write_bits(self, value: int, bit_count: int) -> None:
-        """Write multiple bits from an integer value"""
+        """Write up to 32 bits"""
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
-        Requires(0 <= bit_count and bit_count <= NO_OF_BITS_IN_BYTE) 
+        Requires(0 <= bit_count and bit_count <= MAX_BITOP_LENGTH) 
         Requires(0 <= value and value < (1 << (bit_count)))
         Requires(self.validate_offset(bit_count))
         # self.current_used_bits could theoretically be less than segments_total_length, because of reads and resets
@@ -450,9 +452,13 @@ class BitStream:
         Ensures(self.segments_predicate(self.buffer()))
         Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
         Ensures(self.buffer_size == Old(self.buffer_size))
-        Ensures(self.buffer() == byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
-        Ensures(self.segments == Old(self.segments) + PSeq(Segment(bit_count, value)))
+        Ensures(self.buffer() is byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(bit_count, value)))
         Ensures(segments_total_length(self.segments) == self.current_used_bits)
+        
+        # Check if value fits in bit_count bits
+        if value < 0 or value >= (1 << bit_count):
+            raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
         
         ghost_current_value = 0
         i: int = 0
@@ -471,7 +477,7 @@ class BitStream:
             bit = bool((value >> (bit_count - 1 - i)) % 2)
             ghost_current_value = (ghost_current_value << 1) + bit
             
-            self._write_bit(bit)
+            self.__write_bit(bit)
             
             updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
             i = i + 1
@@ -481,20 +487,8 @@ class BitStream:
 
         # Establish new segments
         lemma_byteseq_equal_segments_contained(self.buffer(), Old(self.buffer()), Old(self.current_used_bits), self._segments)
-        rec_segments = self._segments
-        self._segments = self._segments + PSeq(Segment(bit_count, value))
-        
-        Assert(self._segments.take(len(self._segments) - 1) == rec_segments)        
+        self._segments = segments_add(self._segments, bit_count, value)    
         Fold(self.segments_predicate(self.buffer()))
-    
-    #     # if bit_count < 0 or bit_count > 64:
-    #     #     raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
-
-    #     # Check if value fits in bit_count bits
-    #     # max_value = (1 << bit_count) - 1
-    #     # if value < 0 or value > max_value:
-    #     #     raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
-    
         
     #endregion
 

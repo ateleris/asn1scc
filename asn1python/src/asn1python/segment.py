@@ -1,7 +1,7 @@
 from nagini_contracts.adt import ADT
 from nagini_contracts.contracts import *
 from typing import NamedTuple
-from verification import byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE
+from verification import byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
 
 class Segment_ADT(ADT):
     pass
@@ -12,22 +12,35 @@ class Segment(Segment_ADT, NamedTuple('Segment', [('length', int), ('value', int
 @Pure
 def segment_invariant(seg: Segment) -> bool:
     Decreases(None)
-    return (0 <= seg.length and seg.length <= NO_OF_BITS_IN_BYTE and 
-            0 <= seg.value and seg.value < (1 << seg.length))
-
+    return (0 <= seg.length and seg.length <= MAX_BITOP_LENGTH and 
+            0 <= seg.value and seg.value < (1 << seg.length))    
+    
 @Pure
 @Opaque
 def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
     Requires(0 <= length and length <= len(segments))
     Decreases(None)
-    Ensures(Result() == segments.take(length))
+    Ensures(Result() is segments.take(length))
     Ensures(Forall(segments.take(length), lambda seg: segment_invariant(seg)))
     Ensures(Implies(length < len(segments), segments_total_length(Result()) + segments[length].length <= segments_total_length(segments)))
     
     lemma_length_monotonic = __lemma_segments_total_length_monotonic(segments, length)
     return segments.take(length)
+
+@Pure
+@Opaque
+def segments_add(segments: PSeq[Segment], length: int, value: int) -> PSeq[Segment]:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(0 <= length and length <= MAX_BITOP_LENGTH)
+    Requires(0 <= value and value < (1 << length))
+    Decreases(None)
+    Ensures(Result() is segments + PSeq(Segment(length, value)))
+    Ensures(Result().take(len(segments)) is segments)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     
+    new_seg = segments + PSeq(Segment(length, value))
+    return new_seg
 
 @Pure
 def segments_total_length(segments: PSeq[Segment]) -> int:
