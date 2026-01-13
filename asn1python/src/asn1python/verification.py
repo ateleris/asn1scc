@@ -140,6 +140,7 @@ def byte_read_bits(byte: PInt, position: PInt, length: PInt) -> int:
 def __lemma_byte_read_bit_equal(byte: int, position: int) -> bool:
     Requires(0 <= byte and byte <= 0xFF)
     Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+    Decreases(None)
     Ensures(int(byte_read_bit(byte, position)) == byte_read_bits(byte, position, 1))
     Ensures(Result())
     
@@ -319,6 +320,54 @@ def lemma_byteseq_equal_read_bits(b1: PByteSeq, b2: PByteSeq, equal_end: int, po
     lemma_read_induction1 = lemma_byteseq_read_bits_induction_lsb(b1, position, length)
     lemma_read_induction2 = lemma_byteseq_read_bits_induction_lsb(b2, position, length)
     return byteseq_read_bits(b1, position, length) == byteseq_read_bits(b2, position, length)
+
+@Pure
+@Opaque
+def lemma_byteseq_read_bits_aligned(byteseq: PByteSeq, position: int, length: int) -> bool:
+    """Proof that reading from an aligned position is equal to reading directly from that byte"""
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= position and position // NO_OF_BITS_IN_BYTE < len(byteseq))
+    Requires(position % NO_OF_BITS_IN_BYTE == 0)
+    Decreases(length)
+    Ensures(byteseq_read_bits(byteseq, position, length) == byte_read_bits(byteseq[position // NO_OF_BITS_IN_BYTE], 0, length))
+    Ensures(Result())
+
+    if length == 0:
+        return True
+
+    byte_pos = position // NO_OF_BITS_IN_BYTE
+
+    byteseq_prefix = byteseq_read_bits(byteseq, position, length - 1)
+    byte_prefix = byte_read_bits(byteseq[byte_pos], 0, length - 1)
+    induction = lemma_byteseq_read_bits_aligned(byteseq, position, length - 1)
+    Assert(byteseq_prefix == byte_prefix)
+
+    byteseq_single = Reveal(byteseq_read_bit(byteseq, position + length - 1))
+    byte_single = int(byte_read_bit(byteseq[byte_pos], length - 1))
+    Assert(byteseq_single == byte_single)
+
+
+    byteseq_val = Reveal(byteseq_read_bits(byteseq, position, length))
+    lemma_induction = lemma_byteseq_read_bits_induction_lsb(byteseq, position, length)
+    Assert((byteseq_prefix << 1) + int(byteseq_single) == byteseq_val)
+
+    byte_val = byte_read_bits(byteseq[byte_pos], 0, length)
+    lemma_induction = _lemma_byte_read_bits_induction_lsb(byteseq[byte_pos], 0, length)
+    lemma_single_eq = __lemma_byte_read_bit_equal(byteseq[byte_pos], length - 1)
+    Assert((byte_prefix << 1) +  int(byte_single) == byte_val)
+
+    return byteseq_val == byte_val
+
+@Pure
+@Opaque
+def lemma_byteseq_read_full_byte(byteseq: PByteSeq, position: int) -> bool:
+    Requires(0 <= position and position // NO_OF_BITS_IN_BYTE < len(byteseq))
+    Requires(position % NO_OF_BITS_IN_BYTE == 0)
+    Decreases(None)
+    Ensures(byteseq_read_bits(byteseq, position, NO_OF_BITS_IN_BYTE) == byteseq[position // NO_OF_BITS_IN_BYTE])
+    Ensures(Result())
+
+    return lemma_byteseq_read_bits_aligned(byteseq, position, NO_OF_BITS_IN_BYTE)
 
 #region Set bits
 

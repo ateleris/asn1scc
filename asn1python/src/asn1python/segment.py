@@ -1,7 +1,7 @@
 from nagini_contracts.adt import ADT
 from nagini_contracts.contracts import *
 from typing import NamedTuple
-from verification import byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
+from verification import byte_read_bits, byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
 
 class Segment_ADT(ADT):
     pass
@@ -14,7 +14,22 @@ def segment_invariant(seg: Segment) -> bool:
     Decreases(None)
     return (0 <= seg.length and seg.length <= MAX_BITOP_LENGTH and 
             0 <= seg.value and seg.value < (1 << seg.length))    
+
+@Pure
+def segments_from_byteseq(seq: PByteSeq, bit_length: int) -> PSeq[Segment]:
+    Requires(0 <= bit_length and bit_length <= len(seq) * NO_OF_BITS_IN_BYTE)
+    Decreases(bit_length)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+
+    if bit_length == 0:
+        empty: PSeq[Segment] = PSeq()
+        return empty
     
+    if bit_length <= NO_OF_BITS_IN_BYTE:
+        return PSeq(Segment(bit_length, byte_read_bits(seq[0], 0, bit_length)))
+
+    return PSeq(Segment(NO_OF_BITS_IN_BYTE, seq[0])) + segments_from_byteseq(seq.drop(1), bit_length - NO_OF_BITS_IN_BYTE)
+
 @Pure
 @Opaque
 def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:

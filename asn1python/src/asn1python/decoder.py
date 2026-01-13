@@ -258,19 +258,19 @@ class Decoder(Codec):
             size_in_bits: Optional hint for bits needed (must match range calculation)
         """
         Requires(self.codec_predicate() and self.read_invariant())
-        Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
+        Requires(min_val <= max_val and (max_val - min_val) < (1 << 32))
+        Requires(self.read_aligned((max_val - min_val).bit_length()))
+        Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments))
-        Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
+        Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-        Ensures(Result().decoded_value == Old(self.current_segment().value))
+        Ensures(Result().decoded_value == Old(self.current_segment().value) + min_val)
         
-
         try:
             # Calculate bits needed from range
-            range_size = max_val - min_val + 1
-            bits_needed = (range_size - 1).bit_length()
+            bits_needed = (max_val - min_val).bit_length()
 
             # If size_in_bits is provided, validate it matches
             if size_in_bits is not None and size_in_bits != bits_needed:
@@ -278,35 +278,32 @@ class Decoder(Codec):
                 # If they don't match, use the range-calculated size (safer)
                 pass
 
-            if self._bitstream.remaining_bits < bits_needed:
-                return DecodeResult(
+            if self.remaining_bits < bits_needed:
+                return DecodeResult[int](
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
-                    error_message=f"Insufficient data: need {bits_needed} bits, have {self._bitstream.remaining_bits}"
+                    error_message=f"Insufficient data: need {bits_needed} bits, have {self.remaining_bits}"
                 )
 
             # Decode the offset value as unsigned
+            Unfold(self.codec_predicate())
             offset_value = self._bitstream.read_bits(bits_needed)
+            Fold(self.codec_predicate())
 
             # Apply offset decoding: add min_val to get actual value
             value = offset_value + min_val
 
             # Validate result is within range
-            if value < min_val:
-                return DecodeResult(
-                    success=False,
-                    error_code=ERROR_CONSTRAINT_VIOLATION,
-                    error_message=f"Decoded value {value} below minimum {min_val}"
-                )
+            assert min_val <= value
 
             if value > max_val:
-                return DecodeResult(
+                return DecodeResult[int](
                     success=False,
                     error_code=ERROR_CONSTRAINT_VIOLATION,
                     error_message=f"Decoded value {value} above maximum {max_val}"
                 )
 
-            return DecodeResult(
+            return DecodeResult[int](
                 success=True,
                 error_code=DECODE_OK,
                 decoded_value=value,
@@ -314,11 +311,11 @@ class Decoder(Codec):
             )
 
         except BitStreamError as e:
-            return DecodeResult(
+            return DecodeResult[int](
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
-    #         )
+            )
 
     # def decode_bit_string(self,
     #                      min_length: int,
