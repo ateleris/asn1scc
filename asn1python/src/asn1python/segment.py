@@ -1,7 +1,7 @@
 from nagini_contracts.adt import ADT
 from nagini_contracts.contracts import *
 from typing import NamedTuple
-from verification import byte_read_bits, byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
+from verification import __lemma_byte_set_bits_value, byte_read_bits, byte_set_bits, byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
 
 class Segment_ADT(ADT):
     pass
@@ -13,22 +13,7 @@ class Segment(Segment_ADT, NamedTuple('Segment', [('length', int), ('value', int
 def segment_invariant(seg: Segment) -> bool:
     Decreases(None)
     return (0 <= seg.length and seg.length <= MAX_BITOP_LENGTH and 
-            0 <= seg.value and seg.value < (1 << seg.length))    
-
-@Pure
-def segments_from_byteseq(seq: PByteSeq, bit_length: int) -> PSeq[Segment]:
-    Requires(0 <= bit_length and bit_length <= len(seq) * NO_OF_BITS_IN_BYTE)
-    Decreases(bit_length)
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-
-    if bit_length == 0:
-        empty: PSeq[Segment] = PSeq()
-        return empty
-    
-    if bit_length <= NO_OF_BITS_IN_BYTE:
-        return PSeq(Segment(bit_length, byte_read_bits(seq[0], 0, bit_length)))
-
-    return PSeq(Segment(NO_OF_BITS_IN_BYTE, seq[0])) + segments_from_byteseq(seq.drop(1), bit_length - NO_OF_BITS_IN_BYTE)
+            0 <= seg.value and seg.value < (1 << seg.length))
 
 @Pure
 @Opaque
@@ -169,3 +154,164 @@ def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], in
     Assert(segment == rec_segments[index])
     
     return rec_lemma and byteseq_read_bits(byteseq, segments_total_length(segments_take(segments, index)), segment.length) == segment.value
+
+#region Conversions
+
+@Pure
+def segment_from_byte(byte: int, length: int) -> Segment:
+    Requires(0 <= byte and byte < 256)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    return Segment(length, byte_read_bits(byte, 0, length))
+
+@Pure
+@Opaque
+def segments_from_byteseq_full(seq: PByteSeq) -> PSeq[Segment]:
+    Decreases(len(seq))
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: seg.length == NO_OF_BITS_IN_BYTE))
+    Ensures(len(Result()) == len(seq))
+    Ensures(segments_total_length(Result()) == len(seq) * NO_OF_BITS_IN_BYTE)
+    
+    length = len(seq)
+    if length == 0:
+        empty : PSeq[Segment] = PSeq()
+        return empty
+    
+    prefix = segments_from_byteseq_full(seq.take(length - 1))
+    last = segment_from_byte(seq[length - 1], NO_OF_BITS_IN_BYTE)
+        
+    full = prefix + PSeq(last)
+    Assert(full.take(length - 1) == prefix)    
+    return full
+
+@Pure
+@Opaque
+def lemma_segments_byteseq_full(seq: PByteSeq) -> bool:
+    Decreases(len(seq))
+    Ensures(segments_to_byteseq_full(segments_from_byteseq_full(seq)) == seq)
+    Ensures(Result())
+    
+    length = len(seq)
+    if length == 0:
+        return True
+    
+    prefix = segments_from_byteseq_full(seq.take(length - 1))
+    full = Reveal(segments_from_byteseq_full(seq))
+    Assert(full.take(length - 1) == prefix)
+    
+    reverse_prefix = segments_to_byteseq_full(prefix)
+    prefix_eq = lemma_segments_byteseq_full(seq.take(length - 1))
+        
+    reverse_full = Reveal(segments_to_byteseq_full(full))
+    Assert(reverse_full.take(length - 1) == reverse_prefix)
+    
+    return prefix_eq and reverse_full == seq
+
+@Pure
+def segments_from_byteseq(seq: PByteSeq, bit_length: PInt) -> PSeq[Segment]:
+    """
+    Converts bit_length bits from a sequence of bytes to segments. 
+    Segments will be of 8 bits length, with potentially one partial byte at the end
+    """
+    Requires(0 <= bit_length and bit_length <= len(seq) * NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: seg.length <= NO_OF_BITS_IN_BYTE))
+    Ensures(len(Result()) == (bit_length + 7) // NO_OF_BITS_IN_BYTE)
+    Ensures(segments_total_length(Result()) == bit_length)
+    
+    full_bytes = bit_length // NO_OF_BITS_IN_BYTE
+    full = segments_from_byteseq_full(seq.take(full_bytes))
+    Assert(segments_total_length(full) == bit_length - (bit_length % NO_OF_BITS_IN_BYTE))
+        
+    remainder_length = bit_length % NO_OF_BITS_IN_BYTE
+    if remainder_length > 0:
+        
+        single = segment_from_byte(seq[full_bytes], remainder_length)
+        Assert(segments_total_length(full) + single.length == bit_length)
+        
+        full = full + PSeq(single)
+        Assert(segments_total_length(full) == segments_total_length(full.take(full_bytes)) + single.length)
+
+    return full
+
+@Pure
+@Opaque
+def lemma_segments_byteseq(seq: PByteSeq, bit_length: int) -> bool:
+    Requires(0 <= bit_length and bit_length <= len(seq) * NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    Ensures(byteseq_equal_until(segments_to_byteseq(segments_from_byteseq(seq, bit_length), bit_length), seq, bit_length))
+    Ensures(Result())
+    
+    segments = segments_from_byteseq(seq, bit_length)
+    reverse = segments_to_byteseq(segments, bit_length)
+    
+    full_count = bit_length // NO_OF_BITS_IN_BYTE
+    full_bytes = segments_from_byteseq_full(seq.take(full_count))
+    full_bytes_reverse = segments_to_byteseq_full(full_bytes)
+    full_bytes_lemma = lemma_segments_byteseq_full(seq.take(full_count))
+    Assert(full_bytes == segments.take(full_count))
+    Assert(full_bytes_reverse == seq.take(full_count))
+    
+    Assert(Reveal(byteseq_equal_until(reverse, seq, full_count * NO_OF_BITS_IN_BYTE)))
+    
+    remainder_length = bit_length % NO_OF_BITS_IN_BYTE
+    if remainder_length > 0:
+        last = segments[full_count]
+        
+        lemma_byte = __lemma_byte_set_bits_value(0, last.value, 0, remainder_length)
+        
+        Assert(reverse[full_count] == segment_to_byte(last))
+        Assert(last.value == byte_read_bits(seq[full_count], 0, remainder_length))
+        Assert(byte_read_bits(reverse[full_count], 0, remainder_length) == byte_read_bits(seq[full_count], 0, remainder_length))
+    
+    full_eq = Reveal(byteseq_equal_until(segments_to_byteseq(segments, bit_length), seq, bit_length))
+    return full_eq
+    
+
+@Pure
+def segment_to_byte(segment: Segment) -> int:
+    Requires(segment_invariant(segment))
+    Requires(segment.length <= NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    return byte_set_bits(0, segment.value, 0, segment.length)
+
+@Pure
+@Opaque
+def segments_to_byteseq_full(segments: PSeq[Segment]) -> PByteSeq:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(Forall(segments, lambda seg: seg.length <= NO_OF_BITS_IN_BYTE))
+    Decreases(len(segments))
+    Ensures(len(Result()) == len(segments))
+    
+    length = len(segments)
+    if length == 0:
+        return PByteSeq()
+    
+    prefix = segments_to_byteseq_full(segments.take(length - 1))
+    last = segments[length - 1]
+    return prefix + PByteSeq(last.value)
+
+@Pure
+def segments_to_byteseq(segments: PSeq[Segment], bit_length: int) -> PByteSeq:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(Forall(segments, lambda seg: seg.length <= NO_OF_BITS_IN_BYTE))
+    Requires(0 <= bit_length and bit_length <= segments_total_length(segments))
+    Requires(len(segments) >= (bit_length + 7) // NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    Ensures(len(Result()) == (bit_length + 7) // NO_OF_BITS_IN_BYTE)
+    Ensures(Implies(bit_length % NO_OF_BITS_IN_BYTE == 0, Result() == 
+                    segments_to_byteseq_full(segments.take(bit_length // NO_OF_BITS_IN_BYTE))))
+    
+    full_bytes = bit_length // NO_OF_BITS_IN_BYTE
+    full_byte_segments = segments.take(full_bytes)
+    full = segments_to_byteseq_full(full_byte_segments)
+    
+    if bit_length % NO_OF_BITS_IN_BYTE > 0:
+        single = segment_to_byte(segments[full_bytes])
+        return full + PByteSeq(single)
+    else:
+        return full
+
+#endregion
