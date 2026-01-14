@@ -22,25 +22,33 @@ class Decoder(Codec):
         Requires(self.codec_predicate())
         Unfold(self.codec_predicate())
         return self._bitstream.segments_read_aligned(bit_count)
-    
+
+    @Pure
+    def read_multiple_aligned(self, bit_counts: PSeq[PInt]) -> bool:
+        Requires(self.codec_predicate())
+
+        return (
+            self.read_invariant() and
+            self.segments_read_index + len(bit_counts) <= len(self.segments) and
+            Forall(int, lambda i: (Implies(0 <= i and i < len(bit_counts), 
+                                           self.segments[self.segments_read_index + i].length == bit_counts[i])))
+        )
+
     @Pure
     def read_has_byte_segments(self, bit_count: PInt) -> bool:
         Requires(self.codec_predicate())
         byte_count = (bit_count + 7) // NO_OF_BITS_IN_BYTE
         complete_bytes = bit_count // NO_OF_BITS_IN_BYTE
-        
-        bit_count_condition = 0 <= bit_count and bit_count <= self.remaining_bits
-        segments_count_condition = len(self.segments) >= self.segments_read_index + byte_count
-        
-        full_segments = self.segments.drop(self.segments_read_index).take(complete_bytes)
-        full_segments_condition = Forall(full_segments, lambda seg: seg.length == NO_OF_BITS_IN_BYTE)
-        
         remaining_bits = bit_count % NO_OF_BITS_IN_BYTE
-        if remaining_bits > 0:
-            return (bit_count_condition and segments_count_condition and full_segments_condition and
-                    self.segments[self.segments_read_index + byte_count - 1].length == remaining_bits)
-        
-        return bit_count_condition and segments_count_condition and full_segments_condition
+
+        return (
+            byte_count <= complete_bytes and
+            self.read_invariant() and
+            self.segments_read_index + byte_count <= len(self.segments) and
+            Forall(int, lambda i: (Implies(0 <= i and i < complete_bytes, 
+                                           self.segments[self.segments_read_index + i].length == NO_OF_BITS_IN_BYTE))) and
+            True if (remaining_bits == 0) else self.segments[self.segments_read_index + complete_bytes].length == remaining_bits
+        )
     
     @Pure
     def current_segment(self) -> Segment:
