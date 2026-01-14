@@ -5,7 +5,7 @@ from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, 
 from bitstream import BitStream
 
 from nagini_contracts.contracts import *
-from segment import Segment, segments_total_length
+from segment import Segment, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
 
 
 class Decoder(Codec):
@@ -22,6 +22,25 @@ class Decoder(Codec):
         Requires(self.codec_predicate())
         Unfold(self.codec_predicate())
         return self._bitstream.segments_read_aligned(bit_count)
+    
+    @Pure
+    def read_has_byte_segments(self, bit_count: PInt) -> bool:
+        Requires(self.codec_predicate())
+        byte_count = (bit_count + 7) // NO_OF_BITS_IN_BYTE
+        complete_bytes = bit_count // NO_OF_BITS_IN_BYTE
+        
+        bit_count_condition = 0 <= bit_count and bit_count <= self.remaining_bits
+        segments_count_condition = len(self.segments) >= self.segments_read_index + byte_count
+        
+        full_segments = self.segments.drop(self.segments_read_index).take(complete_bytes)
+        full_segments_condition = Forall(full_segments, lambda seg: seg.length == NO_OF_BITS_IN_BYTE)
+        
+        remaining_bits = bit_count % NO_OF_BITS_IN_BYTE
+        if remaining_bits > 0:
+            return (bit_count_condition and segments_count_condition and full_segments_condition and
+                    self.segments[self.segments_read_index + byte_count - 1].length == remaining_bits)
+        
+        return bit_count_condition and segments_count_condition and full_segments_condition
     
     @Pure
     def current_segment(self) -> Segment:
@@ -114,6 +133,108 @@ class Decoder(Codec):
             decoded_value=value,
             bits_consumed=8
         )
+    
+    def read_bits(self, num_bits: int) -> DecodeResult[bytearray]:
+        """
+        Read arbitrary bits from the bitstream into a buffer.
+
+        Matches Scala: BitStream.readBits(nBits: Long): Array[UByte]
+        Matches C: BitStream_ReadBits(pBitStrm, BuffToWrite, nbits)
+        Used by: ACN for bit patterns and partial byte reads
+
+        Args:
+            num_bits: Number of bits to read
+
+        Returns:
+            DecodeResult containing bytes with the read bits
+            (MSB-first, last byte may be partial)
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.read_has_byte_segments(num_bits))
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.bit_index == Old(self.bit_index) + num_bits)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + (num_bits + 7) // NO_OF_BITS_IN_BYTE)
+        Ensures(Result().success)
+        # Ensures(Result().decoded_value == 
+        #         segments_to_byteseq(Old(self.segments.drop(self.segments_read_index).take((num_bits + 7) // NO_OF_BITS_IN_BYTE)), num_bits))
+        try:
+            if num_bits < 0:
+                Assert(False)
+                return DecodeResult[bytearray](
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bits must be non-negative, got {num_bits}"
+                )
+
+            if num_bits == 0:
+                Assume(False)
+                return DecodeResult[bytearray](
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=bytearray(),
+                    bits_consumed=0
+                )
+
+            if self.remaining_bits < num_bits:
+                Assert(False)
+                return DecodeResult[bytearray](
+                    success=False,
+                    error_code=ERROR_INSUFFICIENT_DATA,
+                    error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.remaining_bits}"
+                )
+
+            # Calculate required buffer size
+            num_bytes = (num_bits + 7) // NO_OF_BITS_IN_BYTE
+            result = bytearray(num_bytes)
+            bits_consumed = 0
+
+            ghost_segments = self.segments.drop(self.segments_read_index).take(num_bytes)
+
+            # Read complete bytes
+            complete_bytes = num_bits // NO_OF_BITS_IN_BYTE
+            i = 0
+            while i < complete_bytes:
+                Invariant(self.codec_predicate() and self.read_invariant())
+                Invariant(self.segments is Old(self.segments))
+                Invariant(Acc(bytearray_pred(result)))
+                Invariant(0 <= i and i <= complete_bytes)
+                Invariant(bits_consumed == i * NO_OF_BITS_IN_BYTE)
+                Invariant(self.bit_index == Old(self.bit_index) + bits_consumed)
+                Invariant(self.segments_read_index == Old(self.segments_read_index) + i)
+                Invariant(self.read_has_byte_segments(num_bits - bits_consumed))
+                Invariant(ToByteSeq(result).take(i) == Reveal(segments_to_byteseq_full(ghost_segments.take(i))))
+                
+                read = self.read_byte()
+                assert read.success and isinstance(read.decoded_value, int)
+                result[i] = read.decoded_value
+                
+                bits_consumed += NO_OF_BITS_IN_BYTE
+                i += 1
+
+            Assert(ToByteSeq(result).take(complete_bytes) == segments_to_byteseq(ghost_segments, complete_bytes * NO_OF_BITS_IN_BYTE))
+
+            # Read remaining bits into partial byte
+            remaining_bits = num_bits % 8
+            if remaining_bits > 0:
+                # Read the remaining bits
+                partial_byte = self._bitstream.read_bits(remaining_bits)
+                # Shift to align to MSB (high-order bits)
+                result[complete_bytes] = partial_byte << (8 - remaining_bits)
+                bits_consumed += remaining_bits
+
+            return DecodeResult[bytearray](
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=result,
+                bits_consumed=bits_consumed
+            )
+        except BitStreamError as e:
+            return DecodeResult[bytearray](
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
         
     def decode_null(self) -> DecodeResult[None]:
         """Decode a NULL value (typically no bits)"""
@@ -417,77 +538,6 @@ class Decoder(Codec):
     #             success=True,
     #             error_code=DECODE_OK,
     #             decoded_value=result,
-    #             bits_consumed=bits_consumed
-    #         )
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def read_bits(self, num_bits: int) -> DecodeResult[bytearray]:
-    #     """
-    #     Read arbitrary bits from the bitstream into a buffer.
-
-    #     Matches Scala: BitStream.readBits(nBits: Long): Array[UByte]
-    #     Matches C: BitStream_ReadBits(pBitStrm, BuffToWrite, nbits)
-    #     Used by: ACN for bit patterns and partial byte reads
-
-    #     Args:
-    #         num_bits: Number of bits to read
-
-    #     Returns:
-    #         DecodeResult containing bytes with the read bits
-    #         (MSB-first, last byte may be partial)
-    #     """
-    #     try:
-    #         if num_bits < 0:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bits must be non-negative, got {num_bits}"
-    #             )
-
-    #         if num_bits == 0:
-    #             return DecodeResult(
-    #                 success=True,
-    #                 error_code=DECODE_OK,
-    #                 decoded_value=bytearray(),
-    #                 bits_consumed=0
-    #             )
-
-    #         if self._bitstream.remaining_bits < num_bits:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message=f"Insufficient data: need {num_bits} bits, have {self._bitstream.remaining_bits}"
-    #             )
-
-    #         # Calculate required buffer size
-    #         num_bytes = (num_bits + 7) // 8
-    #         result = bytearray(num_bytes)
-    #         bits_consumed = 0
-
-    #         # Read complete bytes
-    #         complete_bytes = num_bits // 8
-    #         for i in range(complete_bytes):
-    #             result[i] = self._bitstream.read_bits(8)
-    #             bits_consumed += 8
-
-    #         # Read remaining bits into partial byte
-    #         remaining_bits = num_bits % 8
-    #         if remaining_bits > 0:
-    #             # Read the remaining bits
-    #             partial_byte = self._bitstream.read_bits(remaining_bits)
-    #             # Shift to align to MSB (high-order bits)
-    #             result[complete_bytes] = partial_byte << (8 - remaining_bits)
-    #             bits_consumed += remaining_bits
-
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=[int(k) for k in result],
     #             bits_consumed=bits_consumed
     #         )
     #     except BitStreamError as e:

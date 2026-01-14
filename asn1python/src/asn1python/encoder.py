@@ -7,7 +7,8 @@ from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_
 
 from decoder import Decoder
 from nagini_contracts.contracts import *
-from segment import Segment, segments_from_byteseq, segments_take, segments_total_length
+from verification import byte_read_bits
+from segment import Segment, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
 
 class Encoder(Codec):
 
@@ -133,9 +134,6 @@ class Encoder(Codec):
         Requires(Acc(bytearray_pred(data), 1/20))
         Requires(0 <= num_bits and num_bits <= len(data) * NO_OF_BITS_IN_BYTE)
         Requires(self.remaining_bits >= num_bits)
-
-        Requires(num_bits == 2 * NO_OF_BITS_IN_BYTE)
-
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(Acc(bytearray_pred(data), 1/20))
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
@@ -147,24 +145,22 @@ class Encoder(Codec):
 
         try:
             if num_bits < 0:
-                Assert(False)
                 return EncodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
                     error_message=f"num_bits must be non-negative, got {num_bits}"
                 )
 
-            # if num_bits == 0:
-            #     return EncodeResult(
-            #         success=True,
-            #         error_code=ENCODE_OK,
-            #         bits_encoded=0
-            #     )
+            if num_bits == 0:
+                return EncodeResult(
+                    success=True,
+                    error_code=ENCODE_OK,
+                    bits_encoded=0
+                )
 
             # Calculate required number of bytes
-            num_bytes = (num_bits + 7) // 8
+            num_bytes = (num_bits + 7) // NO_OF_BITS_IN_BYTE
             if num_bytes > len(data):
-                Assert(False)
                 return EncodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -174,11 +170,7 @@ class Encoder(Codec):
             bits_encoded = 0
 
             # Write complete bytes
-            complete_bytes = num_bits // 8
-
-            # Assert(complete_bytes == 1)
-            Assert(PSeq(Segment(NO_OF_BITS_IN_BYTE, data[0]), Segment(NO_OF_BITS_IN_BYTE, data[1])) is segments_from_byteseq(ToByteSeq(data), num_bits))
-
+            complete_bytes = num_bits // NO_OF_BITS_IN_BYTE
             i = 0
             while i < complete_bytes:
                 Invariant(self.codec_predicate() and self.write_invariant())
@@ -187,29 +179,30 @@ class Encoder(Codec):
                 Invariant(ToByteSeq(data) is Old(ToByteSeq(data)))
                 Invariant(bits_encoded == i * NO_OF_BITS_IN_BYTE)
                 Invariant(self.remaining_bits >= (num_bits - bits_encoded))
-                Invariant(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), bits_encoded))
+                Invariant(self.segments == Old(self.segments) + Reveal(segments_from_byteseq_full(ToByteSeq(data).take(i))))
                 Invariant(self.buffer_size == Old(self.buffer_size))
 
                 self.append_byte(data[i])
-                bits_encoded += 8
-
+                bits_encoded += NO_OF_BITS_IN_BYTE
+                Assert(ToByteSeq(data).take(i + 1).take(i) == ToByteSeq(data).take(i))
                 i += 1
 
+            Assert(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), complete_bytes * NO_OF_BITS_IN_BYTE))
+
             # Write remaining bits from partial byte
-            remaining_bits = num_bits % 8
+            remaining_bits = num_bits % NO_OF_BITS_IN_BYTE
             if remaining_bits > 0:
-                # Extract the high-order bits from the next byte
-                byte_val = data[complete_bytes]
                 # Shift to get only the desired high-order bits
-                shifted_val = byte_val >> (8 - remaining_bits)
+                shifted_val = data[complete_bytes] >> (NO_OF_BITS_IN_BYTE - remaining_bits)
 
                 Unfold(self.codec_predicate())
                 self._bitstream.write_bits(shifted_val, remaining_bits)
                 Fold(self.codec_predicate())
+                Assert(self.last_segment().value == Reveal(byte_read_bits(data[complete_bytes], 0, remaining_bits)))
+                
                 bits_encoded += remaining_bits
 
-            Assert(bits_encoded == num_bits)
-            Assert(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), num_bits))
+            Assert(self.segments == Old(self.segments) + segments_from_byteseq(ToByteSeq(data), num_bits))
 
             return EncodeResult(
                 success=True,
