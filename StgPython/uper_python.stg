@@ -1114,7 +1114,6 @@ if ret:
 
 update_array_item(p, sI, sExpr) ::= <<
 # uper_python.stg 960
-<p>.arr[<sI>] = freshCopy(<sExpr>) # TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
 >>
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
