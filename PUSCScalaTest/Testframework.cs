@@ -129,23 +129,36 @@ namespace PUS_C_Scala_Test
             if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
                 throw new InvalidOperationException("can't do nothing or both UPER and ACN");
 
-            if ((sv & ScalaAndC) == ScalaAndC)
+            List<string> folders = [];
+            
+            if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
             {
                 // create Scala Files
-                var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C);
-                Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C);
-
-                // create C Files
-                var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA);
-                Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA);
-
-                if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
-                    CompareTestCases(service, sv, scalaOutputDir, cOutputDir);
+                var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
+                Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
+                folders.Append(scalaOutputDir);
             }
-            else
+
+            if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
             {
-                var outDir = getCleanWorkingFolderPath(folderSuffix, sv);
-                Run_Test(service, outDir, sv);
+                // create C Files
+                var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
+                Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
+                folders.Append(cOutputDir);
+            }
+
+            if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+            { 
+                // create Python Files
+                var pythonOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
+                Run_Test(service, pythonOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
+                folders.Append(pythonOutputDir);
+            }
+
+            if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
+            {
+                Assert.IsTrue(folders.Count > 1);
+                CompareTestCases(service, sv, folders[0], folders[1]);
             }
         }
 
