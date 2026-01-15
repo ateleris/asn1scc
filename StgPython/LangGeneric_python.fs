@@ -275,6 +275,9 @@ type LangGeneric_python() =
         (sel.appendSelection "arr" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
+        // For Python, use the original name without the type prefix
+        let itemName = ToC nm.Name.Value
+
         let itemname =
             match defOrRef with
             | Some (TypeDefinition td) ->
@@ -282,23 +285,25 @@ type LangGeneric_python() =
                 match td.baseType with
                 | Some bt when bt.programUnit.IsSome && bt.programUnit.Value <> "" ->
                     // Add module prefix: Module.TypeName_Enum.item
-                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + ToC nm.python_name
+                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + itemName
                 | _ ->
                     // No module prefix needed
-                    td.typedefName + "_Enum." + ToC nm.python_name
+                    td.typedefName + "_Enum." + itemName
             | Some (ReferenceToExistingDefinition rted) ->
                 // For ReferenceToExistingDefinition, check if it has programUnit
                 match rted.programUnit with
                 | Some pu when pu <> "" ->
                     // Add module prefix: Module.TypeName_Enum.item
-                    pu + "." + rted.typedefName + "_Enum." + ToC nm.python_name
+                    pu + "." + rted.typedefName + "_Enum." + itemName
                 | _ ->
                     // No module prefix needed
-                    rted.typedefName + "_Enum." + ToC nm.python_name
-            | _ -> ToC nm.python_name
+                    rted.typedefName + "_Enum." + itemName
+            | _ -> itemName
         itemname
 
-    override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem) = nm.python_name
+    override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem) =
+        // For Python, use the original name without the type prefix
+        ToC nm.Name.Value
     override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
         {nm with python_name = newValue}
 
