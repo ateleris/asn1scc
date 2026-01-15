@@ -538,7 +538,7 @@ sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 # uper_python.stg 453
-for <i> in range(<fixedSize>):
+for <i> in range(int(<fixedSize>)):
     <sInternalItem>
 >>
 
@@ -604,9 +604,7 @@ seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 510
-res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-if not res:
-    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
