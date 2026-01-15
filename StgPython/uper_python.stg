@@ -345,11 +345,7 @@ Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 decoded_result = codec.dec_real<sSuffix>()
 if not decoded_result:
     raise Asn1Exception(f"Decoding of dec_real failed: {decoded_result.error_message}")
-<if(sType)>
-<p> = <sType>(decoded_result.decoded_value)
-<else>
 <p> = cls(decoded_result.decoded_value)
-<endif>
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= <<
@@ -469,8 +465,9 @@ decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 if not decoded_result:
     raise Asn1Exception(f"Decoding of choice index failed: {decoded_result.error_message}")
 <p>_choice_index = int(decoded_result.decoded_value)
+instance = None  # Track which alternative matched
 <arrsChildren: {ch|<ch>}; separator="\n">
-else:
+if instance is None:
     # uper_python.stg 366
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: Invalid choice index")
 <p> = instance
@@ -488,7 +485,8 @@ else:
 >>
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 378
-<soExistVar> = codec.read_bit()
+<soExistVar>_result = codec.read_bit()
+<soExistVar> = <soExistVar>_result.decoded_value
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
@@ -517,9 +515,8 @@ sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
 # uper_python.stg 406
 # Encode <sChName>
-match <p><sAcc><sChName>:
-    case <sChName>:
-        <sChildContent>
+if <p><sAcc><sChName> is not None:
+    <sChildContent>
 >>
 
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
@@ -529,7 +526,7 @@ if <soExistVar>:
     <sChildContent>
     <p>_<sChName> = <soChildExpr>
 else:
-    <p>_<sChName> = NullType() # NoneMut[<sChildTypedef>]()
+    <p>_<sChName> = None
 >>
 
 
@@ -646,7 +643,10 @@ if not decoded_result:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 <p>_nCount = int(decoded_result.decoded_value)
 
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=<p>_nCount)>
+<p>_arr = [None] * <p>_nCount
+for <i> in range(<p>_nCount):
+    <sInternalItem>
+<p> = <sTasName>(<p>_nCount, <p>_arr)
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
