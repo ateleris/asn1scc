@@ -1158,7 +1158,7 @@ if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-if <p> == <nChildIndex>:
+if <p>_choice_index == <nChildIndex>:
     # acn_python.stg 914
     <sChildContent>
     instance = cls(kind=<sChildID>, data=instance_data)
@@ -1178,7 +1178,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 # acn_python.stg 927
 decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-<CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType="int")>
+<CheckDecodeResult(p=p+"_choice_index", sInp="decode_result", sErrCode=sErrCode, sType="int")>
 <arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # acn_python.stg 931
