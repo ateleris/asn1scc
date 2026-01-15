@@ -465,7 +465,7 @@ else:
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 374
-if <p><sAcc><sChName>:
+if <p><sAcc><sChName> is not None:
     codec.append_bit(True)
 else:
     codec.append_bit(False)
