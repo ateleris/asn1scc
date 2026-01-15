@@ -770,9 +770,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     | _ -> None)
                 {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []}, newAcc
             | Some childContent ->
+                let isPrimitiveType =
+                    match lm.lg.getTypeDefinition child.Type.FT_TypeDefinition with
+                    | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                    | _ -> false
+
                 let childBody, child_localVariables =
                     match child.Optionality with
-                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child childName childContent.funcBody codec) , childContent.localVariables)
+                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef isPrimitiveType codec) , childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysAbsent ->
                         TL "handleChild_13" (fun () -> 
                         match codec with
@@ -884,6 +889,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with

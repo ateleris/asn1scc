@@ -2882,7 +2882,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                 let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
 
-                let childContent_funcBody = lm.lg.adaptAcnFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef
+                let childContent_funcBody = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef
                 match child.Optionality with
                 | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
                 | Some (ChoiceAlwaysPresent)
