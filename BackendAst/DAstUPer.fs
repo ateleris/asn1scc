@@ -956,7 +956,11 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                             let toc = ToC str
                             toc, Some toc
                         | _ -> str, None)
-                    let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
+                    let funcBodyContent = TL "UPER_REF_05" (fun () -> 
+                        match p.accessPath.steps with
+                        | [] -> callSuperclassFunc lm pp baseFncName codec
+                        | _ -> callBaseTypeFunc lm pp baseFncName codec
+                    )
                     let funcBodyContent = funcBodyContent
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 //| None -> None
