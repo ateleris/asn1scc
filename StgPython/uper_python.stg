@@ -345,7 +345,7 @@ Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 decoded_result = codec.dec_real<sSuffix>()
 if not decoded_result:
     raise Asn1Exception(f"Decoding of dec_real failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<p> = <sType>(decoded_result.decoded_value)
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= <<
