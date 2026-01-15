@@ -226,7 +226,6 @@ type LangGeneric_python() =
                 ) fold (List.indexed sel.steps)
     
     override _.asSelectionIdentifier (sel: AccessPath) =
-        let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
         let fold =
             List.fold (fun str (ix, accessor) ->
                     let accStr =
@@ -236,7 +235,7 @@ type LangGeneric_python() =
                         | _ -> ""
                        
                     $"{str}{accStr}"
-                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+                ) sel.rootId (List.indexed sel.steps)
         
         if sel.steps.IsEmpty then
             fold
