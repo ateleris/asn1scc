@@ -91,6 +91,19 @@ def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sT
     return <sVarName>
 >>
 
+CheckEncodeResult(sInp, sErrCode) /*nogen*/ ::= <<
+# uper_python.stg 434343
+if not <sInp>:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {<sInp>.error_message}")
+>>
+
+CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
+# uper_python.stg 424242
+if not <sInp>:
+    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+<p> = <sType>(<sInp>.decoded_value)
+>>
+
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
 # uper_python.stg 95
 if not codec.append_byte(<p><sAcc>arr[<i>]):
@@ -460,7 +473,7 @@ else:
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 378
 <soExistVar>_result = codec.read_bit()
-<soExistVar> = <soExistVar>_result.decoded_value
+<CheckDecodeResult(p=soExistVar, sInp=soExistVar+"_result", sErrCode=sErrCode, sType="bool")>
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
@@ -508,7 +521,7 @@ if <soExistVar>:
     <sChildContent>
     <p>_<sChName> = <soChildExpr>
 else:
-    <p>_<sChName> = None
+    <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
 
@@ -617,11 +630,11 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 <endif>
 
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-if not decoded_result:
-    raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
-<p>_nCount = int(decoded_result.decoded_value)
+<CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
 
+<p>_arr = [None] * <p>_nCount # <sChildInitExpr>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=p+"_nCount")>
+<p> = <sTasName>(<p>_nCount, <p>_arr)
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
