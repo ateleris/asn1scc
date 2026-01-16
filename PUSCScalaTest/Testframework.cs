@@ -403,7 +403,7 @@ namespace PUS_C_Scala_Test
             proc.StartInfo = new ProcessStartInfo
             {
                 FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx pytest" : "--login -c \"uvx pytest\"",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx --python 3.10 pytest" : "--login -c \"uvx --python 3.10 pytest\"",
 
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
