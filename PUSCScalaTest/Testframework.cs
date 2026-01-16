@@ -187,7 +187,7 @@ namespace PUS_C_Scala_Test
                 // Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
                 if (r1.BaseStream.Length != r2.BaseStream.Length)
                 {
-                    failedTests.Add(i);
+                    failedTests.Add(i + 1);
                     break;
                 }
 
@@ -199,7 +199,7 @@ namespace PUS_C_Scala_Test
 
                 if (!isSame)
                 {
-                    failedTests.Add(i);
+                    failedTests.Add(i + 1);
                 }
                 // Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
             }
