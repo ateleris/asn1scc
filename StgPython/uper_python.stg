@@ -507,37 +507,40 @@ instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 <endif>
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 406
 # Encode <sChName>
 if <p><sAcc><sChName> is not None:
+    <if(bIsPrimitive)>
     <sChildContent>
+    <else>
+    self.<sChName>.encode(codec, check_constraints)
+    <endif>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 414
 # Decode <sChName>
 if <soExistVar>:
+    <if(bIsPrimitive)>
     <sChildContent>
-    <p>_<sChName> = <soChildExpr>
+    <else>
+    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)   
+    <endif>
 else:
     <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 # uper_python.stg 425
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent, bIsPrimitive=bIsPrimitive)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 # uper_python.stg 431
-# Decode <sChName>
-if <soExistVar>:
-    <sChildContent>
-else:
-    <p>_<sChName>: Optional[<sChildTypedef>] = None
+<sequence_optional_child_decode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, bIsPrimitive=bIsPrimitive)>
 >>
 
 sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<

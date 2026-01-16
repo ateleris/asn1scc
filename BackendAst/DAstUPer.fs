@@ -782,22 +782,22 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         TL "handleChild_13" (fun () -> 
                         match codec with
                         | CommonTypes.Encode -> None, []
-                        | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables)
+                        | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysPresent ->
                         TL "handleChild_14" (fun () -> 
                         if lm.lg.usesWrappedOptional then
-                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables
+                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         else
                             match codec with
                             | CommonTypes.Encode -> Some childContent.funcBody, childContent.localVariables
-                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables)
+                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some (Asn1AcnAst.Optional opt) ->
                         TL "handleChild_15" (fun () ->
                         match opt.defaultValue with
-                        | None -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables
+                        | None -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         | Some v ->
                             let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
-                            Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit codec), childContent.localVariables)
+                            Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit isPrimitiveType codec), childContent.localVariables)
                 TL "handleChild_16" (fun () ->                 
                 {
                     stmt = Some {
