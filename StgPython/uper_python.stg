@@ -387,8 +387,8 @@ if not decoded_result:
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
-# uper_python.stg 296
-case <sName>:
+if <p> == <sName>:
+    # uper_python.stg 296
     res = codec.encode_constrained_whole_number(<nIndex>, 0, <nLastItemIndex>)
     if not res:
         raise Asn1Exception(f"Encoding Exception: {res.error_message}")
@@ -401,8 +401,9 @@ if <p>_int == <nIndex>:
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # uper_python.stg 306
-match <p>: # uper:270
-    <arrsItem; separator="\n">
+<arrsItem; separator="\nel">
+else:
+    raise Asn1Exception(f"Encoding Exception! No match found for <sChPath>!")
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
@@ -414,8 +415,7 @@ if not decoded_result:
 
 <arrsItem; separator="\n">
 
-# Wrap enum value in class instance
-<p> = cls(<p>_val)
+<p> = <td.typeName>(<p>_val)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
