@@ -190,7 +190,9 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let importedProgramUnitsFromTasses =
                 depTypesFromOtherModules |> Seq.map(fun ti -> ToC ti.modName) |> Seq.distinct |> Seq.toList
-            let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
+            let importedProgramUnitsFromDirectImports =
+                m.Imports |> List.map (fun im -> ToC im.Name.Value) |> List.filter(fun z -> ToC z <> ToC m.Name.Value)
+            let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases@importedProgramUnitsFromDirectImports |> Seq.distinct |> Seq.toList
 
 
             let importedTypes =

@@ -1,6 +1,5 @@
 namespace PUS_C_Scala_Test;
 
-// todo: remove Ignore to run the tests on CI
 [TestClass, Ignore]
 public class AcnAtcPythonTests
 {

@@ -770,29 +770,34 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     | _ -> None)
                 {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []}, newAcc
             | Some childContent ->
+                let isPrimitiveType =
+                    match lm.lg.getTypeDefinition child.Type.FT_TypeDefinition with
+                    | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                    | _ -> false
+
                 let childBody, child_localVariables =
                     match child.Optionality with
-                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child childName childContent.funcBody codec) , childContent.localVariables)
+                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef isPrimitiveType codec) , childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysAbsent ->
                         TL "handleChild_13" (fun () -> 
                         match codec with
                         | CommonTypes.Encode -> None, []
-                        | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables)
+                        | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysPresent ->
                         TL "handleChild_14" (fun () -> 
                         if lm.lg.usesWrappedOptional then
-                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables
+                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         else
                             match codec with
                             | CommonTypes.Encode -> Some childContent.funcBody, childContent.localVariables
-                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables)
+                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some (Asn1AcnAst.Optional opt) ->
                         TL "handleChild_15" (fun () ->
                         match opt.defaultValue with
-                        | None -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef codec), childContent.localVariables
+                        | None -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         | Some v ->
                             let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
-                            Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit codec), childContent.localVariables)
+                            Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit isPrimitiveType codec), childContent.localVariables)
                 TL "handleChild_16" (fun () ->                 
                 {
                     stmt = Some {
@@ -884,6 +889,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with
@@ -956,7 +962,11 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                             let toc = ToC str
                             toc, Some toc
                         | _ -> str, None)
-                    let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
+                    let funcBodyContent = TL "UPER_REF_05" (fun () -> 
+                        match p.accessPath.steps with
+                        | [] -> callSuperclassFunc lm pp baseFncName codec
+                        | _ -> callBaseTypeFunc lm pp baseFncName codec
+                    )
                     let funcBodyContent = funcBodyContent
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 //| None -> None

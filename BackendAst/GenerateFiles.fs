@@ -408,6 +408,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         Some (owningTasKey, typ)
                     | _ -> None
                 )
+                // // Full type definitions are always the last elements, so we need to group them by their keys and then take the last element
+                |> List.groupBy (fun (tasKey, typ) -> (tasKey, typ.id.AsString))
+                |> List.map (fun (tasKey, items) -> items |> List.last)
                 |> List.groupBy fst
                 |> List.map (fun (tasKey, items) -> (tasKey, items |> List.map snd))
                 |> Map.ofList

@@ -754,7 +754,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
             | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
         | None -> None, None
-    let funcBodyOrig = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass uperFunc.funcBody_e  sAsn1Constraints t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure typeName (soMapFunc, soMapFunMod) "cls"
+    let funcBodyOrig = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass uperFunc.funcBody_e  sAsn1Constraints t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure typeName (soMapFunc, soMapFunMod) typeName
     let funcBody (errCode: ErrorCode)
                  (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)
                  (nestingScope: NestingScope)
@@ -1832,8 +1832,17 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                     | PresenceStr   (_, strVal) ->
                         let arrNulls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                        let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
-                        choiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls)
+                        // For Python, use bytes without null terminator; for other languages, include it
+                        let bytesStr =
+                            if ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                System.Text.Encoding.ASCII.GetBytes strVal.Value
+                            else
+                                Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
+                        let childTypeName =
+                            match child.Type with
+                            | AcnReferenceToIA5String t -> lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.str.definitionOrRef)
+                            | _ -> ""  // For other types, use empty string (shouldn't happen for string presence)
+                        choiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls childTypeName)
             let updateStatement = choiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
@@ -2311,6 +2320,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                                     | _ ->
                                                         // For other uses, use the enum value
                                                         $"%s{varName}.val"
+                                                | AcnReferenceToIA5String _ ->
+                                                    // For string types in decode, use the instance_ prefix
+                                                    $"instance_%s{varName}"
                                                 | _ -> varName
                                             | _ -> varName
                                         Some $"%s{targetParamName}=%s{valueExpr}"
@@ -2870,7 +2882,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                 let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
 
-                let childContent_funcBody = lm.lg.adaptAcnFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef
+                let childContent_funcBody = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef
                 match child.Optionality with
                 | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
                 | Some (ChoiceAlwaysPresent)
@@ -2918,7 +2930,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                         | _     -> None) |> Seq.head
                                 let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
                                 let arrNulls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                                let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
+                                // For Python, don't include null terminator in comparison (it matches the encoded bytes without it)
+                                let bytesStr =
+                                    if ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                        System.Text.Encoding.ASCII.GetBytes strVal.Value
+                                    else
+                                        Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p

@@ -8,7 +8,11 @@ super().encode(codec, check_constraints)
 >>
 call_superclass_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13_2
-<p> = <sFuncName>(codec, check_constraints)
+instance_decode = <sFuncName>(codec, check_constraints)
+if isinstance(instance_decode, tuple):
+    <p>, superclass_acn_children = instance_decode
+else:
+    <p> = instance_decode
 >>
 
 call_base_type_func_encode(p, sFuncName) ::= <<
@@ -29,51 +33,52 @@ else:
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-    # uper_python.stg 26
-    <sErrCode>: ErrorCode = <nErrValue>
-    # TODO: Remove old Scala Code (uper_python.stg):
-    # @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>
+# uper_python.stg 26
+<sErrCode> = <nErrValue>
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<if(arrsErrcodes)>
 # uper_python.stg 33
-<arrsErrcodes:{x|<x>}; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
-<sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+class EncodeConstants:
+    <arrsErrcodes:{x|<x>}; separator="\n">
+    <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
+    <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+<endif>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # uper_python.stg 40
 
-def <sFuncName>(<sVarName>: <sTypeDefName>, codec: UPER, check_constraints: bool = True):
+def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> None:
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
-        res = <sVarName>.<soIValidFuncName>()
+        res = self.<soIValidFuncName>()
         if not res:
-            # uper_python.stg 49
-            return res
-    # @ghost val oldCdc = snapshot(codec)
-    <sContent>
-    <else>
-    <sContent>
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
     <endif>
-    # uper_python.stg 56
-    return 0
+
+    <sContent>
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<if(arrsErrcodes)>
 # uper_python.stg 61
-<arrsErrcodes:{x|<x>}; separator="\n">
+class DecodeConstants:
+    <arrsErrcodes:{x|<x>}; separator="\n">
+<endif>
+
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefName>, Asn1SccError]: # uper:58
+@classmethod
+def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
+    # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
-    # @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>
@@ -81,28 +86,33 @@ def <sFuncName>(codec: UPER, check_constraints: bool = True): Union[<sTypeDefNam
         res = <sVarName>.<soIValidFuncName>()
         if not res:
             # uper_python.stg 75
-            return res
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
     <endif>
     return <sVarName>
+>>
 
-# @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
-def <sFuncName>_pure(codec: UPER, check_constraints: bool = True): (UPER, Union[<sTypeDefName>, Asn1SccError]):
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
-    cpy = codec.copy()
-    res = <sFuncName>(cpy, check_constraints)
-    # uper_python.stg 90
-    return cpy, res
+CheckEncodeResult(sInp, sErrCode) /*nogen*/ ::= <<
+# uper_python.stg 434343
+if not <sInp>:
+    raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {<sInp>.error_message}")
+>>
+
+CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
+# uper_python.stg 424242
+if not <sInp>:
+    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+<p> = <sType>(<sInp>.decoded_value)
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
 # uper_python.stg 95
-if not codec.append_byte(<p><sAcc>arr(<i>)):
+if not codec.append_byte(<p><sAcc>arr[<i>]):
     print("appendByte failed: not enough space for 1 byte")
 >>
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 # uper_python.stg 101
-if not codec.read_byte(<p><sAcc>arr(<i>)):
+if not codec.read_byte(<p><sAcc>arr[<i>]):
     # uper_python.stg 103
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
 >>
@@ -377,31 +387,35 @@ if not decoded_result:
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
-# uper_python.stg 296
-case <sName>:
+if <p> == <sName>:
+    # uper_python.stg 296
     res = codec.encode_constrained_whole_number(<nIndex>, 0, <nLastItemIndex>)
     if not res:
-        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+        raise Asn1Exception(f"Encoding Exception: {res.error_message}")
 >>
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
 # uper_python.stg 301
-case <nIndex>: <sName>
+if <p>_int == <nIndex>:
+    <p>_val = <sName>
 >>
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # uper_python.stg 306
-match <p>: # uper:270
-    <arrsItem; separator="\n">
+<arrsItem; separator="\nel">
+else:
+    raise Asn1Exception(f"Encoding Exception! No match found for <sChPath>!")
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # uper_python.stg 312
-# TODO: <p> = ?????
-match codec.decode_constrained_whole_number(0, <nLastItemIndex>): # uper:277
-    <arrsItem; separator="\n">
-    case _:
-        # uper_python.stg 317
-        return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of Constrained Whole Number failed: {decoded_result.error_message}")
+<p>_int = int(decoded_result.decoded_value)
+
+<arrsItem; separator="\n">
+
+<p> = <td.typeName>(<p>_val)
 >>
 
 Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
@@ -418,40 +432,32 @@ Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEn
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 # uper_python.stg 333
 if <p>.kind == <sChildID>:
-    res = codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
-    if not res:
-        raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
+    codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
-# uper_python.stg 340
-if <sChoiceIndexName> == <nChildIndex>:
+if <p>_choice_index == <nChildIndex>:
+    # uper_python.stg 340
     <sChildContent>
-    instance = cls(kind=<sChildID>, data=<sChildName>)
+    instance = cls(kind=<sChildID>, data=instance_data)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
 # uper_python.stg 347
-<if(bIntroSnap)>
-# @ghost val codec_0_1 = snapshot(codec)
-<endif>
-
 <arrsChildren: {ch|<ch>}; separator="\n">
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
 # uper_python.stg 357
-<if(bIntroSnap)>
-# @ghost val codec_0_1 = snapshot(codec)
-<endif>
-
-<sChoiceIndexName> = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-<arrsChildren: {ch|<ch>}; separator="\n">
+decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
+if not decoded_result:
+    raise Asn1Exception(f"Decoding of choice index failed: {decoded_result.error_message}")
+<p>_choice_index = int(decoded_result.decoded_value)
+<arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # uper_python.stg 366
-    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
-<p> = instance
+    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: Invalid choice index")
 >>
 
 /* CHOICE END*/
@@ -459,14 +465,15 @@ else:
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 374
-if <p><sAcc><sChName>:
+if <p><sAcc><sChName> is not None:
     codec.append_bit(True)
 else:
     codec.append_bit(False)
 >>
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # uper_python.stg 378
-<soExistVar> = codec.read_bit()
+<soExistVar>_result = codec.read_bit()
+<CheckDecodeResult(p=soExistVar, sInp=soExistVar+"_result", sErrCode=sErrCode, sType="bool")>
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
@@ -479,52 +486,60 @@ sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) :
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, sErrCode=sErrCode)>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 393
-# Encode <sChName> sequence_mandatory_child_encode
+# Encode <sChName>
+<if(bIsPrimitive)>
 <sChildContent>
+<else>
+<p><sAcc><sChName>.encode(codec, check_constraints)
+<endif>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 399
-# Decode <sChName> sequence_mandatory_child_decode
+# Decode <sChName>
+<if(bIsPrimitive)>
 <sChildContent>
-
+<else>
+instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+<endif>
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 406
 # Encode <sChName>
-match <p><sAcc><sChName>:
-    case <sChName>:
-        <sChildContent>
+if <p><sAcc><sChName> is not None:
+    <if(bIsPrimitive)>
+    <sChildContent>
+    <else>
+    self.<sChName>.encode(codec, check_constraints)
+    <endif>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 # uper_python.stg 414
 # Decode <sChName>
 if <soExistVar>:
+    <if(bIsPrimitive)>
     <sChildContent>
-    <p>_<sChName> = <soChildExpr>
+    <else>
+    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)   
+    <endif>
 else:
-    <p>_<sChName> = NullType() # NoneMut[<sChildTypedef>]()
+    <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 # uper_python.stg 425
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent, bIsPrimitive=bIsPrimitive)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 # uper_python.stg 431
-# Decode <sChName>
-if <soExistVar>:
-    <sChildContent>
-    <p>_<sChName> = <soChildExpr>
-else:
-    <p>_<sChName> = <sInitWithDefaultValue>
+<sequence_optional_child_decode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, bIsPrimitive=bIsPrimitive)>
 >>
 
 sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
@@ -537,7 +552,7 @@ sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 # uper_python.stg 453
-for <i> in range(<fixedSize>):
+for <i> in range(int(<fixedSize>)):
     <sInternalItem>
 >>
 
@@ -557,7 +572,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 # uper_python.stg 473
 <p>_arr = [0] * <nFixedSize>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
-<p> = cls(<p>_arr)
+<p> = <sTasName>(<p>_arr)
 >>
 
 
@@ -603,14 +618,10 @@ seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 # uper_python.stg 510
-<if(bIntroSnap)>
-# @ghost val codec_0_1 = snapshot(codec)
-<endif>
-
 res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if not res:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=p+sAcc+"nCount")>
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
@@ -619,9 +630,12 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-<p>_nCount = int(codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>))
+decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+<CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
 
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<p>_arr = [None] * <p>_nCount
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=p+"_nCount")>
+<p> = <sTasName>(<p>_nCount, <p>_arr)
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
@@ -1107,7 +1121,6 @@ if ret:
 
 update_array_item(p, sI, sExpr) ::= <<
 # uper_python.stg 960
-<p>.arr(<sI>) = freshCopy(<sExpr>) # TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
 >>
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<

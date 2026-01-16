@@ -1080,7 +1080,7 @@ case <sChildNamePresent>:
     break;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
 case <sChildNamePresent>:
     <v>_is_initialized = TRUE;
 		strcpy(<v>, "<sChildRetVal>");

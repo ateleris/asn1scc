@@ -226,7 +226,6 @@ type LangGeneric_python() =
                 ) fold (List.indexed sel.steps)
     
     override _.asSelectionIdentifier (sel: AccessPath) =
-        let receiverPrefix = if isClassVariable sel.rootId then "self." else ""
         let fold =
             List.fold (fun str (ix, accessor) ->
                     let accStr =
@@ -236,7 +235,7 @@ type LangGeneric_python() =
                         | _ -> ""
                        
                     $"{str}{accStr}"
-                ) (receiverPrefix + sel.rootId) (List.indexed sel.steps)
+                ) sel.rootId (List.indexed sel.steps)
         
         if sel.steps.IsEmpty then
             fold
@@ -276,6 +275,9 @@ type LangGeneric_python() =
         (sel.appendSelection "arr" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
     override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
+        // For Python, use the original name without the type prefix
+        let itemName = ToC nm.Name.Value
+
         let itemname =
             match defOrRef with
             | Some (TypeDefinition td) ->
@@ -283,23 +285,25 @@ type LangGeneric_python() =
                 match td.baseType with
                 | Some bt when bt.programUnit.IsSome && bt.programUnit.Value <> "" ->
                     // Add module prefix: Module.TypeName_Enum.item
-                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + ToC nm.python_name
+                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + itemName
                 | _ ->
                     // No module prefix needed
-                    td.typedefName + "_Enum." + ToC nm.python_name
+                    td.typedefName + "_Enum." + itemName
             | Some (ReferenceToExistingDefinition rted) ->
                 // For ReferenceToExistingDefinition, check if it has programUnit
                 match rted.programUnit with
                 | Some pu when pu <> "" ->
                     // Add module prefix: Module.TypeName_Enum.item
-                    pu + "." + rted.typedefName + "_Enum." + ToC nm.python_name
+                    pu + "." + rted.typedefName + "_Enum." + itemName
                 | _ ->
                     // No module prefix needed
-                    rted.typedefName + "_Enum." + ToC nm.python_name
-            | _ -> ToC nm.python_name
+                    rted.typedefName + "_Enum." + itemName
+            | _ -> itemName
         itemname
 
-    override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem) = nm.python_name
+    override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem) =
+        // For Python, use the original name without the type prefix
+        ToC nm.Name.Value
     override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
         {nm with python_name = newValue}
 
@@ -370,31 +374,8 @@ type LangGeneric_python() =
             let child = asn1Children.[i]
             let childName = this.getAsn1ChildBackendName child
 
-            // Look at all ACN children in the current sequence
-            for acnChild in acnChildren do
-                // Check if any *sibling* Asn1 child (subsequent child) has a dependency on this ACN child
-                for j in (i+1) .. asn1Children.Length - 1 do
-                    let siblingChild = asn1Children.[j]
-
-                    // Find dependencies where the sibling depends on this ACN child
-                    let hasDependency =
-                        deps.acnDependencies
-                        |> List.exists (fun d ->
-                            d.asn1Type = siblingChild.Type.id &&
-                            match d.determinant with
-                            | AcnChildDeterminant acnCh when acnCh.id = acnChild.id -> true
-                            | _ -> false
-                        )
-
-                    if hasDependency then
-                        // This ASN.1 child needs to return this ACN child
-                        if not (result.ContainsKey(childName)) then
-                            result.[childName] <- ResizeArray()
-                        if not (result.[childName] |> Seq.exists (fun (_, ac) -> ac.id = acnChild.id)) then
-                            result.[childName].Add((acnChild.c_name, acnChild))
-
-            // Also check ACN children INSIDE this child if it's a SEQUENCE
-            // This handles deep field access where a later sibling depends on an ACN child nested inside this child sequence
+            // ONLY process if child is a SEQUENCE type
+            // Don't process other types like Enums, Integers, etc.
             let childActualType =
                 match child.Type.Kind with
                 | ReferenceType refType -> refType.resolvedType
@@ -485,7 +466,16 @@ type LangGeneric_python() =
                 acnChildrenEncoded
                 |> List.rev  // Reverse to get original order
                 |> List.map (fun (varName, acnCh) ->
-                    $"'%s{acnCh.c_name}': %s{varName}"
+                    // In decode mode, complex types like AcnReferenceToIA5String have 'instance_' prefix
+                    // But primitive types like integers don't
+                    let actualVarName =
+                        if codec = Decode then
+                            match acnCh.Type with
+                            | Asn1AcnAst.AcnReferenceToIA5String _ -> $"instance_%s{varName}"
+                            | _ -> varName
+                        else
+                            varName
+                    $"'%s{acnCh.c_name}': %s{actualVarName}"
                 )
                 |> String.concat ", "
 
@@ -772,7 +762,7 @@ type LangGeneric_python() =
             | None    -> ref.typedefName
     
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
-        if tdr.programUnit = currentModule
+        if tdr.programUnit = ToC currentModule
         then
             tdr.typeName
         else
@@ -941,13 +931,13 @@ type LangGeneric_python() =
     // override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
 
-    override this.adaptAcnFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
+    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
         match childType with
         | Sequence _ | Enumerated _| IA5String _ ->
             match codec with
             | Encode -> u.call_base_type_func "self.data" childTypeDef codec
             | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
-        | _ -> "# " + childType.GetType().ToString() + "\n" + childContent_funcBody
+        | _ -> "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody

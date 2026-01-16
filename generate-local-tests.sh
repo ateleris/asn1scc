@@ -730,16 +730,26 @@ DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
                              
 #TEMPLATE_INFO="-printTemplateInfo"
 TEMPLATE_INFO=""
+#PREFIX="ATELERIS"
+PREFIX=""
 
 echo "Running Asn1SCC Compiler for DEBUG..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
 
 echo "Running Asn1SCC Compiler for ASN1..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 
 
 echo "Running Asn1SCC Compiler for ACN..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/acn" $ASN1_FILES $ACN_FILES
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/acn" $ASN1_FILES $ACN_FILES
 
 echo "Running Asn1SCC Compiler for TestLib..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES
+
+
+echo "Running Asn1SCC Compiler for ASN1..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_uper" $ASN1_FILES 
+
+echo "Running Asn1SCC Compiler for TestLib..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
+
 
