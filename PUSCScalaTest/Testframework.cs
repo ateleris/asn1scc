@@ -136,7 +136,7 @@ namespace PUS_C_Scala_Test
                 // create Scala Files
                 var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
                 Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
-                folders.Append(scalaOutputDir);
+                folders.Add(scalaOutputDir);
             }
 
             if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
@@ -144,21 +144,28 @@ namespace PUS_C_Scala_Test
                 // create C Files
                 var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
                 Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
-                folders.Append(cOutputDir);
+                folders.Add(cOutputDir);
             }
 
             if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
-            { 
+            {
                 // create Python Files
                 var pythonOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
                 Run_Test(service, pythonOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
-                folders.Append(pythonOutputDir);
+                pythonOutputDir = Path.Combine(pythonOutputDir, "output");
+                folders.Add(pythonOutputDir);
             }
 
             if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
             {
                 Assert.IsTrue(folders.Count > 1);
-                CompareTestCases(service, sv, folders[0], folders[1]);
+                for (var i = 0; i < folders.Count; i++)
+                {
+                    for (var j = i + 1; j < folders.Count; j++)
+                    {
+                        CompareTestCases(service, sv, folders[i], folders[j]);
+                    }
+                }
             }
         }
 
@@ -167,15 +174,22 @@ namespace PUS_C_Scala_Test
             var binsA = Directory.GetFiles(folderA, "*.dat").Order().ToArray();
             var binsB = Directory.GetFiles(folderB, "*.dat").Order().ToArray();
 
-            Assert.IsTrue(binsA.Select(Path.GetFileName).SequenceEqual(binsB.Select(Path.GetFileName)), "output did not create the same files");
+            Assert.IsTrue(binsA.Select(Path.GetFileName).SequenceEqual(binsB.Select(Path.GetFileName)), "Output did not create the same number of files");
 
-            for(var i = 0; i<binsA.Length; ++i)
+            List<int> failedTests = [];
+            for (var i = 0; i < binsA.Length; ++i)
             {
                 using var f1 = File.OpenRead(binsA[i]);
                 using var f2 = File.OpenRead(binsB[i]);
                 using var r1 = new BinaryReader(f1);
                 using var r2 = new BinaryReader(f2);
-                Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+
+                // Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+                if (r1.BaseStream.Length != r2.BaseStream.Length)
+                {
+                    failedTests.Add(i);
+                    break;
+                }
 
                 var isSame = true;
                 while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
@@ -183,8 +197,14 @@ namespace PUS_C_Scala_Test
                     isSame &= r1.ReadByte() == r2.ReadByte();
                 }
 
-                Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
+                if (!isSame)
+                {
+                    failedTests.Add(i);
+                }
+                // Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
             }
+            
+            Assert.IsTrue(failedTests.Count == 0, $"Some .dat files not identical! Deviations in: [{string.Join(", ", failedTests)}] - Correct: {binsA.Length - failedTests.Count}/{binsA.Length}");
         }
 
         private struct TestRange
