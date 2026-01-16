@@ -536,9 +536,8 @@ sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChi
 # Decode <sChName>
 if <soExistVar>:
     <sChildContent>
-    <p>_<sChName> = <soChildExpr>
 else:
-    <sInitWithDefaultValue>
+    <p>_<sChName>: Optional[<sChildTypedef>] = None
 >>
 
 sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
