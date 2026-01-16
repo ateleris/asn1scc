@@ -762,7 +762,7 @@ type LangGeneric_python() =
             | None    -> ref.typedefName
     
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
-        if tdr.programUnit = currentModule
+        if tdr.programUnit = ToC currentModule
         then
             tdr.typeName
         else
