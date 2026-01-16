@@ -119,6 +119,66 @@ class Encoder(Codec):
                 error_message=str(e)
             )
         
+    def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
+        """
+        Append multiple bytes to the bitstream.
+
+        Matches Scala: BitStream.appendByteArray(arr: Array[UByte], noOfBytes: Int)
+        Used by: ACN, UPER for octet strings
+
+        Args:
+            data: bytearray to write
+            num_bytes: Number of bytes to write from data
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(Acc(bytearray_pred(data), 1/20))
+        Requires(0 <= num_bytes and num_bytes <= len(data))
+        Requires(self.remaining_bits >= num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(Acc(bytearray_pred(data), 1/20))
+        Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
+        Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
+
+        try:
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+                )
+            
+            bits_encoded = 0
+            i = 0
+            while i < num_bytes:
+                Invariant(self.codec_predicate() and self.write_invariant())
+                Invariant(Acc(bytearray_pred(data), 1/20))
+                Invariant(0 <= i and i <= num_bytes)
+                Invariant(ToByteSeq(data) is Old(ToByteSeq(data)))
+                Invariant(bits_encoded == i * NO_OF_BITS_IN_BYTE)
+                Invariant(self.remaining_bits >= (num_bytes * NO_OF_BITS_IN_BYTE - bits_encoded))
+                Invariant(self.segments == Old(self.segments) + Reveal(segments_from_byteseq_full(ToByteSeq(data).take(i))))
+                Invariant(self.buffer_size == Old(self.buffer_size))
+
+                self.append_byte(data[i])
+                bits_encoded += NO_OF_BITS_IN_BYTE
+                Assert(ToByteSeq(data).take(i + 1).take(i) == ToByteSeq(data).take(i))
+                i += 1
+
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=bits_encoded
+            )
+        
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+        
     def append_bits(self, data: bytearray, num_bits: int) -> EncodeResult:
         """
         Append arbitrary bits from a buffer to the bitstream.
@@ -167,27 +227,15 @@ class Encoder(Codec):
                     error_message=f"num_bits {num_bits} requires {num_bytes} bytes but data has {len(data)} bytes"
                 )
 
-            bits_encoded = 0
-
             # Write complete bytes
             complete_bytes = num_bits // NO_OF_BITS_IN_BYTE
-            i = 0
-            while i < complete_bytes:
-                Invariant(self.codec_predicate() and self.write_invariant())
-                Invariant(Acc(bytearray_pred(data), 1/20))
-                Invariant(0 <= i and i <= complete_bytes)
-                Invariant(ToByteSeq(data) is Old(ToByteSeq(data)))
-                Invariant(bits_encoded == i * NO_OF_BITS_IN_BYTE)
-                Invariant(self.remaining_bits >= (num_bits - bits_encoded))
-                Invariant(self.segments == Old(self.segments) + Reveal(segments_from_byteseq_full(ToByteSeq(data).take(i))))
-                Invariant(self.buffer_size == Old(self.buffer_size))
+            complete_encoded = self.append_byte_array(data, complete_bytes)
+            bits_encoded = complete_encoded.bits_encoded
 
-                self.append_byte(data[i])
-                bits_encoded += NO_OF_BITS_IN_BYTE
-                Assert(ToByteSeq(data).take(i + 1).take(i) == ToByteSeq(data).take(i))
-                i += 1
-
-            Assert(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), complete_bytes * NO_OF_BITS_IN_BYTE))
+            ghost_segments = segments_from_byteseq(ToByteSeq(data), complete_bytes * NO_OF_BITS_IN_BYTE)
+            Assert(self.segments is Old(self.segments) + ghost_segments)
+            Assert(segments_total_length(ghost_segments) == bits_encoded)
+            Assert(self.write_invariant())
 
             # Write remaining bits from partial byte
             remaining_bits = num_bits % NO_OF_BITS_IN_BYTE
@@ -216,7 +264,7 @@ class Encoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-            
+
     def encode_null(self) -> EncodeResult:
         """Encode a NULL value (typically no bits)"""
         return EncodeResult(
@@ -441,43 +489,6 @@ class Encoder(Codec):
     #             bits_encoded=bits_encoded
     #         )
 
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
-    #     """
-    #     Append multiple bytes to the bitstream.
-
-    #     Matches Scala: BitStream.appendByteArray(arr: Array[UByte], noOfBytes: Int)
-    #     Used by: ACN, UPER for octet strings
-
-    #     Args:
-    #         data: bytearray to write
-    #         num_bytes: Number of bytes to write from data
-    #     """
-    #     try:
-    #         if num_bytes > len(data):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
-    #             )
-
-    #         bits_encoded = 0
-    #         for i in range(num_bytes):
-    #             self._bitstream.write_bits(data[i], 8)
-    #             bits_encoded += 8
-
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_encoded
-    #         )
     #     except BitStreamError as e:
     #         return EncodeResult(
     #             success=False,

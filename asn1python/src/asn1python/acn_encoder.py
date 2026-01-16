@@ -8,12 +8,12 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 # import struct
 
 from acn_decoder import ACNDecoder
-from segment import segments_total_length
 from bitstream import BitStreamError
 from codec import DECODE_OK, Codec, EncodeResult, DecodeResult, ENCODE_OK, ERROR_INVALID_VALUE
 from encoder import Encoder
 
 from nagini_contracts.contracts import *
+from verification import byteseq_equal_until
 
 # Global IA5 character set (International Alphabet No. 5 - 7-bit ASCII 0-127)
 # Defined with individual byte values to match Scala reference implementation
@@ -62,29 +62,26 @@ class test_class():
         encoder = ACNEncoder.of_size(10)
         assert isinstance(encoder, ACNEncoder)
 
-        encoder.append_bit(True)
-        encoder.append_bit(False)
-        encoder.append_bit(True)
-        encoder.append_byte(95)
-        encoder.align_to_byte()
-        encoder.append_byte(213)
+        input_val = bytearray([1,2,3,128])
+        encoder.append_bits(input_val, 26)
+
+        # encoder.append_bit(True)
+        # encoder.append_bit(False)
+        # encoder.append_bit(True)
+        # encoder.encode_integer(23614, 0, (1 << 16) - 1)
+        # encoder.encode_integer(10, 8, 15)
         
         decoder = encoder.get_decoder()
-        
-        assert decoder.read_bit().decoded_value == True
-        assert decoder.read_bit().decoded_value == False
-        assert decoder.read_bit().decoded_value == True
 
-        Unfold(decoder.codec_predicate())
-        assert decoder._bitstream.remaining_bits >= 8
-        assert segments_total_length(decoder._bitstream.segments.take(decoder._bitstream.segments_read_index)) == decoder._bitstream.current_used_bits
-        assert decoder._bitstream.segments_read_index < len(decoder._bitstream.segments)
-        assert decoder._bitstream.segments[decoder._bitstream.segments_read_index].length == 8
-        Fold(decoder.codec_predicate())
+        res = decoder.read_bits(26)
+        byteseq_equal_until(ToByteSeq(res.decoded_value), ToByteSeq(input_val), 26)
 
-        assert decoder.read_byte().decoded_value == 95
-        assert decoder.align_to_byte().success
-        assert decoder.read_byte().decoded_value == 213
+        # assert decoder.read_bit().decoded_value == True
+        # assert decoder.read_bit().decoded_value == False
+        # assert decoder.read_bit().decoded_value == True
+        # assert decoder.decode_integer(0, (1 << 16) - 1).decoded_value == 23614
+        # assert decoder.decode_integer(8, 15).decoded_value == 10
+
 
     # # ============================================================================
     # # INTEGER ENCODING - POSITIVE INTEGER

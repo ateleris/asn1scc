@@ -168,9 +168,10 @@ def segment_from_byte(byte: int, length: int) -> Segment:
 @Opaque
 def segments_from_byteseq_full(seq: PByteSeq) -> PSeq[Segment]:
     Decreases(len(seq))
+    Ensures(len(Result()) == len(seq))
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: seg.length == NO_OF_BITS_IN_BYTE))
-    Ensures(len(Result()) == len(seq))
+    Ensures(Forall(int, lambda i: (Implies(0 <= i and i < len(seq), ResultT(PSeq[Segment])[i].value == seq[i]))))
     Ensures(segments_total_length(Result()) == len(seq) * NO_OF_BITS_IN_BYTE)
     
     length = len(seq)
@@ -284,6 +285,7 @@ def segments_to_byteseq_full(segments: PSeq[Segment]) -> PByteSeq:
     Requires(Forall(segments, lambda seg: seg.length <= NO_OF_BITS_IN_BYTE))
     Decreases(len(segments))
     Ensures(len(Result()) == len(segments))
+    Ensures(Forall(int, lambda i: (Implies(0 <= i and i < len(segments), ResultT(PByteSeq)[i] == segments[i].value))))
     
     length = len(segments)
     if length == 0:
