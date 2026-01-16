@@ -502,7 +502,6 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, 
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-
 instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
 <endif>
 >>
@@ -634,7 +633,7 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
 
-<p>_arr = [None] * <p>_nCount # <sChildInitExpr>
+<p>_arr = [None] * <p>_nCount
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=p+"_nCount")>
 <p> = <sTasName>(<p>_nCount, <p>_arr)
 >>

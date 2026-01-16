@@ -525,8 +525,7 @@ Null_declare(p, sType) ::= "<p>: <sType> = <sType>()"
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 # acn_python.stg 387
 <if(arruNullValueAsByteArray)>
-tmp = bytearray([<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
-codec.append_bits(tmp, <nSize>)
+codec.append_bits(bytearray([<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]), <nSize>)
 <endif>
 >>
 
