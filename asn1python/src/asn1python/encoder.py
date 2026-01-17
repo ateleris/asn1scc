@@ -7,7 +7,7 @@ from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_
 
 from decoder import Decoder
 from nagini_contracts.contracts import *
-from verification import byte_read_bits
+from verification import byte_read_bits, MAX_BITOP_LENGTH
 from segment import Segment, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
 
 class Encoder(Codec):
@@ -389,7 +389,7 @@ class Encoder(Codec):
         """
         Requires(self.codec_predicate() and self.write_invariant())
         Requires(min_val <= value and value <= max_val)
-        Requires((max_val - min_val) < (1 << 32))
+        Requires((max_val - min_val) < (1 << MAX_BITOP_LENGTH))
         Requires(self.remaining_bits >= (max_val - min_val).bit_length())
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
@@ -438,217 +438,101 @@ class Encoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+            
+    def encode_unsigned_integer(self, value: int, num_bits: int) -> EncodeResult:
+        """
+        Encode unsigned integer with specified number of bits.
+
+        Matches Scala: Codec.encodeUnsignedInteger(v: ULong)
+        Used by: ACN, UPER, PER for constrained integers
+
+        Args:
+            value: Unsigned integer value
+            num_bits: Number of bits to encode
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(0 <= num_bits and num_bits <= MAX_BITOP_LENGTH)
+        Requires(0 <= value and value < (1 << num_bits))
+        Requires(self.remaining_bits >= num_bits)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(num_bits, value)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(Result().success)
+        Ensures(Result().bits_encoded == num_bits)
         
-    #endregion
+        try:
+            if value < 0:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value must be non-negative, got {value}"
+                )
 
-    # def encode_bit_string(self, value: str,
-    #                      min_length: Optional[int] = None,
-    #                      max_length: Optional[int] = None) -> EncodeResult:
-    #     """Encode a bit string value"""
-    #     try:
-    #         # Validate bit string format
-    #         if not all(c in '01' for c in value):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message="Bit string must contain only '0' and '1'"
-    #             )
+            max_value = (1 << num_bits) - 1
+            if value > max_value:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"Value {value} exceeds maximum {max_value} for {num_bits} bits"
+                )
 
-    #         # Validate length constraints
-    #         if min_length is not None and len(value) < min_length:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Bit string length {len(value)} below minimum {min_length}"
-    #             )
+            Unfold(self.codec_predicate())
+            self._bitstream.write_bits(value, num_bits)
+            Fold(self.codec_predicate())
+            
+            return EncodeResult(
+                success=True,
+                error_code=ENCODE_OK,
+                bits_encoded=num_bits
+            )
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
+            
+    def encode_constrained_pos_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
+        """
+        Encode constrained positive whole number.
 
-    #         if max_length is not None and len(value) > max_length:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
-    #                 error_message=f"Bit string length {len(value)} above maximum {max_length}"
-    #             )
+        Matches Scala: Codec.encodeConstrainedPosWholeNumber(v: ULong, min: ULong, max: ULong)
+        Used by: UPER, PER for constrained non-negative integers
 
-    #         # Encode length if not fixed
-    #         bits_encoded = 0
-    #         if min_length != max_length:
-    #             # Variable length - encode length first
-    #             length_bits = (max_length - 1).bit_length() if max_length else 16
-    #             self._bitstream.write_bits(len(value), length_bits)
-    #             bits_encoded += length_bits
+        Args:
+            value: Value to encode
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(min_val <= value and value <= max_val)
+        Requires((max_val - min_val) < (1 << MAX_BITOP_LENGTH))
+        Requires(self.remaining_bits >= (max_val - min_val).bit_length())
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
-    #         # Encode bit string data
-    #         for bit_char in value:
-    #             self._bitstream.write_bit(bit_char == '1')
-    #             bits_encoded += 1
+    def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
+        """
+        Encode constrained whole number (signed).
 
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=bits_encoded
-    #         )
+        Matches Scala: Codec.encodeConstrainedWholeNumber(v: Long, min: Long, max: Long)
+        Used by: UPER, PER for constrained signed integers
 
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def encode_octet_string_no_length(self, data: bytearray, num_bytes: int) -> EncodeResult:
-    #     """
-    #     Encode octet string without length prefix.
-
-    #     Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
-    #     Matches Scala: BitStream.appendByteArray without length encoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
-
-    #     Args:
-    #         data: bytearray to encode
-    #         num_bytes: Number of bytes to encode from data
-
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         if num_bytes < 0:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes must be non-negative, got {num_bytes}"
-    #             )
-
-    #         if num_bytes > len(data):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
-    #             )
-
-    #         # Check if we're byte-aligned
-    #         if self._bitstream.current_bit_position == 0:
-    #             # Optimized path: byte-aligned, can write directly
-    #             for i in range(num_bytes):
-    #                 self._bitstream.write_bits(data[i], 8)
-    #         else:
-    #             # Not byte-aligned, use append_byte_array which handles bit offset
-    #             result = self.append_byte_array(data, num_bytes)
-    #             return result
-
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=num_bytes * 8
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def encode_octet_string_no_length_vec(self, data: list, num_bytes: int) -> EncodeResult:
-    #     """
-    #     Encode octet string from list/vector without length prefix.
-
-    #     Matches Scala: BitStream.appendByteArrayVec without length encoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
-
-    #     Args:
-    #         data: List of byte values (0-255) to encode
-    #         num_bytes: Number of bytes to encode from data
-
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         if num_bytes > len(data):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
-    #             )
-
-    #         # Convert list to bytes
-    #         byte_data = bytearray(data[:num_bytes])
-    #         return self.encode_octet_string_no_length(byte_data, num_bytes)
-    #     except (ValueError, TypeError) as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=f"Invalid data for octet string: {e}"
-    #         )
-
-    # def encode_unsigned_integer(self, value: int, num_bits: int) -> EncodeResult:
-    #     """
-    #     Encode unsigned integer with specified number of bits.
-
-    #     Matches Scala: Codec.encodeUnsignedInteger(v: ULong)
-    #     Used by: ACN, UPER, PER for constrained integers
-
-    #     Args:
-    #         value: Unsigned integer value
-    #         num_bits: Number of bits to encode
-    #     """
-    #     try:
-    #         if value < 0:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"Value must be non-negative, got {value}"
-    #             )
-
-    #         max_value = (1 << num_bits) - 1
-    #         if value > max_value:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"Value {value} exceeds maximum {max_value} for {num_bits} bits"
-    #             )
-
-    #         self._bitstream.write_bits(value, num_bits)
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=num_bits
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
-
-    # def encode_constrained_pos_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
-    #     """
-    #     Encode constrained positive whole number.
-
-    #     Matches Scala: Codec.encodeConstrainedPosWholeNumber(v: ULong, min: ULong, max: ULong)
-    #     Used by: UPER, PER for constrained non-negative integers
-
-    #     Args:
-    #         value: Value to encode
-    #         min_val: Minimum allowed value
-    #         max_val: Maximum allowed value
-    #     """
-    #     return self.encode_integer(value, min_val=min_val, max_val=max_val)
-
-    # def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
-    #     """
-    #     Encode constrained whole number (signed).
-
-    #     Matches Scala: Codec.encodeConstrainedWholeNumber(v: Long, min: Long, max: Long)
-    #     Used by: UPER, PER for constrained signed integers
-
-    #     Args:
-    #         value: Value to encode
-    #         min_val: Minimum allowed value
-    #         max_val: Maximum allowed value
-    #     """
-    #     return self.encode_integer(value, min_val=min_val, max_val=max_val)
+        Args:
+            value: Value to encode
+            min_val: Minimum allowed value
+            max_val: Maximum allowed value
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(min_val <= value and value <= max_val)
+        Requires((max_val - min_val) < (1 << MAX_BITOP_LENGTH))
+        Requires(self.remaining_bits >= (max_val - min_val).bit_length())
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
     # def encode_semi_constrained_whole_number(self, value: int, min_val: int) -> EncodeResult:
     #     """
@@ -807,7 +691,148 @@ class Encoder(Codec):
     #             error_code=ERROR_INVALID_VALUE,
     #             error_message=str(e)
     #         )
+        
+    #endregion
 
+    # def encode_bit_string(self, value: str,
+    #                      min_length: Optional[int] = None,
+    #                      max_length: Optional[int] = None) -> EncodeResult:
+    #     """Encode a bit string value"""
+    #     try:
+    #         # Validate bit string format
+    #         if not all(c in '01' for c in value):
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_INVALID_VALUE,
+    #                 error_message="Bit string must contain only '0' and '1'"
+    #             )
+
+    #         # Validate length constraints
+    #         if min_length is not None and len(value) < min_length:
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
+    #                 error_message=f"Bit string length {len(value)} below minimum {min_length}"
+    #             )
+
+    #         if max_length is not None and len(value) > max_length:
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_CONSTRAINT_VIOLATION,
+    #                 error_message=f"Bit string length {len(value)} above maximum {max_length}"
+    #             )
+
+    #         # Encode length if not fixed
+    #         bits_encoded = 0
+    #         if min_length != max_length:
+    #             # Variable length - encode length first
+    #             length_bits = (max_length - 1).bit_length() if max_length else 16
+    #             self._bitstream.write_bits(len(value), length_bits)
+    #             bits_encoded += length_bits
+
+    #         # Encode bit string data
+    #         for bit_char in value:
+    #             self._bitstream.write_bit(bit_char == '1')
+    #             bits_encoded += 1
+
+    #         return EncodeResult(
+    #             success=True,
+    #             error_code=ENCODE_OK,
+    #             encoded_data=self._bitstream.get_data_copy(),
+    #             bits_encoded=bits_encoded
+    #         )
+
+    #     except BitStreamError as e:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=str(e)
+    #         )
+
+    # def encode_octet_string_no_length(self, data: bytearray, num_bytes: int) -> EncodeResult:
+    #     """
+    #     Encode octet string without length prefix.
+
+    #     Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
+    #     Matches Scala: BitStream.appendByteArray without length encoding
+    #     Used by: ACN for fixed-size or externally-determined length octet strings
+
+    #     Args:
+    #         data: bytearray to encode
+    #         num_bytes: Number of bytes to encode from data
+
+    #     Returns:
+    #         EncodeResult with success/failure status
+    #     """
+    #     try:
+    #         if num_bytes < 0:
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_INVALID_VALUE,
+    #                 error_message=f"num_bytes must be non-negative, got {num_bytes}"
+    #             )
+
+    #         if num_bytes > len(data):
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_INVALID_VALUE,
+    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+    #             )
+
+    #         # Check if we're byte-aligned
+    #         if self._bitstream.current_bit_position == 0:
+    #             # Optimized path: byte-aligned, can write directly
+    #             for i in range(num_bytes):
+    #                 self._bitstream.write_bits(data[i], 8)
+    #         else:
+    #             # Not byte-aligned, use append_byte_array which handles bit offset
+    #             result = self.append_byte_array(data, num_bytes)
+    #             return result
+
+    #         return EncodeResult(
+    #             success=True,
+    #             error_code=ENCODE_OK,
+    #             encoded_data=self._bitstream.get_data_copy(),
+    #             bits_encoded=num_bytes * 8
+    #         )
+    #     except BitStreamError as e:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=str(e)
+    #         )
+
+    # def encode_octet_string_no_length_vec(self, data: list, num_bytes: int) -> EncodeResult:
+    #     """
+    #     Encode octet string from list/vector without length prefix.
+
+    #     Matches Scala: BitStream.appendByteArrayVec without length encoding
+    #     Used by: ACN for fixed-size or externally-determined length octet strings
+
+    #     Args:
+    #         data: List of byte values (0-255) to encode
+    #         num_bytes: Number of bytes to encode from data
+
+    #     Returns:
+    #         EncodeResult with success/failure status
+    #     """
+    #     try:
+    #         if num_bytes > len(data):
+    #             return EncodeResult(
+    #                 success=False,
+    #                 error_code=ERROR_INVALID_VALUE,
+    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+    #             )
+
+    #         # Convert list to bytes
+    #         byte_data = bytearray(data[:num_bytes])
+    #         return self.encode_octet_string_no_length(byte_data, num_bytes)
+    #     except (ValueError, TypeError) as e:
+    #         return EncodeResult(
+    #             success=False,
+    #             error_code=ERROR_INVALID_VALUE,
+    #             error_message=f"Invalid data for octet string: {e}"
+    #         )
     # def enc_real(self, value: float) -> EncodeResult:
     #     """
     #     Encode real (floating point) value according to ASN.1 PER standard.
