@@ -9,7 +9,7 @@ from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
 
-from asn1_types import Asn1Exception
+from asn1_types import NO_OF_BITS_IN_BYTE, Asn1Exception
 from bitstream import BitStream, BitStreamError
 from segment import Segment
 
@@ -177,7 +177,7 @@ class Codec(ABC):
     @property
     def remaining_bits(self) -> int:
         Requires(Rd(self.codec_predicate()))
-        Ensures(Result() == (self.buffer_size * 8) - self.bit_index)
+        Ensures(Result() == (self.buffer_size * NO_OF_BITS_IN_BYTE) - self.bit_index)
         Unfold(Rd(self.codec_predicate()))
         return self._bitstream.remaining_bits
 

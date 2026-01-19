@@ -22,10 +22,26 @@ class Decoder(Codec):
         Unfold(self.codec_predicate())
         return self._bitstream.segments_read_aligned(bit_count)
 
+    @Pure
+    def has_segments_of_length(self, num_segments: int, length: int) -> bool:
+        Requires(self.codec_predicate())
+        Requires(1 <= length and length <= MAX_BITOP_LENGTH)
+
+        segments = self.segments.drop(self.segments_read_index).take(num_segments)
+
+        return (
+            num_segments >= 0 and
+            num_segments * length <= self.remaining_bits and
+            self.segments_read_index + num_segments <= len(self.segments) and
+            Forall(segments, lambda seg: seg.length == length)
+            # Forall(int, lambda i: (Implies(self.segments_read_index <= i and i < self.segments_read_index + num_segments, 
+            #             self.segments[i].length == length)))
+        )
+
     # TODO, is there a better way to write this?
     # or is this the best approach?
     @Pure
-    def read_has_byte_segments(self, bit_count: PInt) -> bool:
+    def read_has_byte_segments(self, bit_count: int) -> bool:
         Requires(self.codec_predicate())
 
         if bit_count <= 0:
@@ -35,6 +51,7 @@ class Decoder(Codec):
         segments = self.segments.drop(self.segments_read_index).take(byte_count)
 
         return (
+            self.remaining_bits >= bit_count and
             Forall(segments, lambda seg: seg.length <= NO_OF_BITS_IN_BYTE) and
             Exists(PByteSeq, lambda seq: (
                         (len(seq) * NO_OF_BITS_IN_BYTE) >= bit_count and
@@ -67,10 +84,11 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(1))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + 1)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
+        Ensures(isinstance(Result().decoded_value, bool))
         Ensures(Result().decoded_value == bool(Old(self.current_segment().value)))
 
         if self.remaining_bits < 1:
@@ -104,11 +122,12 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
         Ensures(Result().bits_consumed == NO_OF_BITS_IN_BYTE)
+        Ensures(isinstance(Result().decoded_value, int))
         Ensures(Result().decoded_value == Old(self.current_segment().value))
 
         if self.remaining_bits < NO_OF_BITS_IN_BYTE:
@@ -143,15 +162,21 @@ class Decoder(Codec):
             DecodeResult containing bytes
         """
         Requires(self.codec_predicate() and self.read_invariant())
-        Requires(self.read_has_byte_segments(num_bytes * NO_OF_BITS_IN_BYTE)) 
+        Requires(self.has_segments_of_length(num_bytes, NO_OF_BITS_IN_BYTE)) 
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + num_bytes * NO_OF_BITS_IN_BYTE)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + num_bytes)
         Ensures(Result().success)
         Ensures(Result().bits_consumed == num_bytes * NO_OF_BITS_IN_BYTE)
-        # Ensures(isinstance(Result().decoded_value, bytearray))
+        Ensures(isinstance(Result().decoded_value, bytearray))
         Ensures(bytearray_pred(Result().decoded_value))
+        Ensures(len(Result().decoded_value) == num_bytes)
+        Ensures(Forall(int, lambda j: (
+                    Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
+                            self.segments[Old(self.segments_read_index) + j].value))))
+        # Ensures(Forall(int, lambda i: (Implies(0 <= i and i < num_bytes, 
+        #                 Result().decoded_value[i] == self.segments[Old(self.segments_read_index) + i].value))) )
         # Ensures(ToByteSeq(ResultT(DecodeResult[bytearray]).decoded_value) == 
         #         segments_to_byteseq_full(self.segments.drop(Old(self.segments_read_index)).take(num_bytes)))
         try:
@@ -165,21 +190,29 @@ class Decoder(Codec):
             result = bytearray()
             bits_consumed = 0
 
+            ghost_full_segments = self.segments.drop(self.segments_read_index).take(num_bytes)
+
             i = 0
             while i < num_bytes:
                 Invariant(self.codec_predicate() and self.read_invariant())
-                Invariant(self.segments is Old(self.segments))
+                Invariant(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
                 Invariant(Acc(bytearray_pred(result)))
                 Invariant(0 <= i and i <= num_bytes)
                 Invariant(bits_consumed == i * NO_OF_BITS_IN_BYTE)
                 Invariant(self.bit_index == Old(self.bit_index) + bits_consumed)
                 Invariant(self.segments_read_index == Old(self.segments_read_index) + i)
-                Invariant(self.read_has_byte_segments(num_bytes * NO_OF_BITS_IN_BYTE - bits_consumed))
-                Invariant(ToByteSeq(result) == 
-                          Reveal(segments_to_byteseq_full(self.segments.drop(Old(self.segments_read_index)).take(i))))
+                Invariant(self.segments.drop(self.segments_read_index).take(num_bytes - i) == ghost_full_segments.drop(i))
+                Invariant(len(result) == i)
+                Invariant(Forall(int, lambda j: (
+                    Implies(0 <= j and j < i, result[j] == ghost_full_segments[j].value))))
+
+                # Invariant(ToByteSeq(result) == Reveal(segments_to_byteseq_full(ghost_full_segments.take(i))))
+                # Invariant(Forall(int, lambda j: (Implies(0 <= j and j < i, 
+                #         result[j] == self.segments[Old(self.segments_read_index) + j].value))))
 
                 val = self.read_byte()
                 result.append(val.decoded_value)
+                Assert(val.decoded_value == ghost_full_segments[i].value)
                 bits_consumed += val.bits_consumed
                 i += 1
 
@@ -215,7 +248,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_has_byte_segments(num_bits)) 
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + num_bits)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + (num_bits + 7) // NO_OF_BITS_IN_BYTE)
         Ensures(Result().success)
@@ -319,7 +352,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((alignment - self.bit_index) % alignment))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (alignment - Old(self.bit_index)) % alignment)
         Ensures(self.bit_index % alignment == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -368,7 +401,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -390,7 +423,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -412,7 +445,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -448,7 +481,7 @@ class Decoder(Codec):
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
