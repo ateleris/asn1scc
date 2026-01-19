@@ -20,7 +20,8 @@ class Encoder(Codec):
         Ensures(isinstance(Result(), Decoder))
         Ensures(Result().codec_predicate())
         Ensures(Result().index_zero())
-        Ensures(Result().buffer == self.buffer)
+        Ensures(Result().buffer == self.buffer) # TODO is stil doesn't work, 
+        # nagini_translation.lib.util.UnsupportedException: Unsupported type: NoneType for node self.segments
         Ensures(Result().segments == self.segments)
         pass
 

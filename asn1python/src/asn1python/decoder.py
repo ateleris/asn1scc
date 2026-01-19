@@ -4,7 +4,7 @@ from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WO
 from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 
 from nagini_contracts.contracts import *
-from segment import Segment, lemma_segments_byteseq, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
+from segment import Segment, lemma_segments_byteseq, segments_drop, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
 from verification import MAX_BITOP_LENGTH
 
 class Decoder(Codec):
@@ -84,7 +84,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(1))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + 1)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
@@ -122,7 +122,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned(NO_OF_BITS_IN_BYTE))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + NO_OF_BITS_IN_BYTE)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
@@ -171,14 +171,9 @@ class Decoder(Codec):
         Ensures(Result().bits_consumed == num_bytes * NO_OF_BITS_IN_BYTE)
         Ensures(isinstance(Result().decoded_value, bytearray))
         Ensures(bytearray_pred(Result().decoded_value))
-        Ensures(len(Result().decoded_value) == num_bytes)
-        Ensures(Forall(int, lambda j: (
-                    Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
-                            self.segments[Old(self.segments_read_index) + j].value))))
-        # Ensures(Forall(int, lambda i: (Implies(0 <= i and i < num_bytes, 
-        #                 Result().decoded_value[i] == self.segments[Old(self.segments_read_index) + i].value))) )
-        # Ensures(ToByteSeq(ResultT(DecodeResult[bytearray]).decoded_value) == 
-        #         segments_to_byteseq_full(self.segments.drop(Old(self.segments_read_index)).take(num_bytes)))
+        Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == num_bytes)
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
+                            segments_drop(self.segments, (Old(self.segments_read_index)))[j].value))))
         try:
             if self.remaining_bits < num_bytes * NO_OF_BITS_IN_BYTE:
                 return DecodeResult[bytearray](
@@ -206,15 +201,13 @@ class Decoder(Codec):
                 Invariant(Forall(int, lambda j: (
                     Implies(0 <= j and j < i, result[j] == ghost_full_segments[j].value))))
 
-                # Invariant(ToByteSeq(result) == Reveal(segments_to_byteseq_full(ghost_full_segments.take(i))))
-                # Invariant(Forall(int, lambda j: (Implies(0 <= j and j < i, 
-                #         result[j] == self.segments[Old(self.segments_read_index) + j].value))))
-
                 val = self.read_byte()
                 result.append(val.decoded_value)
                 Assert(val.decoded_value == ghost_full_segments[i].value)
                 bits_consumed += val.bits_consumed
                 i += 1
+
+            Assert(self.segments.drop(Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))
 
             return DecodeResult[bytearray](
                 success=True,
@@ -248,7 +241,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_has_byte_segments(num_bits)) 
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + num_bits)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + (num_bits + 7) // NO_OF_BITS_IN_BYTE)
         Ensures(Result().success)
@@ -352,7 +345,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((alignment - self.bit_index) % alignment))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (alignment - Old(self.bit_index)) % alignment)
         Ensures(self.bit_index % alignment == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -401,7 +394,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -423,7 +416,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -445,7 +438,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate() and self.read_invariant())
         Requires(self.read_aligned((NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
@@ -481,7 +474,7 @@ class Decoder(Codec):
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)

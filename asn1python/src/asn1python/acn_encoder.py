@@ -47,7 +47,7 @@ class ACNEncoder(Encoder):
         Ensures(isinstance(Result(), ACNDecoder))
         Ensures(Result().codec_predicate())
         Ensures(Result().index_zero())
-        Ensures(Result().buffer == self.buffer) # TODO why `is` nagini_translation.lib.util.UnsupportedException: Unsupported type: NoneType for node 
+        Ensures(Result().buffer == self.buffer)
         Ensures(Result().segments == self.segments)
         
         instance = ACNDecoder.from_codec(self)
@@ -63,7 +63,7 @@ class test_class():
         assert isinstance(encoder, ACNEncoder)
 
         input_val = bytearray([1,2,3,128])
-        encoder.append_bits(input_val, 26)
+        encoder.append_byte_array(input_val, 2)
 
         # encoder.append_bit(True)
         # encoder.append_bit(False)
@@ -73,8 +73,9 @@ class test_class():
         
         decoder = encoder.get_decoder()
 
-        res = decoder.read_bits(26)
-        byteseq_equal_until(ToByteSeq(res.decoded_value), ToByteSeq(input_val), 26)
+        res = decoder.read_byte_array(2)
+        assert res.decoded_value[0] == 1
+        assert res.decoded_value[1] == 2
 
         # assert decoder.read_bit().decoded_value == True
         # assert decoder.read_bit().decoded_value == False

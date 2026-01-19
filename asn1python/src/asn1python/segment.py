@@ -30,6 +30,18 @@ def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
 
 @Pure
 @Opaque
+def segments_drop(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(0 <= length and length <= len(segments))
+    Decreases(None)
+    Ensures(Result() is segments.drop(length))
+    Ensures(Forall(segments.drop(length), lambda seg: segment_invariant(seg)))
+
+    return segments.drop(length)
+
+
+@Pure
+@Opaque
 def segments_add(segments: PSeq[Segment], length: int, value: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
     Requires(0 <= length and length <= MAX_BITOP_LENGTH)
