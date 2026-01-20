@@ -4,13 +4,14 @@ from typing import Optional, List
 from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
 from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
-
 from decoder import Decoder
+
 from nagini_contracts.contracts import *
 from verification import byte_read_bits, MAX_BITOP_LENGTH
-from segment import Segment, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
+from segment import Segment, segment_from_byte, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
 
 class Encoder(Codec):
+
 
     @abstractmethod
     @ContractOnly
@@ -61,8 +62,8 @@ class Encoder(Codec):
         Requires(self.codec_predicate() and self.write_invariant())
         Requires(self.remaining_bits >= 1)
         Ensures(self.codec_predicate() and self.write_invariant())
-        Ensures(self.segments is Old(self.segments) + PSeq(Segment(1, bit_value)))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(1, bit_value)))
         try:
             Unfold(self.codec_predicate())
             self._bitstream.write_bits(bit_value, 1)
@@ -93,8 +94,8 @@ class Encoder(Codec):
         Requires(self.remaining_bits >= 8)
         Requires(0 <= byte_val and byte_val < 256)
         Ensures(self.codec_predicate() and self.write_invariant())
-        Ensures(self.segments is Old(self.segments) + PSeq(Segment(8, byte_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(8, byte_val)))
         try:
             if not (0 <= byte_val <= 255):
                 return EncodeResult(
@@ -136,10 +137,11 @@ class Encoder(Codec):
         Requires(0 <= num_bytes and num_bytes <= len(data))
         Requires(self.remaining_bits >= num_bytes * NO_OF_BITS_IN_BYTE)
         Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(Acc(bytearray_pred(data), 1/20))
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
         Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
-        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + num_bytes * NO_OF_BITS_IN_BYTE)
         Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
 
         try:
@@ -198,12 +200,9 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(Acc(bytearray_pred(data), 1/20))
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
-        Ensures(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), num_bits))
         Ensures(self.buffer_size == Old(self.buffer_size))
-
-        empty: PSeq[Segment] = PSeq()
-        Assert(self.segments == self.segments + empty) # Required for the Solver
-
+        Ensures(self.segments == Old(self.segments) + segments_from_byteseq(ToByteSeq(data), num_bits))
+        Ensures(ResultT(EncodeResult).bits_encoded == num_bits)
         try:
             if num_bits < 0:
                 return EncodeResult(
@@ -233,21 +232,20 @@ class Encoder(Codec):
             complete_encoded = self.append_byte_array(data, complete_bytes)
             bits_encoded = complete_encoded.bits_encoded
 
-            ghost_segments = segments_from_byteseq(ToByteSeq(data), complete_bytes * NO_OF_BITS_IN_BYTE)
-            Assert(self.segments is Old(self.segments) + ghost_segments)
-            Assert(segments_total_length(ghost_segments) == bits_encoded)
-            Assert(self.write_invariant())
+            Assert(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(complete_bytes)))
+            Assert(self.segments is Old(self.segments) + segments_from_byteseq(ToByteSeq(data), complete_bytes * NO_OF_BITS_IN_BYTE))
 
             # Write remaining bits from partial byte
             remaining_bits = num_bits % NO_OF_BITS_IN_BYTE
+            Assert(self.remaining_bits >= remaining_bits)
             if remaining_bits > 0:
                 # Shift to get only the desired high-order bits
-                shifted_val = data[complete_bytes] >> (NO_OF_BITS_IN_BYTE - remaining_bits)
+                shifted_val = byte_read_bits(data[complete_bytes], 0, remaining_bits)
 
                 Unfold(self.codec_predicate())
                 self._bitstream.write_bits(shifted_val, remaining_bits)
                 Fold(self.codec_predicate())
-                Assert(self.last_segment().value == Reveal(byte_read_bits(data[complete_bytes], 0, remaining_bits)))
+                Assert(self.last_segment() is segment_from_byte(data[complete_bytes], remaining_bits))
                 
                 bits_encoded += remaining_bits
 
@@ -259,7 +257,6 @@ class Encoder(Codec):
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
-            Assert(False)
             return EncodeResult(
                 success=False,
                 error_code=ERROR_INVALID_VALUE,

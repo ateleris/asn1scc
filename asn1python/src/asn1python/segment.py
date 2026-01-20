@@ -183,7 +183,8 @@ def segments_from_byteseq_full(seq: PByteSeq) -> PSeq[Segment]:
     Ensures(len(Result()) == len(seq))
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: seg.length == NO_OF_BITS_IN_BYTE))
-    Ensures(Forall(int, lambda i: (Implies(0 <= i and i < len(seq), ResultT(PSeq[Segment])[i].value == seq[i]))))
+    Ensures(Forall(int, lambda i: (Implies(0 <= i and i < len(seq), 
+                                           Result()[i].value == seq[i]))))
     Ensures(segments_total_length(Result()) == len(seq) * NO_OF_BITS_IN_BYTE)
     
     length = len(seq)
@@ -229,11 +230,16 @@ def segments_from_byteseq(seq: PByteSeq, bit_length: PInt) -> PSeq[Segment]:
     """
     Requires(0 <= bit_length and bit_length <= len(seq) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: seg.length <= NO_OF_BITS_IN_BYTE))
     Ensures(len(Result()) == (bit_length + 7) // NO_OF_BITS_IN_BYTE)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    # Ensures(Result().take(bit_length // NO_OF_BITS_IN_BYTE) is 
+    #         segments_from_byteseq_full(seq.take(bit_length // NO_OF_BITS_IN_BYTE)))
     Ensures(segments_total_length(Result()) == bit_length)
     
+    if bit_length == 0:
+        empty: PSeq[Segment] = PSeq()
+        return empty
+
     full_bytes = bit_length // NO_OF_BITS_IN_BYTE
     full = segments_from_byteseq_full(seq.take(full_bytes))
     Assert(segments_total_length(full) == bit_length - (bit_length % NO_OF_BITS_IN_BYTE))

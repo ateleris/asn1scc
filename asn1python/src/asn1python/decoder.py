@@ -173,7 +173,7 @@ class Decoder(Codec):
         Ensures(bytearray_pred(Result().decoded_value))
         Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == num_bytes)
         Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
-                            segments_drop(self.segments, (Old(self.segments_read_index)))[j].value))))
+                            self.segments.drop(Old(self.segments_read_index))[j].value))))
         try:
             if self.remaining_bits < num_bytes * NO_OF_BITS_IN_BYTE:
                 return DecodeResult[bytearray](
@@ -245,13 +245,16 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + num_bits)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + (num_bits + 7) // NO_OF_BITS_IN_BYTE)
         Ensures(Result().success)
+        Ensures(Result().bits_consumed ==num_bits)
         Ensures(isinstance(Result().decoded_value, bytearray))
         Ensures(bytearray_pred(Result().decoded_value))
-        # Ensures(ToByteSeq(ResultT(DecodeResult[bytearray]).decoded_value) == 
-        #         segments_to_byteseq(self.segments.drop(Old(self.segments_read_index)).take((num_bits + 7) // NO_OF_BITS_IN_BYTE), num_bits))
+        Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == (num_bits + 7) // NO_OF_BITS_IN_BYTE)
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bits // NO_OF_BITS_IN_BYTE, Result().decoded_value[j] == 
+                            self.segments.drop(Old(self.segments_read_index))[j].value))))
+        Ensures(Implies(num_bits % NO_OF_BITS_IN_BYTE > 0, Result().decoded_value[num_bits // NO_OF_BITS_IN_BYTE] ==
+                        self.segments[self.segments_read_index - 1].value << (NO_OF_BITS_IN_BYTE - (num_bits % NO_OF_BITS_IN_BYTE))))
         try:
             if num_bits < 0:
-                Assert(False)
                 return DecodeResult[bytearray](
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -259,7 +262,6 @@ class Decoder(Codec):
                 )
 
             if num_bits == 0:
-                Assume(False)
                 return DecodeResult[bytearray](
                     success=True,
                     error_code=DECODE_OK,
@@ -268,7 +270,6 @@ class Decoder(Codec):
                 )
 
             if self.remaining_bits < num_bits:
-                Assert(False)
                 return DecodeResult[bytearray](
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -276,42 +277,22 @@ class Decoder(Codec):
                 )
 
             # Calculate required buffer size
-            num_bytes = (num_bits + 7) // NO_OF_BITS_IN_BYTE
-            result = bytearray(num_bytes)
-            bits_consumed = 0
-
-            ghost_segments = self.segments.drop(self.segments_read_index).take(num_bytes)
-
-            # Read complete bytes
             complete_bytes = num_bits // NO_OF_BITS_IN_BYTE
-            i = 0
-            while i < complete_bytes:
-                Invariant(self.codec_predicate() and self.read_invariant())
-                Invariant(self.segments is Old(self.segments))
-                Invariant(Acc(bytearray_pred(result)))
-                Invariant(0 <= i and i <= complete_bytes)
-                Invariant(bits_consumed == i * NO_OF_BITS_IN_BYTE)
-                Invariant(self.bit_index == Old(self.bit_index) + bits_consumed)
-                Invariant(self.segments_read_index == Old(self.segments_read_index) + i)
-                Invariant(self.read_has_byte_segments(num_bits - bits_consumed))
-                Invariant(ToByteSeq(result).take(i) == Reveal(segments_to_byteseq_full(ghost_segments.take(i))))
-                
-                read = self.read_byte()
-                assert read.success and isinstance(read.decoded_value, int)
-                result[i] = read.decoded_value
-                
-                bits_consumed += NO_OF_BITS_IN_BYTE
-                i += 1
+            complete_decode = self.read_byte_array(complete_bytes)
+            result: bytearray = complete_decode.decoded_value
+            bits_consumed = complete_decode.bits_consumed
 
-            Assert(ToByteSeq(result).take(complete_bytes) == segments_to_byteseq(ghost_segments, complete_bytes * NO_OF_BITS_IN_BYTE))
+            Assert(self.segments.drop(Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))
 
             # Read remaining bits into partial byte
-            remaining_bits = num_bits % 8
+            remaining_bits = num_bits % NO_OF_BITS_IN_BYTE
             if remaining_bits > 0:
                 # Read the remaining bits
+                Unfold(self.codec_predicate())
                 partial_byte = self._bitstream.read_bits(remaining_bits)
+                Fold(self.codec_predicate())
                 # Shift to align to MSB (high-order bits)
-                result[complete_bytes] = partial_byte << (8 - remaining_bits)
+                result.append(partial_byte << (NO_OF_BITS_IN_BYTE - remaining_bits))
                 bits_consumed += remaining_bits
 
             return DecodeResult[bytearray](

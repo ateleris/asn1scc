@@ -9,11 +9,10 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 
 from acn_decoder import ACNDecoder
 from bitstream import BitStreamError
-from codec import DECODE_OK, Codec, EncodeResult, DecodeResult, ENCODE_OK, ERROR_INVALID_VALUE
+from codec import DECODE_OK, EncodeResult, DecodeResult, ENCODE_OK, ERROR_INVALID_VALUE
 from encoder import Encoder
 
 from nagini_contracts.contracts import *
-from verification import byteseq_equal_until
 
 # Global IA5 character set (International Alphabet No. 5 - 7-bit ASCII 0-127)
 # Defined with individual byte values to match Scala reference implementation
@@ -62,26 +61,26 @@ class test_class():
         encoder = ACNEncoder.of_size(10)
         assert isinstance(encoder, ACNEncoder)
 
+        encoder.append_bit(True)
         input_val = bytearray([1,2,3,128])
-        encoder.append_byte_array(input_val, 2)
+        encoder.append_byte_array(input_val, 4)
 
-        # encoder.append_bit(True)
-        # encoder.append_bit(False)
-        # encoder.append_bit(True)
-        # encoder.encode_integer(23614, 0, (1 << 16) - 1)
-        # encoder.encode_integer(10, 8, 15)
+        input_bits = bytearray([187, 255])
+        encoder.append_bits(input_bits, 15)
+
         
         decoder = encoder.get_decoder()
 
-        res = decoder.read_byte_array(2)
+        assert decoder.read_bit().decoded_value == True
+        res = decoder.read_byte_array(4)
         assert res.decoded_value[0] == 1
         assert res.decoded_value[1] == 2
+        assert res.decoded_value[2] == 3
+        assert res.decoded_value[3] == 128
 
-        # assert decoder.read_bit().decoded_value == True
-        # assert decoder.read_bit().decoded_value == False
-        # assert decoder.read_bit().decoded_value == True
-        # assert decoder.decode_integer(0, (1 << 16) - 1).decoded_value == 23614
-        # assert decoder.decode_integer(8, 15).decoded_value == 10
+        res_bits = decoder.read_bits(15)
+        assert res_bits.decoded_value[0] == 187
+        assert res_bits.decoded_value[1] == 254
 
 
     # # ============================================================================
