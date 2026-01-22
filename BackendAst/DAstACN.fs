@@ -123,12 +123,12 @@ let getAlignmentString (al: AcnAlignment) =
     | AcnGenericTypes.NextWord ->
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> "Short", 16I
-        | Python -> "word", 8I
+        | Python -> "word", 16I
         | _ -> "NextWord", 16I
     | AcnGenericTypes.NextDWord ->
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> "Int", 32I
-        | Python -> "dword", 8I
+        | Python -> "dword", 32I
         | _ -> "NextDWord", 32I
 
 let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
@@ -141,12 +141,15 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
     | None      -> funcBody
     | Some al   ->
         let alStr, nAlignmentVal = getAlignmentString al
+        printfn "[DEBUG] handleAlignmentForAsn1Types: alStr=%s nAlignmentVal=%A codec=%A" alStr nAlignmentVal codec
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =
                 match content with
                 | Some bodyResult   ->
+                    printfn "[DEBUG] handleAlignmentForAsn1Types: Applying alignment, bodyResult.funcBody length=%d" bodyResult.funcBody.Length
                     let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
+                    printfn "[DEBUG] handleAlignmentForAsn1Types: After alignToNext, funcBodyStr length=%d" funcBodyStr.Length
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
@@ -2379,6 +2382,24 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Some chFunc -> chFunc.funcBodyAsSeqComp ns0 [] childNestingScope childP childName bitStreamPositionsLocalVar
                     | None -> None, ns0
 
+                // // Inject field-level alignment if it exists
+                // let childContentResult =
+                //     match child.Type.acnAlignment with
+                //     | None -> childContentResult
+                //     | Some acnAlign ->
+                //         match childContentResult with
+                //         | None -> childContentResult
+                //         | Some result ->
+                //             // Generate alignment code
+                //             let alStr, nAlignmentVal = getAlignmentString acnAlign
+                //             let alignmentCode = lm.acn.alignToNext "" alStr nAlignmentVal childNestingScope.acnOffset (childNestingScope.acnOuterMaxSize - childNestingScope.acnOffset) (childNestingScope.nestingLevel - 1I) childNestingScope.nestingIx childNestingScope.acnRelativeOffset codec
+                //             let alignmentLines = alignmentCode.Split('\n') |> Array.toList
+                //             printfn "[DEBUG] Injecting alignment for field %s (lines=%d): %s" childName alignmentLines.Length (if alignmentLines.Length > 0 then alignmentLines.[0] else "")
+                //             if alignmentLines.Length > 1 then
+                //                 for i in 1..min 3 (alignmentLines.Length-1) do
+                //                     printfn "       [%d] %s" i alignmentLines.[i]
+                //             Some {result with funcBody = alignmentCode + "\n" + result.funcBody}
+
                 //handle present-when acn property
                 let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
                     match child.Optionality with
@@ -2430,7 +2451,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         match child.Optionality with
                         | Some Asn1AcnAst.AlwaysPresent     ->
                             let childBody (p: CodegenScope) (existVar: string option): string =
-                                sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement true acnParamsForTemplate childHasAcnChildrenToReturn codec
+                                sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement true acnParamsForTemplate childHasAcnChildrenToReturn None codec
                             Some childBody, [], [], [], childResultExpr, [], ns2
                         | _ -> None, [], [], [], childResultExpr, [], ns2
                     | Some childContent ->
@@ -2439,23 +2460,34 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
                             | _ -> false
 
+                        // Calculate field-level alignment code separately (only for non-primitives)
+                        let alignmentCodeForTemplate =
+                            if isPrimitiveType then None
+                            else
+                                match child.Type.acnAlignment with
+                                | None -> None
+                                | Some acnAlign ->
+                                    let alStr, nAlignmentVal = getAlignmentString acnAlign
+                                    let alignmentCode = lm.acn.alignToNext "" alStr nAlignmentVal childNestingScope.acnOffset (childNestingScope.acnOuterMaxSize - childNestingScope.acnOffset) (childNestingScope.nestingLevel - 1I) childNestingScope.nestingIx childNestingScope.acnRelativeOffset codec
+                                    Some alignmentCode
+
                         let childBody (p: CodegenScope) (existVar: string option): string =
                             match child.Optionality with
                             | None ->
-                                sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
+                                sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn alignmentCodeForTemplate codec
                             | Some Asn1AcnAst.AlwaysAbsent ->
                                 sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
                             | Some Asn1AcnAst.AlwaysPresent ->
-                                sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName (Some childContent.funcBody) childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
+                                sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName (Some childContent.funcBody) childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn alignmentCodeForTemplate codec
                             | Some (Asn1AcnAst.Optional opt)   ->
                                 assert (codec = Encode || existVar.IsSome)
                                 let pp, _ = joinedOrAsIdentifier lm codec p
                                 match opt.defaultValue with
                                 | None ->
-                                    sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn codec
+                                    sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate childHasAcnChildrenToReturn alignmentCodeForTemplate codec
                                 | Some v ->
                                     let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
-                                    sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType childHasAcnChildrenToReturn codec
+                                    sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType childHasAcnChildrenToReturn alignmentCodeForTemplate codec
                         let lvs =
                             match child.Optionality with
                             | Some Asn1AcnAst.AlwaysAbsent -> []
@@ -2560,7 +2592,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate false codec)
+                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType acnParamsForTemplate false None codec)
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
@@ -2569,7 +2601,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false codec)
+                            let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
                             Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
@@ -2992,6 +3024,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (acnPrms:DastAcnParameter list) (us:State)  =
+  printfn "[DEBUG] createReferenceFunction: t.id=%s t.acnAlignment=%A codec=%A" (t.id.AsString) t.acnAlignment codec
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
   //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
@@ -3051,9 +3084,12 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
   match o.encodingOptions with
   | None          ->
-      match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+      // Check if we need to avoid the fast path due to alignment
+      let shouldUseSlowPath = t.acnAlignment.IsSome
+      match o.hasExtraConstrainsOrChildrenOrAcnArgs && not shouldUseSlowPath with
       | true  ->
           // TODO: this is where stuff gets inlined
+          printfn "[DEBUG] createReferenceFunction: FAST PATH for %s (no alignment)" (t.id.AsString)
           TL "ACN_REF_01" (fun () ->
           match codec with
             | Codec.Encode  -> baseType.getAcnFunction codec, us
@@ -3072,6 +3108,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
                 TL "ACN_REF_02" (fun () ->
+                printfn "[DEBUG] createReferenceFunction funcBody: t.id=%s, calling createAcnFunction with acnAlignment=%A" (t.id.AsString) t.acnAlignment
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.accessPath codec
                     match codec, lm.lg.decodingKind with
@@ -3095,11 +3132,12 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         //match List.rev t.referencedBy with
                         //| [] -> {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
                         //| hd::_ -> {Caller.typeId = {TypeAssignmentInfo.modName = hd.modName; tasName=hd.tasName}; funcType=AcnEncDecFunctionType}
-                        
+
                     let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
                     addFunctionCallToState us caller callee
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
+            printfn "[DEBUG] createReferenceFunction: calling createAcnFunction for %s with acnAlignment=%A" (t.id.AsString) t.acnAlignment
             let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] acnPrms ns
             Some a, ns
 
