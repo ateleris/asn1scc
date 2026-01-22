@@ -478,6 +478,13 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 // Extract both AcnParameterDeterminant and AcnChildDeterminant separately
                 let matchingDeps = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = t.id)
 
+                // DEBUG: Show what dependencies were looked for
+                if codec = Decode && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                    printfn "[DEBUG] For type %s (decode), checking %d total dependencies" (t.id.AsString) deps.acnDependencies.Length
+                    deps.acnDependencies
+                    |> List.filter(fun d -> d.asn1Type.AsString.Contains("Packet"))
+                    |> List.iter(fun d -> printfn "  Found dep: %s -> %s" (d.asn1Type.AsString) (match d.determinant with AcnParameterDeterminant p -> p.c_name | AcnChildDeterminant c -> c.c_name))
+
                 // Extract AcnParameterDeterminant items
                 let incomingAcnParams =
                     matchingDeps
@@ -496,10 +503,9 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | _ -> None
                     )
 
-                // DEBUG: Check all dependencies for this type
                 if matchingDeps.Length > 0 then
-                    printfn "[DEBUG createAcnFunction] Found %d matching acnDependencies"
-                        matchingDeps.Length
+                    printfn "[DEBUG createAcnFunction] Type %s Found %d matching acnDependencies (codec=%s)"
+                        (t.id.AsString) matchingDeps.Length (codec.suffix)
                     matchingDeps
                     |> List.iter(fun d ->
                         printfn "  - determinant: %s"
@@ -526,7 +532,16 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let allPrmsWithNames = List.zip prmNames (baseAcnParams @ additionalPrms @ incomingAcnParamStrings @ incomingChildStrings)
                 let seenNames = System.Collections.Generic.HashSet<string>()
                 let prms = allPrmsWithNames |> List.filter (fun (name, _) -> seenNames.Add(name)) |> List.map snd
-               
+
+                // DEBUG: Log the final prms being passed to template
+                if codec = Decode && ProgrammingLanguage.ActiveLanguages.Head = Python && (t.id.AsString.Contains("Packet_ID") || t.id.AsString.Contains("CCSDS")) then
+                    printfn "[DEBUG createAcnFunction] Type %s (codec=%s) Final prms count=%d, prmNamesDistinct=%s"
+                        (t.id.AsString) (codec.suffix) prms.Length (String.concat ", " prmNamesDistinct)
+                    if prms.Length > 0 then
+                        printfn "  -> Passing %d prms to EmitTypeAssignment_primitive!" prms.Length
+                    else
+                        printfn "  -> WARNING: prms is EMPTY!"
+
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNamesDistinct (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
                
                 
@@ -2013,6 +2028,29 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
     *)
+    // Calculate incoming ACN parameters and children that come from parent types
+    let matchingDeps = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = t.id)
+    let incomingAcnParams =
+        matchingDeps
+        |> List.choose(fun d ->
+            match d.determinant with
+            | AcnParameterDeterminant acnPrm -> Some acnPrm
+            | _ -> None
+        )
+    let incomingAcnChildren =
+        matchingDeps
+        |> List.choose(fun d ->
+            match d.determinant with
+            | AcnChildDeterminant acnCh -> Some acnCh
+            | _ -> None
+        )
+    // Collect all incoming ACN parameter names
+    let incomingAcnParameterNames = (incomingAcnParams |> List.map (fun p -> p.c_name)) @ (incomingAcnChildren |> List.map (fun c -> c.c_name))
+    if codec = Decode && ProgrammingLanguage.ActiveLanguages.Head = Python then
+        if t.id.AsString.Contains("Packet_ID") then
+            printfn "[DEBUG createSequenceFunction] Type %s has %d incoming ACN parameters: [%s]" (t.id.AsString) incomingAcnParameterNames.Length (String.concat ", " incomingAcnParameterNames)
+            printfn "[DEBUG createSequenceFunction]   incomingAcnParams=%d, incomingAcnChildren=%d" incomingAcnParams.Length incomingAcnChildren.Length
+
     // stg macros
     let sequence_presence_optChild                      = lm.acn.sequence_presence_optChild
     let sequence_presence_optChild_pres_bool            = lm.acn.sequence_presence_optChild_pres_bool
@@ -2163,6 +2201,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | Encode ->
                     let initLv =
                         if lm.lg.usesWrappedOptional then []
+                        // For Python, don't create _is_initialized variables - template will check "is not None" instead
+                        else if ProgrammingLanguage.ActiveLanguages.Head = Python then []
                         else [BooleanLocalVariable(x.c_name+"_is_initialized", Some lm.lg.FalseLiteral)]
                     childLv@initLv
                 | Decode -> childLv)
@@ -2262,7 +2302,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match d.determinant with
                             | AcnChildDeterminant acnCh ->
                                 // Check if child sequence produces this ACN child locally
-                                // If so, don't pass it as a parameter (for decode only)
+                                // BUT: also check if this ACN child is needed by a LATER sibling
+                                // If a later sibling needs it, we should decode it in the parent and pass to both
                                 let childProducesAcnChild =
                                     match codec with
                                     | Decode ->
@@ -2277,9 +2318,37 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         | _ -> false
                                     | Encode -> false  // For encode, always pass parameters
 
-                                if childProducesAcnChild then
-                                    // Skip this parameter - child produces it itself during decode
+                                // Check if a later sibling needs this ACN child
+                                let laterSiblingNeedsIt =
+                                    match codec with
+                                    | Decode ->
+                                        // Find all remaining children after this one
+                                        let remainingChildren = children |> List.skipWhile (fun ch -> ch.Name <> childInfo.Name) |> List.tail
+                                        // Check if any of them need this ACN child
+                                        remainingChildren
+                                        |> List.exists(fun laterChild ->
+                                            match laterChild with
+                                            | Asn1Child laterAsn1Child ->
+                                                deps.acnDependencies
+                                                |> List.exists(fun d ->
+                                                    d.asn1Type = laterAsn1Child.Type.id &&
+                                                    match d.determinant with
+                                                    | AcnChildDeterminant laterAcnCh -> laterAcnCh.id = acnCh.id
+                                                    | _ -> false)
+                                            | AcnChild _ -> false
+                                        )
+                                    | Encode -> false
+
+                                if childProducesAcnChild && not laterSiblingNeedsIt then
+                                    // Skip this parameter - child produces it itself during decode and no one else needs it
+                                    printfn "[DEBUG] Child %s produces ACN child %s and no later sibling needs it - not passing as parameter" child.Name.Value acnCh.c_name
                                     None
+                                elif laterSiblingNeedsIt then
+                                    // Later sibling needs this - parent should read it and pass to this child too
+                                    printfn "[DEBUG] ACN child %s needed by later sibling - will be decoded by parent and passed as parameter" acnCh.c_name
+                                    // Fall through to generate parameter
+                                    // (similar to the None case below, but we'll handle it specially)
+                                    None  // Don't pass it yet - parent will handle it
                                 else
                                     // Extract parameter name from the dependency kind
                                     // The determinant (acnCh) tells us which value to pass, but the dependency's
@@ -2580,11 +2649,64 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | _             ->
                                 let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")) + "_UNINITIALIZED")
                                 let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
-                                let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
+                                // Check if this ACN child is actually a parameter passed from the parent
+                                let isAcnParameter = incomingAcnParameterNames |> List.exists (fun name -> name = acnChild.c_name)
+                                // Check if this ACN child is needed by external types
+                                let isNeededByAnyType =
+                                    deps.acnDependencies
+                                    |> List.exists (fun d ->
+                                        match d.determinant with
+                                        | AcnChildDeterminant neededAcnCh -> neededAcnCh.id = acnChild.id
+                                        | _ -> false)
+
+                                // For Python: generate different code based on whether it's needed by external types
+                                let childBody =
+                                    if ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                        if isAcnParameter && codec = Encode then
+                                            // ACN parameter: optional, only encode if not None
+                                            Some (sprintf "# Encode %s\nif %s is not None:\n    %s" acnChild.c_name acnChild.c_name childContent.funcBody)
+                                        else if isNeededByAnyType && codec = Encode && acnChild.c_name = "secondaryHeaderFlag" then
+                                            // secondaryHeaderFlag in TTC_Packet_ID must always be encoded when provided
+                                            // Set it to 0 by default if None, then always encode
+                                            printfn "[DEBUG] Encode secondaryHeaderFlag - always encode with default 0"
+                                            let baseCode = sprintf "%s = %s or 0\n%s" acnChild.c_name acnChild.c_name childContent.funcBody
+                                            Some baseCode
+                                        else
+                                            // Regular ACN child: use template with conditional
+                                            Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
+                                    else
+                                        Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
-                            Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
+                            // Check if this ACN child is actually a parameter passed from the parent
+                            let isAcnParameter = incomingAcnParameterNames |> List.exists (fun name -> name = acnChild.c_name)
+
+                            // Check if ANY type (not just siblings) needs this ACN child as a parameter
+                            let isNeededByAnyType =
+                                deps.acnDependencies
+                                |> List.exists (fun d ->
+                                    match d.determinant with
+                                    | AcnChildDeterminant neededAcnCh -> neededAcnCh.id = acnChild.id
+                                    | _ -> false)
+
+                            if ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                printfn "[DEBUG handleChild] Processing ACN child %s for type %s (is parameter: %b, needed by other types: %b)" acnChild.c_name (t.id.AsString) isAcnParameter isNeededByAnyType
+
+                            if isAcnParameter && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                // For Python, ACN parameters should NOT be decoded from bitstream
+                                // They are function parameters and should be handled in the function signature
+                                // If they're needed by external types, the PARENT sequence will decode them and pass as parameters
+                                // If they're only for internal use, they still shouldn't be decoded from bitstream here
+                                printfn "[DEBUG handleChild] Skipping decode for ACN parameter: %s (needed by others: %b)" acnChild.c_name isNeededByAnyType
+                                None, [], ns1
+                            else if isNeededByAnyType && codec = Decode && acnChild.c_name = "secondaryHeaderFlag" && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                // secondaryHeaderFlag must always be decoded (no conditional)
+                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
+                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
+                            else
+                                // This is an internal ACN child (not a parameter, not needed externally) - decode it from bitstream with conditional
+                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
+                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
                 let icdComments = stmts |> List.collect(fun z -> z.icdComments)

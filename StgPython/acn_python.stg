@@ -36,7 +36,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
         if not res:
             raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
     <endif>
-    
+
     <sContent>
 >>
 
@@ -991,15 +991,13 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 772
 # Encode <sChName>
-if not <sChName>_is_initialized and <sChName> is None:
-    # todo: is a default value correct?
-    <sChName> = 0  # Default value for ACN inserted field
-<soSaveBitStrmPosStatement>
-<if(bIsPrimitive)>
-<sChildContent>
-<else>
-<sChName>.encode(codec, check_constraints)
-<endif>
+if <sChName> is not None:
+    <soSaveBitStrmPosStatement>
+    <if(bIsPrimitive)>
+    <sChildContent>
+    <else>
+    <sChName>.encode(codec, check_constraints)
+    <endif>
 >>
 
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
@@ -1379,6 +1377,7 @@ else <sDefaultExpr>
 
 if not <arrsLocalCheckEquality; separator=" and ">:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}")
+<v>_is_initialized = True
 >>
 
 // 2025-11-14 ms: checkAccessPath is not really used in python. All update statements (primarily ChoiceDependencyEnum) already check for optionality of the access path
@@ -1401,7 +1400,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 <else>
 <v> = bitStrm.currentByte*8+bitStrm.currentBit
 <endif>
-
+<v>_is_initialized = True
 >>
 
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
