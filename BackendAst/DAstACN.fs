@@ -2665,12 +2665,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         if isAcnParameter && codec = Encode then
                                             // ACN parameter: optional, only encode if not None
                                             Some (sprintf "# Encode %s\nif %s is not None:\n    %s" acnChild.c_name acnChild.c_name childContent.funcBody)
-                                        else if isNeededByAnyType && codec = Encode && acnChild.c_name = "secondaryHeaderFlag" then
-                                            // secondaryHeaderFlag in TTC_Packet_ID must always be encoded when provided
-                                            // Set it to 0 by default if None, then always encode
-                                            printfn "[DEBUG] Encode secondaryHeaderFlag - always encode with default 0"
-                                            let baseCode = sprintf "%s = %s or 0\n%s" acnChild.c_name acnChild.c_name childContent.funcBody
-                                            Some baseCode
+                                        else if isNeededByAnyType && codec = Encode then
+                                            // ACN children needed by external types should always be encoded
+                                            // For all types, set to default (0 or appropriate value) if None
+                                            printfn "[DEBUG] Encode %s (needed externally) - always encode with default 0" acnChild.c_name
+                                            let codeWithDefault = sprintf "%s = %s or 0\n%s" acnChild.c_name acnChild.c_name childContent.funcBody
+                                            Some codeWithDefault
                                         else
                                             // Regular ACN child: use template with conditional
                                             Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
@@ -2699,10 +2699,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 // If they're only for internal use, they still shouldn't be decoded from bitstream here
                                 printfn "[DEBUG handleChild] Skipping decode for ACN parameter: %s (needed by others: %b)" acnChild.c_name isNeededByAnyType
                                 None, [], ns1
-                            else if isNeededByAnyType && codec = Decode && acnChild.c_name = "secondaryHeaderFlag" && ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                // secondaryHeaderFlag must always be decoded (no conditional)
-                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
-                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
                             else
                                 // This is an internal ACN child (not a parameter, not needed externally) - decode it from bitstream with conditional
                                 let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
