@@ -730,8 +730,8 @@ DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
                              
 #TEMPLATE_INFO="-printTemplateInfo"
 TEMPLATE_INFO=""
-#PREFIX="ATELERIS"
-PREFIX=""
+PREFIX="T"
+#PREFIX=""
 
 echo "Running Asn1SCC Compiler for DEBUG..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
