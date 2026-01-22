@@ -2343,12 +2343,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     // Skip this parameter - child produces it itself during decode and no one else needs it
                                     printfn "[DEBUG] Child %s produces ACN child %s and no later sibling needs it - not passing as parameter" child.Name.Value acnCh.c_name
                                     None
-                                elif laterSiblingNeedsIt then
-                                    // Later sibling needs this - parent should read it and pass to this child too
-                                    printfn "[DEBUG] ACN child %s needed by later sibling - will be decoded by parent and passed as parameter" acnCh.c_name
-                                    // Fall through to generate parameter
-                                    // (similar to the None case below, but we'll handle it specially)
-                                    None  // Don't pass it yet - parent will handle it
                                 else
                                     // Extract parameter name from the dependency kind
                                     // The determinant (acnCh) tells us which value to pass, but the dependency's
@@ -2667,10 +2661,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                             Some (sprintf "# Encode %s\nif %s is not None:\n    %s" acnChild.c_name acnChild.c_name childContent.funcBody)
                                         else if isNeededByAnyType && codec = Encode then
                                             // ACN children needed by external types should always be encoded
-                                            // For all types, set to default (0 or appropriate value) if None
-                                            printfn "[DEBUG] Encode %s (needed externally) - always encode with default 0" acnChild.c_name
-                                            let codeWithDefault = sprintf "%s = %s or 0\n%s" acnChild.c_name acnChild.c_name childContent.funcBody
-                                            Some codeWithDefault
+                                            match acnChild.Type with
+                                            | Asn1AcnAst.AcnInteger _ ->
+                                                // For integer types: set default 0 if None
+                                                printfn "[DEBUG] Encode %s (integer, needed externally) - always encode with default 0" acnChild.c_name
+                                                let codeWithDefault = sprintf "%s = %s or 0\n%s" acnChild.c_name acnChild.c_name childContent.funcBody
+                                                Some codeWithDefault
+                                            | _ ->
+                                                // For non-integer types: use standard template
+                                                printfn "[DEBUG] Encode %s (non-integer, needed externally) - use standard template" acnChild.c_name
+                                                Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                                         else
                                             // Regular ACN child: use template with conditional
                                             Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
