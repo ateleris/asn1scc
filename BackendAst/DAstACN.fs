@@ -2382,24 +2382,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Some chFunc -> chFunc.funcBodyAsSeqComp ns0 [] childNestingScope childP childName bitStreamPositionsLocalVar
                     | None -> None, ns0
 
-                // // Inject field-level alignment if it exists
-                // let childContentResult =
-                //     match child.Type.acnAlignment with
-                //     | None -> childContentResult
-                //     | Some acnAlign ->
-                //         match childContentResult with
-                //         | None -> childContentResult
-                //         | Some result ->
-                //             // Generate alignment code
-                //             let alStr, nAlignmentVal = getAlignmentString acnAlign
-                //             let alignmentCode = lm.acn.alignToNext "" alStr nAlignmentVal childNestingScope.acnOffset (childNestingScope.acnOuterMaxSize - childNestingScope.acnOffset) (childNestingScope.nestingLevel - 1I) childNestingScope.nestingIx childNestingScope.acnRelativeOffset codec
-                //             let alignmentLines = alignmentCode.Split('\n') |> Array.toList
-                //             printfn "[DEBUG] Injecting alignment for field %s (lines=%d): %s" childName alignmentLines.Length (if alignmentLines.Length > 0 then alignmentLines.[0] else "")
-                //             if alignmentLines.Length > 1 then
-                //                 for i in 1..min 3 (alignmentLines.Length-1) do
-                //                     printfn "       [%d] %s" i alignmentLines.[i]
-                //             Some {result with funcBody = alignmentCode + "\n" + result.funcBody}
-
                 //handle present-when acn property
                 let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
                     match child.Optionality with
