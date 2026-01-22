@@ -1017,8 +1017,7 @@ sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<if(soAlignmentCode)><soAlignmentCode>
-<endif>
+<soAlignmentCode>
 <p><sAcc><sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
@@ -1030,7 +1029,7 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-
+<soAlignmentCode>
 instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode, tuple):
     instance_<sChName>, <sChName>_acn_children = instance_decode
@@ -1046,8 +1045,7 @@ sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-<if(soAlignmentCode)><soAlignmentCode>
-<endif>
+<soAlignmentCode>
 self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 >>
@@ -1058,6 +1056,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
+<soAlignmentCode>
 instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode, tuple):
     <p>_<sChName>, <sChName>_acn_children = instance_decode
@@ -1088,8 +1087,7 @@ if <p>.<sChName> is not None:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <if(soAlignmentCode)><soAlignmentCode>
-    <endif>
+    <soAlignmentCode>
     self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     <endif>
 >>
@@ -1102,13 +1100,13 @@ if <soExistVar>:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    
+    <soAlignmentCode>
     instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     if isinstance(instance_decode, tuple):
         <p>_<sChName>, <sChName>_acn_children = instance_decode
     else:
         <p>_<sChName> = instance_decode
-   
+
     <endif>
 else:
     <p>_<sChName>: Optional[<sChildTypedef>] = None
