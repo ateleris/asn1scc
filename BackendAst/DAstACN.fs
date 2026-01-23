@@ -2591,10 +2591,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         Some unwrappedBody
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            // For ACN children with external dependencies in Python, skip the decode entirely
-                            // The variable will be initialized to 0 via the acn_children dict initialization
+                            // For ACN children with external dependencies in Python, initialize to 0 instead of decoding
                             if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                None, childContent.auxiliaries, ns1
+                                // Generate initialization statement: varname = 0 (no decode, so no error codes needed)
+                                let initBody = Some (sprintf "%s = 0  # Default value for ACN determinant not in bitstream" acnChild.c_name)
+                                Some {body=initBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=[]; icdComments=[]}, childContent.auxiliaries, ns1
                             else
                                 // For other cases (C, Ada, Scala), generate the decode body normally
                                 let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)

@@ -1,0 +1,123 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  6%]
+........................FFFF....................F........FFFFF.......... [ 12%]
+.........FF.........................FF.................................. [ 18%]
+.......................................................................F [ 25%]
+........................................................................ [ 31%]
+..................................F..........F.......................F.. [ 37%]
+......................................F...................FFFFF.....F... [ 43%]
+...F..FFF.....FF..F............................F....F................... [ 50%]
+........................................................................ [ 56%]
+........................................................................ [ 62%]
+..................F.......FF..FFFFFFFFFF.FF.F.FF.F...FFFF...F..F.F...... [ 68%]
+..........F.........F.F....................................F............ [ 75%]
+.................................................................F.....F [ 81%]
+.....................................FFFF....................FFF.....F.. [ 87%]
+F........FFF.F...........F.F......FFF...F.FFF.F......................... [ 93%]
+.............F..................................................FFFFF..  [100%]
+=============================== warnings summary ===============================
+generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000023
+generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000003
+  /home/manuel/Code/Ateleris/ats-asn1scc/generated-python-output/acn/asn1pylib/asn1python/asn1_types.py:183: DeprecationWarning: NotImplemented should not be used in a boolean context
+    return not self.__eq__(other)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000017
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000018
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000019
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_001.py::test_case_ACN_000020
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000243
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000244
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000245
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000246
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000247
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000248
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000249
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000250
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000251
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_003.py::test_case_ACN_000252
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_002.py::test_case_ACN_000143
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000555
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_002.py::test_case_ACN_000144
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000532
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000534
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_007.py::test_case_ACN_000614
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_007.py::test_case_ACN_000615
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_007.py::test_case_ACN_000616
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_007.py::test_case_ACN_000617
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_007.py::test_case_ACN_000618
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000542
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000533
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000556
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000557
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000558
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000543
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000544
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000547
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000559
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000560
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000876
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000884
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000885
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000877
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000880
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000878
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000881
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000879
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000882
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000888
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000886
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000887
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000896
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000883
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000897
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000889
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000890
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000891
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000900
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000898
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000899
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000908
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000909
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000901
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000902
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000903
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000904
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000905
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000906
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_010.py::test_case_ACN_000907
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000874
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000875
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001073
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001074
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001075
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001076
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001093
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001091
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001094
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001101
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001100
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001110
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001113
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001112
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001114
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001128
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001130
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000892
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000893
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001129
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_011.py::test_case_ACN_001092
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000894
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001111
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001131
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_012.py::test_case_ACN_001115
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_009.py::test_case_ACN_000895
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000548
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000549
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000550
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000551
+FAILED generated-python-output/acn/asn1pylib/asn1src/test_case_006.py::test_case_ACN_000552
+95 failed, 1056 passed, 2 warnings in 43.72s
