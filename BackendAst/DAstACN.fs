@@ -2578,16 +2578,18 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
-                                // For ACN children with external dependencies, don't encode them in Python
-                                // (they're only used as determinants, not part of the type's encoding)
-                                if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                    printfn "[DEBUG] handleChild: Skipping encode code for ACN child %s (has external dependency, don't encode as parameter)" acnChild.Name.Value
-                                    None, childContent.auxiliaries, ns1
-                                else
-                                    let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")) + "_UNINITIALIZED")
-                                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
-                                    let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
-                                    Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
+                                let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")) + "_UNINITIALIZED")
+                                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
+                                let unwrappedBody = sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec
+                                // For ACN children with external dependencies in Python, wrap in conditional
+                                // Only encode if the parameter was passed (not None)
+                                let childBody =
+                                    if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                        let paramName = acnChild.c_name
+                                        Some (sprintf "if %s is not None:\n%s" paramName (unwrappedBody.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n"))
+                                    else
+                                        Some unwrappedBody
+                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
                             // For ACN children with external dependencies, only decode in parent context (decode_with_acn_determinants=True)
                             // In standalone context (False), the field is not in the bitstream

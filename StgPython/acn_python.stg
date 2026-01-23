@@ -52,7 +52,7 @@ class DecodeConstants:
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = False<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
+def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = <if(bHasAcnChildrenToReturn)>True<else>False<endif><if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -69,7 +69,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True, decode_w
     return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = False<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
+def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = <if(bHasAcnChildrenToReturn)>True<else>False<endif><if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
     res<if(bHasAcnChildrenToReturn)>, res_children<endif> = <sTypeDefName>.<sFuncName>(cpy, check_constraints, decode_with_acn_determinants<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
