@@ -2591,17 +2591,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         Some unwrappedBody
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            // For ACN children with external dependencies, only decode in parent context (decode_with_acn_determinants=True)
-                            // In standalone context (False), the field is not in the bitstream
+                            // For ACN children with external dependencies in Python, skip the decode entirely
+                            // The variable will be initialized to 0 via the acn_children dict initialization
                             if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                // Generate code wrapped in conditional for Python
-                                let unwrappedBody = sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec
-                                // Wrap in conditional: only decode if decode_with_acn_determinants is True
-                                let wrappedBody = sprintf "if decode_with_acn_determinants:\n%s" (unwrappedBody.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
-                                let childBody = Some wrappedBody
-                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
+                                None, childContent.auxiliaries, ns1
                             else
-                                // No external dependency or not Python: decode normally
+                                // For other cases (C, Ada, Scala), generate the decode body normally
                                 let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
