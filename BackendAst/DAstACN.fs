@@ -2180,7 +2180,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 match opt.acnPresentWhen with
                 | None ->
                     assert (codec = Encode || existVar.IsSome)
-                    Some (sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName true codec)
+                    Some (sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName false codec)
                 | Some _ -> None
             | _ -> None
 
@@ -2395,14 +2395,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | Decode ->
                                 let existVar = ToC (child._c_name + "_exist")
                                 let lv = FlagLocalVariable (existVar, None)
-                                // Generate body that calls the presence bit reading code
-                                // with decode_with_acn_determinants=True to enable presence bit reading
-                                let body (p: CodegenScope) (existVar: string option): string =
-                                    assert existVar.IsSome
-                                    // Call the presence bit reading template with bDecodeWithAcnDeterminants=true
-                                    // This will conditionally read the presence bit based on the ACN context
-                                    sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName (Some existVar.Value) errCode.errCodeName true codec
-                                Some body, [lv], [], Some existVar, ns1
+                                None, [lv], [], Some existVar, ns1
                         | Some (PresenceWhenBool relPath) ->
                             match codec with
                             | Encode -> None, [], [], None, ns1
@@ -2585,13 +2578,30 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                             | _             ->
-                                let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")) + "_UNINITIALIZED")
-                                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
-                                let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
-                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
+                                // For ACN children with external dependencies, don't encode them in Python
+                                // (they're only used as determinants, not part of the type's encoding)
+                                if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                    printfn "[DEBUG] handleChild: Skipping encode code for ACN child %s (has external dependency, don't encode as parameter)" acnChild.Name.Value
+                                    None, childContent.auxiliaries, ns1
+                                else
+                                    let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")) + "_UNINITIALIZED")
+                                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
+                                    let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
+                                    Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
-                            Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
+                            // For ACN children with external dependencies, only decode in parent context (decode_with_acn_determinants=True)
+                            // In standalone context (False), the field is not in the bitstream
+                            if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                // Generate code wrapped in conditional for Python
+                                let unwrappedBody = sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec
+                                // Wrap in conditional: only decode if decode_with_acn_determinants is True
+                                let wrappedBody = sprintf "if decode_with_acn_determinants:\n%s" (unwrappedBody.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
+                                let childBody = Some wrappedBody
+                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
+                            else
+                                // No external dependency or not Python: decode normally
+                                let childBody = Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType acnParamsForTemplate false None codec)
+                                Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
                 let icdComments = stmts |> List.collect(fun z -> z.icdComments)

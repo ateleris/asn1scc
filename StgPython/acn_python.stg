@@ -906,8 +906,7 @@ else:
 
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 # acn_python.stg 727
-# Only read presence bit if decoding WITH ACN determinants (parent context)
-if <bDecodeWithAcnDeterminants>:
+if decode_with_acn_determinants:
     decoded_result = codec.read_bit()
     <CheckDecodeResult(p=soExistVar, sInp="decoded_result", sErrCode=sErrCode, sType="bool")>
 else:
