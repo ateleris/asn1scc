@@ -52,7 +52,7 @@ class DecodeConstants:
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
-def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
+def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = False<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -69,10 +69,10 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
     return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 
 @staticmethod
-def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
+def <sFuncName>_pure(codec: ACNDecoder, check_constraints: bool = True, decode_with_acn_determinants: bool = False<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> Tuple[ACNDecoder, '<sTypeDefName>']:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     cpy = codec.copy()
-    res<if(bHasAcnChildrenToReturn)>, res_children<endif> = <sTypeDefName>.<sFuncName>(cpy, check_constraints<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
+    res<if(bHasAcnChildrenToReturn)>, res_children<endif> = <sTypeDefName>.<sFuncName>(cpy, check_constraints, decode_with_acn_determinants<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>)
     # acn_python.stg 84
     return cpy, res
 >>
@@ -896,7 +896,7 @@ if not res:
 
 
 /* SEQUENCE*/
-sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 # acn_python.stg 722
 if <p><sAcc><sChName> is not None:
     codec.append_bit(True)
@@ -904,10 +904,16 @@ else:
     codec.append_bit(False)
 >>
 
-sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 # acn_python.stg 727
-decoded_result = codec.read_bit()
-<CheckDecodeResult(p=soExistVar, sInp="decoded_result", sErrCode=sErrCode, sType="bool")>
+# Only read presence bit if decoding WITH ACN determinants (parent context)
+if <bDecodeWithAcnDeterminants>:
+    decoded_result = codec.read_bit()
+    <CheckDecodeResult(p=soExistVar, sInp="decoded_result", sErrCode=sErrCode, sType="bool")>
+else:
+    # Decoding without ACN determinants - assume field is present
+    # (analogous to C backend's context without determinants)
+    <soExistVar> = True
 >>
 
 sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
@@ -1030,7 +1036,7 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <sChildContent>
 <else>
 <soAlignmentCode>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+instance_decode = <sChildTypedef>.decode(codec, check_constraints, decode_with_acn_determinants=True<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode, tuple):
     instance_<sChName>, <sChName>_acn_children = instance_decode
 else:
@@ -1057,7 +1063,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <soChildContent>
 <else>
 <soAlignmentCode>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+instance_decode = <sChildTypedef>.decode(codec, check_constraints, decode_with_acn_determinants=True<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode, tuple):
     <p>_<sChName>, <sChName>_acn_children = instance_decode
 else:
@@ -1101,7 +1107,7 @@ if <soExistVar>:
     <sChildContent>
     <else>
     <soAlignmentCode>
-    instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    instance_decode = <sChildTypedef>.decode(codec, check_constraints, decode_with_acn_determinants=True<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     if isinstance(instance_decode, tuple):
         <p>_<sChName>, <sChName>_acn_children = instance_decode
     else:

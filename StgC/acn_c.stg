@@ -742,8 +742,8 @@ ret = <sName>_ACN_Decode(<p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; 
 /* SEQUENCE*/
 
 
-sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
-sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 ret = BitStream_ReadBit(pBitStrm, &<soExistVar>);
 <p><sAcc>exist.<sChName> = <soExistVar> == 0 ? 0 : 1;
 *pErrCode = ret ? 0 : <sErrCode>;

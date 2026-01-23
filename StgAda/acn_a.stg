@@ -916,8 +916,8 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 
 /* SEQUENCE*/
 
-sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
-sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 result.ErrorCode := <sErrCode>;
 <rtlModuleName()>.encoding.BitStream_ReadBit(bs, <soExistVar>, result.Success);
 <p>.Exist.<sChName> := <soExistVar>;

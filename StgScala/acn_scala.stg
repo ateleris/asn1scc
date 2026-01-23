@@ -710,11 +710,11 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 /* SEQUENCE*/
 
 
-sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 codec.base.bitStream.appendBit(<p><sAcc><sChName>.isDefined)
 >>
 
-sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode, bDecodeWithAcnDeterminants) ::= <<
 <soExistVar> = codec.base.bitStream.readBit()
 >>
 

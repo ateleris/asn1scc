@@ -2180,7 +2180,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 match opt.acnPresentWhen with
                 | None ->
                     assert (codec = Encode || existVar.IsSome)
-                    Some (sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName codec)
+                    Some (sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName true codec)
                 | Some _ -> None
             | _ -> None
 
@@ -2395,7 +2395,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | Decode ->
                                 let existVar = ToC (child._c_name + "_exist")
                                 let lv = FlagLocalVariable (existVar, None)
-                                None, [lv], [], Some existVar, ns1
+                                // Generate body that calls the presence bit reading code
+                                // with decode_with_acn_determinants=True to enable presence bit reading
+                                let body (p: CodegenScope) (existVar: string option): string =
+                                    assert existVar.IsSome
+                                    // Call the presence bit reading template with bDecodeWithAcnDeterminants=true
+                                    // This will conditionally read the presence bit based on the ACN context
+                                    sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName (Some existVar.Value) errCode.errCodeName true codec
+                                Some body, [lv], [], Some existVar, ns1
                         | Some (PresenceWhenBool relPath) ->
                             match codec with
                             | Encode -> None, [], [], None, ns1
