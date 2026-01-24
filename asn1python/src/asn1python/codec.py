@@ -9,11 +9,11 @@ from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
 
-from asn1_types import NO_OF_BITS_IN_BYTE, Asn1Exception
-from bitstream import BitStream, BitStreamError
-from segment import Segment
+from .asn1_types import NO_OF_BITS_IN_BYTE, Asn1Exception
+from .bitstream import BitStream, BitStreamError
 
 from nagini_contracts.contracts import *
+from .segment import Segment
 
 
 class ErrorCode(IntEnum):

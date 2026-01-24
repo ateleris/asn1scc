@@ -5,10 +5,12 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
-# import abc
 # from codecs import Codec
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
+from typing import Any
 # from functools import total_ordering
+
 from nagini_contracts.contracts import *
 
 
@@ -72,24 +74,20 @@ class Asn1ConstraintValidResult:
         if self.is_valid and self.error_code > 0:
             raise Exception("No error code must be set if the constraint is valid.")
 
-# class Asn1Base(abc.ABC):
+# class Asn1Base(ABC):
 #     from .encoder import Encoder
 #     from .decoder import Decoder
 
-#     @abc.abstractmethod
+#     @abstractmethod
 #     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
 #         pass
 
-#     @abc.abstractmethod
-#     def encode(self, codec: Encoder, check_constraints: bool = True):
+#     @abstractmethod
+#     def encode(self, codec: Encoder, check_constraints: bool = True) -> None:
 #         pass
 
 #     @classmethod
-#     def decode(cls, codec: Decoder, check_constraints: bool = True):
-#         pass
-
-#     @staticmethod
-#     def decode_pure(codec: Decoder, check_constraints: bool = True):
+#     def decode(cls, codec: Decoder, check_constraints: bool = True) -> 'Asn1Base':
 #         pass
 
 
@@ -101,16 +99,17 @@ class Asn1ConstraintValidResult:
 #     """
 #     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
 #     """
-#     from .encoder import Encoder
+    # from .encoder import Encoder
 
-#     __slots__ = ("_val",)
+    # __slots__ = ("_val",)
 
-#     def __init__(self, val):
-#         self._val = bool(val)
+    # def __init__(self, val: object) -> None:
+    #     self._val = bool(val)
 
-#     # --- Core protocol ---
-#     def __bool__(self):
-#         return self._val
+    # --- Core protocol ---
+    # @Pure
+    # def __bool__(self) -> bool:
+    #     return self._val
 
 #     def __repr__(self):
 #         return f"Asn1Boolean({self._val})"
@@ -118,9 +117,10 @@ class Asn1ConstraintValidResult:
 #     def __str__(self):
 #         return str(self._val)
 
-#     # --- Equality / ordering ---
-#     def __eq__(self, other):
-#         return self._val == bool(other)
+    # --- Equality / ordering ---
+    # @Pure
+    # def __eq__(self, other: object) -> bool:
+    #     return self._val == bool(other)
 
 #     def __lt__(self, other):
 #         return self._val < bool(other)

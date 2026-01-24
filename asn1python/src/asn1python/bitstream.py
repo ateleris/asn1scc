@@ -5,9 +5,12 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
+from .helper import *
+from .asn1_types import NO_OF_BITS_IN_BYTE
+
 from nagini_contracts.contracts import *
-from verification import *
-from segment import *
+from .verification import *
+from .segment import *
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -22,30 +25,30 @@ class BitStream:
     """
     #region Ghost Functions
 
-    #@nagini @Pure
+    @Pure
     @staticmethod
     def position_invariant(bit_position: int, byte_position: int, buf_length: int) -> bool:
-        return (bit_position >= 0 and bit_position < NO_OF_BITS_IN_BYTE and
-                byte_position >= 0 and ((byte_position < buf_length) or (bit_position == 0 and byte_position == buf_length)))
+       return (bit_position >= 0 and bit_position < NO_OF_BITS_IN_BYTE and
+               byte_position >= 0 and ((byte_position < buf_length) or (bit_position == 0 and byte_position == buf_length)))
     
-    #@nagini @Pure
+    @Pure
     @staticmethod
     def to_bit_index(bit: int, byte: int) -> int:
         return byte * NO_OF_BITS_IN_BYTE + bit
     
-    #@nagini @Pure
+    @Pure
     @staticmethod
     def _remaining_bits(bit_position: int, byte_position: int, buf_length: int) -> int:
-        #@nagini Requires(0 <= bit_position and 0 <= byte_position and 0 <= buf_length)
-        #@nagini Requires(BitStream.position_invariant(bit_position, byte_position, buf_length))
+        Requires(0 <= bit_position and 0 <= byte_position and 0 <= buf_length)
+        Requires(BitStream.position_invariant(bit_position, byte_position, buf_length))
         return (buf_length * NO_OF_BITS_IN_BYTE) - BitStream.to_bit_index(bit_position, byte_position)
 
-    #@nagini @Pure
+    @Pure
     def validate_offset(self, bits: int) -> bool:
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Requires(0 <= bits)
+        Requires(Rd(self.bitstream_invariant()))
+        Requires(0 <= bits)
         Ensures(Implies(Result(), bits <= self.remaining_bits))
-        #@nagini Unfold(Rd(self.bitstream_invariant()))
+        Unfold(Rd(self.bitstream_invariant()))
         return BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer)) >= bits
 
     @Predicate
@@ -87,12 +90,12 @@ class BitStream:
         Fold(self.bitstream_invariant())
         Fold(self.segments_predicate(self.buffer()))
         
-        #@nagini Ensures(Acc(bytearray_pred(data), 1/20))
-        #@nagini Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
-        #@nagini Ensures(self.bitstream_invariant())
-        #@nagini Ensures(self.current_bit_position == 0)
-        #@nagini Ensures(self.current_byte_position == 0)
-        #@nagini Ensures(self.buffer() is ToByteSeq(data))
+        Ensures(Acc(bytearray_pred(data), 1/20))
+        Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_bit_position == 0)
+        Ensures(self.current_byte_position == 0)
+        Ensures(self.buffer() is ToByteSeq(data))
         Ensures(self.segments_predicate(self.buffer()))
         Ensures(len(self.segments) == 0)
         Ensures(self.segments_read_index == 0)
@@ -124,58 +127,58 @@ class BitStream:
     @property
     def current_bit_position(self) -> int:
         """Get the current bit position"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Ensures(0 <= Result() and Result() <= NO_OF_BITS_IN_BYTE)
-        #@nagini Ensures(Result() == self.current_used_bits % NO_OF_BITS_IN_BYTE)
-        #@nagini Unfold(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
+        Ensures(0 <= Result() and Result() <= NO_OF_BITS_IN_BYTE)
+        Ensures(Result() == self.current_used_bits % NO_OF_BITS_IN_BYTE)
+        Unfold(Rd(self.bitstream_invariant()))
         return self._current_bit
 
     @property
     def current_byte_position(self) -> int:
         """Get the current byte position"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Ensures(0 <= Result() and Result() <= self.buffer_size)
-        #@nagini Ensures(Result() == self.current_used_bits // NO_OF_BITS_IN_BYTE)
-        #@nagini Unfold(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
+        Ensures(0 <= Result() and Result() <= self.buffer_size)
+        Ensures(Result() == self.current_used_bits // NO_OF_BITS_IN_BYTE)
+        Unfold(Rd(self.bitstream_invariant()))
         return self._current_byte
 
     @property
     def buffer_size(self) -> int:
         """Get the buffer size in bytes"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Unfold(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
+        Unfold(Rd(self.bitstream_invariant()))
         return len(self._buffer)
     
     @property
     def buffer_size_bits(self) -> int:
         """Get the buffer size in bits"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
         return self.buffer_size * NO_OF_BITS_IN_BYTE
 
     @property
     def current_used_bits(self) -> int:
         """Get the number of bits currently used"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Ensures(0 <= Result() and Result() <= self.buffer_size_bits)
-        #@nagini Unfold(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
+        Ensures(0 <= Result() and Result() <= self.buffer_size_bits)
+        Unfold(Rd(self.bitstream_invariant()))
         return self._current_byte * NO_OF_BITS_IN_BYTE + self._current_bit
 
     @property
     def current_used_bytes(self) -> int:
-        #@nagini Requires(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
         return self.current_byte_position + (1 if self.current_bit_position > 0 else 0)
 
     @property
     def remaining_bits(self) -> int:
         """Get the number of bits remaining to be read"""
-        #@nagini Requires(Rd(self.bitstream_invariant()))
-        #@nagini Ensures(Result() == Unfolding(Rd(self.bitstream_invariant()), BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer))))
-        #@nagini Ensures(Result() == self.buffer_size_bits - self.current_used_bits)
+        Requires(Rd(self.bitstream_invariant()))
+        Ensures(Result() == Unfolding(Rd(self.bitstream_invariant()), BitStream._remaining_bits(self._current_bit, self._current_byte, len(self._buffer))))
+        Ensures(Result() == self.buffer_size_bits - self.current_used_bits)
         return self.buffer_size * NO_OF_BITS_IN_BYTE - self.current_used_bits
 
     @Pure
     def buffer(self) -> PByteSeq:
-        #@nagini Requires(Rd(self.bitstream_invariant()))
+        Requires(Rd(self.bitstream_invariant()))
         Ensures(len(Result()) == self.buffer_size)
         return Unfolding(Rd(self.bitstream_invariant()), ToByteSeq(self._buffer))
 
@@ -199,45 +202,45 @@ class BitStream:
 
     def set_position(self, bit_position: int, byte_position: int) -> None:
         """Set the current bit and byte position"""
-        #@nagini Requires(self.bitstream_invariant())
-        #@nagini Requires(BitStream.position_invariant(bit_position, byte_position, self.buffer_size))
-        #@nagini Ensures(self.bitstream_invariant())
-        #@nagini Ensures(self.current_bit_position == bit_position)
-        #@nagini Ensures(self.current_byte_position == byte_position)
-        #@nagini Ensures(self.buffer() is Old(self.buffer()))
+        Requires(self.bitstream_invariant())
+        Requires(BitStream.position_invariant(bit_position, byte_position, self.buffer_size))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_bit_position == bit_position)
+        Ensures(self.current_byte_position == byte_position)
+        Ensures(self.buffer() is Old(self.buffer()))
 
         if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
             raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
         
-        #@nagini Unfold(self.bitstream_invariant())
+        Unfold(self.bitstream_invariant())
         self._current_bit = bit_position
         self._current_byte = byte_position
-        #@nagini Fold(self.bitstream_invariant())
+        Fold(self.bitstream_invariant())
 
     def reset(self) -> None:
         """Reset the bit position to the beginning"""
-        #@nagini Requires(self.bitstream_invariant())
-        #@nagini Requires(self.segments_predicate(self.buffer()))
-        #@nagini Ensures(self.bitstream_invariant())
-        #@nagini Ensures(self.segments_predicate(self.buffer()))
-        #@nagini Ensures(self.current_bit_position == 0)
-        #@nagini Ensures(self.current_byte_position == 0)
-        #@nagini Ensures(self.buffer() is Old(self.buffer()))
-        #@nagini Ensures(self.segments is Old(self.segments))
-        #@nagini Ensures(self.segments_read_index == 0)
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate(self.buffer()))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate(self.buffer()))
+        Ensures(self.current_bit_position == 0)
+        Ensures(self.current_byte_position == 0)
+        Ensures(self.buffer() is Old(self.buffer()))
+        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments_read_index == 0)
 
         self.set_position(0, 0)
-        #@nagini Unfold(self.segments_predicate(self.buffer()))     
-        #@nagini self._segments_read_index = 0
-        #@nagini Fold(self.segments_predicate(self.buffer()))
+        Unfold(self.segments_predicate(self.buffer()))     
+        self._segments_read_index = 0
+        Fold(self.segments_predicate(self.buffer()))
 
     def set_bit_index(self, bit_index: int) -> None:
         """Set the current bit index"""
-        #@nagini Requires(self.bitstream_invariant())
-        #@nagini Requires(0 <= bit_index and bit_index <= self.buffer_size_bits)
-        #@nagini Ensures(self.bitstream_invariant())
-        #@nagini Ensures(self.current_used_bits == bit_index)
-        #@nagini Ensures(self.buffer() is Old(self.buffer()))
+        Requires(self.bitstream_invariant())
+        Requires(0 <= bit_index and bit_index <= self.buffer_size_bits)
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == bit_index)
+        Ensures(self.buffer() is Old(self.buffer()))
 
         bit_position = bit_index % NO_OF_BITS_IN_BYTE
         byte_position = bit_index // NO_OF_BITS_IN_BYTE
@@ -245,12 +248,12 @@ class BitStream:
 
     def _shift_bit_index(self, amount: int = 1) -> None:
         """Shift the current bit index by given amount"""
-        #@nagini Requires(self.bitstream_invariant())
-        #@nagini Requires(0 <= amount)
-        #@nagini Requires(self.validate_offset(amount))
-        #@nagini Ensures(self.bitstream_invariant())
-        #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + amount))
-        #@nagini Ensures(self.buffer() is Old(self.buffer()))
+        Requires(self.bitstream_invariant())
+        Requires(0 <= amount)
+        Requires(self.validate_offset(amount))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + amount))
+        Ensures(self.buffer() is Old(self.buffer()))
 
         new_index = self.current_used_bits + amount
         self.set_bit_index(new_index)
@@ -264,8 +267,8 @@ class BitStream:
         Ensures(self.segments == Old(self.segments))
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
         Ensures(self.segments.take(self.segments_read_index) ==
-                self.segments.take(Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
-        
+            self.segments.take(Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
+    
         Unfold(self.segments_predicate(self.buffer()))
         self._segments_read_index += 1
         Fold(self.segments_predicate(self.buffer()))
@@ -324,7 +327,7 @@ class BitStream:
         Requires(Rd(self.bitstream_invariant()))
         Requires(1 <= self.remaining_bits)
         Unfold(Rd(self.bitstream_invariant()))
-        return byte_read_bit(self._buffer[self._current_byte], self._current_bit)
+        return bool((self._buffer[self._current_byte] >> (7 - self._current_bit)) % 2)
 
     @Pure
     @Opaque
@@ -333,20 +336,20 @@ class BitStream:
         Requires(1 <= self.remaining_bits)
         Ensures(self._read_current_bit_pure() == byteseq_read_bit(self.buffer(), self.current_used_bits))
         Ensures(Result())
-
+    
         ghost_buf = self.buffer()
         ghost_index = self.current_used_bits
         ghost_byte_pos = ghost_index // NO_OF_BITS_IN_BYTE
         ghost_bit_pos = ghost_index % NO_OF_BITS_IN_BYTE
         ghost_byte = ghost_buf[ghost_byte_pos]
-
+    
         ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
         read_bit = Reveal(self._read_current_bit_pure())
-
+    
         Unfold(Rd(self.bitstream_invariant()))
         bit_pos_eq = self._current_bit == ghost_bit_pos
         byte_eq = self._buffer[self._current_byte] == ghost_byte
-
+    
         return bit_pos_eq and byte_eq and ghost_bit == read_bit 
 
 
@@ -367,17 +370,17 @@ class BitStream:
         self._shift_bit_index(1)
         return res
 
-    def read_bits(self, bit_count: PInt) -> int:
+    def read_bits(self, bit_count: int) -> int:
         """Read up to 32 bits"""
-        #@nagini Requires(self.bitstream_invariant())
+        Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
-        #@nagini Requires(0 <= bit_count and bit_count <= MAX_BITOP_LENGTH)
-        #@nagini Requires(self.validate_offset(bit_count))
-        #@nagini Ensures(self.bitstream_invariant())
+        Requires(0 <= bit_count and bit_count <= MAX_BITOP_LENGTH)
+        Requires(self.validate_offset(bit_count))
+        Ensures(self.bitstream_invariant())
         Ensures(self.segments_predicate(self.buffer()))
-        #@nagini Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
-        #@nagini Ensures(self.buffer() is Old(self.buffer()))
-        #@nagini Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
+        Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
+        Ensures(self.buffer() is Old(self.buffer()))
+        Ensures(Result() == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), bit_count))
         Ensures(self.segments is Old(self.segments))
         Ensures(Implies(Old(self.segments_read_aligned(bit_count)), (
             Result() == self.segments[Old(self.segments_read_index)].value and
@@ -414,6 +417,21 @@ class BitStream:
 
     #region Write
 
+    @Pure
+    @Opaque
+    def __byte_set_bit(self, byte: int, bit: bool, position: int) -> int:
+        Requires(0 <= byte and byte <= 0xFF)
+        Requires(0 <= position and position < NO_OF_BITS_IN_BYTE)
+        Decreases(None)
+        Ensures(0 <= Result() and Result() <= 0xFF)
+        Ensures(Result() == byte_set_bit(byte, bit, position))
+        equivalent = Reveal(byte_set_bit(byte, bit, position))
+
+        if bit:
+            return byte | (1 << (7 - position))
+        else:
+            return byte & ~(1 << (7 - position))
+
     # cur bit = 3
     #
     # |x|x|x|b|?|?|?|?|
@@ -433,7 +451,7 @@ class BitStream:
 
         Unfold(self.bitstream_invariant())
         val = self._buffer[self._current_byte]
-        self._buffer[self._current_byte] = byte_set_bit(val, bit, self._current_bit)
+        self._buffer[self._current_byte] = self.__byte_set_bit(val, bit, self._current_bit)
         
         Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
@@ -475,10 +493,9 @@ class BitStream:
             Invariant(self.buffer() is byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
 
             bit = bool((value >> (bit_count - 1 - i)) % 2)
-            ghost_current_value = (ghost_current_value << 1) + bit
-            
             self.__write_bit(bit)
             
+            ghost_current_value = (ghost_current_value << 1) + bit
             updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
             i = i + 1
             
@@ -492,46 +509,9 @@ class BitStream:
         
     #endregion
 
-def client() -> None:
-    b = BitStream(bytearray([0,0,0,0]))
-    b.write_bits(255, 8)
-    b.write_bits(7, 5)
-    b.write_align_to_byte()
-    b.write_bits(39, 6)
-    
-    b.reset()
-    
-    assert b.read_bits(8) == 255
-    assert b.read_bits(5) == 7
-    b.read_align_to_byte()
-    assert b.read_bits(6) == 39
-
-
-# client()
-   
-
-    # def write_bytes(self, data: bytes) -> None:
-    #     """Write multiple bytes"""
-    #     for byte_value in data:
-    #         self.write_byte(byte_value)
-
-    # def read_bytes(self, byte_count: int) -> bytearray:
-    #     """Read multiple bytes"""
-    #     result = bytearray()
-    #     for _ in range(byte_count):
-    #         result.append(self.read_byte())
-    #     return result
-
     # def is_at_end(self) -> bool:
     #     """Check if we're at the end of the bitstream"""
     #     return self._current_bit >= self._size_in_bits
-
-    # def align_to_byte(self) -> None:
-    #     """Align the current position to the next byte boundary"""
-    #     if self._bit_in_byte != 0:
-    #         self._current_bit += (8 - self._bit_in_byte)
-    #         self._bit_in_byte = 0
-    #         self._current_byte += 1
 
     # def get_data(self) -> bytearray:
     #     """Get the complete data buffer"""

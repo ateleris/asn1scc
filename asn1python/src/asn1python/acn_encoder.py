@@ -7,10 +7,11 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 
 # import struct
 
-from acn_decoder import ACNDecoder
-from bitstream import BitStreamError
-from codec import DECODE_OK, EncodeResult, DecodeResult, ENCODE_OK, ERROR_INVALID_VALUE
-from encoder import Encoder
+from .acn_decoder import ACNDecoder
+from .bitstream import BitStreamError
+from .codec import DECODE_OK, EncodeResult, DecodeResult, ENCODE_OK, ERROR_INVALID_VALUE
+from .encoder import Encoder
+
 
 from nagini_contracts.contracts import *
 
@@ -73,14 +74,18 @@ class test_class():
 
         assert decoder.read_bit().decoded_value == True
         res = decoder.read_byte_array(4)
-        assert res.decoded_value[0] == 1
-        assert res.decoded_value[1] == 2
-        assert res.decoded_value[2] == 3
-        assert res.decoded_value[3] == 128
+        decoded_value = res.decoded_value
+        assert isinstance(decoded_value, bytearray)
+        assert decoded_value[0] == 1
+        assert decoded_value[1] == 2
+        assert decoded_value[2] == 3
+        assert decoded_value[3] == 128
 
         res_bits = decoder.read_bits(15)
-        assert res_bits.decoded_value[0] == 187
-        assert res_bits.decoded_value[1] == 254
+        decoded_value = res.decoded_value
+        assert isinstance(decoded_value, bytearray)
+        assert decoded_value[0] == 187
+        assert decoded_value[1] == 254
 
 
     # # ============================================================================

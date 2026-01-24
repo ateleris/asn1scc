@@ -1,20 +1,18 @@
 from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
-from codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
+from .asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
+from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
-from decoder import Decoder
+from .decoder import Decoder
 
 from nagini_contracts.contracts import *
-from verification import byte_read_bits, MAX_BITOP_LENGTH
-from segment import Segment, segment_from_byte, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
+from .verification import byte_read_bits, MAX_BITOP_LENGTH
+from .segment import Segment, segment_from_byte, segments_from_byteseq_full, segments_from_byteseq, segments_total_length
 
 class Encoder(Codec):
 
-
     @abstractmethod
-    @ContractOnly
     def get_decoder(self) -> Decoder:
         Requires(Acc(self.codec_predicate(), 1/20))
         Ensures(Acc(self.codec_predicate(), 1/20))
@@ -240,7 +238,8 @@ class Encoder(Codec):
             Assert(self.remaining_bits >= remaining_bits)
             if remaining_bits > 0:
                 # Shift to get only the desired high-order bits
-                shifted_val = byte_read_bits(data[complete_bytes], 0, remaining_bits)
+                shifted_val = (data[complete_bytes] >> (NO_OF_BITS_IN_BYTE - remaining_bits)) % (1 << remaining_bits)
+                Assert(shifted_val == byte_read_bits(data[complete_bytes], 0, remaining_bits))
 
                 Unfold(self.codec_predicate())
                 self._bitstream.write_bits(shifted_val, remaining_bits)

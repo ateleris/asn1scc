@@ -1,7 +1,8 @@
 from nagini_contracts.adt import ADT
 from nagini_contracts.contracts import *
 from typing import NamedTuple
-from verification import __lemma_byte_set_bits_value, byte_read_bits, byte_set_bits, byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
+
+from .verification import __lemma_byte_set_bits_value, byte_read_bits, byte_set_bits, byteseq_read_bits, byteseq_equal_until, lemma_byteseq_equal_read_bits, NO_OF_BITS_IN_BYTE, MAX_BITOP_LENGTH
 
 class Segment_ADT(ADT):
     pass

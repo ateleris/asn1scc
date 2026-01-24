@@ -1,11 +1,11 @@
 from typing import List, Optional
 
-from asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
-from codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
+from .codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 
 from nagini_contracts.contracts import *
-from segment import Segment, lemma_segments_byteseq, segments_drop, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
-from verification import MAX_BITOP_LENGTH
+from .segment import Segment, lemma_segments_byteseq, segments_drop, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
+from .verification import MAX_BITOP_LENGTH
 
 class Decoder(Codec):
 
@@ -34,12 +34,8 @@ class Decoder(Codec):
             num_segments * length <= self.remaining_bits and
             self.segments_read_index + num_segments <= len(self.segments) and
             Forall(segments, lambda seg: seg.length == length)
-            # Forall(int, lambda i: (Implies(self.segments_read_index <= i and i < self.segments_read_index + num_segments, 
-            #             self.segments[i].length == length)))
         )
 
-    # TODO, is there a better way to write this?
-    # or is this the best approach?
     @Pure
     def read_has_byte_segments(self, bit_count: int) -> bool:
         Requires(self.codec_predicate())
@@ -248,7 +244,7 @@ class Decoder(Codec):
         Ensures(Result().bits_consumed ==num_bits)
         Ensures(isinstance(Result().decoded_value, bytearray))
         Ensures(bytearray_pred(Result().decoded_value))
-        Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == (num_bits + 7) // NO_OF_BITS_IN_BYTE)
+        Ensures(len(ResultT(DecodeResult[bytearray])) == (num_bits + 7) // NO_OF_BITS_IN_BYTE)
         Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bits // NO_OF_BITS_IN_BYTE, Result().decoded_value[j] == 
                             self.segments.drop(Old(self.segments_read_index))[j].value))))
         Ensures(Implies(num_bits % NO_OF_BITS_IN_BYTE > 0, Result().decoded_value[num_bits // NO_OF_BITS_IN_BYTE] ==
@@ -291,6 +287,7 @@ class Decoder(Codec):
                 Unfold(self.codec_predicate())
                 partial_byte = self._bitstream.read_bits(remaining_bits)
                 Fold(self.codec_predicate())
+
                 # Shift to align to MSB (high-order bits)
                 result.append(partial_byte << (NO_OF_BITS_IN_BYTE - remaining_bits))
                 bits_consumed += remaining_bits
@@ -380,7 +377,6 @@ class Decoder(Codec):
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-
         return self.__read_align(NO_OF_BITS_IN_BYTE)
             
     def align_to_word(self) -> DecodeResult[None]:
@@ -402,7 +398,6 @@ class Decoder(Codec):
         Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-
         return self.__read_align(NO_OF_BITS_IN_WORD)
 
     def align_to_dword(self) -> DecodeResult[None]:
@@ -424,7 +419,6 @@ class Decoder(Codec):
         Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
-
         return self.__read_align(NO_OF_BITS_IN_DWORD)
 
     #endregion

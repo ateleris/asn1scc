@@ -6,10 +6,10 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 # import struct
-from asn1_types import NO_OF_BITS_IN_BYTE
-from decoder import Decoder
-from codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
-from bitstream import BitStreamError
+from .asn1_types import NO_OF_BITS_IN_BYTE
+from .decoder import Decoder
+from .codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
+from .bitstream import BitStreamError
 
 from nagini_contracts.contracts import *
 
