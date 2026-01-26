@@ -244,7 +244,7 @@ class Decoder(Codec):
         Ensures(Result().bits_consumed ==num_bits)
         Ensures(isinstance(Result().decoded_value, bytearray))
         Ensures(bytearray_pred(Result().decoded_value))
-        Ensures(len(ResultT(DecodeResult[bytearray])) == (num_bits + 7) // NO_OF_BITS_IN_BYTE)
+        Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == (num_bits + 7) // NO_OF_BITS_IN_BYTE)
         Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bits // NO_OF_BITS_IN_BYTE, Result().decoded_value[j] == 
                             self.segments.drop(Old(self.segments_read_index))[j].value))))
         Ensures(Implies(num_bits % NO_OF_BITS_IN_BYTE > 0, Result().decoded_value[num_bits // NO_OF_BITS_IN_BYTE] ==
