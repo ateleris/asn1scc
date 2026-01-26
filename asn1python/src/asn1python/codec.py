@@ -148,8 +148,15 @@ class Codec(ABC):
 #     #     new_codec._bitstream.set_bit_index(bit_index)
 #     #     return new_codec
     
-#     # def get_bitstream_buffer(self) -> bytearray:
-#     #     return self._bitstream.get_data()
+    def get_bitstream_buffer(self) -> bytearray:
+        Requires(Acc(self.codec_predicate(), 1/20))
+        Ensures(Acc(self.codec_predicate(), 1/20))
+        Ensures(Acc(bytearray_pred(Result())))
+
+        Unfold(Acc(self.codec_predicate(), 1/20))
+        data = self._bitstream.get_data()
+        Fold(Acc(self.codec_predicate(), 1/20))
+        return data
 
     @property
     def buffer_size(self) -> int:

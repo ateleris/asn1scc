@@ -122,6 +122,30 @@ class BitStream:
         Fold(result.segments_predicate(result.buffer()))
         return result
     
+    def get_data(self) -> bytearray:
+        """Get the used data buffer"""
+        Requires(Acc(self.bitstream_invariant(), 1/100))
+        Ensures(Acc(self.bitstream_invariant(), 1/100))
+        Ensures(Acc(bytearray_pred(Result())))
+
+        used_bytes = self.current_used_bytes
+        Unfold(Acc(self.bitstream_invariant(), 1/100))
+        data = self._buffer[:used_bytes]
+        Fold(Acc(self.bitstream_invariant(), 1/100))
+        return data
+    
+    def to_hex_string(self) -> str:
+        """Convert the bitstream data to a hex string"""
+        Requires(Acc(self.bitstream_invariant(), 1/100))
+        Ensures(Acc(self.bitstream_invariant(), 1/100))
+        return self.get_data().hex()
+
+    # @Pure
+    # def __str__(self) -> str:
+    #     """String representation for debugging"""
+    #     Requires(Rd(self.bitstream_invariant()))
+    #     return f"BitStream(size={self.buffer_size_bits} bits, pos={self._current_bit}, data={self.to_hex_string()})"
+
     #region Properties
 
     @property
@@ -512,26 +536,3 @@ class BitStream:
     # def is_at_end(self) -> bool:
     #     """Check if we're at the end of the bitstream"""
     #     return self._current_bit >= self._size_in_bits
-
-    # def get_data(self) -> bytearray:
-    #     """Get the complete data buffer"""
-    #     return self._buffer[:self.size_in_bytes]
-
-    # def get_data_copy(self) -> bytearray:
-    #     """Get a copy of the complete data buffer"""
-    #     return bytearray(self._buffer[:self.size_in_bytes])
-
-    # def __str__(self) -> str:
-    #     """String representation for debugging"""
-    #     return f"BitStream(size={self._size_in_bits} bits, pos={self._current_bit}, data={self._buffer[:self.size_in_bytes].hex()})"
-
-    # def to_hex_string(self) -> str:
-    #     """Convert the bitstream data to a hex string"""
-    #     return self._buffer[:self.size_in_bytes].hex()
-
-    # def to_binary_string(self) -> str:
-    #     """Convert the bitstream data to a binary string"""
-    #     result: List[str] = []
-    #     for byte in self._buffer[:self.size_in_bytes]:
-    #         result.append(f"{byte:08b}")
-    #     return "".join(result)[:self._size_in_bits]
