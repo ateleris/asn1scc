@@ -23,7 +23,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
         ]
 
 let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
-    let usedBits = t.maxSizeInBits
+    let usedBits = t.maxSizeInBits enc
     let typeDefName = t.FT_TypeDefinition.[Python].typeName
 
     match codec with
