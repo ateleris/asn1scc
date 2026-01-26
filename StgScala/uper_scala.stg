@@ -33,7 +33,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING = <nMaxBitsInPER>
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:35
 {
@@ -51,7 +51,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <endif>
     Right(0)
 }.ensuring { (res : Either[ErrorCode, Int]) =>
-    <soPostcond>
+    <arrsPostcond:{post|<post>}; separator="\n">
 }
 >>
 
@@ -59,7 +59,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <arrsErrcodes:{x|<x>}; separator="\n">
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): EitherMut[ErrorCode, <sTypeDefName>] = // uper:58
 {
@@ -77,7 +77,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): E
     RightMut[ErrorCode, <sTypeDefName>](pVal)
     <endif>
 }.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
-    <soPostcond>
+    <arrsPostcond:{post|<post>}; separator="\n">
 }
 
 @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">

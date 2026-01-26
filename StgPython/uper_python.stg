@@ -47,7 +47,7 @@ class EncodeConstants:
 <endif>
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 # uper_python.stg 40
 
 def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> None:
@@ -72,7 +72,7 @@ class DecodeConstants:
 
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 @classmethod
 def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
     # uper:58

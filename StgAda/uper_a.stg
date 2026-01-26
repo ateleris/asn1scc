@@ -67,7 +67,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -111,7 +111,7 @@ begin
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 

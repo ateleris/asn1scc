@@ -390,7 +390,7 @@ type ILangGeneric () =
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string list 
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
@@ -494,7 +494,7 @@ type ILangGeneric () =
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
     default this.generatePrecond _ _ _ _ = []
-    default this.generatePostcond _ _ _ _ _ = None
+    default this.generatePostcond _ _ _ _ _ = []
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ _ _ = []
     default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
