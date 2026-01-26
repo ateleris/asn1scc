@@ -51,7 +51,7 @@ EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDef
 # uper_python.stg 40
 
 def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> None:
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+    <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
@@ -76,7 +76,7 @@ EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDef
 @classmethod
 def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
     # uper:58
-    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+    <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
@@ -149,7 +149,7 @@ if not res:
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 # uper_python.stg 131
 decoded_result = codec.decode_constrained_whole_number(0, 127) # uper:109
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p>_arr[<i>] = decoded_result.decoded_value
 >>
@@ -167,7 +167,7 @@ if not res:
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 144
 decoded_result = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 <if(soType)>
 <p> = <soType>(decoded_result.decoded_value)
@@ -188,7 +188,7 @@ if not res:
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 # uper_python.stg 156
 decoded_result = codec.decode_constrained_pos_whole_number(<nMin>, <nMax>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 <if(soType)>
 <p> = <soType>(decoded_result.decoded_value)
@@ -206,7 +206,7 @@ if not res:
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= << 
 # uper_python.stg 163
 decoded_result = codec.decode_unconstrained_whole_number()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     # uper_python.stg 166
     raise Asn1Exception(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
 <if(soType)>
@@ -246,7 +246,7 @@ if not res:
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 # uper_python.stg 190
 decoded_result = codec.decode_semi_constrained_whole_number(<nMin>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     # uper_python.stg 192
     raise Asn1Exception(f"Decoding of decode_semi_constrained_whole_number failed: {decoded_result.error_message}")
 >>
@@ -260,7 +260,7 @@ if not res:
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 # uper_python.stg 199
 decoded_result = codec.decode_semi_constrained_pos_whole_number(<nMin>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     # uper_python.stg 201
     raise Asn1Exception(f"Decoding of decode_semi_constrained_pos_whole_number failed: {decoded_result.error_message}")
 >>
@@ -328,7 +328,7 @@ codec.append_bit(<p>)
 Boolean_decode(p, sErrCode, sType) ::= <<
 # uper_python.stg 261
 decoded_result = codec.read_bit()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of read_bit failed: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
@@ -342,7 +342,7 @@ if not res:
 Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 # uper_python.stg 267
 decoded_result = codec.dec_real<sSuffix>()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of dec_real failed: {decoded_result.error_message}")
 <p> = <sType>(decoded_result.decoded_value)
 >>
@@ -356,7 +356,7 @@ if not res:
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 # uper_python.stg 273
 decoded_result = codec.ObjectIdentifier_decode()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of ObjectIdentifier_decode failed: {decoded_result.error_message}")
 >>
 
@@ -369,7 +369,7 @@ if not res:
 RelativeOID_decode(p, sErrCode) ::= <<
 # uper_python.stg 281
 decoded_result = codec.RelativeOID_decode()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of RelativeOID_decode failed: {decoded_result.error_message}")
 >>
 
@@ -381,7 +381,7 @@ if not res:
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 # uper_python.stg 289
 decoded_result = codec.<sTimeSubType>_decode()
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     # uper_python.stg 291
     raise Asn1Exception(f"Decoding of RelativeOID_decode failed: {decoded_result.error_message}")
 >>
@@ -409,7 +409,7 @@ else:
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # uper_python.stg 312
 decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of Constrained Whole Number failed: {decoded_result.error_message}")
 <p>_int = int(decoded_result.decoded_value)
 
@@ -451,7 +451,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
 # uper_python.stg 357
 decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of choice index failed: {decoded_result.error_message}")
 <p>_choice_index = int(decoded_result.decoded_value)
 <arrsChildren: {ch|<ch>}; separator="\nel">
@@ -589,7 +589,7 @@ if not res:
 str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 # uper_python.stg 492
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-if not decoded_result: 
+if not decoded_result or decoded_result.decoded_value is None: 
     raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
 nStringLength: int = decoded_result.decoded_value
 
@@ -648,7 +648,7 @@ if not res:
 octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
 # uper_python.stg 536
 decoded_result = codec.decode_octet_string_no_length_vec(<nFixedSize>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decoded_result.error_message}")
 <p> = <sTypeDefName>(decoded_result.decoded_value)
 >>
@@ -667,12 +667,12 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 # uper_python.stg 547
 # decode length
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of decode_constrained_whole_number failed: {decoded_result.error_message}")
 instance_arr_nCount = decoded_result.decoded_value
 # decode payload
 decoded_result = codec.decode_octet_string_no_length_vec(int(instance_arr_nCount))
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decoded_result.error_message}")
 <p> = <sTypeDefName>(instance_arr_nCount, decoded_result.decoded_value)
 >>
@@ -706,7 +706,7 @@ if not ret:
     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {ret.error_message}")
 <p>_nCount = ret.decoded_value
 decoded_result = codec.read_bits(int(<p>_nCount))
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {ret.error_message}")
 <p>_arr = list(decoded_result.decoded_value)
 <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
