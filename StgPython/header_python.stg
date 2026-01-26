@@ -15,8 +15,9 @@ Header / Spec implementation
 """
 from asn1pylib.asn1python import *
 from typing import *
-from enum import Enum, IntEnum
+from enum import IntEnum
 from dataclasses import dataclass, field
+from nagini_contracts.contracts import *
 
 <if(arrsIncludedModules)>
 # Included Modules: 

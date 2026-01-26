@@ -74,13 +74,14 @@ class Asn1ConstraintValidResult:
         if self.is_valid and self.error_code > 0:
             raise Exception("No error code must be set if the constraint is valid.")
 
-# class Asn1Base(ABC):
+class Asn1Base(ABC):
 #     from .encoder import Encoder
 #     from .decoder import Decoder
+    pass
 
-#     @abstractmethod
-#     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-#         pass
+    @abstractmethod
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        pass
 
 #     @abstractmethod
 #     def encode(self, codec: Encoder, check_constraints: bool = True) -> None:
@@ -95,21 +96,23 @@ class Asn1ConstraintValidResult:
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
 # @total_ordering
-# class Asn1Boolean(Asn1Base):
-#     """
-#     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
-#     """
+class Asn1Boolean(Asn1Base):
+    """
+    ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
+    """
     # from .encoder import Encoder
 
-    # __slots__ = ("_val",)
+    __slots__ = ("_val",)
 
-    # def __init__(self, val: object) -> None:
-    #     self._val = bool(val)
+    def __init__(self, val: object) -> None:
+        Ensures(Acc(self._val) and self._val is bool(val)) # type: ignore
+        self._val = bool(val)
 
     # --- Core protocol ---
-    # @Pure
-    # def __bool__(self) -> bool:
-    #     return self._val
+    @Pure
+    def __bool__(self) -> bool:
+        Requires(Acc(self._val))
+        return self._val
 
 #     def __repr__(self):
 #         return f"Asn1Boolean({self._val})"
@@ -118,9 +121,10 @@ class Asn1ConstraintValidResult:
 #         return str(self._val)
 
     # --- Equality / ordering ---
-    # @Pure
-    # def __eq__(self, other: object) -> bool:
-    #     return self._val == bool(other)
+    @Pure
+    def __eq__(self, other: object) -> bool:
+        Requires(Acc(self._val))
+        return self._val == bool(other)
 
 #     def __lt__(self, other):
 #         return self._val < bool(other)
@@ -128,37 +132,47 @@ class Asn1ConstraintValidResult:
 #     def __hash__(self):
 #         return hash(self._val)
 
-#     # --- Boolean operators ---
-#     def __and__(self, other):
-#         return Asn1Boolean(self._val & bool(other))
+    # --- Boolean operators ---
+    def __and__(self, other: object) -> 'Asn1Boolean':
+        Requires(Acc(self._val, 1/20))
+        Ensures(Acc(self._val, 1/20))
+        # Ensures(Acc(Result()._val) and Result()._val == (self._val and bool(other)))
+        return Asn1Boolean(self._val and bool(other))
 
-#     def __or__(self, other):
-#         return Asn1Boolean(self._val | bool(other))
+    def __or__(self, other: object) -> 'Asn1Boolean':
+        Requires(Acc(self._val, 1/20))
+        Ensures(Acc(self._val, 1/20))
+        return Asn1Boolean(self._val or bool(other))
 
-#     def __xor__(self, other):
-#         return Asn1Boolean(self._val ^ bool(other))
+    def __xor__(self, other: object) -> 'Asn1Boolean':
+        Requires(Acc(self._val, 1/20))
+        Ensures(Acc(self._val, 1/20))
+        return Asn1Boolean(self._val ^ bool(other))
 
-#     def __invert__(self):
-#         return Asn1Boolean(not self._val)
+    def __invert__(self) -> 'Asn1Boolean':
+        Requires(Acc(self._val, 1/20))
+        Ensures(Acc(self._val, 1/20))
+        return Asn1Boolean(not self._val)
 
 #     # --- Attribute delegation (for any method/properties bool has) ---
 #     def __getattr__(self, name):
 #         return getattr(self._val, name)
 
-#     # --- Conversion helpers ---
-#     @property
-#     def value(self) -> bool:
-#         """Explicit access to the inner bool."""
-#         return self._val
+    # --- Conversion helpers ---
+    @property
+    def value(self) -> bool:
+        """Explicit access to the inner bool."""
+        Requires(Acc(self._val))
+        return self._val
 
-#     # --- Stub-Implementations of Asn1Base Methods ---
-#     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-#         raise NotImplementedError()
+    # --- Stub-Implementations of Asn1Base Methods ---
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        pass
 
 #     def encode(self, codec: Encoder, check_constraints: bool = True):
 #         raise NotImplementedError()
 
-# class NullType(Asn1Base):
+class NullType(Asn1Base):
 #     """
 #     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
 #     Always falsy, always equal to None, singleton instance.
@@ -168,22 +182,24 @@ class Asn1ConstraintValidResult:
 
 #     __slots__ = ()
 
-#     # --- Core protocol ---
-#     def __bool__(self):
-#         return False
+    # --- Core protocol ---
+    def __bool__(self):
+        return False
 
 #     def __repr__(self):
 #         return "None"
 
-#     def __str__(self):
-#         return "None"
+    # def __str__(self):
+    #     return "None"
 
-#     # --- Equality ---
-#     def __eq__(self, other):
-#         return other is None or isinstance(other, NullType)
+    # --- Equality ---
+    @Pure
+    def __eq__(self, other: object) -> bool:
+        return other is None or isinstance(other, NullType)
 
-#     def __ne__(self, other):
-#         return not self.__eq__(other)
+    @Pure
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
 
 #     def __hash__(self):
 #         return hash(None)
@@ -199,9 +215,9 @@ class Asn1ConstraintValidResult:
 #     def __delattr__(self, name):
 #         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
     
-#     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-#         # todo: evaluate if NullType.is_constraint_valid should return True or False
-#         return Asn1ConstraintValidResult(is_valid=True)
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        # todo: evaluate if NullType.is_constraint_valid should return True or False
+        return Asn1ConstraintValidResult(is_valid=True)
     
 #     def encode(self, codec: Encoder, check_constraints: bool = True):
 #         return

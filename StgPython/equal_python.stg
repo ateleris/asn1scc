@@ -58,6 +58,7 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
 # equal_python.stg 64
+@Pure
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):
         return NotImplemented

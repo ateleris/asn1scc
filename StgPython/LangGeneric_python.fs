@@ -12,8 +12,7 @@ open FsUtils
 open Language
 open System.IO
 open System
-// open ProofGen // TODO
-// open ProofAst // TODO
+open ProofGen_python
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
@@ -942,11 +941,11 @@ type LangGeneric_python() =
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody
 
-    // override this.generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
-    //     []
+    override this.generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
+        generatePrecond r enc t codec
 
-    // override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-    //     None
+    override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) : string list =
+        generatePostcond r enc p t codec
 
     // override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
     //     []

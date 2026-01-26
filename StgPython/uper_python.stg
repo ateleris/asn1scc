@@ -52,6 +52,7 @@ EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDef
 
 def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> None:
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
+    <arrsPostcond:{post|Ensures(<post>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
@@ -77,6 +78,7 @@ EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDef
 def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
     # uper:58
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
+    <arrsPostcond:{post|Ensures(<post>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
