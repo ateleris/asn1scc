@@ -22,7 +22,7 @@
         <Compile Include="IXer_python.stg.fs" />
         <Compile Include="IEqual_python.stg.fs" />
         <Compile Include="ITypeDefinition_python.stg.fs" />
-<Compile Include="IVariables_python.stg.fs" />
+        <Compile Include="IVariables_python.stg.fs" />
         <Compile Include="IIsValid_python.stg.fs" />
         <Compile Include="IInit_python.stg.fs" />
         <Compile Include="IUper_python.stg.fs" />
@@ -30,6 +30,7 @@
         <Compile Include="ITestCases_python.stg.fs" />
         <Compile Include="ISrcBody_python.stg.fs" />
         <Compile Include="LangGeneric_python.fs" />
+        <Compile Include="ProofGen_python.fs" />
     </ItemGroup>
 
     <ItemGroup>
