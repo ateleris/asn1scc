@@ -31,6 +31,8 @@ from .codec_uper import UPEREncoder, UPERDecoder
 from .acn_encoder import ACNEncoder
 from .acn_decoder import ACNDecoder
 
+from .segment import Segment
+
 __version__ = "1.0.0"
 __author__ = "ASN.1 SCC Team"
 __description__ = "ASN.1 runtime library for Python"
@@ -60,4 +62,7 @@ __all__ = [
     # Constants
     "ENCODE_OK", "DECODE_OK", "ERROR_INSUFFICIENT_DATA",
     "ERROR_INVALID_VALUE", "ERROR_CONSTRAINT_VIOLATION",
+    
+    # Verification
+    "Segment",
 ]

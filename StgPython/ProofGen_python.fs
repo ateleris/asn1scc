@@ -31,7 +31,7 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
         [
             "codec.codec_predicate() and codec.write_invariant()";
             "codec.buffer_size == Old(codec.buffer_size)";
-            $"codec.segments is Old(codec.segments) + PSeq(Segment({usedBits}, bit_value))"
+            $"codec.segments is Old(codec.segments) + PSeq(Segment({usedBits}, self.value))" // Dummy for BasicBoolean
         ]
     | Decode ->
         [

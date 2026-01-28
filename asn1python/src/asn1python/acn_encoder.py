@@ -82,7 +82,7 @@ class test_class():
         assert decoded_value[3] == 128
 
         res_bits = decoder.read_bits(15)
-        decoded_value = res.decoded_value
+        decoded_value = res_bits.decoded_value
         assert isinstance(decoded_value, bytearray)
         assert decoded_value[0] == 187
         assert decoded_value[1] == 254

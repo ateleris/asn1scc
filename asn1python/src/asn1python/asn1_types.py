@@ -74,6 +74,7 @@ class Asn1ConstraintValidResult:
         if self.is_valid and self.error_code > 0:
             raise Exception("No error code must be set if the constraint is valid.")
 
+
 class Asn1Base(ABC):
 #     from .encoder import Encoder
 #     from .decoder import Decoder
@@ -183,7 +184,8 @@ class NullType(Asn1Base):
 #     __slots__ = ()
 
     # --- Core protocol ---
-    def __bool__(self):
+    @Pure
+    def __bool__(self) -> bool:
         return False
 
 #     def __repr__(self):

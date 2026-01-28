@@ -532,7 +532,3 @@ class BitStream:
         Fold(self.segments_predicate(self.buffer()))
         
     #endregion
-
-    # def is_at_end(self) -> bool:
-    #     """Check if we're at the end of the bitstream"""
-    #     return self._current_bit >= self._size_in_bits
