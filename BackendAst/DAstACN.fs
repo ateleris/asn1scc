@@ -141,15 +141,15 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
     | None      -> funcBody
     | Some al   ->
         let alStr, nAlignmentVal = getAlignmentString al
-        printfn "[DEBUG] handleAlignmentForAsn1Types: alStr=%s nAlignmentVal=%A codec=%A" alStr nAlignmentVal codec
+        // printfn "[DEBUG] handleAlignmentForAsn1Types: alStr=%s nAlignmentVal=%A codec=%A" alStr nAlignmentVal codec
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    printfn "[DEBUG] handleAlignmentForAsn1Types: Applying alignment, bodyResult.funcBody length=%d" bodyResult.funcBody.Length
+                    // printfn "[DEBUG] handleAlignmentForAsn1Types: Applying alignment, bodyResult.funcBody length=%d" bodyResult.funcBody.Length
                     let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    printfn "[DEBUG] handleAlignmentForAsn1Types: After alignToNext, funcBodyStr length=%d" funcBodyStr.Length
+                    // printfn "[DEBUG] handleAlignmentForAsn1Types: After alignToNext, funcBodyStr length=%d" funcBodyStr.Length
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
@@ -497,16 +497,15 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                     )
 
                 // DEBUG: Check all dependencies for this type
-                if matchingDeps.Length > 0 then
-                    printfn "[DEBUG createAcnFunction] Found %d matching acnDependencies"
-                        matchingDeps.Length
-                    matchingDeps
-                    |> List.iter(fun d ->
-                        printfn "  - determinant: %s"
-                            (match d.determinant with
-                             | AcnParameterDeterminant p -> sprintf "AcnPrm(%s)" p.c_name
-                             | AcnChildDeterminant c -> sprintf "AcnChild(%s)" c.c_name)
-                    )
+                // if matchingDeps.Length > 0 then
+                //     // printfn "[DEBUG createAcnFunction] Found %d matching acnDependencies" matchingDeps.Length
+                //     matchingDeps
+                //     |> List.iter(fun d ->
+                //         printfn "  - determinant: %s"
+                //             (match d.determinant with
+                //              | AcnParameterDeterminant p -> sprintf "AcnPrm(%s)" p.c_name
+                //              | AcnChildDeterminant c -> sprintf "AcnChild(%s)" c.c_name)
+                //     )
 
                 // Process both parameter types through their respective handlers
                 let incomingAcnParamStrings = incomingAcnParams |> List.map handleAcnParameter
@@ -515,9 +514,9 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
 
                 // DEBUG: Log all parameters found
                 let allParamCount = baseAcnParams.Length + additionalPrms.Length + incomingAcnParams.Length + incomingAcnChildren.Length
-                if allParamCount > 0 then
-                    printfn "DEBUG: baseAcnParams=%d, additionalPrms=%d, incomingAcnParams=%d, incomingChildren=%d, total=%d"
-                        baseAcnParams.Length additionalPrms.Length incomingAcnParams.Length incomingAcnChildren.Length allParamCount
+                // if allParamCount > 0 then
+                    // printfn "DEBUG: baseAcnParams=%d, additionalPrms=%d, incomingAcnParams=%d, incomingChildren=%d, total=%d"
+                        // baseAcnParams.Length additionalPrms.Length incomingAcnParams.Length incomingAcnChildren.Length allParamCount
 
                 let prmNames = basePrmNames @ additionalPrmNames @ incomingPrmNames
                 // Deduplicate by keeping first occurrence
@@ -2352,7 +2351,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
             match childInfo with
             | Asn1Child child   ->
-                printfn "[DEBUG] handleChild: Processing Asn1Child %s in sequence %s" (child.Name.Value) (t.id.AsString)
+                // printfn "[DEBUG] handleChild: Processing Asn1Child %s in sequence %s" (child.Name.Value) (t.id.AsString)
 
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
                 let childTypeDef = if ProgrammingLanguage.ActiveLanguages.Head = Python && childTypeDef.StartsWith((ToC t.moduleName) + ".") then childTypeDef.Substring(t.moduleName.Length + 1) else childTypeDef
@@ -2369,7 +2368,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 
                 // Merge cross-sequence ACN parameters with existing ACN parameters
                 let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
-                printfn "[DEBUG] handleChild: Total ACN parameters for template: %d [%A]" acnParamsForTemplate.Length acnParamsForTemplate
+                // printfn "[DEBUG] handleChild: Total ACN parameters for template: %d [%A]" acnParamsForTemplate.Length acnParamsForTemplate
 
                 let chFunc = child.Type.getAcnFunction codec
                 let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
@@ -2496,7 +2495,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let icdResult = icd_asn1_child child stmts.icdComments
 
                 // Include cross-sequence ACN update statements before the child encode call
-                printfn "[DEBUG] handleChild: Including %d cross-sequence ACN update statements in result" crossSeqAcnUpdateStmts.Length
+                // printfn "[DEBUG] handleChild: Including %d cross-sequence ACN update statements in result" crossSeqAcnUpdateStmts.Length
                 let allStmts = crossSeqAcnUpdateStmts @ [stmts]
                 let res = {stmts=allStmts; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
 
@@ -2516,7 +2515,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded; processedAsn1Children = (childName, child) :: s.processedAsn1Children; acnChildrenFromSiblings = newAcnChildrenFromSiblings}
                 res, newAcc
             | AcnChild acnChild ->
-                printfn "[DEBUG] handleChild: Processing AcnChild %s in sequence %s" acnChild.Name.Value (t.id.AsString)
+                // printfn "[DEBUG] handleChild: Processing AcnChild %s in sequence %s" acnChild.Name.Value (t.id.AsString)
 
                 // Check if this ACN child has dependencies on fields outside the current sequence
                 let acnChildDeps =
@@ -2530,8 +2529,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let currentSeqPath = t.id.AsString
                         // Check if the dependency is outside the current sequence
                         let isExternal = not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath)
-                        if isExternal then
-                            printfn "[DEBUG] handleChild: ACN child %s has external dependency on %s" acnChild.Name.Value depFieldPath
+                        // if isExternal then
+                            // printfn "[DEBUG] handleChild: ACN child %s has external dependency on %s" acnChild.Name.Value depFieldPath
                         isExternal
                     )
 
@@ -2544,7 +2543,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         // Skip update code generation if this ACN child has external dependencies
                         // (it will be provided as a parameter from the parent)
                         if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
-                            printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
+                            // printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
                             None, us
                         else
                             let pRoot : CodegenScope = lm.lg.getParamType t codec  //????
@@ -3006,7 +3005,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (acnPrms:DastAcnParameter list) (us:State)  =
-  printfn "[DEBUG] createReferenceFunction: t.id=%s t.acnAlignment=%A codec=%A" (t.id.AsString) t.acnAlignment codec
+  // printfn "[DEBUG] createReferenceFunction: t.id=%s t.acnAlignment=%A codec=%A" (t.id.AsString) t.acnAlignment codec
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
   //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
@@ -3071,7 +3070,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
       match o.hasExtraConstrainsOrChildrenOrAcnArgs && not shouldUseSlowPath with
       | true  ->
           // TODO: this is where stuff gets inlined
-          printfn "[DEBUG] createReferenceFunction: FAST PATH for %s (no alignment)" (t.id.AsString)
+          // printfn "[DEBUG] createReferenceFunction: FAST PATH for %s (no alignment)" (t.id.AsString)
           TL "ACN_REF_01" (fun () ->
           match codec with
             | Codec.Encode  -> baseType.getAcnFunction codec, us
@@ -3090,7 +3089,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
                 TL "ACN_REF_02" (fun () ->
-                printfn "[DEBUG] createReferenceFunction funcBody: t.id=%s, calling createAcnFunction with acnAlignment=%A" (t.id.AsString) t.acnAlignment
+                // printfn "[DEBUG] createReferenceFunction funcBody: t.id=%s, calling createAcnFunction with acnAlignment=%A" (t.id.AsString) t.acnAlignment
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.accessPath codec
                     match codec, lm.lg.decodingKind with
@@ -3119,7 +3118,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     addFunctionCallToState us caller callee
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-            printfn "[DEBUG] createReferenceFunction: calling createAcnFunction for %s with acnAlignment=%A" (t.id.AsString) t.acnAlignment
+            // printfn "[DEBUG] createReferenceFunction: calling createAcnFunction for %s with acnAlignment=%A" (t.id.AsString) t.acnAlignment
             let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] acnPrms ns
             Some a, ns
 
