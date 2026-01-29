@@ -785,7 +785,7 @@ if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sEx
     <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
     <soCallAux>
 else:
-    raise Asn1Exception(f"{<sErrCode>}")
+    raise Asn1Exception(f"Error {cls.DecodeConstants.<sErrCode>}")
 >>
 
 sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
@@ -798,7 +798,7 @@ sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     <soCallAux>
 else:
-    raise Asn1Exception(f"{sErrCode}")
+    raise Asn1Exception(f"Error {cls.DecodeConstants.<sErrCode>}")
 >>
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
@@ -824,7 +824,7 @@ if (<i> == <nSizeMax>) and checkBitPatternPresentResult != 2:
     
 if checkBitPatternPresentResult == 0:
     # acn_python.stg 647
-    raise Asn1Exception(f"{<sErrCode>}")
+    raise Asn1Exception(f"Error {cls.DecodeConstants.<sErrCode>}")
 elif checkBitPatternPresentResult == 2:
     <p><sAcc>nCount = <i>
 >>
@@ -857,7 +857,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<nSizeMax>)
     <CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType=sType)>
 else:
-    raise Asn1Exception(f"{<sErrCode>}")v
+    raise Asn1Exception(f"Error {cls.DecodeConstants.<sErrCode>}")
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
