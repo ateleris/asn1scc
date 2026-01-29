@@ -241,10 +241,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let mapEntries =
                         deduplicatedTypes |> List.collect(fun (canonicalKey, (parentTas, encDecCls)) ->
                             // DEBUG: Print what we're generating in STEP 1
-                            printfn "[STEP 1] Generating for key: %s" canonicalKey
-                            printfn "  encDecCls.id.AsString: %s" encDecCls.id.AsString
-                            printfn "  encDecCls.id.tasInfo: %A" encDecCls.id.tasInfo
-                            printfn "  parentTas: %s" (match parentTas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> "None")
+                            // printfn "[STEP 1] Generating for key: %s" canonicalKey
+                            // printfn "  encDecCls.id.AsString: %s" encDecCls.id.AsString
+                            // printfn "  encDecCls.id.tasInfo: %A" encDecCls.id.tasInfo
+                            // printfn "  parentTas: %s" (match parentTas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> "None")
 
                             // Find the correct TAS for this type using the canonicalKey
                             // This ensures each type gets its own class name, not the parent's
@@ -254,26 +254,26 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 if parts.Length >= 2 then
                                     let modName = parts.[0]
                                     let tasName = parts.[parts.Length - 1]  // Last part is the TAS name
-                                    printfn "  Looking for TAS: %s.%s (from canonicalKey)" modName tasName
+                                    // printfn "  Looking for TAS: %s.%s (from canonicalKey)" modName tasName
 
                                     let found = tases |> List.tryFind (fun tas ->
                                         match tas.Type.id.tasInfo with
                                         | Some ti ->
                                             let matches = ti.modName = modName && ti.tasName = tasName
-                                            if matches then printfn "    FOUND matching TAS: %s.%s" ti.modName ti.tasName
+                                            // if matches then printfn "    FOUND matching TAS: %s.%s" ti.modName ti.tasName
                                             matches
                                         | None -> false
                                     )
 
                                     match found with
                                     | Some tas ->
-                                        printfn "  Using correctTas: %s.%s" modName tasName
+                                        // printfn "  Using correctTas: %s.%s" modName tasName
                                         tas
                                     | None ->
-                                        printfn "  NOT FOUND - falling back to parentTas"
+                                        // printfn "  NOT FOUND - falling back to parentTas"
                                         parentTas
                                 else
-                                    printfn "  Invalid canonicalKey format - using parentTas"
+                                    // printfn "  Invalid canonicalKey format - using parentTas"
                                     parentTas
 
                             let f cl = {Caller.typeId = correctTas.Type.id.tasInfo.Value; funcType = cl}
@@ -440,7 +440,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         | Some ti -> $"{ti.modName}.{ti.tasName}"
                         | None -> tas.Type.id.AsString
 
-                    printfn "=== Processing TAS: %s ===" tasCanonicalKey
+                    // printfn "=== Processing TAS: %s ===" tasCanonicalKey
 
                     // Get the types that belong to this TAS (already in correct order)
                     let typesToGenerate =
@@ -448,7 +448,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         | Some typeList -> typeList  // Already just Asn1Type list
                         | None -> []
 
-                    printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+                    // printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
                     // Separate into types with deep field access (in map) and those without
                     let typesInMap, typesNotInMap =
@@ -473,7 +473,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
                             let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
                             let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-                            printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
+                            // printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
                             printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn
                         )
 

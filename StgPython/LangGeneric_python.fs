@@ -110,21 +110,21 @@ type CrossSequenceAcnDep = {
 // Takes the child sequence's ACN children and checks which ones depend on fields outside the child sequence
 // Returns information about the ACN child ID and its dependency
 let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (parentSeqType:Asn1AcnAst.Asn1Type) (childSeqType:Asn1AcnAst.Asn1Type) (childSeqAcnChildren: Asn1AcnAst.AcnChild list) : CrossSequenceAcnDep list =
-    printfn "[DEBUG] findCrossSequenceAcnDeps: Checking child sequence %s (parent: %s) ACN children for cross-sequence dependencies" (childSeqType.id.AsString) (parentSeqType.id.AsString)
-    printfn "[DEBUG] findCrossSequenceAcnDeps: Child sequence has %d ACN children" childSeqAcnChildren.Length
+    // printfn "[DEBUG] findCrossSequenceAcnDeps: Checking child sequence %s (parent: %s) ACN children for cross-sequence dependencies" (childSeqType.id.AsString) (parentSeqType.id.AsString)
+    // printfn "[DEBUG] findCrossSequenceAcnDeps: Child sequence has %d ACN children" childSeqAcnChildren.Length
 
     // For each ACN child in the child sequence, check if it has dependencies on fields in the parent sequence (outside the child sequence)
     let result =
         childSeqAcnChildren
         |> List.choose (fun acnChild ->
-            printfn "[DEBUG] findCrossSequenceAcnDeps: Checking ACN child %s (id: %s) for cross-sequence dependencies" acnChild.Name.Value (acnChild.id.AsString)
+            // printfn "[DEBUG] findCrossSequenceAcnDeps: Checking ACN child %s (id: %s) for cross-sequence dependencies" acnChild.Name.Value (acnChild.id.AsString)
 
             // Find dependencies where this ACN child is the determinant
             let relevantDeps =
                 deps.acnDependencies
                 |> List.filter (fun d -> d.determinant.id = acnChild.id)
 
-            printfn "[DEBUG] findCrossSequenceAcnDeps: Found %d dependencies for ACN child %s" relevantDeps.Length acnChild.Name.Value
+            // printfn "[DEBUG] findCrossSequenceAcnDeps: Found %d dependencies for ACN child %s" relevantDeps.Length acnChild.Name.Value
 
             // Check if any dependency references a field in the parent sequence (outside the child sequence)
             relevantDeps
@@ -134,15 +134,15 @@ let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 let parentPath = parentSeqType.id.AsString
                 let childPath = childSeqType.id.AsString
 
-                printfn "[DEBUG] findCrossSequenceAcnDeps: Checking dependency - ACN child uses field: %s" depFieldPath
+                // printfn "[DEBUG] findCrossSequenceAcnDeps: Checking dependency - ACN child uses field: %s" depFieldPath
 
                 // The field is in the parent (outside child) if:
                 // 1. It starts with the parent path
                 // 2. It doesn't start with the child path (or is not nested inside child path)
                 let isOutsideChild = depFieldPath.StartsWith(parentPath) && not (depFieldPath.StartsWith(childPath + "#") || depFieldPath.StartsWith(childPath + ".") || depFieldPath = childPath)
 
-                if isOutsideChild then
-                    printfn "[DEBUG] findCrossSequenceAcnDeps: >>> CROSS-SEQUENCE DEPENDENCY FOUND! ACN child %s (in %s) needs to access field %s (outside child sequence)" acnChild.Name.Value childPath depFieldPath
+                // if isOutsideChild then
+                    // printfn "[DEBUG] findCrossSequenceAcnDeps: >>> CROSS-SEQUENCE DEPENDENCY FOUND! ACN child %s (in %s) needs to access field %s (outside child sequence)" acnChild.Name.Value childPath depFieldPath
 
                 isOutsideChild
             )
@@ -155,7 +155,7 @@ let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             )
         )
 
-    printfn "[DEBUG] findCrossSequenceAcnDeps: Returning %d cross-sequence ACN dependencies" result.Length
+    // printfn "[DEBUG] findCrossSequenceAcnDeps: Returning %d cross-sequence ACN dependencies" result.Length
     result
     
 type LangGeneric_python() =
@@ -500,14 +500,14 @@ type LangGeneric_python() =
         
         // Extract ACN children from the child sequence type (SubPacket)
         // These ACN children are defined in the child's encoding, not the parent's
-        printfn "[DEBUG] handleChild: Parent sequence %s has %d children total" (t.id.AsString) oChildren.Length
-        printfn "[DEBUG] handleChild: Child sequence %s type" (childAstType.id.AsString)
+        // printfn "[DEBUG] handleChild: Parent sequence %s has %d children total" (t.id.AsString) oChildren.Length
+        // printfn "[DEBUG] handleChild: Child sequence %s type" (childAstType.id.AsString)
         
         // Resolve reference types to get actual sequence
         let actualChildSeqType =
             match childAstType.Kind with
             | Asn1AcnAst.ReferenceType refType ->
-                printfn "[DEBUG] handleChild: Child is a ReferenceType, resolving to %s" (refType.resolvedType.id.AsString)
+                // printfn "[DEBUG] handleChild: Child is a ReferenceType, resolving to %s" (refType.resolvedType.id.AsString)
                 refType.resolvedType
             | _ -> childAstType
         
@@ -515,24 +515,24 @@ type LangGeneric_python() =
         let childSeqAcnChildren =
             match actualChildSeqType.Kind with
             | Asn1AcnAst.Sequence childSeq ->
-                printfn "[DEBUG] handleChild: Child sequence has %d children" childSeq.children.Length
-                childSeq.children |> List.iteri (fun i c ->
-                    match c with
-                    | Asn1AcnAst.Asn1Child a -> printfn "[DEBUG] handleChild:   Child %d: Asn1Child %s" i a.Name.Value
-                    | Asn1AcnAst.AcnChild a -> printfn "[DEBUG] handleChild:   Child %d: AcnChild %s (id: %s)" i a.Name.Value (a.id.AsString))
+                // printfn "[DEBUG] handleChild: Child sequence has %d children" childSeq.children.Length
+                // childSeq.children |> List.iteri (fun i c ->
+                //     match c with
+                //     | Asn1AcnAst.Asn1Child a -> printfn "[DEBUG] handleChild:   Child %d: Asn1Child %s" i a.Name.Value
+                //     | Asn1AcnAst.AcnChild a -> printfn "[DEBUG] handleChild:   Child %d: AcnChild %s (id: %s)" i a.Name.Value (a.id.AsString))
                 childSeq.children
                 |> List.choose (fun c ->
                     match c with
                     | Asn1AcnAst.AcnChild acnCh -> Some acnCh
                     | _ -> None)
             | _ ->
-                printfn "[DEBUG] handleChild: Child is not a sequence"
+                // printfn "[DEBUG] handleChild: Child is not a sequence"
                 []
         
-        printfn "[DEBUG] handleChild: Child sequence has %d ACN children" childSeqAcnChildren.Length
+        // printfn "[DEBUG] handleChild: Child sequence has %d ACN children" childSeqAcnChildren.Length
         
         let crossSeqAcnDeps = findCrossSequenceAcnDeps r deps t childAstType childSeqAcnChildren
-        printfn "[DEBUG] handleChild: Found %d cross-sequence ACN deps for child %s" crossSeqAcnDeps.Length childName
+        // printfn "[DEBUG] handleChild: Found %d cross-sequence ACN deps for child %s" crossSeqAcnDeps.Length childName
         
         // Get the module for this type
         let currentModule = r.Modules |> Seq.find(fun m -> m.Name.Value = t.moduleName)
@@ -541,18 +541,18 @@ type LangGeneric_python() =
         let crossSeqAcnUpdateStmts, crossSeqAcnParamsList, ns0 =
             match codec with
             | Encode when not crossSeqAcnDeps.IsEmpty ->
-                printfn "[DEBUG] handleChild: Generating update code for cross-sequence ACN children in parent context"
+                // printfn "[DEBUG] handleChild: Generating update code for cross-sequence ACN children in parent context"
         
                 crossSeqAcnDeps
                 |> List.fold (fun (stmts, paramsList, state) crossDep ->
-                    printfn "[DEBUG] handleChild: Processing cross-sequence ACN child %s (id: %s)" crossDep.acnChildCName (crossDep.acnChildId.AsString)
+                    // printfn "[DEBUG] handleChild: Processing cross-sequence ACN child %s (id: %s)" crossDep.acnChildCName (crossDep.acnChildId.AsString)
         
                     // Get the update function for this ACN child
                     let funcUpdateStatement, newState = updateFncInEncoding currentModule crossDep.acnChildId state
         
                     match funcUpdateStatement with
                     | Some updateFunc ->
-                        printfn "[DEBUG] handleChild: Found update function, generating update code"
+                        // printfn "[DEBUG] handleChild: Found update function, generating update code"
         
                         // Create a temporary AcnChild record to pass to the update function
                         // We need to construct this from the dependency information
@@ -576,7 +576,7 @@ type LangGeneric_python() =
                         let pRoot = this.getParamType t codec  // Use parent sequence type
                         let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
         
-                        printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
+                        // printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
 
                         // Create statement for this update
                         let stmt = {
@@ -592,13 +592,13 @@ type LangGeneric_python() =
 
                         (stmt :: stmts, param :: paramsList, newState)
                     | None ->
-                        printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
+                        // printfn "[DEBUG] handleChild: No update function found for ACN child %s" crossDep.acnChildCName
                         (stmts, paramsList, newState)
                 ) ([], [], state)
                 |> fun (stmts, paramsList, state) -> (List.rev stmts, List.rev paramsList, state)
             | _ -> ([], [], state)
         
-        printfn "[DEBUG] handleChild: Generated %d update statements and %d parameters for cross-sequence ACN children" crossSeqAcnUpdateStmts.Length crossSeqAcnParamsList.Length
+        // printfn "[DEBUG] handleChild: Generated %d update statements and %d parameters for cross-sequence ACN children" crossSeqAcnUpdateStmts.Length crossSeqAcnParamsList.Length
         
         // // Merge cross-sequence ACN parameters with existing ACN parameters
         // let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
