@@ -91,5 +91,11 @@
       <lang>python</lang>
     <abctractInterface   modMame="IAux">IAux.stg.fs</abctractInterface>
   </run>
+  <run mode="single">
+      <input>verification_python.stg</input>
+      <output>verification_python.stg.fs</output>
+      <modName>verification_python</modName>
+      <lang>python</lang>
+  </run>
 
 </Settings>

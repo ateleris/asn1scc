@@ -20,6 +20,7 @@
         <Compile Include="uper_python.stg.fs" />
         <Compile Include="variables_python.stg.fs" />
         <Compile Include="xer_python.stg.fs" />
+        <Compile Include="verification_python.stg.fs" />
         <Compile Include="IXer_python.stg.fs" />
         <Compile Include="IEqual_python.stg.fs" />
         <Compile Include="ITypeDefinition_python.stg.fs" />
@@ -65,6 +66,9 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Include="xer_python.stg">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="verification_python.stg">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
