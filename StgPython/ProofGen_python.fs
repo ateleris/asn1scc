@@ -7,8 +7,7 @@ open CommonTypes
 open Language
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
-open AcnGenericTypes
-open System.Numerics
+open verification_python
 
 let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
     match codec with
@@ -70,31 +69,12 @@ let generateChildSegmentCollection (lg: ILangGeneric) (moduleName: string) (chil
     let bIsPrimitive = isPrimitiveType child.Type
 
     match child.Type.Kind with
-    | SequenceOf _ ->
-        ST.lang <- Python
-        ST.call "verification_python" "segments_of_child_sequenceof"
-            [("sChildName", childName :> obj)
-             ("sChildType", childTypeName :> obj)
-             ("bIsPrimitive", bIsPrimitive :> obj)]
-    | Choice _ ->
-        ST.lang <- Python
-        ST.call "verification_python" "segments_of_child_choice"
-            [("sChildName", childName :> obj)
-             ("sChildType", childTypeName :> obj)]
+    | SequenceOf _ -> verification_python.segments_of_child_sequenceof childName childTypeName bIsPrimitive
+    | Choice _ -> verification_python.segments_of_child_choice childName childTypeName
     | _ ->
         match child.Optionality with
-        | Some _ ->
-            ST.lang <- Python
-            ST.call "verification_python" "segments_of_child_optional"
-                [("sChildName", childName :> obj)
-                 ("sChildType", childTypeName :> obj)
-                 ("bIsPrimitive", bIsPrimitive :> obj)]
-        | None ->
-            ST.lang <- Python
-            ST.call "verification_python" "segments_of_child_mandatory"
-                [("sChildName", childName :> obj)
-                 ("sChildType", childTypeName :> obj)
-                 ("bIsPrimitive", bIsPrimitive :> obj)]
+        | Some _ -> verification_python.segments_of_child_optional childName childTypeName bIsPrimitive
+        | None -> verification_python.segments_of_child_mandatory childName childTypeName bIsPrimitive
 
 let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     // Only generate for Encode (generate once, not twice)
@@ -104,23 +84,16 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
 
         // Get ASN.1 children (not ACN children)
         let asn1Children =
-            sq.children
-            |> List.choose (function
+            sq.children |> List.choose (function
                 | Asn1Child ch -> Some ch
                 | _ -> None)
 
         // Generate child segment collection code
         let childSegments =
-            asn1Children
-            |> List.map (generateChildSegmentCollection lg t.moduleName)
+            asn1Children |> List.map (generateChildSegmentCollection lg t.moduleName)
 
         // Generate the segments_of function using the template
-        ST.lang <- Python
-        let segmentsOfFunc =
-            ST.call "verification_python" "segments_of_sequence"
-                [("sTypeName", typeName :> obj)
-                 ("arrsChildren", (childSegments |> Seq.toArray) :> obj)]
-
+        let segmentsOfFunc = verification_python.segments_of_sequence typeName childSegments
         [segmentsOfFunc]
     | Decode ->
         // Don't generate for Decode - only once per type

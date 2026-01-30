@@ -907,13 +907,13 @@ type LangGeneric_python() =
 
     // Verification auxiliary methods - generate helper functions for verification
     override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateSequenceAuxiliaries r enc t sq nestingScope sel codec this
+        generateSequenceAuxiliaries r enc t sq nestingScope sel codec this
 
     override this.generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateIntegerAuxiliaries r enc t int nestingScope sel codec this
+        generateIntegerAuxiliaries r enc t int nestingScope sel codec this
 
     override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateBooleanAuxiliaries r enc t boolean nestingScope sel codec this
+        generateBooleanAuxiliaries r enc t boolean nestingScope sel codec this
 
     override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
         // Not implemented yet for Python
@@ -924,13 +924,13 @@ type LangGeneric_python() =
         [], ""
 
     override this.generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateChoiceAuxiliaries r enc t ch nestingScope sel codec this
+        generateChoiceAuxiliaries r enc t ch nestingScope sel codec this
 
     override this.generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateNullTypeAuxiliaries r enc t nt nestingScope sel codec this
+        generateNullTypeAuxiliaries r enc t nt nestingScope sel codec this
 
     override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ProofGen_python.generateEnumAuxiliaries r enc t enm nestingScope sel codec this
+        generateEnumAuxiliaries r enc t enm nestingScope sel codec this
 
     override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
         match childType with

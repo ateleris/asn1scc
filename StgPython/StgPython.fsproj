@@ -7,7 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="ProofGen_python.fs" />
         <Content Include="backends.xml" />
         <Compile Include="acn_python.stg.fs" />
         <Compile Include="aux_python.stg.fs" />
@@ -31,6 +30,7 @@
         <Compile Include="IAcn_python.stg.fs" />
         <Compile Include="ITestCases_python.stg.fs" />
         <Compile Include="ISrcBody_python.stg.fs" />
+        <Compile Include="ProofGen_python.fs" />
         <Compile Include="LangGeneric_python.fs" />
     </ItemGroup>
 
