@@ -43,8 +43,6 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
              $"isinstance(Result().decoded_value, {typeDefName})";
              $"Result().decoded_value == {typeDefName}(Old(codec.current_segment().value))"
         ]
-
-// Helper function to determine if a type is primitive (has a single segment)
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
     | Integer _ | Boolean _ | Real _ | NullType _ | Enumerated _ -> true
@@ -77,35 +75,36 @@ let generateChildSegmentCollection (lg: ILangGeneric) (moduleName: string) (chil
         | None -> verification_python.segments_of_child_mandatory childName childTypeName bIsPrimitive
 
 let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // Only generate for Encode (generate once, not twice)
     match codec with
     | Encode ->
         let typeName = (lg.getSequenceTypeDefinition sq.typeDef).typeName
 
-        // Get ASN.1 children (not ACN children)
         let asn1Children =
             sq.children |> List.choose (function
                 | Asn1Child ch -> Some ch
                 | _ -> None)
 
-        // Generate child segment collection code
         let childSegments =
             asn1Children |> List.map (generateChildSegmentCollection lg t.moduleName)
 
         // Generate the segments_of function using the template
         let segmentsOfFunc = verification_python.segments_of_sequence typeName childSegments
         [segmentsOfFunc]
-    | Decode ->
-        // Don't generate for Decode - only once per type
-        []
+    | Decode -> []
 
 let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     // No auxiliaries needed for primitive types
     []
 
 let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // No auxiliaries needed for primitive types
-    []
+    match codec, sel.steps.IsEmpty with
+    | Encode, true ->
+
+        let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let segmentsOfFunc = verification_python.segments_of_boolean typeName
+
+        [segmentsOfFunc]
+    | _, _ -> []
 
 let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     // TODO: Implement choice auxiliaries if needed

@@ -1,61 +1,54 @@
 group verification_python;
 
-// Template for generating the segments_of static method for a Sequence type
-// This function recursively collects all segments from the sequence and its children
 segments_of_sequence(sTypeName, arrsChildren) ::= <<
-# verification_python.stg - segments_of
 @staticmethod
 @Pure
-def segments_of(val: '<sTypeName>') -> List[Segment]:
-    """
-    Recursively collect all segments from this sequence and its children.
-    Returns a flat list of all segments in encoding order.
-    """
-    result: List[Segment] = []
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\n">
-    return result
+    return segments
 >>
 
-// Template for a mandatory child field
 segments_of_child_mandatory(sChildName, sChildType, bIsPrimitive) ::= <<
 # Collect segments from <sChildName>
 <if(bIsPrimitive)>
 # Primitive type - single segment
-result.append(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
+segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
 <else>
-# Complex type - recursively collect segments
-result.extend(<sChildType>.segments_of(val.<sChildName>))
+segments = segments + <sChildType>.segments_of(val.<sChildName>)
 <endif>
 >>
 
-// Template for an optional child field
 segments_of_child_optional(sChildName, sChildType, bIsPrimitive) ::= <<
 # Collect segments from optional <sChildName>
 if val.<sChildName> is not None:
     <if(bIsPrimitive)>
     # Primitive type - single segment
-    result.append(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
+    segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
     <else>
-    # Complex type - recursively collect segments
-    result.extend(<sChildType>.segments_of(val.<sChildName>))
+    segments = segments + <sChildType>.segments_of(val.<sChildName>)
     <endif>
 >>
 
-// Template for sequence-of child
 segments_of_child_sequenceof(sChildName, sChildType, bIsPrimitive) ::= <<
 # Collect segments from sequence-of <sChildName>
 for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
     <if(bIsPrimitive)>
-    # Primitive type - single segment per item
-    result.append(Segment(<sChildType>.size_in_bits(), item))
+    segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), item))
     <else>
-    # Complex type - recursively collect segments
-    result.extend(<sChildType>.segments_of(item))
+    segments = segments + <sChildType>.segments_of(item)
     <endif>
 >>
 
-// Template for choice child
 segments_of_child_choice(sChildName, sChildType) ::= <<
 # Collect segments from choice <sChildName>
-result.extend(<sChildType>.segments_of(val.<sChildName>))
+segments = segments + <sChildType>.segments_of(val.<sChildName>)
+>>
+
+segments_of_boolean(sTypeName) ::= <<
+@staticmethod
+@Pure
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    segments: PSeq[Segment] = PSeq(Segment(val.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING , val))
+    return segments
 >>
