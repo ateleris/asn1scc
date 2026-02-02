@@ -724,7 +724,19 @@ TESTLIB_FILES="./Asn1AcnTestLib/primitives/boolean/boolean-basic.asn1 \
 DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
              ./Asn1AcnTestLib/additional/deep-field-access.acn \
              ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/BasicTypes.asn1 \
-             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/BasicTypes.acn"
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/BasicTypes.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Packet.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Packet.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Payload.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Payload.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcessUser.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcessUser.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcess.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcess.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/MessageType.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/MessageType.acn"
           
                              
 #TEMPLATE_INFO="-printTemplateInfo"
