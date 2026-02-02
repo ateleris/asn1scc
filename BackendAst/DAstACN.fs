@@ -2391,19 +2391,30 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     // AND the dependency's asn1Type (field that depends on the determinant) is OUTSIDE the child field
                     // Use the parent type's full path + child name to construct the full field path
                     let childFieldPath = t.id.AsString + "." + childName
-                    deps.acnDependencies
-                    |> List.exists (fun d ->
-                        // Does the determinant belong to the child field?
-                        let determinantPath = d.determinant.id.AsString
-                        let determinantBelongsToChild = determinantPath.StartsWith(childFieldPath + ".") || determinantPath = childFieldPath
+                    let shouldInlineAny =
+                        deps.acnDependencies
+                        |> List.exists (fun d ->
+                            // Does the determinant belong to the child field?
+                            let determinantPath = d.determinant.id.AsString
+                            // Normalize hyphens to underscores for comparison (ASN.1 names with hyphens become underscores in some contexts)
+                            let normalizedDeterminantPath = determinantPath.Replace("-", "_")
+                            let normalizedChildFieldPath = childFieldPath.Replace("-", "_")
+                            let determinantBelongsToChild =
+                                normalizedDeterminantPath.StartsWith(normalizedChildFieldPath + ".") ||
+                                normalizedDeterminantPath = normalizedChildFieldPath
 
-                        // Does the dependent field belong OUTSIDE the child field?
-                        let dependentPath = d.asn1Type.AsString
-                        let dependentIsOutsideChild = not (dependentPath.StartsWith(childFieldPath + ".") || dependentPath = childFieldPath)
+                            // Does the dependent field belong OUTSIDE the child field?
+                            let dependentPath = d.asn1Type.AsString
+                            let normalizedDependentPath = dependentPath.Replace("-", "_")
+                            let dependentIsOutsideChild =
+                                not (normalizedDependentPath.StartsWith(normalizedChildFieldPath + ".") ||
+                                     normalizedDependentPath = normalizedChildFieldPath)
 
-                        // Inline is required if: determinant is inside child, but dependent field is outside child
-                        determinantBelongsToChild && dependentIsOutsideChild
-                    )
+                            // Inline is required if: determinant is inside child, but dependent field is outside child
+                            let shouldInline = determinantBelongsToChild && dependentIsOutsideChild
+                            shouldInline
+                        )
+                    shouldInlineAny
 
                 let chFunc = child.Type.getAcnFunction codec
                 let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
