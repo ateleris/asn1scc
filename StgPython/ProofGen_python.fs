@@ -45,14 +45,12 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
-    | Integer _ | Boolean _ | Real _ | NullType _ | Enumerated _ -> true
-    | OctetString _ | BitString _ | IA5String _ | NumericString _ -> false // These can be variable size
-    | Sequence _ | SequenceOf _ | Choice _ -> false
-    | ReferenceType refType -> isPrimitiveType refType.resolvedType
+    | Integer _ | Boolean _ | Real _ | NullType _  -> true
+    // | ReferenceType refType -> isPrimitiveType refType.resolvedType
     | _ -> false
 
 // Generate a child segment collection based on child type
-let generateChildSegmentCollection (lg: ILangGeneric) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+let generateChildSegmentCollection (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
     let childName = child._python_name
     // Get the type name using the proper method
     let asn1Type: Asn1AcnAst.Asn1Type = child.Type
@@ -65,14 +63,15 @@ let generateChildSegmentCollection (lg: ILangGeneric) (moduleName: string) (chil
         else
             childTypeDef
     let bIsPrimitive = isPrimitiveType child.Type
+    let bitSize = child.maxSizeInBits enc
 
     match child.Type.Kind with
-    | SequenceOf _ -> verification_python.segments_of_child_sequenceof childName childTypeName bIsPrimitive
-    | Choice _ -> verification_python.segments_of_child_choice childName childTypeName
+    | SequenceOf _ -> segments_of_child_sequenceof childName childTypeName bIsPrimitive bitSize
+    | Choice _ -> segments_of_child_choice childName childTypeName
     | _ ->
         match child.Optionality with
-        | Some _ -> verification_python.segments_of_child_optional childName childTypeName bIsPrimitive
-        | None -> verification_python.segments_of_child_mandatory childName childTypeName bIsPrimitive
+        | Some _ -> segments_of_child_optional childName childTypeName bIsPrimitive bitSize
+        | None -> segments_of_child_mandatory childName childTypeName bIsPrimitive bitSize
 
 let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     match codec with
@@ -85,10 +84,10 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
                 | _ -> None)
 
         let childSegments =
-            asn1Children |> List.map (generateChildSegmentCollection lg t.moduleName)
+            asn1Children |> List.map (generateChildSegmentCollection lg enc t.moduleName)
 
         // Generate the segments_of function using the template
-        let segmentsOfFunc = verification_python.segments_of_sequence typeName childSegments
+        let segmentsOfFunc = segments_of_sequence typeName childSegments
         [segmentsOfFunc]
     | Decode -> []
 
@@ -101,7 +100,7 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
     | Encode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        let segmentsOfFunc = verification_python.segments_of_boolean typeName
+        let segmentsOfFunc = segments_of_boolean typeName
 
         [segmentsOfFunc]
     | _, _ -> []

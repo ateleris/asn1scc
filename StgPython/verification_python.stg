@@ -9,32 +9,30 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
     return segments
 >>
 
-segments_of_child_mandatory(sChildName, sChildType, bIsPrimitive) ::= <<
+segments_of_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Collect segments from <sChildName>
 <if(bIsPrimitive)>
-# Primitive type - single segment
-segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
+segments = segments + PSeq(Segment(<bitSize>, val.<sChildName>))
 <else>
 segments = segments + <sChildType>.segments_of(val.<sChildName>)
 <endif>
 >>
 
-segments_of_child_optional(sChildName, sChildType, bIsPrimitive) ::= <<
+segments_of_child_optional(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Collect segments from optional <sChildName>
 if val.<sChildName> is not None:
     <if(bIsPrimitive)>
-    # Primitive type - single segment
-    segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), val.<sChildName>))
+    segments = segments + PSeq(Segment(<bitSize>, val.<sChildName>))
     <else>
     segments = segments + <sChildType>.segments_of(val.<sChildName>)
     <endif>
 >>
 
-segments_of_child_sequenceof(sChildName, sChildType, bIsPrimitive) ::= <<
+segments_of_child_sequenceof(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Collect segments from sequence-of <sChildName>
 for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
     <if(bIsPrimitive)>
-    segments = segments + PSeq(Segment(<sChildType>.size_in_bits(), item))
+    segments = segments + PSeq(Segment(<bitSize>, item))
     <else>
     segments = segments + <sChildType>.segments_of(item)
     <endif>
