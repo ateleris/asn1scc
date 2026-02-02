@@ -369,16 +369,13 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match t.Kind with
                     | Asn1AcnAst.Sequence sq ->
                         // Find ACN children that belong to this type and check if they'll be filtered out
-                        printfn "DEBUG bHasAcnChildrenToReturn: Checking type %s" t.id.AsString
                         let acnChildrenToReturn =
                             deps.acnDependencies
                             |> List.filter(fun dep ->
                                 match dep.determinant with
                                 | AcnChildDeterminant acnCh ->
-                                    printfn "DEBUG bHasAcnChildrenToReturn: Found ACN child %s, parent=%A, t.id=%s" acnCh.id.AsString acnCh.id.parentTypeId t.id.AsString
                                     // This ACN child belongs to this type
                                     if acnCh.id.parentTypeId = Some t.id then
-                                        printfn "DEBUG bHasAcnChildrenToReturn: ACN child belongs to this type"
                                         // Check if it has external dependency (for Python filtering)
                                         if ProgrammingLanguage.ActiveLanguages.Head = Python then
                                             let determinantPath = dep.determinant.id.AsString
@@ -387,7 +384,6 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                                             let dependentPath = dep.asn1Type.AsString
                                             let dependentIsOutsideType = not (dependentPath.StartsWith(typePath + ".") || dependentPath = typePath)
                                             let hasExternalDependency = determinantBelongsToType && dependentIsOutsideType
-                                            printfn "DEBUG bHasAcnChildrenToReturn: determinantPath=%s, typePath=%s, dependentPath=%s, detBelongs=%b, depOutside=%b, hasExternalDep=%b" determinantPath typePath dependentPath determinantBelongsToType dependentIsOutsideType hasExternalDependency
                                             not hasExternalDependency  // Include only if no external dependency
                                         else
                                             true  // For other languages, include all
@@ -395,7 +391,6 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                                         false
                                 | _ -> false)
                         let hasAcnChildren = not acnChildrenToReturn.IsEmpty
-                        printfn "DEBUG bHasAcnChildrenToReturn: hasAcnChildren=%b, count=%d" hasAcnChildren acnChildrenToReturn.Length
                         let receivesParameters = t.acnParameters.Length > 0
                         hasAcnChildren || receivesParameters
                     | _ -> false
@@ -2247,7 +2242,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
             //let stateHash = getStateHash s.us
-            printfn "[DEBUG] handleChild: Processing child %s in sequence %s" childInfo.Name (t.id.AsString)
             //printf "State hash: %s\n" stateHash
             let us = s.us
             let soSaveBitStrmPosStatement = None
@@ -2397,25 +2391,19 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     // AND the dependency's asn1Type (field that depends on the determinant) is OUTSIDE the child field
                     // Use the parent type's full path + child name to construct the full field path
                     let childFieldPath = t.id.AsString + "." + childName
-                    printfn "DEBUG bInlineRequired: Checking child=%s, childFieldPath=%s, deps.count=%d" childName childFieldPath deps.acnDependencies.Length
-                    let inlineDetected =
-                        deps.acnDependencies
-                        |> List.exists (fun d ->
-                            // Does the determinant belong to the child field?
-                            let determinantPath = d.determinant.id.AsString
-                            let determinantBelongsToChild = determinantPath.StartsWith(childFieldPath + ".") || determinantPath = childFieldPath
+                    deps.acnDependencies
+                    |> List.exists (fun d ->
+                        // Does the determinant belong to the child field?
+                        let determinantPath = d.determinant.id.AsString
+                        let determinantBelongsToChild = determinantPath.StartsWith(childFieldPath + ".") || determinantPath = childFieldPath
 
-                            // Does the dependent field belong OUTSIDE the child field?
-                            let dependentPath = d.asn1Type.AsString
-                            let dependentIsOutsideChild = not (dependentPath.StartsWith(childFieldPath + ".") || dependentPath = childFieldPath)
+                        // Does the dependent field belong OUTSIDE the child field?
+                        let dependentPath = d.asn1Type.AsString
+                        let dependentIsOutsideChild = not (dependentPath.StartsWith(childFieldPath + ".") || dependentPath = childFieldPath)
 
-                            // Inline is required if: determinant is inside child, but dependent field is outside child
-                            let result = determinantBelongsToChild && dependentIsOutsideChild
-                            printfn "DEBUG bInlineRequired check: childFieldPath=%s, determinantPath=%s, dependentPath=%s, detBelongs=%b, depOutside=%b, result=%b" childFieldPath determinantPath dependentPath determinantBelongsToChild dependentIsOutsideChild result
-                            result
-                        )
-                    printfn "DEBUG bInlineRequired result: childName=%s, inline=%b" childName inlineDetected
-                    inlineDetected
+                        // Inline is required if: determinant is inside child, but dependent field is outside child
+                        determinantBelongsToChild && dependentIsOutsideChild
+                    )
 
                 let chFunc = child.Type.getAcnFunction codec
                 let childSel = lm.lg.getSeqChildDependingOnChoiceParent nestingScope.parents p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
@@ -2562,24 +2550,46 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; acnChildrenEncoded = s.acnChildrenEncoded; processedAsn1Children = (childName, child) :: s.processedAsn1Children; acnChildrenFromSiblings = newAcnChildrenFromSiblings}
                 res, newAcc
             | AcnChild acnChild ->
-                printfn "[DEBUG] handleChild: Processing AcnChild %s in sequence %s" acnChild.Name.Value (t.id.AsString)
-
                 // Check if this ACN child has dependencies on fields outside the current sequence
                 let acnChildDeps =
                     deps.acnDependencies
                     |> List.filter (fun d -> d.determinant.id = acnChild.id)
-                printfn "[DEBUG]   Found %d dependencies for ACN child %s" acnChildDeps.Length acnChild.Name.Value
 
                 let hasExternalDependency =
+                    let currentSeqPath = t.id.AsString
+                    // Get parent sequence path if exists
+                    // Try to find a parent that is actually different from current
+                    let parentSeqPath =
+                        match childNestingScope.parents with
+                        | (_, parentType) :: rest ->
+                            let parentPath = parentType.id.AsString
+                            // If parent is same as current, try the next level up (grandparent)
+                            if parentPath = currentSeqPath && not rest.IsEmpty then
+                                let (_, grandparentType) = rest.Head
+                                Some (grandparentType.id.AsString)
+                            else
+                                Some parentPath
+                        | [] -> None
+
                     acnChildDeps
                     |> List.exists (fun dep ->
                         let depFieldPath = dep.asn1Type.AsString
-                        let currentSeqPath = t.id.AsString
                         // Check if the dependency is outside the current sequence
-                        let isExternal = not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath)
-                        if isExternal then
-                            printfn "[DEBUG] handleChild: ACN child %s has external dependency on %s (currentSeq=%s)" acnChild.Name.Value depFieldPath currentSeqPath
-                        isExternal
+                        let isOutsideCurrent = not (depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath)
+
+                        if not isOutsideCurrent then
+                            // Dependent is in current sequence, not external
+                            false
+                        else
+                            // Dependent is outside current sequence, check if it's in parent
+                            match parentSeqPath with
+                            | Some parentPath ->
+                                let isInParent = depFieldPath.StartsWith(parentPath + ".") || depFieldPath = parentPath
+                                // If dependent is in parent, we're being inlined, so DON'T treat as external
+                                not isInParent
+                            | None ->
+                                // No parent, truly external
+                                true
                     )
 
                 //handle updates
