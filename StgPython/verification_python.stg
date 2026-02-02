@@ -132,3 +132,73 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
     segments: PSeq[Segment] = PSeq(Segment(val.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING , 0))
     return segments
 >>
+
+/*
+*****************************************************************************************
+ S E G M E N T S    C O U N T    F U N C T I O N S
+*****************************************************************************************
+*/
+
+segments_count_sequence(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
+def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+    Requires(<sTypeName>.segments_valid(segments))
+    count = 0
+    <arrsChildren:{child|<child>}; separator="\n">
+    return count, segments
+>>
+
+segments_count_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments count for <sChildName>
+<if(bIsPrimitive)>
+count += 1
+segments = segments.drop(1)
+<else>
+count_inner, segments = <sChildType>.segments_count(segments)
+count += count_inner
+<endif>
+>>
+
+segments_count_child_optional(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments count for optional <sChildName>
+if val.<sChildName> is not None:
+    <segments_count_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_count_child_sequenceof(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments count for sequence-of <sChildName>
+# TODO refactor loop
+for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
+    <segments_count_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_count_child_choice(sChildName, sChildType) ::= <<
+# Segments count for choice <sChildName>
+count_inner, segments = <sChildType>.segments_count(segments)
+count += count_inner
+>>
+
+segments_count_boolean(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+    Requires(<sTypeName>.segments_valid(segments))
+    return 1, segments.drop(1)
+>>
+
+segments_count_integer(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+    Requires(<sTypeName>.segments_valid(segments))
+    return 1, segments.drop(1)
+>>
+
+segments_count_nulltype(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+    Requires(<sTypeName>.segments_valid(segments))
+    return 1, segments.drop(1)
+>>
