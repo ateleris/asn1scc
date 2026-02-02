@@ -1,5 +1,6 @@
 module ProofGen_python
 
+open System.Numerics
 open DAst
 open DAstUtilFunctions
 open FsUtils
@@ -46,17 +47,15 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
     | Integer _ | Boolean _ | Real _ | NullType _  -> true
-    // | ReferenceType refType -> isPrimitiveType refType.resolvedType
     | _ -> false
 
-// Generate a child segment collection based on child type
-let generateChildSegmentCollection (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+let generateChildHelper (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child) (func: (string -> string -> bool -> BigInteger -> string)): string =
     let childName = child._python_name
     // Get the type name using the proper method
     let asn1Type: Asn1AcnAst.Asn1Type = child.Type
     let typeDefOrRef: TypeDefinitionOrReference = asn1Type.typeDefinitionOrReference.[Python]
     let childTypeDef: string = typeDefOrRef.longTypedefName2 (Some lg) lg.hasModules moduleName
-    // Strip module prefix for Python if it's the current module
+    
     let childTypeName =
         if lg.hasModules = false && childTypeDef.StartsWith((ToC moduleName) + ".") then
             childTypeDef.Substring(moduleName.Length + 1)
@@ -65,13 +64,29 @@ let generateChildSegmentCollection (lg: ILangGeneric) (enc: Asn1Encoding) (modul
     let bIsPrimitive = isPrimitiveType child.Type
     let bitSize = child.maxSizeInBits enc
 
-    match child.Type.Kind with
-    | SequenceOf _ -> segments_of_child_sequenceof childName childTypeName bIsPrimitive bitSize
-    | Choice _ -> segments_of_child_choice childName childTypeName
-    | _ ->
-        match child.Optionality with
-        | Some _ -> segments_of_child_optional childName childTypeName bIsPrimitive bitSize
-        | None -> segments_of_child_mandatory childName childTypeName bIsPrimitive bitSize
+    func childName childTypeName bIsPrimitive bitSize
+
+let generateChildSegmentCollection (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+    let func (childName: string) (childTypeName: string) (bIsPrimitive: bool) (bitSize: BigInteger) =
+        match child.Type.Kind with
+        | SequenceOf _ -> segments_of_child_sequenceof childName childTypeName bIsPrimitive bitSize
+        | Choice _ -> segments_of_child_choice childName childTypeName
+        | _ ->
+            match child.Optionality with
+            | Some _ -> segments_of_child_optional childName childTypeName bIsPrimitive bitSize
+            | None -> segments_of_child_mandatory childName childTypeName bIsPrimitive bitSize
+    generateChildHelper lg enc moduleName child func
+
+let generateChildSegmentsValid (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+    let func (childName: string) (childTypeName: string) (bIsPrimitive: bool) (bitSize: BigInteger) =
+        match child.Type.Kind with
+        | SequenceOf _ -> segments_valid_child_sequenceof childName childTypeName bIsPrimitive bitSize
+        | Choice _ -> segments_valid_child_choice childName childTypeName
+        | _ ->
+            match child.Optionality with
+            | Some _ -> segments_valid_child_optional childName childTypeName bIsPrimitive bitSize
+            | None -> segments_valid_child_mandatory childName childTypeName bIsPrimitive bitSize
+    generateChildHelper lg enc moduleName child func
 
 let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     match codec with
@@ -83,26 +98,38 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
                 | Asn1Child ch -> Some ch
                 | _ -> None)
 
+        let childrenValid =
+            asn1Children |> List.map (generateChildSegmentsValid lg enc t.moduleName)
         let childSegments =
             asn1Children |> List.map (generateChildSegmentCollection lg enc t.moduleName)
 
-        // Generate the segments_of function using the template
+        // Generate functions using templates
+        let segmentsValidFunc = segments_valid_sequence typeName childrenValid
         let segmentsOfFunc = segments_of_sequence typeName childSegments
-        [segmentsOfFunc]
+
+        [segmentsValidFunc; segmentsOfFunc]
     | Decode -> []
 
 let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // No auxiliaries needed for primitive types
-    []
+    match codec, sel.steps.IsEmpty with
+    | Encode, true ->
+
+        let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let segmentsValidFunc = segments_valid_integer typeName
+        let segmentsOfFunc = segments_of_integer typeName
+
+        [segmentsValidFunc; segmentsOfFunc]
+    | _, _ -> []
 
 let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     match codec, sel.steps.IsEmpty with
     | Encode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let segmentsValidFunc = segments_valid_boolean typeName
         let segmentsOfFunc = segments_of_boolean typeName
 
-        [segmentsOfFunc]
+        [segmentsValidFunc; segmentsOfFunc]
     | _, _ -> []
 
 let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -110,8 +137,15 @@ let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: As
     []
 
 let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // No auxiliaries needed for null type
-    []
+    match codec, sel.steps.IsEmpty with
+    | Encode, true ->
+
+        let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let segmentsValidFunc = segments_valid_nulltype typeName
+        let segmentsOfFunc = segments_of_nulltype typeName
+
+        [segmentsValidFunc; segmentsOfFunc]
+    | _, _ -> []
 
 let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     // No auxiliaries needed for enum

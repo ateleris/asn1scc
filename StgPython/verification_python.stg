@@ -1,9 +1,80 @@
 group verification_python;
 
-segments_of_sequence(sTypeName, arrsChildren) ::= <<
-@staticmethod
+/*
+*****************************************************************************************
+ S E G M E N T S   V A L I D   F U N C T I O N S
+*****************************************************************************************
+*/
+
+segments_valid_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
+    is_valid = True
+    <arrsChildren:{child|<child>}; separator="\n">
+    return is_valid, segments
+>>
+
+segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Check segments for <sChildName>
+<if(bIsPrimitive)>
+is_valid = is_valid and segments[0].length == <bitSize>
+segments = segments.drop(1)
+<else>
+is_valid, segments = is_valid and <sChildType>.segments_valid(segments)
+<endif>
+>>
+
+segments_valid_child_optional(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Check segments for optional <sChildName>
+if val.<sChildName> is not None:
+    <segments_valid_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_valid_child_sequenceof(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Check segments for sequence-of <sChildName>
+# TODO refactor loop
+for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
+    <segments_valid_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_valid_child_choice(sChildName, sChildType) ::= <<
+# Check segments for choice <sChildName>
+is_valid, segments = is_valid and <sChildType>.segments_valid(segments)
+>>
+
+segments_valid_boolean(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
+    return segments[0].length == <sTypeName>.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING, segments.drop(1)
+>>
+
+segments_valid_integer(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
+    return segments[0].length == <sTypeName>.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING, segments.drop(1)
+>>
+
+segments_valid_nulltype(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
+    return segments[0].length == <sTypeName>.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING, segments.drop(1)
+>>
+
+/*
+*****************************************************************************************
+ S E G M E N T S   O F   F U N C T I O N S
+*****************************************************************************************
+*/
+
+segments_of_sequence(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Ensures(<sTypeName>.segments_valid(Result()))
     segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\n">
     return segments
@@ -21,21 +92,13 @@ segments = segments + <sChildType>.segments_of(val.<sChildName>)
 segments_of_child_optional(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Collect segments from optional <sChildName>
 if val.<sChildName> is not None:
-    <if(bIsPrimitive)>
-    segments = segments + PSeq(Segment(<bitSize>, val.<sChildName>))
-    <else>
-    segments = segments + <sChildType>.segments_of(val.<sChildName>)
-    <endif>
+    <segments_of_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
 >>
 
 segments_of_child_sequenceof(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Collect segments from sequence-of <sChildName>
 for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
-    <if(bIsPrimitive)>
-    segments = segments + PSeq(Segment(<bitSize>, item))
-    <else>
-    segments = segments + <sChildType>.segments_of(item)
-    <endif>
+    <segments_of_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
 >>
 
 segments_of_child_choice(sChildName, sChildType) ::= <<
@@ -44,9 +107,28 @@ segments = segments + <sChildType>.segments_of(val.<sChildName>)
 >>
 
 segments_of_boolean(sTypeName) ::= <<
-@staticmethod
 @Pure
+@staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Ensures(<sTypeName>.segments_valid(Result()))
     segments: PSeq[Segment] = PSeq(Segment(val.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING , val))
+    return segments
+>>
+
+segments_of_integer(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Ensures(<sTypeName>.segments_valid(Result()))
+    segments: PSeq[Segment] = PSeq(Segment(val.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING , val))
+    return segments
+>>
+
+segments_of_nulltype(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Ensures(<sTypeName>.segments_valid(Result()))
+    segments: PSeq[Segment] = PSeq(Segment(val.EncodeConstants.<sTypeName>_REQUIRED_BITS_FOR_ENCODING , 0))
     return segments
 >>
