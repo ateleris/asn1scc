@@ -43,21 +43,7 @@ segments_valid_child_choice(sChildName, sChildType) ::= <<
 is_valid, segments = is_valid and <sChildType>.segments_valid(segments)
 >>
 
-segments_valid_boolean(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
-    return segments[0].length == <bitSize>, segments.drop(1)
->>
-
-segments_valid_integer(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
-    return segments[0].length == <bitSize>, segments.drop(1)
->>
-
-segments_valid_nulltype(sTypeName, bitSize) ::= <<
+segments_valid_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
@@ -106,16 +92,7 @@ segments_of_child_choice(sChildName, sChildType) ::= <<
 segments = segments + <sChildType>.segments_of(val.<sChildName>)
 >>
 
-segments_of_boolean(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()))
-    segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val))
-    return segments
->>
-
-segments_of_integer(sTypeName, bitSize) ::= <<
+segments_of_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
@@ -179,23 +156,7 @@ count_inner, segments = <sChildType>.segments_count(segments)
 count += count_inner
 >>
 
-segments_count_boolean(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
-    Requires(<sTypeName>.segments_valid(segments))
-    return 1, segments.drop(1)
->>
-
-segments_count_integer(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
-    Requires(<sTypeName>.segments_valid(segments))
-    return 1, segments.drop(1)
->>
-
-segments_count_nulltype(sTypeName, bitSize) ::= <<
+segments_count_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
@@ -253,25 +214,7 @@ segments_left = segments_left.drop(1)
 segments_right = segments_right.drop(1)
 >>
 
-segments_eq_lemma_boolean(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    return True
->>
-
-segments_eq_lemma_integer(sTypeName, bitSize) ::= <<
-@Pure
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    return True
->>
-
-segments_eq_lemma_nulltype(sTypeName, bitSize) ::= <<
+segments_eq_lemma_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:

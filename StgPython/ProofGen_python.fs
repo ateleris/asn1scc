@@ -140,16 +140,20 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _ -> []
 
+let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
+    // TODO: Implement choice auxiliaries if needed
+    []
+
 let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
     match codec, sel.steps.IsEmpty with
     | Encode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        let segmentsValidFunc = segments_valid_integer typeName bitSize
-        let segmentsOfFunc = segments_of_integer typeName bitSize
-        let segmentsCountFunc = segments_count_integer typeName bitSize
-        let segmentsEqLemma = segments_eq_lemma_integer typeName bitSize
+        let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsOfFunc = segments_of_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName bitSize
+        let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _, _ -> []
@@ -160,17 +164,13 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
     | Encode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        let segmentsValidFunc = segments_valid_boolean typeName bitSize
-        let segmentsOfFunc = segments_of_boolean typeName bitSize
-        let segmentsCountFunc = segments_count_boolean typeName bitSize
-        let segmentsEqLemma = segments_eq_lemma_boolean typeName bitSize
+        let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsOfFunc = segments_of_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName bitSize
+        let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _, _ -> []
-
-let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // TODO: Implement choice auxiliaries if needed
-    []
 
 let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
@@ -178,14 +178,24 @@ let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        let segmentsValidFunc = segments_valid_nulltype typeName bitSize
+        let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsOfFunc = segments_of_nulltype typeName bitSize
-        let segmentsCountFunc = segments_count_nulltype typeName bitSize
-        let segmentsEqLemma = segments_eq_lemma_nulltype typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName bitSize
+        let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _, _ -> []
 
 let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    // No auxiliaries needed for enum
-    []
+    let bitSize = t.maxSizeInBits enc
+    match codec, sel.steps.IsEmpty with
+    | Decode, true ->
+
+        let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsOfFunc = segments_of_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName bitSize
+        let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
+
+        [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+    | _, _ -> []
