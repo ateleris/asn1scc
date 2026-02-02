@@ -202,3 +202,80 @@ def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
     Requires(<sTypeName>.segments_valid(segments))
     return 1, segments.drop(1)
 >>
+
+/*
+*****************************************************************************************
+ S E G M E N T S    E Q    L E M M A    F U N C T I O N S
+*****************************************************************************************
+*/
+
+segments_eq_lemma_sequence(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+
+    segments_left = <sTypeName>.segments_of(left)
+    segments_right = <sTypeName>.segments_of(right)
+    <arrsChildren:{child|<child>}; separator="\n">
+    return True
+>>
+
+segments_eq_lemma_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments Eq Lemma for <sChildName>
+<if(bIsPrimitive)>
+Assert(segments_left[0] == segments_right[0])
+segments_left = segments_left.drop(1)
+segments_right = segments_right.drop(1)
+<else>
+Assert(<sChildType>.segments_eq_lemma(left.<sChildName>, right.<sChildName>))
+<endif>
+>>
+
+segments_eq_lemma_child_optional(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments Eq Lemma for optional <sChildName>
+if val.<sChildName> is not None:
+    <segments_eq_lemma_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_eq_lemma_child_sequenceof(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
+# Segments Eq Lemma for sequence-of <sChildName>
+# TODO refactor loop
+for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
+    <segments_eq_lemma_child_mandatory(sChildName=sChildName, sChildType=sChildType, bIsPrimitive=bIsPrimitive, bitSize=bitSize)>
+>>
+
+segments_eq_lemma_child_choice(sChildName, sChildType) ::= <<
+# Segments Eq Lemma for choice <sChildName>
+Assert(segments_left[0] == segments_right[0])
+segments_left = segments_left.drop(1)
+segments_right = segments_right.drop(1)
+>>
+
+segments_eq_lemma_boolean(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    return True
+>>
+
+segments_eq_lemma_integer(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    return True
+>>
+
+segments_eq_lemma_nulltype(sTypeName) ::= <<
+@Pure
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    return True
+>>

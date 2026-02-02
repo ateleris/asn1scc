@@ -944,10 +944,10 @@ type LangGeneric_python() =
     //     funcBody
 
     override this.generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
-        generatePrecond r enc t codec
+        generatePrecond r enc t codec this
 
     override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) : string list =
-        generatePostcond r enc p t codec
+        generatePostcond r enc p t codec this
 
     override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
         ["# SequenceChild PROOF"]
