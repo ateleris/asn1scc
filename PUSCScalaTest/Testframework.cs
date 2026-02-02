@@ -190,7 +190,7 @@ namespace PUS_C_Scala_Test
                 if (r1.BaseStream.Length != r2.BaseStream.Length)
                 {
                     failedTests.Add(i + 1);
-                    break;
+                    continue;
                 }
 
                 var isSame = true;
