@@ -64,7 +64,7 @@ namespace PUS_C_Scala_Test
         public void TestService_ACN_ATTRIBUTES_C() => UperInteropEncPythonC(PUS_C_Service.ACN_ATTRIBUTES, "ACN_Attributes");
         
         [TestMethod]
-        public void TestService_Additional_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL, "S19");
+        public void TestService_Additional_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL, "Additional");
         
         [TestMethod, Ignore]
         public void TestService_Advanced_C() => UperInteropEncPythonC(PUS_C_Service.ADVANCED, "Advanced");

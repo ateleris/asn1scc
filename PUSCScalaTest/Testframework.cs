@@ -392,6 +392,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -399,7 +400,12 @@ namespace PUS_C_Scala_Test
             var stdout = proc.StandardOutput.ReadToEnd();
             var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
             if (!worked)
+            {
+                Console.WriteLine("C test cases failed. Stdout:");
                 Console.WriteLine(stdout);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
 
             Assert.IsTrue(worked, "C test cases failed");
         }
