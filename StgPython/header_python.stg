@@ -29,7 +29,7 @@ from nagini_contracts.contracts import *
 <!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
-__all__ = []
+__all__ : list[str] = []
 
 # Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
