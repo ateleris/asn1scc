@@ -199,3 +199,9 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _, _ -> ["# Enum AUX (unused)"]
+
+let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.OctetString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
+    ["# OctetString AUX"]
+
+let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
+    ["# BitString AUX"]

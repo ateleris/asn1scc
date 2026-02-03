@@ -383,6 +383,8 @@ type ILangGeneric () =
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateOctetStringAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.OctetString -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateBitStringAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     abstract member generateOptionalAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
     abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> AccessPath -> Codec -> string list
@@ -485,6 +487,8 @@ type ILangGeneric () =
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateOctetStringAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateBitStringAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves

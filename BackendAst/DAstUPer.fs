@@ -542,7 +542,9 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
+        let aux = lm.lg.generateOctetStringAuxiliaries r UPER t o nestingScope p.accessPath codec
+        let funcBodyResult = createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
+        {funcBodyResult with auxiliaries = aux}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
@@ -587,7 +589,9 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
     let funcBody  (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        createBitStringFunction_funcBody r lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
+        let aux = lm.lg.generateBitStringAuxiliaries r UPER t o nestingScope p.accessPath codec
+        let funcBodyResult = createBitStringFunction_funcBody r lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
+        {funcBodyResult with auxiliaries = aux}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b))  soSparkAnnotations  [] us

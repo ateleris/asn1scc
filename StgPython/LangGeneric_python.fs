@@ -915,6 +915,13 @@ type LangGeneric_python() =
     override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
         generateBooleanAuxiliaries r enc t boolean nestingScope sel codec this
 
+    override this.generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (octetString: Asn1AcnAst.OctetString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
+        generateOctetStringAuxiliaries r enc t octetString nestingScope sel codec this
+
+    override this.generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (bitString: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
+        generateBitStringAuxiliaries r enc t bitString nestingScope sel codec this
+
+
     override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
         // Not implemented yet for Python
         [], None
