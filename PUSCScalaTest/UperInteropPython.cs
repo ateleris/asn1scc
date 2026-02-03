@@ -59,6 +59,21 @@ namespace PUS_C_Scala_Test
 
         [TestMethod]
         public void TestService_19_C() => UperInteropEncPythonC(PUS_C_Service.S19, "S19");
+        
+        [TestMethod]
+        public void TestService_ACN_ATTRIBUTES_C() => UperInteropEncPythonC(PUS_C_Service.ACN_ATTRIBUTES, "ACN_Attributes");
+        
+        [TestMethod]
+        public void TestService_Additional_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL, "S19");
+        
+        [TestMethod, Ignore]
+        public void TestService_Advanced_C() => UperInteropEncPythonC(PUS_C_Service.ADVANCED, "Advanced");
+        
+        [TestMethod, Ignore]
+        public void TestService_Primitives_C() => UperInteropEncPythonC(PUS_C_Service.PRIMITIVES, "Primitives");
+        
+        [TestMethod]
+        public void TestService_Structured_C() => UperInteropEncPythonC(PUS_C_Service.STRUCTURED, "Structured");
 
         // TODO: uses readBits_nullterminated which is broken
         // [TestMethod]
@@ -109,5 +124,19 @@ namespace PUS_C_Scala_Test
         [TestMethod]
         public void TestService_19_Scala() => UperInteropEncPythonScala(PUS_C_Service.S19, "S19");
 
+        [TestMethod, Ignore]
+        public void TestService_ACN_ATTRIBUTES_Scala() => UperInteropEncPythonScala(PUS_C_Service.ACN_ATTRIBUTES, "ACN_Attributes");
+        
+        [TestMethod, Ignore]
+        public void TestService_Additional_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADDITIONAL, "Additional");
+        
+        [TestMethod, Ignore]
+        public void TestService_Advanced_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADVANCED, "Advanced");
+        
+        [TestMethod, Ignore]
+        public void TestService_Primitives_Scala() => UperInteropEncPythonScala(PUS_C_Service.PRIMITIVES, "Primitives");
+        
+        [TestMethod, Ignore]
+        public void TestService_Structured_Scala() => UperInteropEncPythonScala(PUS_C_Service.STRUCTURED, "Structured");
     }
 }
