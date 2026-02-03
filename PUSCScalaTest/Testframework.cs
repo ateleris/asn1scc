@@ -552,7 +552,7 @@ namespace PUS_C_Scala_Test
             if (printOutput)
                 Console.WriteLine(outp);
 
-            Assert.IsTrue(worked);
+            Assert.IsTrue(worked, "Scala test cases failed");
         }
 
         private string[] GetService01FileNames() =>
