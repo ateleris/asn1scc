@@ -22,8 +22,8 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
     | Decode ->
         [
             "codec.codec_predicate() and codec.read_invariant()";
-            $"{typeName}.segments_valid(codec.segments.drop(codec.segments_read_index))";
-            $"codec.segments_read_index + {typeName}.segments_count(codec.segments)[0] <= len(codec.segments)"
+            $"codec.segments_read_index + {typeName}.segments_count(codec.segments).count <= len(codec.segments)";
+            $"{typeName}.segments_valid(segments_drop(codec.segments, codec.segments_read_index)).valid"
         ]
 
 let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) (lg: ILangGeneric): string list =
@@ -42,9 +42,9 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
              "codec.codec_predicate() and codec.read_invariant()";
              "codec.segments is Old(codec.segments) and codec.buffer is Old(codec.buffer)";
              $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
-             $"codec.segments_read_index == Old(codec.segments_read_index) + {typeName}.segments_count(Old(codec.segments))[0]"
+             $"codec.segments_read_index == Old(codec.segments_read_index) + {typeName}.segments_count(Old(codec.segments)).count"
              $"{typeName}.segments_of(ResultT({typeName})) == 
-                codec.segments.drop(Old(codec.segments_read_index)).take({typeName}.segments_count(Old(codec.segments))[0])"
+                segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(Old(codec.segments)).count)"
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
@@ -114,7 +114,7 @@ let generateChildSegmentsEqLemma (lg: ILangGeneric) (enc: Asn1Encoding) (moduleN
 
 let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     match codec with
-    | Encode ->
+    | Decode ->
         let typeName = (lg.getSequenceTypeDefinition sq.typeDef).typeName
 
         let asn1Children =
@@ -142,12 +142,12 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
 
 let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     // TODO: Implement choice auxiliaries if needed
-    []
+    ["# Choice AUX"]
 
 let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
     match codec, sel.steps.IsEmpty with
-    | Encode, true ->
+    | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
@@ -156,12 +156,12 @@ let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
-    | _, _ -> []
+    | _, _ -> ["# Integer AUX (unused)"]
 
 let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
     match codec, sel.steps.IsEmpty with
-    | Encode, true ->
+    | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
@@ -170,7 +170,7 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
-    | _, _ -> []
+    | _, _ -> ["# Boolean AUX (unused)"]
 
 let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
@@ -184,7 +184,7 @@ let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
-    | _, _ -> []
+    | _, _ -> ["# NullType AUX (unused)"]
 
 let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     let bitSize = t.maxSizeInBits enc
@@ -198,4 +198,4 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
-    | _, _ -> []
+    | _, _ -> ["# Enum AUX (unused)"]

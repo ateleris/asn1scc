@@ -9,19 +9,20 @@ group verification_python;
 segments_valid_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
-def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
+def segments_valid(segments: PSeq[Segment]) -> SegmentsValid:
     is_valid = True
     <arrsChildren:{child|<child>}; separator="\n">
-    return is_valid, segments
+    return SegmentsValid(is_valid, segments)
 >>
 
 segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Check segments for <sChildName>
 <if(bIsPrimitive)>
 is_valid = is_valid and segments[0].length == <bitSize>
-segments = segments.drop(1)
+segments = segments_drop(segments, 1)
 <else>
-is_valid, segments = is_valid and <sChildType>.segments_valid(segments)
+child_<sChildName> = <sChildType>.segments_valid(segments)
+is_valid, segments = is_valid and child_<sChildName>.valid, child_<sChildName>.segments
 <endif>
 >>
 
@@ -40,14 +41,15 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 
 segments_valid_child_choice(sChildName, sChildType) ::= <<
 # Check segments for choice <sChildName>
-is_valid, segments = is_valid and <sChildType>.segments_valid(segments)
+child_<sChildName> = <sChildType>.segments_valid(segments)
+is_valid, segments = is_valid and child_<sChildName>.valid, child.segments
 >>
 
 segments_valid_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
-def segments_valid(segments: PSeq[Segment]) -> Tuple[bool, PSeq[Segment]]:
-    return segments[0].length == <bitSize>, segments.drop(1)
+def segments_valid(segments: PSeq[Segment]) -> SegmentsValid:
+    return SegmentsValid(segments[0].length == <bitSize>, segments_drop(segments, 1))
 >>
 
 /*
@@ -119,21 +121,21 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
 segments_count_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
-def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
     Requires(<sTypeName>.segments_valid(segments))
     count = 0
     <arrsChildren:{child|<child>}; separator="\n">
-    return count, segments
+    return SegmentsCount(count, segments)
 >>
 
 segments_count_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Segments count for <sChildName>
 <if(bIsPrimitive)>
 count += 1
-segments = segments.drop(1)
+segments = segments_drop(segments, 1)
 <else>
-count_inner, segments = <sChildType>.segments_count(segments)
-count += count_inner
+child_<sChildName> = <sChildType>.segments_count(segments)
+count, segments = count + child_<sChildName>.count, child_<sChildName>.segments
 <endif>
 >>
 
@@ -152,16 +154,16 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 
 segments_count_child_choice(sChildName, sChildType) ::= <<
 # Segments count for choice <sChildName>
-count_inner, segments = <sChildType>.segments_count(segments)
-count += count_inner
+child_<sChildName> = <sChildType>.segments_count(segments)
+count, segments = count + child_<sChildName>.count, child_<sChildName>.segments
 >>
 
 segments_count_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
-def segments_count(segments: PSeq[Segment]) -> Tuple[int, PSeq[Segment]]:
+def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
     Requires(<sTypeName>.segments_valid(segments))
-    return 1, segments.drop(1)
+    return SegmentsCount(1, segments_drop(segments, 1))
 >>
 
 /*
@@ -187,8 +189,8 @@ segments_eq_lemma_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize)
 # Segments Eq Lemma for <sChildName>
 <if(bIsPrimitive)>
 Assert(segments_left[0] == segments_right[0])
-segments_left = segments_left.drop(1)
-segments_right = segments_right.drop(1)
+segments_left = segments_drop(segments_left, 1)
+segments_right = segments_drop(segments_right, 1)
 <else>
 Assert(<sChildType>.segments_eq_lemma(left.<sChildName>, right.<sChildName>))
 <endif>
@@ -210,8 +212,8 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 segments_eq_lemma_child_choice(sChildName, sChildType) ::= <<
 # Segments Eq Lemma for choice <sChildName>
 Assert(segments_left[0] == segments_right[0])
-segments_left = segments_left.drop(1)
-segments_right = segments_right.drop(1)
+segments_left = segments_drop(segments_left, 1)
+segments_right = segments_drop(segments_right, 1)
 >>
 
 segments_eq_lemma_primitive(sTypeName, bitSize) ::= <<

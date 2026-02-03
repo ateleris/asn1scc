@@ -31,7 +31,7 @@ from .codec_uper import UPEREncoder, UPERDecoder
 from .acn_encoder import ACNEncoder
 from .acn_decoder import ACNDecoder
 
-from .segment import Segment
+from .segment import Segment, segments_take, segments_drop, SegmentsValid, SegmentsCount
 
 __version__ = "1.0.0"
 __author__ = "ASN.1 SCC Team"
@@ -64,5 +64,5 @@ __all__ = [
     "ERROR_INVALID_VALUE", "ERROR_CONSTRAINT_VIOLATION",
     
     # Verification
-    "Segment",
+    "Segment", "segments_take", "segments_drop", "SegmentsValid", "SegmentsCount"
 ]

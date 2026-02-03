@@ -300,7 +300,7 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="
 
 Boolean_encode(p, sErrCode, sType) ::= <<
 # uper_python.stg 256
-codec.append_bit(<p>)
+codec.append_bit(<p>.value)
 >>
 
 Boolean_decode(p, sErrCode, sType) ::= <<

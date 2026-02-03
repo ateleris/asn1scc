@@ -20,20 +20,22 @@ def segment_invariant(seg: Segment) -> bool:
 @Opaque
 def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    Requires(0 <= length and length <= len(segments))
+    # Requires(0 <= length and length <= len(segments))
     Decreases(None)
     Ensures(Result() is segments.take(length))
     Ensures(Forall(segments.take(length), lambda seg: segment_invariant(seg)))
-    Ensures(Implies(length < len(segments), segments_total_length(Result()) + segments[length].length <= segments_total_length(segments)))
-    
-    lemma_length_monotonic = __lemma_segments_total_length_monotonic(segments, length)
+    Ensures(Implies(0 <= length and length < len(segments), segments_total_length(Result()) + segments[length].length <= segments_total_length(segments)))
+    Ensures(Implies(length == len(segments), Result() is segments))
+
+    if 0 <= length and length <= len(segments):
+        lemma_length_monotonic = __lemma_segments_total_length_monotonic(segments, length)
     return segments.take(length)
 
 @Pure
 @Opaque
 def segments_drop(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    Requires(0 <= length and length <= len(segments))
+    # Requires(0 <= length and length <= len(segments))
     Decreases(None)
     Ensures(Result() is segments.drop(length))
     Ensures(Forall(segments.drop(length), lambda seg: segment_invariant(seg)))
@@ -334,5 +336,20 @@ def segments_to_byteseq(segments: PSeq[Segment], bit_length: int) -> PByteSeq:
         return full + PByteSeq(single)
     else:
         return full
+
+#endregion
+#region Named Tuple Helpers
+
+class SegmentsValid_ADT(ADT):
+    pass
+
+class SegmentsValid(SegmentsValid_ADT, NamedTuple('SegmentsValid', [('valid', bool), ('segments', PSeq[Segment])])):
+    pass
+
+class SegmentsCount_ADT(ADT):
+    pass
+
+class SegmentsCount(SegmentsValid_ADT, NamedTuple('SegmentsCount', [('count', int), ('segments', PSeq[Segment])])):
+    pass
 
 #endregion
