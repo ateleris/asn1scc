@@ -165,7 +165,7 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
-        let segmentsOfFunc = segments_of_primitive typeName bitSize
+        let segmentsOfFunc = segments_of_boolean typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 

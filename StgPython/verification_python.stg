@@ -62,7 +62,7 @@ segments_of_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()))
+    Ensures(<sTypeName>.segments_valid(Result()).valid)
     segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\n">
     return segments
@@ -98,8 +98,17 @@ segments_of_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()))
+    Ensures(<sTypeName>.segments_valid(Result()).valid)
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val))
+    return segments
+>>
+
+segments_of_boolean(sTypeName, bitSize) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Ensures(<sTypeName>.segments_valid(Result()).valid)
+    segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val.value))
     return segments
 >>
 
@@ -107,7 +116,7 @@ segments_of_nulltype(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()))
+    Ensures(<sTypeName>.segments_valid(Result()).valid)
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, 0))
     return segments
 >>
@@ -122,7 +131,7 @@ segments_count_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
-    Requires(<sTypeName>.segments_valid(segments))
+    Requires(<sTypeName>.segments_valid(segments).valid)
     count = 0
     <arrsChildren:{child|<child>}; separator="\n">
     return SegmentsCount(count, segments)
@@ -162,7 +171,7 @@ segments_count_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
-    Requires(<sTypeName>.segments_valid(segments))
+    Requires(<sTypeName>.segments_valid(segments).valid)
     return SegmentsCount(1, segments_drop(segments, 1))
 >>
 
