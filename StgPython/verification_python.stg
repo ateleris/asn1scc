@@ -130,21 +130,20 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
 segments_count_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
-def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
+def segments_count(segments: PSeq[Segment]) -> int:
     Requires(<sTypeName>.segments_valid(segments).valid)
     count = 0
     <arrsChildren:{child|<child>}; separator="\n">
-    return SegmentsCount(count, segments)
+    return count
 >>
 
 segments_count_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Segments count for <sChildName>
 <if(bIsPrimitive)>
-count += 1
-segments = segments_drop(segments, 1)
+count = count + 1, segments_drop(segments, 1)
 <else>
-child_<sChildName> = <sChildType>.segments_count(segments)
-count, segments = count + child_<sChildName>.count, child_<sChildName>.segments
+count_<sChildName> = <sChildType>.segments_count(segments)
+count, segments = count + count_<sChildName>, segments_drop(segments, count_<sChildName>)
 <endif>
 >>
 
@@ -163,16 +162,16 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 
 segments_count_child_choice(sChildName, sChildType) ::= <<
 # Segments count for choice <sChildName>
-child_<sChildName> = <sChildType>.segments_count(segments)
-count, segments = count + child_<sChildName>.count, child_<sChildName>.segments
+count_<sChildName> = <sChildType>.segments_count(segments)
+count, segments = count + count_<sChildName>, segments_drop(segments, count_<sChildName>)
 >>
 
 segments_count_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
-def segments_count(segments: PSeq[Segment]) -> SegmentsCount:
+def segments_count(segments: PSeq[Segment]) -> int:
     Requires(<sTypeName>.segments_valid(segments).valid)
-    return SegmentsCount(1, segments_drop(segments, 1))
+    return 1
 >>
 
 /*

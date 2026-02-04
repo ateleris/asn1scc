@@ -22,7 +22,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
     | Decode ->
         [
             "codec.codec_predicate() and codec.read_invariant()";
-            $"codec.segments_read_index + {typeName}.segments_count(codec.segments).count <= len(codec.segments)";
+            $"codec.segments_read_index + {typeName}.segments_count(codec.segments) <= len(codec.segments)";
             $"{typeName}.segments_valid(segments_drop(codec.segments, codec.segments_read_index)).valid"
         ]
 
@@ -42,9 +42,9 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
              "codec.codec_predicate() and codec.read_invariant()";
              "codec.segments is Old(codec.segments) and codec.buffer is Old(codec.buffer)";
              $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
-             $"codec.segments_read_index == Old(codec.segments_read_index) + {typeName}.segments_count(Old(codec.segments)).count"
+             $"codec.segments_read_index == Old(codec.segments_read_index) + {typeName}.segments_count(Old(codec.segments))"
              $"{typeName}.segments_of(ResultT({typeName})) == 
-                segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(Old(codec.segments)).count)"
+                segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(segments_drop(codec.segments, Old(codec.segments_read_index))))"
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with

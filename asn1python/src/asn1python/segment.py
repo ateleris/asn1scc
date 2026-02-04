@@ -346,10 +346,4 @@ class SegmentsValid_ADT(ADT):
 class SegmentsValid(SegmentsValid_ADT, NamedTuple('SegmentsValid', [('valid', bool), ('segments', PSeq[Segment])])):
     pass
 
-class SegmentsCount_ADT(ADT):
-    pass
-
-class SegmentsCount(SegmentsValid_ADT, NamedTuple('SegmentsCount', [('count', int), ('segments', PSeq[Segment])])):
-    pass
-
 #endregion
