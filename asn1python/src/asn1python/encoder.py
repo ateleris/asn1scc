@@ -746,58 +746,56 @@ class Encoder(Codec):
     #             error_message=str(e)
     #         )
 
-    # def encode_octet_string_no_length(self, data: bytearray, num_bytes: int) -> EncodeResult:
-    #     """
-    #     Encode octet string without length prefix.
+    def encode_octet_string_no_length(self, data: bytearray, num_bytes: int) -> EncodeResult:
+        """
+        Encode octet string without length prefix.
 
-    #     Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
-    #     Matches Scala: BitStream.appendByteArray without length encoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
+        Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches Scala: BitStream.appendByteArray without length encoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
 
-    #     Args:
-    #         data: bytearray to encode
-    #         num_bytes: Number of bytes to encode from data
+        Args:
+            data: bytearray to encode
+            num_bytes: Number of bytes to encode from data
 
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         if num_bytes < 0:
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes must be non-negative, got {num_bytes}"
-    #             )
+        Returns:
+            EncodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(Acc(bytearray_pred(data), 1/20))
+        Requires(0 <= num_bytes and num_bytes <= len(data))
+        Requires(self.remaining_bits >= num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(Acc(bytearray_pred(data), 1/20))
+        Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
+        Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
+        Ensures(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
+        
+        try:
+            if num_bytes < 0:
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes must be non-negative, got {num_bytes}"
+                )
 
-    #         if num_bytes > len(data):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
-    #             )
+            if num_bytes > len(data):
+                return EncodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+                )
 
-    #         # Check if we're byte-aligned
-    #         if self._bitstream.current_bit_position == 0:
-    #             # Optimized path: byte-aligned, can write directly
-    #             for i in range(num_bytes):
-    #                 self._bitstream.write_bits(data[i], 8)
-    #         else:
-    #             # Not byte-aligned, use append_byte_array which handles bit offset
-    #             result = self.append_byte_array(data, num_bytes)
-    #             return result
-
-    #         return EncodeResult(
-    #             success=True,
-    #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
-    #             bits_encoded=num_bytes * 8
-    #         )
-    #     except BitStreamError as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
+            result = self.append_byte_array(data, num_bytes)
+            return result
+        except BitStreamError as e:
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # def encode_octet_string_no_length_vec(self, data: list, num_bytes: int) -> EncodeResult:
     #     """
@@ -830,6 +828,7 @@ class Encoder(Codec):
     #             error_code=ERROR_INVALID_VALUE,
     #             error_message=f"Invalid data for octet string: {e}"
     #         )
+    
     # def enc_real(self, value: float) -> EncodeResult:
     #     """
     #     Encode real (floating point) value according to ASN.1 PER standard.

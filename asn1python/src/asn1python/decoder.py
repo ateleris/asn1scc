@@ -811,67 +811,57 @@ class Decoder(Codec):
     #         )
 
 
-    # def decode_octet_string_no_length(self, num_bytes: int) -> DecodeResult[bytearray]:
-    #     """
-    #     Decode octet string without length prefix.
+    def decode_octet_string_no_length(self, num_bytes: int) -> DecodeResult[bytearray]:
+        """
+        Decode octet string without length prefix.
 
-    #     Matches C: BitStream_DecodeOctetString_no_length(pBitStrm, arr, nCount)
-    #     Matches Scala: BitStream.readByteArray without length decoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
+        Matches C: BitStream_DecodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches Scala: BitStream.readByteArray without length decoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
 
-    #     Args:
-    #         num_bytes: Number of bytes to decode
+        Args:
+            num_bytes: Number of bytes to decode
 
-    #     Returns:
-    #         DecodeResult containing decoded bytes
-    #     """
-    #     try:
-    #         if num_bytes < 0:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes must be non-negative, got {num_bytes}"
-    #             )
+        Returns:
+            DecodeResult containing decoded bytes
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.has_segments_of_length(num_bytes, NO_OF_BITS_IN_BYTE)) 
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.bit_index == Old(self.bit_index) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + num_bytes)
+        Ensures(Result().success)
+        Ensures(Result().bits_consumed == num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(isinstance(Result().decoded_value, bytearray))
+        Ensures(bytearray_pred(Result().decoded_value))
+        Ensures(len(ResultT(DecodeResult[bytearray]).decoded_value) == num_bytes)
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
+                            self.segments.drop(Old(self.segments_read_index))[j].value))))
+        try:
+            if num_bytes < 0:
+                return DecodeResult[bytearray](
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message=f"num_bytes must be non-negative, got {num_bytes}"
+                )
 
-    #         if num_bytes == 0:
-    #             return DecodeResult(
-    #                 success=True,
-    #                 error_code=DECODE_OK,
-    #                 decoded_value=bytearray(),
-    #                 bits_consumed=0
-    #             )
+            if num_bytes == 0:
+                return DecodeResult[bytearray](
+                    success=True,
+                    error_code=DECODE_OK,
+                    decoded_value=bytearray(),
+                    bits_consumed=0
+                )
 
-    #         if self._bitstream.remaining_bits < num_bytes * 8:
-    #             return DecodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INSUFFICIENT_DATA,
-    #                 error_message=f"Insufficient data: need {num_bytes * 8} bits, have {self._bitstream.remaining_bits}"
-    #             )
-
-    #         # Check if we're byte-aligned
-    #         if self._bitstream.current_bit_position == 0:
-    #             # Optimized path: byte-aligned, can read directly
-    #             result = bytearray()
-    #             for _ in range(num_bytes):
-    #                 byte_val = self._bitstream.read_bits(8)
-    #                 result.append(byte_val)
-
-    #             return DecodeResult(
-    #                 success=True,
-    #                 error_code=DECODE_OK,
-    #                 decoded_value=bytearray(result),
-    #                 bits_consumed=num_bytes * 8
-    #             )
-    #         else:
-    #             # Not byte-aligned, use read_byte_array which handles bit offset
-    #             return self.read_byte_array(num_bytes)
-
-    #     except BitStreamError as e:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=str(e)
-    #         )
+            return self.read_byte_array(num_bytes)
+                
+        except BitStreamError as e:
+            return DecodeResult[bytearray](
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=str(e)
+            )
 
     # def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list[int]]:
     #     """
