@@ -5,8 +5,17 @@ set -e -u -o pipefail
 ASN1SCC_LANG="${1:-python}"
 
 case "$ASN1SCC_LANG" in
-    c|Ada|Scala|python)
-        echo "Generating output for language $ASN1SCC_LANG"
+    c)
+        STG_DIR=StgC
+        ;;
+    Ada)
+        STG_DIR=StgAda
+        ;;
+    Scala)
+        STG_DIR=StgScala
+        ;;
+    python)
+        STG_DIR=StgPython
         ;;
     *)
         echo "Error: invalid language '$ASN1SCC_LANG'. Must be one of: c, Ada, Scala, python." >&2
@@ -14,15 +23,17 @@ case "$ASN1SCC_LANG" in
         ;;
 esac
 
+echo "Generating output for language $ASN1SCC_LANG"
+
 BASE_OUT_DIR="generated-$ASN1SCC_LANG-output"
-echo "Removing generated .stg.fs files & python-output..."
-rm -f -- StgPython/*.stg.fs
+echo "Removing generated .stg.fs files & generated output..."
+rm -f -- $STG_DIR/*.stg.fs
 #rm -r $OUT_DIR
 
 dotnet build asn1scc
 
 echo "Generating new .stg.fs files..."
-cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
+cd $STG_DIR && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
 
 ASN1_FILES="./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/additional-test-cases/NULLTERMINATED.asn1 \
             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \
