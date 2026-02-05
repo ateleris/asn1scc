@@ -430,6 +430,7 @@ type LangGeneric_python() =
                 // Does the determinant belong to the child field?
                 let determinantPath = d.determinant.id.AsString
                 // Normalize hyphens to underscores for comparison (ASN.1 names with hyphens become underscores in some contexts)
+                // Can't use ToC because it replaces dots with underscores, which is not what we want here
                 let normalizedDeterminantPath = determinantPath.Replace("-", "_")
                 let normalizedChildFieldPath = childFieldPath.Replace("-", "_")
                 let determinantBelongsToChild =
