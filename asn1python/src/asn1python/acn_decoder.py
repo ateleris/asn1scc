@@ -61,7 +61,7 @@ class ACNDecoder(Decoder):
         """Decode positive integer with variable size (length embedded)."""
         try:
             length_result = self.dec_length(8)
-            if not length_result.success:
+            if not length_result.success or length_result.decoded_value is None:
                 return length_result
 
             assert isinstance(length_result.decoded_value, int)
@@ -78,7 +78,7 @@ class ACNDecoder(Decoder):
             value = 0
             for i in range(bytes_count):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 byte_val = result.decoded_value
                 value = (value << 8) | byte_val
@@ -105,7 +105,7 @@ class ACNDecoder(Decoder):
         """Decode signed integer using two's complement with constant size."""
         # Decode as unsigned first
         result = self.decode_unsigned_integer(format_bit_length)
-        if not result.success:
+        if not result.success or result.decoded_value is None:
             return result
 
         unsigned_val = result.decoded_value
@@ -156,7 +156,7 @@ class ACNDecoder(Decoder):
         """Decode signed integer with variable size (length embedded)."""
         try:
             length_result = self.dec_length(8)
-            if not length_result.success:
+            if not length_result.success or length_result.decoded_value is None:
                 return length_result
             
             assert isinstance(length_result.decoded_value, int)
@@ -173,7 +173,7 @@ class ACNDecoder(Decoder):
             twos_complement = 0
             for i in range(bytes_count):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 byte_val = result.decoded_value
                 twos_complement = (twos_complement << 8) | byte_val
@@ -217,7 +217,7 @@ class ACNDecoder(Decoder):
 
             for i in range(encoded_size_in_nibbles):
                 result = self.decode_unsigned_integer(4)
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 digit = result.decoded_value
                 if digit > 9:
@@ -284,7 +284,7 @@ class ACNDecoder(Decoder):
                     )
 
                 result = self.decode_unsigned_integer(4)
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 digit = result.decoded_value
                 bits_consumed += 4
@@ -329,7 +329,7 @@ class ACNDecoder(Decoder):
                 )
 
             result = self.read_byte_array(4)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             bytes_data = result.decoded_value
 
@@ -359,7 +359,7 @@ class ACNDecoder(Decoder):
                 )
 
             result = self.read_byte_array(4)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             bytes_data = result.decoded_value
 
@@ -389,7 +389,7 @@ class ACNDecoder(Decoder):
                 )
 
             result = self.read_byte_array(8)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             bytes_data = result.decoded_value
 
@@ -419,7 +419,7 @@ class ACNDecoder(Decoder):
                 )
 
             result = self.read_byte_array(8)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             bytes_data = result.decoded_value
 
@@ -506,7 +506,7 @@ class ACNDecoder(Decoder):
                     )
 
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 decoded_char = result.decoded_value
                 bits_consumed += 8
@@ -565,7 +565,7 @@ class ACNDecoder(Decoder):
                         error_message="Insufficient data for initial characters"
                     )
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 tmp[j] = result.decoded_value
                 bits_consumed += 8
@@ -588,7 +588,7 @@ class ACNDecoder(Decoder):
                         error_message="Insufficient data for next character"
                     )
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 tmp[null_size - 1] = result.decoded_value
                 bits_consumed += 8
@@ -788,7 +788,7 @@ class ACNDecoder(Decoder):
         
         # Decode length as constrained integer
         length_result = self.decode_integer(min_val=min_len, max_val=max_len)
-        if not length_result.success:
+        if not length_result.success or length_result.decoded_value is None:
             return DecodeResult(
                 success=False,
                 error_code=length_result.error_code,
@@ -829,7 +829,7 @@ class ACNDecoder(Decoder):
         try:
             # Read sign character first
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             sign_char = result.decoded_value
             if sign_char == ord('+'):
@@ -846,7 +846,7 @@ class ACNDecoder(Decoder):
             # Decode remaining bytes as unsigned integer
             remaining_bytes = encoded_size_in_bytes - 1
             uint_result = self._dec_uint_ascii_const_size_impl(remaining_bytes)
-            if not uint_result.success:
+            if not uint_result.success or uint_result.decoded_value is None:
                 return uint_result
             
             # Apply sign
@@ -871,7 +871,7 @@ class ACNDecoder(Decoder):
         try:
             # Read length first (1 byte)
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             total_length = result.decoded_value
             if total_length < 1:
@@ -914,7 +914,7 @@ class ACNDecoder(Decoder):
 
             # Read sign character first
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             sign_char = result.decoded_value
             bits_decoded += 8
@@ -931,7 +931,7 @@ class ACNDecoder(Decoder):
             
             # Decode unsigned integer part using null termination
             uint_result = self._dec_uint_ascii_var_size_null_terminated_impl(null_characters)
-            if not uint_result.success:
+            if not uint_result.success or uint_result.decoded_value is None:
                 return uint_result
             
             bits_decoded += uint_result.bits_consumed
@@ -991,7 +991,7 @@ class ACNDecoder(Decoder):
         try:
             # Read length first (1 byte)
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             total_length = result.decoded_value
             if total_length < 1:
@@ -1257,7 +1257,7 @@ class ACNDecoder(Decoder):
                     )
 
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 char_byte = result.decoded_value
                 chars.append(char_byte)
@@ -1312,7 +1312,7 @@ class ACNDecoder(Decoder):
             bytes_count = bits // 8
             for i in range(bytes_count):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 byte_val = result.decoded_value
                 unsigned_val = (unsigned_val << 8) | byte_val
@@ -1354,7 +1354,7 @@ class ACNDecoder(Decoder):
             bytes_count = bits // 8
             for i in range(bytes_count):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 byte_val = result.decoded_value
                 unsigned_val |= (byte_val << (i * 8))
@@ -1442,7 +1442,7 @@ class ACNDecoder(Decoder):
                     
                 # Read character index as constrained integer (0 to char_set_size-1)
                 result = self.decode_unsigned_integer(bits_per_char)
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 char_index = result.decoded_value
 
@@ -1498,7 +1498,7 @@ class ACNDecoder(Decoder):
             # Read each digit character and convert to integer
             for _ in range(encoded_size_in_bytes):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 digit_char = result.decoded_value
 

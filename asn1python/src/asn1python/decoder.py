@@ -455,7 +455,7 @@ class Decoder(Codec):
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
-                decoded_value=[int(k) for k in result],
+                decoded_value=result,
                 bits_consumed=bits_consumed
             )
         except BitStreamError as e:
@@ -837,7 +837,7 @@ class Decoder(Codec):
 
             # Read value bytes
             result = self.read_byte_array(num_bytes)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             data_bytes = result.decoded_value
 
@@ -899,7 +899,7 @@ class Decoder(Codec):
         try:
             # Read length byte
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             num_bytes = result.decoded_value
 
@@ -912,7 +912,7 @@ class Decoder(Codec):
 
             # Read value bytes
             result = self.read_byte_array(num_bytes)
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             data_bytes = result.decoded_value
 
@@ -968,7 +968,7 @@ class Decoder(Codec):
         try:
             # Read length byte
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             length = result.decoded_value
 
@@ -985,7 +985,7 @@ class Decoder(Codec):
 
             # Read header byte
             result = self.read_byte()
-            if not result.success:
+            if not result.success or result.decoded_value is None:
                 return result
             header = result.decoded_value
             bits_consumed += 8
@@ -1062,7 +1062,7 @@ class Decoder(Codec):
             # Read exponent bytes (two's complement)
             # Check first bit for sign extension
             first_bit_result = self.read_bit()
-            if not first_bit_result.success:
+            if not first_bit_result.success or result.decoded_value is None:
                 return first_bit_result
 
             # Start with sign extension
@@ -1079,7 +1079,7 @@ class Decoder(Codec):
             # Read remaining exponent bytes
             for i in range(1, exp_len):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 exponent = (exponent << 8) | result.decoded_value
                 bits_consumed += 8
@@ -1090,7 +1090,7 @@ class Decoder(Codec):
 
             for i in range(mantissa_len):
                 result = self.read_byte()
-                if not result.success:
+                if not result.success or result.decoded_value is None:
                     return result
                 mantissa = (mantissa << 8) | result.decoded_value
                 bits_consumed += 8
