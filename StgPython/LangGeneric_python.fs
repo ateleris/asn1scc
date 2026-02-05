@@ -681,6 +681,8 @@ type LangGeneric_python() =
     override this.allowsSrcFilesWithNoFunctions = true
     override this.requiresValueAssignmentsInSrcFile = false
     override this.supportsStaticVerification = false
+    override this.isObjectOriented = true
+    override this.nullTerminatorByte = None
 
     override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
         sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName

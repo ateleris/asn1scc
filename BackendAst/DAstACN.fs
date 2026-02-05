@@ -376,8 +376,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                                 | AcnChildDeterminant acnCh ->
                                     // This ACN child belongs to this type
                                     if acnCh.id.parentTypeId = Some t.id then
-                                        // Check if it has external dependency (for Python filtering)
-                                        if ProgrammingLanguage.ActiveLanguages.Head = Python then
+                                        // Check if it has external dependency (for object-oriented languages)
+                                        if lm.lg.isObjectOriented then
                                             let determinantPath = dep.determinant.id.AsString
                                             let typePath = t.id.AsString
                                             let determinantBelongsToType = determinantPath.StartsWith(typePath + ".") || determinantPath = typePath
@@ -1850,12 +1850,12 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                     | PresenceStr   (_, strVal) ->
                         let arrNulls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                        // For Python, use bytes without null terminator; for other languages, include it
+                        // Add null terminator if the language requires it
                         let bytesStr =
-                            if ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                System.Text.Encoding.ASCII.GetBytes strVal.Value
-                            else
-                                Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
+                            let baseBytes = System.Text.Encoding.ASCII.GetBytes strVal.Value
+                            match lm.lg.nullTerminatorByte with
+                            | Some nullByte -> Array.append baseBytes [| nullByte |]
+                            | None -> baseBytes
                         let childTypeName =
                             match child.Type with
                             | AcnReferenceToIA5String t -> lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.str.definitionOrRef)
@@ -2583,7 +2583,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Encode ->
                         // Skip update code generation if this ACN child has external dependencies
                         // (it will be provided as a parameter from the parent)
-                        if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                        if hasExternalDependency && lm.lg.isObjectOriented then
                             // printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
                             None, us
                         else
@@ -2597,8 +2597,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 //acn child encode/decode
                 let childEncDecStatement, auxiliaries, ns2 =
-                    // Skip encoding/decoding this ACN child if it has external dependencies (for Python)
-                    if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                    // Skip encoding/decoding this ACN child if it has external dependencies (for object-oriented languages)
+                    if hasExternalDependency && lm.lg.isObjectOriented then
                         None, [], ns1
                     else
                         let chFunc = acnChild.funcBody codec
@@ -2639,7 +2639,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 // Record this ACN child so subsequent Asn1 children can reference it
                 // Only add to acnChildrenEncoded if it was actually encoded/decoded (not skipped due to external dependencies)
                 let newAcnChildrenEncoded =
-                    if hasExternalDependency && ProgrammingLanguage.ActiveLanguages.Head = Python then
+                    if hasExternalDependency && lm.lg.isObjectOriented then
                         s.acnChildrenEncoded  // Don't add - was skipped
                     else
                         (acnChild.c_name, acnChild) :: s.acnChildrenEncoded  // Add as normal
@@ -2994,12 +2994,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                         | _     -> None) |> Seq.head
                                 let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
                                 let arrNulls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                                // For Python, don't include null terminator in comparison (it matches the encoded bytes without it)
+                                // Add null terminator if the language requires it
                                 let bytesStr =
-                                    if ProgrammingLanguage.ActiveLanguages.Head = Python then
-                                        System.Text.Encoding.ASCII.GetBytes strVal.Value
-                                    else
-                                        Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
+                                    let baseBytes = System.Text.Encoding.ASCII.GetBytes strVal.Value
+                                    match lm.lg.nullTerminatorByte with
+                                    | Some nullByte -> Array.append baseBytes [| nullByte |]
+                                    | None -> baseBytes
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
