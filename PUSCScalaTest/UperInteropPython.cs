@@ -37,10 +37,9 @@ namespace PUS_C_Scala_Test
 
         [TestMethod]
         public void TestService_11_C() => UperInteropEncPythonC(PUS_C_Service.S11, "S11");
-
-        // TODO: not working for C and Scala
-        //[TestMethod]
-        //public void TestService_12() => ACNInteropEncScalaDecC(PUS_C_Service.S12, "S12");
+        
+        [TestMethod]
+        public void TestService_12_C() => UperInteropEncPythonC(PUS_C_Service.S12, "S12");
 
         [TestMethod]
         public void TestService_13_C() => UperInteropEncPythonC(PUS_C_Service.S13, "S13");
@@ -74,10 +73,9 @@ namespace PUS_C_Scala_Test
         
         [TestMethod]
         public void TestService_Structured_C() => UperInteropEncPythonC(PUS_C_Service.STRUCTURED, "Structured");
-
-        // TODO: uses readBits_nullterminated which is broken
-        // [TestMethod]
-        // public void AdditionalTestCases() => ACNInteropEncScalaDecC(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
+        
+        [TestMethod]
+        public void AdditionalTestCases_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
         
         [TestMethod]
         public void TestService_01_Scala() => UperInteropEncPythonScala(PUS_C_Service.S1, "S1");
@@ -105,6 +103,9 @@ namespace PUS_C_Scala_Test
 
         [TestMethod]
         public void TestService_11_Scala() => UperInteropEncPythonScala(PUS_C_Service.S11, "S11");
+        
+        [TestMethod]
+        public void TestService_12_Scala() => UperInteropEncPythonScala(PUS_C_Service.S12, "S12");
         
         [TestMethod]
         public void TestService_13_Scala() => UperInteropEncPythonScala(PUS_C_Service.S13, "S13");
@@ -138,5 +139,8 @@ namespace PUS_C_Scala_Test
         
         [TestMethod, Ignore]
         public void TestService_Structured_Scala() => UperInteropEncPythonScala(PUS_C_Service.STRUCTURED, "Structured");
+        
+        [TestMethod]
+        public void AdditionalTestCases_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
     }
 }
