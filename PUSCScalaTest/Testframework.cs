@@ -544,6 +544,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -552,11 +553,18 @@ namespace PUS_C_Scala_Test
             Console.WriteLine("OUTPUT " + outp);
             var outputList = outp.Split("\n").ToList();
             var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
-            Console.WriteLine("WORKED? " + worked);
 
-            // print sbt output
-            if (printOutput)
+            if (!worked)
+            {
+                Console.WriteLine("Scala test cases failed. Stdout:");
                 Console.WriteLine(outp);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
+            else if (printOutput) // print sbt output
+            {
+                Console.WriteLine(outp);
+            }
 
             Assert.IsTrue(worked, "Scala test cases failed");
         }
