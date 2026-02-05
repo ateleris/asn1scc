@@ -325,6 +325,8 @@ type ILangGeneric () =
     // Additional Methods for ACN Deep Field Access for Object Oriented Languages
     abstract member getAcnChildrenForDeepFieldAccess : Asn1Child list -> AcnChild list -> AcnInsertedFieldDependencies -> Map<string, (string * AcnChild) list>
     default this.getAcnChildrenForDeepFieldAccess _ _ _ = Map.empty
+    abstract member isAcnInlineRequired : Asn1AcnAst.Asn1Type -> string -> AcnInsertedFieldDependencies -> bool
+    default this.isAcnInlineRequired _ _ _ = false
     abstract member getExternalField : ((AcnDependency -> bool) -> string) -> RelativePath -> Asn1AcnAst.Sequence -> CodegenScope -> string
     default this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) _ _ _ =
         let filterDependency (d:AcnDependency) =
