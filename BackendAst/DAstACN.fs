@@ -113,23 +113,14 @@ let handleSavePosition (funcBody: FuncBody)
             newContent, ns1a
         newFuncBody
 
-let getAlignmentString (al: AcnAlignment) =
+let getAlignmentString (lm: LanguageMacros) (al: AcnAlignment) =
     match al with
     | AcnGenericTypes.NextByte ->
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> "Byte", 8I
-        | Python -> "byte", 8I
-        | _ -> "NextByte", 8I
+        lm.lg.getAlignmentByteTypeName, 8I
     | AcnGenericTypes.NextWord ->
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> "Short", 16I
-        | Python -> "word", 16I
-        | _ -> "NextWord", 16I
+        lm.lg.getAlignmentWordTypeName, 16I
     | AcnGenericTypes.NextDWord ->
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> "Int", 32I
-        | Python -> "dword", 32I
-        | _ -> "NextDWord", 32I
+        lm.lg.getAlignmentDWordTypeName, 32I
 
 let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
                                 (lm:LanguageMacros)
@@ -140,7 +131,7 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal = getAlignmentString al
+        let alStr, nAlignmentVal = getAlignmentString lm al
         // printfn "[DEBUG] handleAlignmentForAsn1Types: alStr=%s nAlignmentVal=%A codec=%A" alStr nAlignmentVal codec
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
@@ -165,7 +156,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal = getAlignmentString al
+        let alStr, nAlignmentVal = getAlignmentString lm al
         let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CodegenScope) (lvName:string) =
             let content = funcBody codec prms nestingScope p lvName
             let newContent =
@@ -818,9 +809,8 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
         let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let localVar, intVal =
             let varName =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python -> ToC (p.accessPath.asIdentifier lm.lg)
-                | _ -> $"intVal_{ToC (p.accessPath.asIdentifier lm.lg)}"
+                let baseName = ToC (p.accessPath.asIdentifier lm.lg)
+                if lm.lg.usePrefixForIntegerVariables then $"intVal_{baseName}" else baseName
             let lv =
                 match lm.lg.decodingKind with
                 | Copy -> []
@@ -2466,7 +2456,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 match child.Type.acnAlignment with
                                 | None -> None
                                 | Some acnAlign ->
-                                    let alStr, nAlignmentVal = getAlignmentString acnAlign
+                                    let alStr, nAlignmentVal = getAlignmentString lm acnAlign
                                     let alignmentCode = lm.acn.alignToNext "" alStr nAlignmentVal childNestingScope.acnOffset (childNestingScope.acnOuterMaxSize - childNestingScope.acnOffset) (childNestingScope.nestingLevel - 1I) childNestingScope.nestingIx childNestingScope.acnRelativeOffset codec
                                     Some alignmentCode
 

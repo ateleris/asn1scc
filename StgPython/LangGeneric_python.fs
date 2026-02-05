@@ -687,6 +687,10 @@ type LangGeneric_python() =
     override this.validationStringPrefix = "self.arr"
     override this.shouldRemoveModulePrefixFromTypedef = true
     override this.getEnumSelectionJoin path = this.joinSelectionEnum path
+    override this.usePrefixForIntegerVariables = false
+    override this.getAlignmentByteTypeName = "byte"
+    override this.getAlignmentWordTypeName = "word"
+    override this.getAlignmentDWordTypeName = "dword"
 
     override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
         sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName

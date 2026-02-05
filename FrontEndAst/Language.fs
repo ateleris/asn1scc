@@ -373,6 +373,14 @@ type ILangGeneric () =
     default this.shouldRemoveModulePrefixFromTypedef = false
     abstract member getEnumSelectionJoin : AccessPath -> string
     default this.getEnumSelectionJoin path = this.joinSelection path
+    abstract member usePrefixForIntegerVariables : bool
+    default this.usePrefixForIntegerVariables = true
+    abstract member getAlignmentByteTypeName : string
+    default this.getAlignmentByteTypeName = "NextByte"
+    abstract member getAlignmentWordTypeName : string
+    default this.getAlignmentWordTypeName = "NextWord"
+    abstract member getAlignmentDWordTypeName : string
+    default this.getAlignmentDWordTypeName = "NextDWord"
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
