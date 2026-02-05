@@ -217,7 +217,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
         lm.isvalid.stringContainsChar newStr
 
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
-        let valToStrFunc1 v = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "ord(" + v.ToString().ISQ + ")" | _ -> v.ToString().ISQ
+        let valToStrFunc1 v = lm.lg.charToNumericValueExpression (v.ToString().ISQ)
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
             (fun _ (v:string)  s  -> (fun p -> VCBExpression (stringContainsChar v (p.accessPath.joined lm.lg))) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -563,7 +563,7 @@ let hasValidationFunc allCons =
 
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self.arr" | _ -> "str"
+    let prefix = lm.lg.validationStringPrefix
     ({CodegenScope.modName = typeid.ModName; accessPath = (AccessPath.emptyPath prefix ArrayElem).append (ArrayAccess ("i", ByValue))})
 
 type IsValidAux = {

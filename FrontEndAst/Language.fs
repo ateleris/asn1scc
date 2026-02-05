@@ -365,6 +365,14 @@ type ILangGeneric () =
     abstract member usesWrappedOptional: bool
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option
+    abstract member charToNumericValueExpression : string -> string
+    default this.charToNumericValueExpression charValue = charValue
+    abstract member validationStringPrefix : string
+    default this.validationStringPrefix = "str"
+    abstract member shouldRemoveModulePrefixFromTypedef : bool
+    default this.shouldRemoveModulePrefixFromTypedef = false
+    abstract member getEnumSelectionJoin : AccessPath -> string
+    default this.getEnumSelectionJoin path = this.joinSelection path
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -556,10 +564,7 @@ type AccessPath with
         lg.joinSelection this
         
     member this.joinedEnum (lg: ILangGeneric): string =
-        if ProgrammingLanguage.ActiveLanguages.Head = Python then 
-            lg.joinSelectionEnum this
-        else
-            lg.joinSelection this
+        lg.getEnumSelectionJoin this
         
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind

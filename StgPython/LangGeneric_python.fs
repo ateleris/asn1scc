@@ -683,6 +683,10 @@ type LangGeneric_python() =
     override this.supportsStaticVerification = false
     override this.isObjectOriented = true
     override this.nullTerminatorByte = None
+    override this.charToNumericValueExpression charValue = sprintf "ord(%s)" charValue
+    override this.validationStringPrefix = "self.arr"
+    override this.shouldRemoveModulePrefixFromTypedef = true
+    override this.getEnumSelectionJoin path = this.joinSelectionEnum path
 
     override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
         sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName
