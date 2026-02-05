@@ -56,11 +56,14 @@ def __eq__(self, other: object) -> bool:
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
 
-equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced, bIsPrimitive) ::= <<
+<if(bIsPrimitive)>
+# equal inherited for primitive type
+<else>
 # equal_python.stg 64
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):
-        return NotImplemented
+        return False
     <if(bExpression)>
     # equal_python.stg 67
     return <sContent>
@@ -74,6 +77,7 @@ def __eq__(self, other: object) -> bool:
     return ret
 
     <endif>
+<endif>
 >>
 
 
