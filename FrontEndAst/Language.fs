@@ -363,6 +363,8 @@ type ILangGeneric () =
     abstract member initMethod       :InitMethod
     abstract member decodingKind     :DecodingKind
     abstract member usesWrappedOptional: bool
+    abstract member isObjectOriented: bool
+    abstract member nullTerminatorByte: byte option
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
