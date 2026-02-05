@@ -418,7 +418,38 @@ type LangGeneric_python() =
         result
         |> Seq.map (fun kvp -> (kvp.Key, kvp.Value |> Seq.toList))
         |> Map.ofSeq
-    
+
+    override this.isAcnInlineRequired (parentTypeId: Asn1AcnAst.Asn1Type) (childName: string) (deps: AcnInsertedFieldDependencies) =
+        // Check if any dependency has a determinant (ACN child) where the determinant's ID starts with the child field's full type path
+        // AND the dependency's asn1Type (field that depends on the determinant) is OUTSIDE the child field
+        // Use the parent type's full path + child name to construct the full field path
+        let childFieldPath = parentTypeId.id.AsString + "." + childName
+        let shouldInlineAny =
+            deps.acnDependencies
+            |> List.exists (fun d ->
+                // Does the determinant belong to the child field?
+                let determinantPath = d.determinant.id.AsString
+                // Normalize hyphens to underscores for comparison (ASN.1 names with hyphens become underscores in some contexts)
+                // Can't use ToC because it replaces dots with underscores, which is not what we want here
+                let normalizedDeterminantPath = determinantPath.Replace("-", "_")
+                let normalizedChildFieldPath = childFieldPath.Replace("-", "_")
+                let determinantBelongsToChild =
+                    normalizedDeterminantPath.StartsWith(normalizedChildFieldPath + ".") ||
+                    normalizedDeterminantPath = normalizedChildFieldPath
+
+                // Does the dependent field belong OUTSIDE the child field?
+                let dependentPath = d.asn1Type.AsString
+                let normalizedDependentPath = dependentPath.Replace("-", "_")
+                let dependentIsOutsideChild =
+                    not (normalizedDependentPath.StartsWith(normalizedChildFieldPath + ".") ||
+                         normalizedDependentPath = normalizedChildFieldPath)
+
+                // Inline is required if: determinant is inside child, but dependent field is outside child
+                let shouldInline = determinantBelongsToChild && dependentIsOutsideChild
+                shouldInline
+            )
+        shouldInlineAny
+
     override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
         match relPath with
         | RelativePath  [] ->

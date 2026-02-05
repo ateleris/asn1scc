@@ -392,6 +392,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -399,7 +400,12 @@ namespace PUS_C_Scala_Test
             var stdout = proc.StandardOutput.ReadToEnd();
             var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
             if (!worked)
+            {
+                Console.WriteLine("C test cases failed. Stdout:");
                 Console.WriteLine(stdout);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
 
             Assert.IsTrue(worked, "C test cases failed");
         }
@@ -538,6 +544,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -546,13 +553,20 @@ namespace PUS_C_Scala_Test
             Console.WriteLine("OUTPUT " + outp);
             var outputList = outp.Split("\n").ToList();
             var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
-            Console.WriteLine("WORKED? " + worked);
 
-            // print sbt output
-            if (printOutput)
+            if (!worked)
+            {
+                Console.WriteLine("Scala test cases failed. Stdout:");
                 Console.WriteLine(outp);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
+            else if (printOutput) // print sbt output
+            {
+                Console.WriteLine(outp);
+            }
 
-            Assert.IsTrue(worked);
+            Assert.IsTrue(worked, "Scala test cases failed");
         }
 
         private string[] GetService01FileNames() =>
