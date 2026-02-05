@@ -5,7 +5,7 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
-from typing import Optional, List
+from typing import List
 from .asn1_constants import NO_OF_BITS_IN_BYTE
 
 class BitStreamError(Exception):

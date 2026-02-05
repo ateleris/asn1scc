@@ -6,6 +6,44 @@ from .bitstream import BitStream
 
 class Decoder(Codec):
 
+    # ============================================================================
+    # TYPE-SAFE ERROR RESULT HELPERS
+    # ============================================================================
+
+    @staticmethod
+    def _error_int(result: DecodeResult) -> DecodeResult[int]:
+        """Create a typed error result for int from another DecodeResult."""
+        return DecodeResult[int](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    @staticmethod
+    def _error_float(result: DecodeResult) -> DecodeResult[float]:
+        """Create a typed error result for float from another DecodeResult."""
+        return DecodeResult[float](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    @staticmethod
+    def _error_str(result: DecodeResult) -> DecodeResult[str]:
+        """Create a typed error result for str from another DecodeResult."""
+        return DecodeResult[str](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    # ============================================================================
+    # INTEGER DECODING
+    # ============================================================================
+
     def decode_integer(self,
                       min_val: int,
                       max_val: int,
@@ -823,10 +861,10 @@ class Decoder(Codec):
         """
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success:
-                return result
-            num_bytes = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return length_result
+            num_bytes = length_result.decoded_value
 
             if num_bytes == None or num_bytes == 0 or num_bytes > 8:
                 return DecodeResult(
@@ -838,7 +876,7 @@ class Decoder(Codec):
             # Read value bytes
             result = self.read_byte_array(num_bytes)
             if not result.success or result.decoded_value is None:
-                return result
+                return self._error_int(result)
             data_bytes = result.decoded_value
 
             # Convert from big-endian
@@ -898,10 +936,10 @@ class Decoder(Codec):
         """
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success or result.decoded_value is None:
-                return result
-            num_bytes = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return length_result
+            num_bytes = length_result.decoded_value
 
             if num_bytes == 0 or num_bytes > 8:
                 return DecodeResult(
@@ -913,7 +951,7 @@ class Decoder(Codec):
             # Read value bytes
             result = self.read_byte_array(num_bytes)
             if not result.success or result.decoded_value is None:
-                return result
+                return self._error_int(result)
             data_bytes = result.decoded_value
 
             # Convert from big-endian
@@ -967,10 +1005,10 @@ class Decoder(Codec):
 
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success or result.decoded_value is None:
-                return result
-            length = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return self._error_float(length_result)
+            length = length_result.decoded_value
 
             bits_consumed = 8
 
@@ -986,7 +1024,7 @@ class Decoder(Codec):
             # Read header byte
             result = self.read_byte()
             if not result.success or result.decoded_value is None:
-                return result
+                return self._error_float(result)
             header = result.decoded_value
             bits_consumed += 8
 
@@ -1062,8 +1100,8 @@ class Decoder(Codec):
             # Read exponent bytes (two's complement)
             # Check first bit for sign extension
             first_bit_result = self.read_bit()
-            if not first_bit_result.success or result.decoded_value is None:
-                return first_bit_result
+            if not first_bit_result.success or first_bit_result.decoded_value is None:
+                return self._error_float(first_bit_result)
 
             # Start with sign extension
             exponent = -1 if first_bit_result.decoded_value else 0
@@ -1080,7 +1118,7 @@ class Decoder(Codec):
             for i in range(1, exp_len):
                 result = self.read_byte()
                 if not result.success or result.decoded_value is None:
-                    return result
+                    return self._error_float(result)
                 exponent = (exponent << 8) | result.decoded_value
                 bits_consumed += 8
 
@@ -1091,7 +1129,7 @@ class Decoder(Codec):
             for i in range(mantissa_len):
                 result = self.read_byte()
                 if not result.success or result.decoded_value is None:
-                    return result
+                    return self._error_float(result)
                 mantissa = (mantissa << 8) | result.decoded_value
                 bits_consumed += 8
 

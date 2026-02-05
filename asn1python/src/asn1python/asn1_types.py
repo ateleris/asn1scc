@@ -7,7 +7,6 @@ that match the behavior of the C and Scala runtime libraries.
 
 import abc
 from dataclasses import dataclass
-from functools import total_ordering
 
 from .asn1_exceptions import *
 from .encoder import Encoder
@@ -19,10 +18,10 @@ class Asn1ConstraintValidResult:
     error_code: int = 0
     message: str = ""
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.is_valid
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.is_valid and self.error_code <= 0:
             raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
 
@@ -50,7 +49,6 @@ class Asn1Base(abc.ABC):
 # Integer types using ctypes for automatic range validation and conversion
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
-@total_ordering
 class Asn1Boolean(Asn1Base):
     """
     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
@@ -62,36 +60,48 @@ class Asn1Boolean(Asn1Base):
         self._val = bool(val)
 
     # --- Core protocol ---
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self._val
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Asn1Boolean({self._val})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._val)
 
     # --- Equality / ordering ---
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self._val == bool(other)
+    
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self._val < bool(other)
+    
+    def __le__(self, other) -> bool:
+        return self._val <= bool(other)
+    
+    def __gt__(self, other) -> bool:
+        return self._val > bool(other)
+    
+    def __ge__(self, other) -> bool:
+        return self._val >= bool(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._val)
 
     # --- Boolean operators ---
-    def __and__(self, other):
+    def __and__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val & bool(other))
 
-    def __or__(self, other):
+    def __or__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val | bool(other))
 
-    def __xor__(self, other):
+    def __xor__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val ^ bool(other))
 
-    def __invert__(self):
+    def __invert__(self) -> 'Asn1Boolean':
         return Asn1Boolean(not self._val)
 
     # --- Attribute delegation (for any method/properties bool has) ---
@@ -120,23 +130,23 @@ class NullType(Asn1Base):
     __slots__ = ()
 
     # --- Core protocol ---
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "None"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "None"
 
     # --- Equality ---
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return other is None or isinstance(other, NullType)
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(None)
 
     # --- Pickling / copy compatibility ---
@@ -144,10 +154,10 @@ class NullType(Asn1Base):
         return (NullType, ())
 
     # --- Prevent accidental mutation / attributes ---
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value) -> None:
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
 
-    def __delattr__(self, name):
+    def __delattr__(self, name) -> None:
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
     
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
