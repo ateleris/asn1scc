@@ -1,12 +1,10 @@
 from typing import List, Optional
 
 from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .bitstream import BitStream
 
 
 class Decoder(Codec):
-
-    def __init__(self, buffer: bytearray) -> None:
-        super().__init__(buffer=buffer)
 
     def decode_integer(self,
                       min_val: int,
@@ -108,7 +106,7 @@ class Decoder(Codec):
         """
         try:
             initial_pos = self.bit_index
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
             final_pos = self.bit_index
             bits_consumed = final_pos - initial_pos
             return DecodeResult(
@@ -139,7 +137,7 @@ class Decoder(Codec):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
 
             # Then align to 2-byte (16-bit) boundary
             if self._bitstream.current_byte_position % 2 != 0:
@@ -182,7 +180,7 @@ class Decoder(Codec):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
 
             # Then align to 4-byte (32-bit) boundary
             current_byte = self._bitstream.current_byte_position
@@ -663,7 +661,6 @@ class Decoder(Codec):
             output_buffer = bytearray(buffer_size)
 
             # Create temporary bitstream for writing output
-            from .bitstream import BitStream
             tmp_stream = BitStream(output_buffer)
 
             # Read bits until pattern found or max reached

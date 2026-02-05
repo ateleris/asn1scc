@@ -9,9 +9,6 @@ from .decoder import Decoder
 
 class Encoder(Codec, ABC):
 
-    def __init__(self, buffer: bytearray) -> None:
-        super().__init__(buffer)
-
     @abstractmethod
     def get_decoder(self) -> Decoder:
         pass
@@ -70,7 +67,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_needed
             )
 
@@ -108,13 +104,12 @@ class Encoder(Codec, ABC):
         """
         try:
             initial_pos = self.bit_index
-            self._bitstream.align_to_byte()
+            self._bitstream.write_align_to_byte()
             final_pos = self.bit_index
             bits_encoded = final_pos - initial_pos
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -139,7 +134,7 @@ class Encoder(Codec, ABC):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.write_align_to_byte()
 
             # Then align to 2-byte (16-bit) boundary
             current_byte = self.bit_index // 8
@@ -152,7 +147,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -177,7 +171,7 @@ class Encoder(Codec, ABC):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.write_align_to_byte()
 
             # Then align to 4-byte (32-bit) boundary
             current_byte = self.bit_index // 8
@@ -190,7 +184,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -219,7 +212,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=1
             )
         except BitStreamError as e:
@@ -234,7 +226,6 @@ class Encoder(Codec, ABC):
         return EncodeResult(
             success=True,
             error_code=ENCODE_OK,
-            encoded_data=self._bitstream.get_data_copy(),
             bits_encoded=0
         )
 
@@ -282,7 +273,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -319,7 +309,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=8
             )
         except BitStreamError as e:
@@ -356,7 +345,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -389,7 +377,6 @@ class Encoder(Codec, ABC):
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=0
                 )
 
@@ -423,7 +410,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -476,7 +462,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=num_bytes * 8
             )
         except BitStreamError as e:
@@ -549,7 +534,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=num_bits
             )
         except BitStreamError as e:
@@ -639,7 +623,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -734,7 +717,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 
@@ -782,7 +764,6 @@ class Encoder(Codec, ABC):
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=16
                 )
 
@@ -802,7 +783,6 @@ class Encoder(Codec, ABC):
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=16
                 )
 
@@ -826,7 +806,6 @@ class Encoder(Codec, ABC):
                 return EncodeResult(
                     success=True,
                     error_code=ENCODE_OK,
-                    encoded_data=self._bitstream.get_data_copy(),
                     bits_encoded=16
                 )
 
@@ -921,7 +900,6 @@ class Encoder(Codec, ABC):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
 

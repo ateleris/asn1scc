@@ -6,52 +6,12 @@ that match the behavior of the C and Scala runtime libraries.
 """
 
 import abc
-from codecs import Codec
 from dataclasses import dataclass
-from enum import Enum
 from functools import total_ordering
 
-
-# Error classes
-class Asn1Exception(Exception):
-    """Base class for ASN.1 runtime errors"""
-    pass
-
-class Asn1ValueOutOfRangeException(Asn1Exception):
-    """Exception raised when an ASN.1 value is out of range"""
-    pass
-
-class Asn1ValueUnexpectedEndOfDataException(Asn1Exception):
-    """Exception raised when an ASN.1 value is out of range"""
-    pass
-
-class Asn1InvalidValueException(Asn1Exception):
-    """Raised when a value is outside the valid range for a type"""
-    pass
-
-class Asn1OverflowException(Asn1Exception):
-    """Raised when an arithmetic operation would cause overflow"""
-    pass
-
-class Asn1TestcaseError(Asn1Exception):
-    """Base Class for Testcase Errors"""
-    pass
-
-class Asn1TestcaseEncodeFailedError(Asn1TestcaseError):
-    """Raised when the encoding fails in a testcase"""
-    pass
-
-class Asn1TestcaseDecodeFailedError(Asn1TestcaseError):
-    """Raised when the decoding fails in a testcase"""
-    pass
-
-class Asn1TestcaseConstraintFailedError(Asn1TestcaseError):
-    """Raised when the constraint validation fails in a testcase"""
-    pass
-
-class Asn1TestcaseDifferentResultError(Asn1TestcaseError):
-    """Raised when the decoding of the encoded object yields a different result in a testcase"""
-    pass
+from .asn1_exceptions import *
+from .encoder import Encoder
+from .decoder import Decoder
 
 @dataclass(frozen=True)
 class Asn1ConstraintValidResult:
@@ -70,9 +30,6 @@ class Asn1ConstraintValidResult:
             raise Exception("No error code must be set if the constraint is valid.")
 
 class Asn1Base(abc.ABC):
-    from .encoder import Encoder
-    from .decoder import Decoder
-
     @abc.abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass
@@ -98,7 +55,6 @@ class Asn1Boolean(Asn1Base):
     """
     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
     """
-    from .encoder import Encoder
 
     __slots__ = ("_val",)
 
@@ -160,8 +116,6 @@ class NullType(Asn1Base):
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
     Always falsy, always equal to None, singleton instance.
     """
-    from .encoder import Encoder
-    from .decoder import Decoder
 
     __slots__ = ()
 
@@ -210,29 +164,6 @@ class NullType(Asn1Base):
     @staticmethod
     def decode_pure(codec: Decoder, check_constraints: bool = True):
         return NullType()
-
-# Constants to match C and Scala implementations
-OBJECT_IDENTIFIER_MAX_LENGTH = 20
-
-# Bit manipulation constants
-NO_OF_BITS_IN_BYTE = 8
-NO_OF_BITS_IN_SHORT = 16
-NO_OF_BITS_IN_INT = 32
-NO_OF_BITS_IN_LONG = 64
-
-# Error codes to match C implementation
-ERR_INSUFFICIENT_DATA = 101
-ERR_INCORRECT_PER_STREAM = 102
-ERR_INVALID_CHOICE_ALTERNATIVE = 103
-ERR_INVALID_ENUM_VALUE = 104
-ERR_INVALID_XML_FILE = 200
-ERR_INVALID_BER_FILE = 201
-ERR_BER_LENGTH_MISMATCH = 202
-
-# Error codes from Scala implementation
-NOT_INITIALIZED_ERR_CODE = 1337
-ERR_INVALID_ENUM_VALUE_SCALA = 2805
-FAILED_READ_ERR_CODE = 5400
 
 # Utility functions to match C and Scala implementations
 # def int2uint(v: int) -> int:

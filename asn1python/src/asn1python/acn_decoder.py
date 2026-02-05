@@ -6,7 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
-from .asn1_types import NO_OF_BITS_IN_BYTE
+from .asn1_constants import *
 from .decoder import Decoder
 from .codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
 from .bitstream import BitStreamError
@@ -19,17 +19,6 @@ class ACNDecoder(Decoder):
     This decoder provides flexible binary decoding for ASN.1 types
     following custom ACN encoding rules to support legacy protocols.
     """
-
-    def __init__(self, buffer: bytearray) -> None:
-        super().__init__(buffer=buffer)
-           
-    @classmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'ACNDecoder':
-        return cls(bytearray(buffer_byte_size))
-     
-    @classmethod
-    def _construct(cls, buffer: bytearray) -> 'ACNDecoder':
-        return cls(buffer)
 
     # ============================================================================
     # INTEGER DECODING - POSITIVE INTEGER

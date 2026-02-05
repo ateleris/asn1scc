@@ -40,19 +40,10 @@ class ACNEncoder(Encoder):
     following custom ACN encoding rules to support legacy protocols.
     """
 
-    def __init__(self, buffer: bytearray) -> None:
-        super().__init__(buffer)
-
-    @classmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'ACNEncoder':
-        return cls(bytearray(buffer_byte_size))
-
-    @classmethod
-    def _construct(cls, buffer: bytearray) -> 'ACNEncoder':
-        return cls(buffer)
-
     def get_decoder(self) -> ACNDecoder:
-        return ACNDecoder(self.get_bitstream_buffer())
+        instance = ACNDecoder.from_codec(self)
+        assert isinstance(instance, ACNDecoder)
+        return instance
 
     # ============================================================================
     # INTEGER ENCODING - POSITIVE INTEGER
@@ -96,7 +87,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -230,7 +220,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -280,7 +269,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -320,7 +308,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=length_result.bits_encoded + bcd_result.bits_encoded
             )
         except Exception as e:
@@ -360,7 +347,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bcd_result.bits_encoded + 4
             )
         except BitStreamError as e:
@@ -390,7 +376,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=32
             )
         except (BitStreamError, struct.error) as e:
@@ -416,7 +401,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=32
             )
         except (BitStreamError, struct.error) as e:
@@ -442,7 +426,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=64
             )
         except (BitStreamError, struct.error) as e:
@@ -468,7 +451,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=64
             )
         except (BitStreamError, struct.error) as e:
@@ -559,7 +541,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -612,7 +593,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -665,7 +645,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -705,7 +684,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -784,7 +762,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -851,7 +828,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -899,7 +875,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -978,7 +953,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -1010,7 +984,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -1073,7 +1046,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except UnicodeEncodeError as e:
@@ -1156,7 +1128,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1206,7 +1177,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1274,7 +1244,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1320,7 +1289,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1372,7 +1340,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1547,7 +1514,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
             
@@ -1616,7 +1582,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
@@ -1681,7 +1646,6 @@ class ACNEncoder(Encoder):
             return EncodeResult(
                 success=True,
                 error_code=ENCODE_OK,
-                encoded_data=self._bitstream.get_data_copy(),
                 bits_encoded=bits_encoded
             )
         except BitStreamError as e:
