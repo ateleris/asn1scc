@@ -158,8 +158,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
       
     let (definitionsContntent, srcBody) =
-        match r.lang with
-        | Python ->
+        if lm.lg.isObjectOriented then
             // Helper function to detect if a type uses deep field access (inline ACN encoding)
             let typeHasDeepFieldAccess (t: Asn1Type) : bool =
                 getResolvedTypeAndChildren t
@@ -525,8 +524,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) [""] typeDefs false
                 File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
                 
-            definitionsContent, "BODY"    
-        | _ ->
+            definitionsContent, "BODY"
+        else
             //header file
             let typeDefs =
                 tases |>
@@ -605,9 +604,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let bXer = r.args.encodings |> Seq.exists ((=) XER)
             let arrsUtilityDefines = []
             let puCorrName =
-                match r.lang with
-                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-                | _ -> pu.name
+                if lm.lg.shouldApplyToCToPackageName then ToC (pu.name) else pu.name
 
             let definitionsContntent =
                 lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
@@ -747,10 +744,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             match eqContntent with
             | Some eqContntent ->
                 let fileName = Path.Combine(outDir, pu.bodyFileName) // todo: here
-                match r.lang with
-                // In case of Python, there is no Spec and Body file distinction, therefore we append rather than overwrite
-                | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(fileName, eqContntent.Replace("\r",""))
-                | _ -> File.WriteAllText(fileName, eqContntent.Replace("\r",""))
+                if lm.lg.shouldAppendToBodyFile then
+                    File.AppendAllText(fileName, eqContntent.Replace("\r",""))
+                else
+                    File.WriteAllText(fileName, eqContntent.Replace("\r",""))
             | None             -> ()
 
             //test cases source file
@@ -795,12 +792,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
 
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
-    let _ = match r.lang with
-            | Python ->
-                // Write basic __init__.py in root & in srcDir
-                File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
-                File.WriteAllText(Path.Combine(di.srcDir, "__init__.py"), "")
-            | l -> ignore l
+    if lm.lg.shouldGenerateInitFiles then
+        // Write basic __init__.py in root & in srcDir
+        File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
+        File.WriteAllText(Path.Combine(di.srcDir, "__init__.py"), "")
     
     let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"
     match r.args.generateAutomaticTestCases with

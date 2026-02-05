@@ -381,6 +381,16 @@ type ILangGeneric () =
     default this.getAlignmentWordTypeName = "NextWord"
     abstract member getAlignmentDWordTypeName : string
     default this.getAlignmentDWordTypeName = "NextDWord"
+    abstract member shouldApplyToCToPackageName : bool
+    default this.shouldApplyToCToPackageName = false
+    abstract member shouldAppendToBodyFile : bool
+    default this.shouldAppendToBodyFile = false
+    abstract member shouldGenerateInitFiles : bool
+    default this.shouldGenerateInitFiles = false
+    abstract member shouldAppendTestCaseFile : bool
+    default this.shouldAppendTestCaseFile = false
+    abstract member shouldWriteThenAppendTestSuite : bool
+    default this.shouldWriteThenAppendTestSuite = false
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string

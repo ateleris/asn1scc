@@ -28,7 +28,7 @@ let isPythonPrimitive (t: Asn1TypeKind) =
 let initMethSuffix k =
     match isPythonPrimitive k with
     | false ->
-        match k with
+    match k with
         | BitString bitString -> ""
         | _ -> "()"
     | true -> ""
@@ -691,6 +691,10 @@ type LangGeneric_python() =
     override this.getAlignmentByteTypeName = "byte"
     override this.getAlignmentWordTypeName = "word"
     override this.getAlignmentDWordTypeName = "dword"
+    override this.shouldAppendToBodyFile = true
+    override this.shouldGenerateInitFiles = true
+    override this.shouldAppendTestCaseFile = true
+    override this.shouldWriteThenAppendTestSuite = true
 
     override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
         sprintf "%s%s%s is not None" (sel.joined this) (this.getAccess sel) childName

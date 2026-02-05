@@ -264,6 +264,7 @@ type LangGeneric_scala() =
         override this.getAlignmentByteTypeName = "Byte"
         override this.getAlignmentWordTypeName = "Short"
         override this.getAlignmentDWordTypeName = "Int"
+        override this.shouldApplyToCToPackageName = true
 
         override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
             sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName
