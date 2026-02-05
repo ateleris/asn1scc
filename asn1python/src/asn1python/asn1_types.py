@@ -33,18 +33,6 @@ class Asn1Base(abc.ABC):
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass
 
-    @abc.abstractmethod
-    def encode(self, codec: Encoder, check_constraints: bool = True):
-        pass
-
-    @classmethod
-    def decode(cls, codec: Decoder, check_constraints: bool = True):
-        pass
-
-    @staticmethod
-    def decode_pure(codec: Decoder, check_constraints: bool = True):
-        pass
-
 
 # Integer types using ctypes for automatic range validation and conversion
 
