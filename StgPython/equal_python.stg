@@ -69,8 +69,7 @@ def __eq__(self, other: object) -> bool:
     return <sContent>
 
     <else>
-    ret: bool = True
-    <arrsLocalVars; separator="\n">
+    ret: bool
 
     <sContent>
     # equal_python.stg 75

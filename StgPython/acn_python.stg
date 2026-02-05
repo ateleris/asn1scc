@@ -86,9 +86,13 @@ if not <sInp>:
 
 CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # acn_python.stg 424242
-if not <sInp>:
+if not <sInp> or <sInp>.decoded_value is None:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+<if(sType)>
 <p> = <sType>(<sInp>.decoded_value)
+<else>
+<p> = <sInp>.decoded_value
+<endif>
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
@@ -1028,11 +1032,11 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bInlineRequired)>
 <sChildContent>
 <else>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode, tuple):
-    instance_<sChName>, <sChName>_acn_children = instance_decode
+instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode_<sChName>, tuple):
+    instance_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
-    instance_<sChName> = instance_decode
+    instance_<sChName> = instance_decode_<sChName>
 
 <endif>
 <endif>
@@ -1063,11 +1067,11 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bInlineRequired)>
 <soChildContent>
 <else>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode, tuple):
-    <p>_<sChName>, <sChName>_acn_children = instance_decode
+instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode_<sChName>, tuple):
+    <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
-    <p>_<sChName> = instance_decode
+    <p>_<sChName> = instance_decode_<sChName>
 <endif>
 <endif>
 >>
@@ -1115,11 +1119,11 @@ if <soExistVar>:
 <if(bInlineRequired)>
     <sChildContent>
     <else>
-    instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    if isinstance(instance_decode, tuple):
-        <p>_<sChName>, <sChName>_acn_children = instance_decode
+    instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    if isinstance(instance_decode_<sChName>, tuple):
+        <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
     else:
-        <p>_<sChName> = instance_decode
+        <p>_<sChName> = instance_decode_<sChName>
 
     <endif>
     <endif>
@@ -1227,11 +1231,11 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    instance_decode = <sChildTypeDef>.decode(codec, check_constraints)
-    if isinstance(instance_decode, tuple):
-        instance_data, _ = instance_decode
+    instance_decode_<sChildName> = <sChildTypeDef>.decode(codec, check_constraints)
+    if isinstance(instance_decode_<sChildName>, tuple):
+        instance_data, _ = instance_decode_<sChildName>
     else:
-        instance_data = instance_decode
+        instance_data = instance_decode_<sChildName>
     <endif>
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
 >>
