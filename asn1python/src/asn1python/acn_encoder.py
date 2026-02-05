@@ -6,6 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
+from typing import Union
 
 from .acn_decoder import ACNDecoder
 from .bitstream import BitStreamError
@@ -1391,18 +1392,18 @@ class ACNEncoder(Encoder):
             
         return chars_written, bits_encoded
 
-    def _enc_string_char_index_private(self, max_len: int, allowed_char_set: bytearray, str_val: str) -> tuple[int, int]:
+    def _enc_string_char_index_private(self, max_len: int, allowed_char_set: Union[bytes, bytearray], str_val: str) -> tuple[int, int]:
         """Private helper method to encode string using character indices until null terminator or max_len.
-        
+
         This method implements the common logic for character index string encoding:
         - Converts string to ASCII bytes
         - Maps each character to its index in the allowed_char_set
         - Writes character indices using minimum bits needed
         - Stops at first null terminator (0) or max_len
-        
+
         Args:
             max_len: Maximum number of characters to encode
-            allowed_char_set: bytearray containing allowed characters
+            allowed_char_set: bytes or bytearray containing allowed characters
             str_val: String value to encode
             
         Returns:
@@ -1443,13 +1444,13 @@ class ACNEncoder(Encoder):
         return chars_written, bits_encoded
 
     @staticmethod
-    def _get_char_index(char_byte: int, allowed_char_set: bytearray) -> int:
+    def _get_char_index(char_byte: int, allowed_char_set: Union[bytes, bytearray]) -> int:
         """Get the index of a character byte in the allowed character set.
-        
+
         Args:
             char_byte: Byte value of the character (0-255)
-            allowed_char_set: bytearray containing allowed characters
-            
+            allowed_char_set: bytes or bytearray containing allowed characters
+
         Returns:
             Index position in allowed_char_set, or -1 if not found
         """

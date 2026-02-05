@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
@@ -318,7 +318,7 @@ class Encoder(Codec, ABC):
                 error_message=str(e)
             )
 
-    def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
+    def append_byte_array(self, data: Union[bytes, bytearray], num_bytes: int) -> EncodeResult:
         """
         Append multiple bytes to the bitstream.
 
@@ -326,7 +326,7 @@ class Encoder(Codec, ABC):
         Used by: ACN, UPER for octet strings
 
         Args:
-            data: bytearray to write
+            data: bytes or bytearray to write
             num_bytes: Number of bytes to write from data
         """
         try:

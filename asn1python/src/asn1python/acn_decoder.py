@@ -6,7 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 import struct
-from typing import List
+from typing import List, Optional, Union
 from .asn1_constants import *
 from .decoder import Decoder
 from .codec import DecodeResult, DECODE_OK, ERROR_INVALID_VALUE
@@ -1106,7 +1106,7 @@ class ACNDecoder(Decoder):
             bytes_to_read = n_bits_to_read // NO_OF_BITS_IN_BYTE
             remaining_bits_to_read = n_bits_to_read % NO_OF_BITS_IN_BYTE
             
-            bool_result: bool | None = None
+            bool_result: Optional[bool] = None
             
             for i in range(bytes_to_read):
                 read = self._bitstream.read_byte() if self._bitstream.remaining_bits >= NO_OF_BITS_IN_BYTE else self._bitstream.read_bits(self._bitstream.remaining_bits)
@@ -1389,12 +1389,12 @@ class ACNDecoder(Decoder):
     # CHARACTER INDEX STRING DECODING HELPER METHODS
     # ============================================================================
 
-    def _dec_string_char_index_private(self, max_len: int, allowed_char_set: bytearray, characters_to_decode: int) -> DecodeResult[str]:
+    def _dec_string_char_index_private(self, max_len: int, allowed_char_set: Union[bytes, bytearray], characters_to_decode: int) -> DecodeResult[str]:
         """Private helper method to decode a specific number of characters from character indices.
-        
+
         Args:
             max_len: Maximum allowed string length (for validation)
-            allowed_char_set: bytearray containing allowed characters
+            allowed_char_set: bytes or bytearray containing allowed characters
             characters_to_decode: Actual number of characters to decode
         """
         if not isinstance(allowed_char_set, (bytes, bytearray)):

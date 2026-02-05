@@ -579,7 +579,7 @@ class Decoder(Codec):
             DecodeResult containing list of byte values
         """
         result = self.decode_octet_string_no_length(num_bytes)
-        if result.success and result.decoded_value != None:
+        if result.success and result.decoded_value is not None:
             # Convert bytes to list
             return DecodeResult(
                 success=True,
