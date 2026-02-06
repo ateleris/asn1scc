@@ -69,7 +69,7 @@ def __eq__(self, other: object) -> bool:
     return <sContent>
 
     <else>
-    ret: bool
+    ret: bool = True
 
     <sContent>
     # equal_python.stg 75
