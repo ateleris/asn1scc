@@ -160,6 +160,7 @@ class Encoder(Codec):
                 Invariant(bits_encoded == i * NO_OF_BITS_IN_BYTE)
                 Invariant(self.remaining_bits >= (num_bytes * NO_OF_BITS_IN_BYTE - bits_encoded))
                 Invariant(self.segments == Old(self.segments) + Reveal(segments_from_byteseq_full(ToByteSeq(data).take(i))))
+                Invariant(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + i * NO_OF_BITS_IN_BYTE)
                 Invariant(self.buffer_size == Old(self.buffer_size))
 
                 self.append_byte(data[i])

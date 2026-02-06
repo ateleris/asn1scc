@@ -55,6 +55,7 @@ def segments_add(segments: PSeq[Segment], length: int, value: int) -> PSeq[Segme
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     
     new_seg = segments + PSeq(Segment(length, value))
+    Assert(new_seg.take(len(segments)) == segments)
     return new_seg
 
 @Pure
