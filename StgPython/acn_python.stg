@@ -688,17 +688,17 @@ decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Ma
 
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 533
-bix = codec.get_bit_index()
+bix = codec.bit_index
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <getStringSize(p)>:
+if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 7 * <getStringSize(p)>:
     # acn_python.stg 537
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 542
-bix = codec.get_bit_index()
+bix = codec.bit_index
 if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
@@ -707,7 +707,7 @@ if not decoded_result:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
+if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
     raise Asn1Exception(f"ERROR TODO")
 >>
 
