@@ -325,6 +325,8 @@ type ILangGeneric () =
     // Additional Methods for ACN Deep Field Access for Object Oriented Languages
     abstract member getAcnChildrenForDeepFieldAccess : Asn1Child list -> AcnChild list -> AcnInsertedFieldDependencies -> Map<string, (string * AcnChild) list>
     default this.getAcnChildrenForDeepFieldAccess _ _ _ = Map.empty
+    abstract member isAcnInlineRequired : Asn1AcnAst.Asn1Type -> string -> AcnInsertedFieldDependencies -> bool
+    default this.isAcnInlineRequired _ _ _ = false
     abstract member getExternalField : ((AcnDependency -> bool) -> string) -> RelativePath -> Asn1AcnAst.Sequence -> CodegenScope -> string
     default this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) _ _ _ =
         let filterDependency (d:AcnDependency) =
@@ -361,6 +363,34 @@ type ILangGeneric () =
     abstract member initMethod       :InitMethod
     abstract member decodingKind     :DecodingKind
     abstract member usesWrappedOptional: bool
+    abstract member isObjectOriented: bool
+    abstract member nullTerminatorByte: byte option
+    abstract member charToNumericValueExpression : string -> string
+    default this.charToNumericValueExpression charValue = charValue
+    abstract member validationStringPrefix : string
+    default this.validationStringPrefix = "str"
+    abstract member shouldRemoveModulePrefixFromTypedef : bool
+    default this.shouldRemoveModulePrefixFromTypedef = false
+    abstract member getEnumSelectionJoin : AccessPath -> string
+    default this.getEnumSelectionJoin path = this.joinSelection path
+    abstract member usePrefixForIntegerVariables : bool
+    default this.usePrefixForIntegerVariables = true
+    abstract member getAlignmentByteTypeName : string
+    default this.getAlignmentByteTypeName = "NextByte"
+    abstract member getAlignmentWordTypeName : string
+    default this.getAlignmentWordTypeName = "NextWord"
+    abstract member getAlignmentDWordTypeName : string
+    default this.getAlignmentDWordTypeName = "NextDWord"
+    abstract member shouldApplyToCToPackageName : bool
+    default this.shouldApplyToCToPackageName = false
+    abstract member shouldAppendToBodyFile : bool
+    default this.shouldAppendToBodyFile = false
+    abstract member shouldGenerateInitFiles : bool
+    default this.shouldGenerateInitFiles = false
+    abstract member shouldAppendTestCaseFile : bool
+    default this.shouldAppendTestCaseFile = false
+    abstract member shouldWriteThenAppendTestSuite : bool
+    default this.shouldWriteThenAppendTestSuite = false
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -556,10 +586,7 @@ type AccessPath with
         lg.joinSelection this
         
     member this.joinedEnum (lg: ILangGeneric): string =
-        if ProgrammingLanguage.ActiveLanguages.Head = Python then 
-            lg.joinSelectionEnum this
-        else
-            lg.joinSelection this
+        lg.getEnumSelectionJoin this
         
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind

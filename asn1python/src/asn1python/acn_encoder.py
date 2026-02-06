@@ -6,6 +6,7 @@ ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
 # import struct
+from typing import Union
 
 from .acn_decoder import ACNDecoder
 from .bitstream import BitStreamError
@@ -54,43 +55,9 @@ class ACNEncoder(Encoder):
         assert isinstance(instance, ACNDecoder)
         return instance
 
-class test_class():
-    
-    @staticmethod
-    def client_test() -> None:
-        
-        encoder = ACNEncoder.of_size(10)
-        assert isinstance(encoder, ACNEncoder)
-
-        encoder.append_bit(True)
-        input_val = bytearray([1,2,3,128])
-        encoder.append_byte_array(input_val, 4)
-
-        input_bits = bytearray([187, 255])
-        encoder.append_bits(input_bits, 15)
-
-        
-        decoder = encoder.get_decoder()
-
-        assert decoder.read_bit().decoded_value == True
-        res = decoder.read_byte_array(4)
-        decoded_value = res.decoded_value
-        assert isinstance(decoded_value, bytearray)
-        assert decoded_value[0] == 1
-        assert decoded_value[1] == 2
-        assert decoded_value[2] == 3
-        assert decoded_value[3] == 128
-
-        res_bits = decoder.read_bits(15)
-        decoded_value = res_bits.decoded_value
-        assert isinstance(decoded_value, bytearray)
-        assert decoded_value[0] == 187
-        assert decoded_value[1] == 254
-
-
-    # # ============================================================================
-    # # INTEGER ENCODING - POSITIVE INTEGER
-    # # ============================================================================
+    # ============================================================================
+    # INTEGER ENCODING - POSITIVE INTEGER
+    # ============================================================================
 
     # def enc_int_positive_integer_const_size(self, int_val: int,
     #                                         encoded_size_in_bits: int) -> EncodeResult:
@@ -130,7 +97,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:
@@ -264,7 +230,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:
@@ -314,7 +279,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:
@@ -354,7 +318,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=length_result.bits_encoded + bcd_result.bits_encoded
     #         )
     #     except Exception as e:
@@ -394,7 +357,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bcd_result.bits_encoded + 4
     #         )
     #     except BitStreamError as e:
@@ -424,7 +386,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=32
     #         )
     #     except (BitStreamError, struct.error) as e:
@@ -450,7 +411,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=32
     #         )
     #     except (BitStreamError, struct.error) as e:
@@ -476,7 +436,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=64
     #         )
     #     except (BitStreamError, struct.error) as e:
@@ -502,7 +461,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=64
     #         )
     #     except (BitStreamError, struct.error) as e:
@@ -593,7 +551,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -646,7 +603,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -699,7 +655,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -739,7 +694,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -818,7 +772,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:
@@ -885,7 +838,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -933,7 +885,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -1012,7 +963,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -1044,7 +994,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -1107,7 +1056,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except UnicodeEncodeError as e:
@@ -1190,7 +1138,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1240,7 +1187,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1308,7 +1254,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1354,7 +1299,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1406,7 +1350,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1510,13 +1453,13 @@ class test_class():
     #     return chars_written, bits_encoded
 
     # @staticmethod
-    # def _get_char_index(char_byte: int, allowed_char_set: bytearray) -> int:
+    # def _get_char_index(char_byte: int, allowed_char_set: Union[bytes, bytearray]) -> int:
     #     """Get the index of a character byte in the allowed character set.
-        
+
     #     Args:
     #         char_byte: Byte value of the character (0-255)
-    #         allowed_char_set: bytearray containing allowed characters
-            
+    #         allowed_char_set: bytes or bytearray containing allowed characters
+
     #     Returns:
     #         Index position in allowed_char_set, or -1 if not found
     #     """
@@ -1581,7 +1524,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
             
@@ -1650,7 +1592,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:
@@ -1715,7 +1656,6 @@ class test_class():
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
     #     except BitStreamError as e:

@@ -88,9 +88,13 @@ if not <sInp>:
 
 CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # acn_python.stg 424242
-if not <sInp>:
+if not <sInp> or <sInp>.decoded_value is None:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+<if(sType)>
 <p> = <sType>(<sInp>.decoded_value)
+<else>
+<p> = <sInp>.decoded_value
+<endif>
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
@@ -750,7 +754,6 @@ codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 # acn_python.stg 586
 <if(bIntroSnap)>
-codec_0_1 = codec.copy()
 <endif>
 
 decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
@@ -1004,58 +1007,74 @@ sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStat
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 786
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
+<soAlignmentCode>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<soAlignmentCode>
+<if(bInlineRequired)>
+<sChildContent>
+<else>
 <p><sAcc><sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<endif>
 <endif>
 >>
 
-sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 793
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
+<soAlignmentCode>
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<soAlignmentCode>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode, tuple):
-    instance_<sChName>, <sChName>_acn_children = instance_decode
+<if(bInlineRequired)>
+<sChildContent>
+<else>
+instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode_<sChName>, tuple):
+    instance_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
-    instance_<sChName> = instance_decode
+    instance_<sChName> = instance_decode_<sChName>
 
+<endif>
 <endif>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
+<soAlignmentCode>
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-<soAlignmentCode>
+<if(bInlineRequired)>
+<soChildContent>
+<else>
 self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<endif>
 <endif>
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 813
 # Decode <sChName>
+<soAlignmentCode>
 <if(bIsPrimitive)>
 <soChildContent>
 <else>
-<soAlignmentCode>
-instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode, tuple):
-    <p>_<sChName>, <sChName>_acn_children = instance_decode
+<if(bInlineRequired)>
+<soChildContent>
+<else>
+instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(instance_decode_<sChName>, tuple):
+    <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
-    <p>_<sChName> = instance_decode
+    <p>_<sChName> = instance_decode_<sChName>
+<endif>
 <endif>
 >>
 
@@ -1073,34 +1092,42 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTyped
 <p>_<sChName> = None
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 836
 # Encode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.<sChName> is not None:
+    <soAlignmentCode>
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <soAlignmentCode>
+<if(bInlineRequired)>
+    <sChildContent>
+    <else>
     self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    <endif>
     <endif>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 847
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <soExistVar>:
+    <soAlignmentCode>
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <soAlignmentCode>
-    instance_decode = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    if isinstance(instance_decode, tuple):
-        <p>_<sChName>, <sChName>_acn_children = instance_decode
+<if(bInlineRequired)>
+    <sChildContent>
+    <else>
+    instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    if isinstance(instance_decode_<sChName>, tuple):
+        <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
     else:
-        <p>_<sChName> = instance_decode
+        <p>_<sChName> = instance_decode_<sChName>
 
+    <endif>
     <endif>
 else:
     <p>_<sChName>: Optional[<sChildTypedef>] = None
@@ -1206,11 +1233,11 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    instance_decode = <sChildTypeDef>.decode(codec, check_constraints)
-    if isinstance(instance_decode, tuple):
-        instance_data, _ = instance_decode
+    instance_decode_<sChildName> = <sChildTypeDef>.decode(codec, check_constraints)
+    if isinstance(instance_decode_<sChildName>, tuple):
+        instance_data, _ = instance_decode_<sChildName>
     else:
-        instance_data = instance_decode
+        instance_data = instance_decode_<sChildName>
     <endif>
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
 >>

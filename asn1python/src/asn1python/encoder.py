@@ -1,7 +1,7 @@
-from abc import abstractmethod, ABC
-from typing import Optional, List
+from abc import abstractmethod
+from typing import Optional, List, Union
 
-from .asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
+from .asn1_constants import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
 from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 from .decoder import Decoder
@@ -118,7 +118,7 @@ class Encoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
-        
+
     def append_byte_array(self, data: bytearray, num_bytes: int) -> EncodeResult:
         """
         Append multiple bytes to the bitstream.
@@ -127,7 +127,7 @@ class Encoder(Codec):
         Used by: ACN, UPER for octet strings
 
         Args:
-            data: bytearray to write
+            data: bytes or bytearray to write
             num_bytes: Number of bytes to write from data
         """
         Requires(self.codec_predicate() and self.write_invariant())
@@ -583,7 +583,6 @@ class Encoder(Codec):
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
 
@@ -678,7 +677,6 @@ class Encoder(Codec):
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
 
@@ -1005,7 +1003,6 @@ class Encoder(Codec):
     #         return EncodeResult(
     #             success=True,
     #             error_code=ENCODE_OK,
-    #             encoded_data=self._bitstream.get_data_copy(),
     #             bits_encoded=bits_encoded
     #         )
 

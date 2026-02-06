@@ -37,10 +37,9 @@ namespace PUS_C_Scala_Test
 
         [TestMethod]
         public void TestService_11_C() => UperInteropEncPythonC(PUS_C_Service.S11, "S11");
-
-        // TODO: not working for C and Scala
-        //[TestMethod]
-        //public void TestService_12() => ACNInteropEncScalaDecC(PUS_C_Service.S12, "S12");
+        
+        [TestMethod]
+        public void TestService_12_C() => UperInteropEncPythonC(PUS_C_Service.S12, "S12");
 
         [TestMethod]
         public void TestService_13_C() => UperInteropEncPythonC(PUS_C_Service.S13, "S13");
@@ -59,10 +58,24 @@ namespace PUS_C_Scala_Test
 
         [TestMethod]
         public void TestService_19_C() => UperInteropEncPythonC(PUS_C_Service.S19, "S19");
-
-        // TODO: uses readBits_nullterminated which is broken
-        // [TestMethod]
-        // public void AdditionalTestCases() => ACNInteropEncScalaDecC(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
+        
+        [TestMethod]
+        public void TestService_ACN_ATTRIBUTES_C() => UperInteropEncPythonC(PUS_C_Service.ACN_ATTRIBUTES, "ACN_Attributes");
+        
+        [TestMethod]
+        public void TestService_Additional_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL, "Additional");
+        
+        [TestMethod, Ignore]
+        public void TestService_Advanced_C() => UperInteropEncPythonC(PUS_C_Service.ADVANCED, "Advanced");
+        
+        [TestMethod, Ignore]
+        public void TestService_Primitives_C() => UperInteropEncPythonC(PUS_C_Service.PRIMITIVES, "Primitives");
+        
+        [TestMethod]
+        public void TestService_Structured_C() => UperInteropEncPythonC(PUS_C_Service.STRUCTURED, "Structured");
+        
+        [TestMethod]
+        public void AdditionalTestCases_C() => UperInteropEncPythonC(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
         
         [TestMethod]
         public void TestService_01_Scala() => UperInteropEncPythonScala(PUS_C_Service.S1, "S1");
@@ -92,6 +105,9 @@ namespace PUS_C_Scala_Test
         public void TestService_11_Scala() => UperInteropEncPythonScala(PUS_C_Service.S11, "S11");
         
         [TestMethod]
+        public void TestService_12_Scala() => UperInteropEncPythonScala(PUS_C_Service.S12, "S12");
+        
+        [TestMethod]
         public void TestService_13_Scala() => UperInteropEncPythonScala(PUS_C_Service.S13, "S13");
 
         [TestMethod]
@@ -109,5 +125,22 @@ namespace PUS_C_Scala_Test
         [TestMethod]
         public void TestService_19_Scala() => UperInteropEncPythonScala(PUS_C_Service.S19, "S19");
 
+        [TestMethod, Ignore]
+        public void TestService_ACN_ATTRIBUTES_Scala() => UperInteropEncPythonScala(PUS_C_Service.ACN_ATTRIBUTES, "ACN_Attributes");
+        
+        [TestMethod, Ignore]
+        public void TestService_Additional_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADDITIONAL, "Additional");
+        
+        [TestMethod, Ignore]
+        public void TestService_Advanced_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADVANCED, "Advanced");
+        
+        [TestMethod, Ignore]
+        public void TestService_Primitives_Scala() => UperInteropEncPythonScala(PUS_C_Service.PRIMITIVES, "Primitives");
+        
+        [TestMethod, Ignore]
+        public void TestService_Structured_Scala() => UperInteropEncPythonScala(PUS_C_Service.STRUCTURED, "Structured");
+        
+        [TestMethod]
+        public void AdditionalTestCases_Scala() => UperInteropEncPythonScala(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
     }
 }

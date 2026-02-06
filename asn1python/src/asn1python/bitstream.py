@@ -5,8 +5,9 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
+from typing import List
 from .helper import *
-from .asn1_types import NO_OF_BITS_IN_BYTE
+from .asn1_constants import NO_OF_BITS_IN_BYTE
 
 from nagini_contracts.contracts import *
 from .verification import *
@@ -235,7 +236,7 @@ class BitStream:
 
         if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
             raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
-        
+
         Unfold(self.bitstream_invariant())
         self._current_bit = bit_position
         self._current_byte = byte_position
@@ -281,7 +282,7 @@ class BitStream:
 
         new_index = self.current_used_bits + amount
         self.set_bit_index(new_index)
-    
+
     def _increment_segment_read_index(self) -> None:
         Requires(Acc(self.bitstream_invariant(), 1/20))
         Requires(self.segments_predicate(self.buffer()))
@@ -292,11 +293,11 @@ class BitStream:
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
         Ensures(self.segments.take(self.segments_read_index) ==
             self.segments.take(Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
-    
+
         Unfold(self.segments_predicate(self.buffer()))
         self._segments_read_index += 1
         Fold(self.segments_predicate(self.buffer()))
-    
+
     def write_align_to_byte(self) -> int:
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
@@ -323,7 +324,7 @@ class BitStream:
         Assert(self._segments.take(len(self._segments) - 1) == rec_segments)        
         Fold(self.segments_predicate(self.buffer()))
         return length
-    
+
     def read_align_to_byte(self) -> int:
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
@@ -343,11 +344,11 @@ class BitStream:
         self._increment_segment_read_index()
         return length
 
-    #region Read                   
+    #region Read
         
     @Pure
     @Opaque
-    def _read_current_bit_pure(self) -> bool:
+    def __read_current_bit_pure(self) -> bool:
         Requires(Rd(self.bitstream_invariant()))
         Requires(1 <= self.remaining_bits)
         Unfold(Rd(self.bitstream_invariant()))
@@ -358,7 +359,7 @@ class BitStream:
     def _lemma_read_current_bit_pure(self) -> bool:
         Requires(Rd(self.bitstream_invariant()))
         Requires(1 <= self.remaining_bits)
-        Ensures(self._read_current_bit_pure() == byteseq_read_bit(self.buffer(), self.current_used_bits))
+        Ensures(self.__read_current_bit_pure() == byteseq_read_bit(self.buffer(), self.current_used_bits))
         Ensures(Result())
     
         ghost_buf = self.buffer()
@@ -368,7 +369,7 @@ class BitStream:
         ghost_byte = ghost_buf[ghost_byte_pos]
     
         ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
-        read_bit = Reveal(self._read_current_bit_pure())
+        read_bit = Reveal(self.__read_current_bit_pure())
     
         Unfold(Rd(self.bitstream_invariant()))
         bit_pos_eq = self._current_bit == ghost_bit_pos
@@ -377,7 +378,7 @@ class BitStream:
         return bit_pos_eq and byte_eq and ghost_bit == read_bit 
 
 
-    def _read_bit(self) -> bool:
+    def __read_bit(self) -> bool:
         """Read a single bit"""
         Requires(self.bitstream_invariant())
         Requires(1 <= self.remaining_bits)
@@ -390,9 +391,13 @@ class BitStream:
         ghost = self._lemma_read_current_bit_pure()
         ghost = lemma_byteseq_read_bits_equal(self.buffer(), self.current_used_bits)
 
-        res = self._read_current_bit_pure()
+        res = self.__read_current_bit_pure()
         self._shift_bit_index(1)
         return res
+    
+    def read_bit(self) -> bool:
+        """Read a single bit"""
+        return self.__read_bit()
 
     def read_bits(self, bit_count: int) -> int:
         """Read up to 32 bits"""
@@ -421,7 +426,7 @@ class BitStream:
             Invariant(self.buffer() is Old(self.buffer()))
             Invariant(value == byteseq_read_bits(self.buffer(), Old(self.current_used_bits), i))
 
-            next_bit = int(self._read_bit())
+            next_bit = int(self.__read_bit())
             value = (value << 1) + next_bit
             
             Assert(next_bit == byteseq_read_bits(self.buffer(), Old(self.current_used_bits) + i, 1))
@@ -479,6 +484,11 @@ class BitStream:
         
         Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
+
+    def write_bit(self, bit: bool) -> None:
+        if self.remaining_bits < 1:
+            raise BitStreamError("Cannot write beyond end of bitstream")
+        return self.__write_bit(bit)
 
     def write_bits(self, value: int, bit_count: int) -> None:
         """Write up to 32 bits"""

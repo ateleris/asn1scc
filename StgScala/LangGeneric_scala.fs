@@ -259,6 +259,12 @@ type LangGeneric_scala() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
+        override this.isObjectOriented = false
+        override this.nullTerminatorByte = Some 0uy
+        override this.getAlignmentByteTypeName = "Byte"
+        override this.getAlignmentWordTypeName = "Short"
+        override this.getAlignmentDWordTypeName = "Int"
+        override this.shouldApplyToCToPackageName = true
 
         override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
             sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName

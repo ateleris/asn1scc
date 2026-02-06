@@ -1,7 +1,8 @@
 from typing import List, Optional
 
-from .asn1_types import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
-from .codec import Codec, BitStreamError, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .asn1_constants import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_WORD, NO_OF_BITS_IN_DWORD
+from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .bitstream import BitStream
 
 from nagini_contracts.contracts import *
 from .segment import Segment, lemma_segments_byteseq, segments_drop, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
@@ -61,6 +62,40 @@ class Decoder(Codec):
         return self.segments[self.segments_read_index]
 
     #endregion
+    # ============================================================================
+    # TYPE-SAFE ERROR RESULT HELPERS
+    # ============================================================================
+
+    # @staticmethod
+    # def _error_int(result: DecodeResult) -> DecodeResult[int]:
+    #     """Create a typed error result for int from another DecodeResult."""
+    #     return DecodeResult[int](
+    #         success=False,
+    #         error_code=result.error_code,
+    #         error_message=result.error_message,
+    #         bits_consumed=result.bits_consumed
+    #     )
+
+    # @staticmethod
+    # def _error_float(result: DecodeResult) -> DecodeResult[float]:
+    #     """Create a typed error result for float from another DecodeResult."""
+    #     return DecodeResult[float](
+    #         success=False,
+    #         error_code=result.error_code,
+    #         error_message=result.error_message,
+    #         bits_consumed=result.bits_consumed
+    #     )
+
+    # @staticmethod
+    # def _error_str(result: DecodeResult) -> DecodeResult[str]:
+    #     """Create a typed error result for str from another DecodeResult."""
+    #     return DecodeResult[str](
+    #         success=False,
+    #         error_code=result.error_code,
+    #         error_message=result.error_message,
+    #         bits_consumed=result.bits_consumed
+    #     )
+
     #region PRIMITIVES
     # ============================================================================
     # BASE BITSTREAM PRIMITIVES
@@ -423,6 +458,9 @@ class Decoder(Codec):
 
     #endregion
     #region Integer
+    # ============================================================================
+    # INTEGER DECODING
+    # ============================================================================
 
     def decode_integer(self,
                       min_val: int,
@@ -636,8 +674,8 @@ class Decoder(Codec):
 
     #         # Read value bytes
     #         result = self.read_byte_array(num_bytes)
-    #         if not result.success:
-    #             return result
+    #         if not result.success or result.decoded_value is None:
+    #             return self._error_int(result)
     #         data_bytes = result.decoded_value
 
     #         # Convert from big-endian
@@ -1098,10 +1136,10 @@ class Decoder(Codec):
 
     #     try:
     #         # Read length byte
-    #         result = self.read_byte()
-    #         if not result.success:
-    #             return result
-    #         length = result.decoded_value
+    #         length_result = self.read_byte()
+    #         if not length_result.success:
+    #             return length_result
+    #         length = length_result.decoded_value
 
     #         bits_consumed = 8
 
@@ -1116,8 +1154,8 @@ class Decoder(Codec):
 
     #         # Read header byte
     #         result = self.read_byte()
-    #         if not result.success:
-    #             return result
+    #         if not result.success or result.decoded_value is None:
+    #             return self._error_float(result)
     #         header = result.decoded_value
     #         bits_consumed += 8
 
@@ -1193,8 +1231,8 @@ class Decoder(Codec):
     #         # Read exponent bytes (two's complement)
     #         # Check first bit for sign extension
     #         first_bit_result = self.read_bit()
-    #         if not first_bit_result.success:
-    #             return first_bit_result
+    #         if not first_bit_result.success or first_bit_result.decoded_value is None:
+    #             return self._error_float(first_bit_result)
 
     #         # Start with sign extension
     #         exponent = -1 if first_bit_result.decoded_value else 0
@@ -1210,8 +1248,8 @@ class Decoder(Codec):
     #         # Read remaining exponent bytes
     #         for i in range(1, exp_len):
     #             result = self.read_byte()
-    #             if not result.success:
-    #                 return result
+    #             if not result.success or result.decoded_value is None:
+    #                 return self._error_float(result)
     #             exponent = (exponent << 8) | result.decoded_value
     #             bits_consumed += 8
 
@@ -1221,8 +1259,8 @@ class Decoder(Codec):
 
     #         for i in range(mantissa_len):
     #             result = self.read_byte()
-    #             if not result.success:
-    #                 return result
+    #             if not result.success or result.decoded_value is None:
+    #                 return self._error_float(result)
     #             mantissa = (mantissa << 8) | result.decoded_value
     #             bits_consumed += 8
 

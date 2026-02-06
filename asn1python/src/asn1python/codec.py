@@ -9,7 +9,8 @@ from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
 
-from .asn1_types import NO_OF_BITS_IN_BYTE, Asn1Exception
+from .asn1_exceptions import *
+from .asn1_constants import NO_OF_BITS_IN_BYTE
 from .bitstream import BitStream, BitStreamError
 
 from nagini_contracts.contracts import *
@@ -94,7 +95,7 @@ class Codec(ABC):
         Ensures(self.buffer is bitstream.buffer())
         Ensures(self.segments is bitstream.segments)
         
-        self._bitstream = BitStream.from_bitstream(bitstream)        
+        self._bitstream = BitStream.from_bitstream(bitstream)
         Fold(self.codec_predicate())
 
     @classmethod
@@ -135,18 +136,6 @@ class Codec(ABC):
         Ensures(len(Result().segments) == 0)
         
         return cls.from_buffer(bytearray(buffer_byte_size))
-
-#     # def copy(self) -> 'Codec':
-#     #     """Creates and returns a copy of this codec instance"""
-#     #     @Requires(Acc(self.codec_predicate(), 1/20))
-#     #     @Ensures(Acc(self.codec_predicate(), 1/20))
-#     #     @Ensures(isinstance(Result(), T))
-#     #     @Ensures(Codec.codec_predicate(Result()))
-
-#     #     bit_index = self._bitstream.current_used_bits
-#     #     new_codec = self._construct(self._bitstream.get_data_copy())
-#     #     new_codec._bitstream.set_bit_index(bit_index)
-#     #     return new_codec
     
     def get_bitstream_buffer(self) -> bytearray:
         Requires(Acc(self.codec_predicate(), 1/20))
