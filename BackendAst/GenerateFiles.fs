@@ -415,6 +415,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 // // Full type definitions are always the last elements, so we need to group them by their keys and then take the last element
                 |> List.groupBy (fun (tasKey, typ) -> (tasKey, typ.id.AsString))
                 |> List.map (fun (tasKey, items) -> items |> List.last)
+                // Deduplicate: for each type ID, keep only the first TAS that owns it
+                // This prevents the same nested type from being included multiple times
+                |> List.groupBy (fun (tasKey, typ) -> typ.id.AsString)
+                |> List.collect (fun (typeId, items) -> items |> List.take 1)  // Keep first occurrence only
                 |> List.groupBy fst
                 |> List.map (fun (tasKey, items) -> (tasKey, items |> List.map snd))
                 |> Map.ofList
@@ -654,7 +658,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                     let initialize =
                         match r.callersSet |> Set.contains (f InitFunctionType) with
-                        | true -> 
+                        | true ->
                             match lm.lg.initMethod with
                             | InitMethod.Procedure  ->
                                 Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
@@ -698,7 +702,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         (match t.Type.xerDecFunction with
                         | XerFunction z -> z.func |> Option.toList
                         | XerFunctionDummy -> [])
-                    
+
                     let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
                     let ancEncDec =
                         if requiresAcn && hasAcnEncDec then
