@@ -1002,7 +1002,7 @@ type LangGeneric_python() =
         generatePostcond r enc p t codec this
 
     override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-        ["# SequenceChild PROOF"]
+        (stmts |> List.choose id) @ ["# SequenceChild PROOF"]
 
     override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
         ["# Sequence PROOF"]
