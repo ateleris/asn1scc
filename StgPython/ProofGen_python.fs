@@ -22,8 +22,9 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
     | Decode ->
         [
             "codec.codec_predicate() and codec.read_invariant()";
-            $"codec.segments_read_index + {typeName}.segments_count(codec.segments) <= len(codec.segments)";
-            $"{typeName}.segments_valid(segments_drop(codec.segments, codec.segments_read_index)).valid"
+            $"{typeName}.segments_valid(segments_drop(codec.segments, codec.segments_read_index))";
+            $"codec.segments_read_index + {typeName}.segments_count(segments_drop(codec.segments, codec.segments_read_index)) 
+                <= len(codec.segments)"
         ]
 
 let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) (lg: ILangGeneric): string list =
@@ -39,11 +40,12 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
         ]
     | Decode ->
         [
-             "codec.codec_predicate() and codec.read_invariant()";
-             "codec.segments is Old(codec.segments) and codec.buffer is Old(codec.buffer)";
-             $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
-             $"codec.segments_read_index == Old(codec.segments_read_index) + {typeName}.segments_count(Old(codec.segments))"
-             $"{typeName}.segments_of(ResultT({typeName})) == 
+            "codec.codec_predicate() and codec.read_invariant()";
+            "codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer)";
+            $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
+            $"codec.segments_read_index == Old(codec.segments_read_index) +
+                {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index)))"
+            $"{typeName}.segments_of(ResultT({typeName})) ==
                 segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(segments_drop(codec.segments, Old(codec.segments_read_index))))"
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
@@ -167,7 +169,7 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsOfFunc = segments_of_boolean typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName bitSize
-        let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
+        let segmentsEqLemma = segments_eq_lemma_boolean typeName bitSize
 
         [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
     | _, _ -> ["# Boolean AUX (unused)"]

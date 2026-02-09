@@ -9,10 +9,11 @@ group verification_python;
 segments_valid_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
-def segments_valid(segments: PSeq[Segment]) -> SegmentsValid:
+def segments_valid(segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
     is_valid = True
     <arrsChildren:{child|<child>}; separator="\n">
-    return SegmentsValid(is_valid, segments)
+    return is_valid
 >>
 
 segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
@@ -21,8 +22,8 @@ segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::
 is_valid = is_valid and segments[0].length == <bitSize>
 segments = segments_drop(segments, 1)
 <else>
-child_<sChildName> = <sChildType>.segments_valid(segments)
-is_valid, segments = is_valid and child_<sChildName>.valid, child_<sChildName>.segments
+is_valid = is_valid and <sChildType>.segments_valid(segments)
+segments = segments_drop(segments, <sChildType>.segments_count(segments))
 <endif>
 >>
 
@@ -41,15 +42,16 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 
 segments_valid_child_choice(sChildName, sChildType) ::= <<
 # Check segments for choice <sChildName>
-child_<sChildName> = <sChildType>.segments_valid(segments)
-is_valid, segments = is_valid and child_<sChildName>.valid, child.segments
+is_valid = is_valid and <sChildType>.segments_valid(segments)
+segments = segments_drop(segments, <sChildType>.segments_count(segments))
 >>
 
 segments_valid_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
-def segments_valid(segments: PSeq[Segment]) -> SegmentsValid:
-    return SegmentsValid(segments[0].length == <bitSize>, segments_drop(segments, 1))
+def segments_valid(segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    return len(segments) > 0 and segments[0].length == <bitSize>
 >>
 
 /*
@@ -62,7 +64,8 @@ segments_of_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()).valid)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\n">
     return segments
@@ -98,7 +101,8 @@ segments_of_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()).valid)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val))
     return segments
 >>
@@ -107,7 +111,8 @@ segments_of_boolean(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()).valid)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val.value))
     return segments
 >>
@@ -116,7 +121,8 @@ segments_of_nulltype(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Ensures(<sTypeName>.segments_valid(Result()).valid)
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, 0))
     return segments
 >>
@@ -131,7 +137,8 @@ segments_count_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> int:
-    Requires(<sTypeName>.segments_valid(segments).valid)
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(<sTypeName>.segments_valid(segments))
     count = 0
     <arrsChildren:{child|<child>}; separator="\n">
     return count
@@ -170,7 +177,8 @@ segments_count_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> int:
-    Requires(<sTypeName>.segments_valid(segments).valid)
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(<sTypeName>.segments_valid(segments))
     return 1
 >>
 
@@ -182,6 +190,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
 
 segments_eq_lemma_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
+@Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
@@ -226,9 +235,20 @@ segments_right = segments_drop(segments_right, 1)
 
 segments_eq_lemma_primitive(sTypeName, bitSize) ::= <<
 @Pure
+@Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
     return True
+>>
+
+segments_eq_lemma_boolean(sTypeName, bitSize) ::= <<
+@Pure
+@Opaque
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    return left.value == right.value
 >>
