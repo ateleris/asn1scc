@@ -42,89 +42,85 @@ class Asn1Base(ABC):
 # Integer types using ctypes for automatic range validation and conversion
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
+@dataclass(frozen=True)
 class Asn1Boolean(Asn1Base):
     """
     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
     """
-
-    __slots__ = ("_val",)
-
-    def __init__(self, val: object) -> None:
-        Ensures(Acc(self._val) and self._val is bool(val)) # type: ignore
-        self._val = bool(val)
+    value: bool
 
     # --- Core protocol ---
     @Pure
     def __bool__(self) -> bool:
-        Requires(Acc(self._val))
-        return self._val
+        return self.value
 
-#     def __repr__(self) -> str:
-#         return f"Asn1Boolean({self._val})"
+    # def __repr__(self) -> str:
+    #     return f"Asn1Boolean({self._val})"
 
-#     def __str__(self) -> str:
-#         return str(self._val)
+    # def __str__(self) -> str:
+    #     return str(self._val)
 
     # --- Equality / ordering ---
     @Pure
     def __eq__(self, other: object) -> bool:
-        Requires(Acc(self._val))
-        return self._val == bool(other)
+        # TODO shouldn't be necessary due to custom __bool__ implementation
+        if isinstance(other, Asn1Boolean):
+            return self.value == other.value
+        
+        return self.value == bool(other)
     
+    @Pure
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
+    @Pure
     def __lt__(self, other: object) -> bool:
-        return self._val < bool(other)
+        if isinstance(other, Asn1Boolean):
+            return self.value < other.value
+        return self.value < bool(other)
     
+    @Pure
     def __le__(self, other: object) -> bool:
-        return self._val <= bool(other)
+        if isinstance(other, Asn1Boolean):
+            return self.value <= other.value
+        return self.value <= bool(other)
     
+    @Pure
     def __gt__(self, other: object) -> bool:
-        return self._val > bool(other)
+        if isinstance(other, Asn1Boolean):
+            return self.value > other.value
+        return self.value > bool(other)
     
+    @Pure
     def __ge__(self, other: object) -> bool:
-        return self._val >= bool(other)
+        if isinstance(other, Asn1Boolean):
+            return self.value >= other.value
+        return self.value >= bool(other)
 
     # def __hash__(self) -> int:
     #     return hash(self._val)
 
     # --- Boolean operators ---
     def __and__(self, other: object) -> 'Asn1Boolean':
-        Requires(Acc(self._val, 1/20))
-        Ensures(Acc(self._val, 1/20))
         # Ensures(Acc(Result()._val) and Result()._val == (self._val and bool(other)))
-        return Asn1Boolean(self._val and bool(other))
+        return Asn1Boolean(self.value and bool(other))
 
     def __or__(self, other: object) -> 'Asn1Boolean':
-        Requires(Acc(self._val, 1/20))
-        Ensures(Acc(self._val, 1/20))
-        return Asn1Boolean(self._val or bool(other))
+        return Asn1Boolean(self.value or bool(other))
 
     def __xor__(self, other: object) -> 'Asn1Boolean':
-        Requires(Acc(self._val, 1/20))
-        Ensures(Acc(self._val, 1/20))
-        return Asn1Boolean(self._val ^ bool(other))
+        return Asn1Boolean(self.value ^ bool(other))
 
     def __invert__(self) -> 'Asn1Boolean':
-        Requires(Acc(self._val, 1/20))
-        Ensures(Acc(self._val, 1/20))
-        return Asn1Boolean(not self._val)
+        return Asn1Boolean(not self.value)
 
-#     # --- Attribute delegation (for any method/properties bool has) ---
-#     def __getattr__(self, name):
-#         return getattr(self._val, name)
-
-    # --- Conversion helpers ---
-    @property
-    def value(self) -> bool:
-        """Explicit access to the inner bool."""
-        Requires(Acc(self._val))
-        return self._val
+    # # --- Attribute delegation (for any method/properties bool has) ---
+    # def __getattr__(self, name):
+    #     return getattr(self._val, name)
 
     # --- Stub-Implementations of Asn1Base Methods ---
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-        pass
+        return Asn1ConstraintValidResult(is_valid=True)
 
 #     def encode(self, codec: Encoder, check_constraints: bool = True):
 #         raise NotImplementedError()
