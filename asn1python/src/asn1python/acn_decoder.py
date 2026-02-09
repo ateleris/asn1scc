@@ -5,7 +5,7 @@ This module provides ACN (ASN.1 Control Notation) decoding functionality.
 ACN allows custom binary encodings for ASN.1 types to support legacy protocols.
 """
 
-import struct
+# import struct
 from typing import List, Optional, Union
 from .asn1_constants import *
 from .decoder import Decoder
