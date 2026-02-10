@@ -369,13 +369,14 @@ class BitStream:
         ghost_byte = ghost_buf[ghost_byte_pos]
     
         ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
+        ghost_bit_inner = Reveal(byte_read_bit(ghost_buf[ghost_byte_pos], ghost_bit_pos))
         read_bit = Reveal(self.__read_current_bit_pure())
     
         Unfold(Rd(self.bitstream_invariant()))
         bit_pos_eq = self._current_bit == ghost_bit_pos
         byte_eq = self._buffer[self._current_byte] == ghost_byte
     
-        return bit_pos_eq and byte_eq and ghost_bit == read_bit 
+        return bit_pos_eq and byte_eq and read_bit == ghost_bit and ghost_bit == ghost_bit_inner
 
 
     def __read_bit(self) -> bool:
