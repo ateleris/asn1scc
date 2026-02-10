@@ -69,7 +69,7 @@ class BitStream:
         Requires(self.segments_predicate(self.buffer()))
         Decreases(None)
         return (self.remaining_bits >= read_length and # Should be implicit by the remaining conditions
-                segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits and
+                segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits and
                 self.segments_read_index < len(self.segments) and 
                 self.segments[self.segments_read_index].length == read_length)
 
@@ -291,8 +291,8 @@ class BitStream:
         Ensures(self.segments_predicate(self.buffer()))
         Ensures(self.segments == Old(self.segments))
         Ensures(self.segments_read_index == Old(self.segments_read_index + 1))
-        Ensures(self.segments.take(self.segments_read_index) ==
-            self.segments.take(Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
+        Ensures(segments_take(self.segments, self.segments_read_index) ==
+            segments_take(self.segments, Old(self.segments_read_index)) + PSeq(self.segments[Old(self.segments_read_index)]))
 
         Unfold(self.segments_predicate(self.buffer()))
         self._segments_read_index += 1
@@ -321,7 +321,7 @@ class BitStream:
         rec_segments = self._segments
         self._segments = self._segments + PSeq(Segment(length, value))
         
-        Assert(self._segments.take(len(self._segments) - 1) == rec_segments)        
+        Assert(segments_take(self._segments, len(self._segments) - 1) == rec_segments)        
         Fold(self.segments_predicate(self.buffer()))
         return length
 
@@ -414,7 +414,7 @@ class BitStream:
         Ensures(Implies(Old(self.segments_read_aligned(bit_count)), (
             Result() == self.segments[Old(self.segments_read_index)].value and
             self.segments_read_index == Old(self.segments_read_index + 1) and
-            segments_total_length(self.segments.take(self.segments_read_index)) == self.current_used_bits)))
+            segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits)))
        
         value = 0
         i = 0
@@ -486,9 +486,34 @@ class BitStream:
         self._shift_bit_index(1)
 
     def write_bit(self, bit: bool) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate(self.buffer()))
+        Requires(self.validate_offset(1))
+        # self.current_used_bits could theoretically be less than segments_total_length, because of reads and resets
+        Requires(segments_total_length(self.segments) == self.current_used_bits)
+
+        Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate(self.buffer()))
+        Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.buffer() is byteseq_set_bit(Old(self.buffer()), bit, Old(self.current_used_bits)))
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(1, int(bit))))
+        Ensures(segments_total_length(self.segments) == self.current_used_bits)
+        
         if self.remaining_bits < 1:
             raise BitStreamError("Cannot write beyond end of bitstream")
-        return self.__write_bit(bit)
+        
+        Unfold(self.segments_predicate(self.buffer()))
+        
+        self.__write_bit(bit)
+        
+        eq_lemma = lemma_byteseq_set_bits_eq(Old(self.buffer()), bit, Old(self.current_used_bits))
+        lemma = lemma_byteseq_set_bits(Old(self.buffer()), bit, Old(self.current_used_bits), 1)
+        
+        # Establish new segment
+        lemma_byteseq_equal_segments_contained(self.buffer(), Old(self.buffer()), Old(self.current_used_bits), self._segments)
+        self._segments = segments_add(self._segments, 1, bit)    
+        Fold(self.segments_predicate(self.buffer()))
 
     def write_bits(self, value: int, bit_count: int) -> None:
         """Write up to 32 bits"""

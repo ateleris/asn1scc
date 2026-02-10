@@ -5,7 +5,7 @@ from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitS
 from .bitstream import BitStream
 
 from nagini_contracts.contracts import *
-from .segment import Segment, lemma_segments_byteseq, segments_drop, segments_from_byteseq, segments_to_byteseq, segments_to_byteseq_full, segments_total_length
+from .segment import Segment, lemma_segments_byteseq, segments_take, segments_drop, segments_from_byteseq, segments_total_length
 from .verification import MAX_BITOP_LENGTH
 
 class Decoder(Codec):
@@ -15,7 +15,7 @@ class Decoder(Codec):
     @Pure
     def read_invariant(self) -> bool:
         Requires(self.codec_predicate())
-        return segments_total_length(self.segments.take(self.segments_read_index)) == self.bit_index
+        return segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.bit_index
 
     @Pure
     def read_aligned(self, bit_count: PInt) -> bool:

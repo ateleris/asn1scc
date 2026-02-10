@@ -612,6 +612,18 @@ def byteseq_set_bits(byteseq: PByteSeq, value: PInt, position: PInt, length: PIn
 
 @Pure
 @Opaque
+def lemma_byteseq_set_bits_eq(byteseq: PByteSeq, value: bool, position: int) -> bool:
+    Requires(0 <= position and position + 1 <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Decreases(None)
+    Ensures(byteseq_set_bits(byteseq, value, position, 1) == byteseq_set_bit(byteseq, value, position))
+    Ensures(True)
+    
+    bits = Reveal(byteseq_set_bits(byteseq, value, position, 1))
+    bit = byteseq_set_bit(byteseq, value, position)
+    return bits == bit
+    
+@Pure
+@Opaque
 def __lemma_byteseq_set_bits_prefix(byteseq: PByteSeq, value: int, position: int, length: int) -> bool:
     """Proof that `byteseq_set_bits()` preserves previous bits in the sequence."""
     Requires(0 <= length and length <= MAX_BITOP_LENGTH)
