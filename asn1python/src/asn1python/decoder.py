@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
+from .asn1_exceptions import Asn1Exception
 from .asn1_constants import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_WORD, NO_OF_BITS_IN_DWORD
 from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 from .bitstream import BitStream
@@ -7,6 +8,8 @@ from .bitstream import BitStream
 from nagini_contracts.contracts import *
 from .segment import Segment, lemma_segments_byteseq, segments_take, segments_drop, segments_from_byteseq, segments_total_length
 from .verification import MAX_BITOP_LENGTH
+
+DecType = TypeVar("DecType")
 
 class Decoder(Codec):
 
@@ -66,35 +69,35 @@ class Decoder(Codec):
     # TYPE-SAFE ERROR RESULT HELPERS
     # ============================================================================
 
-    # @staticmethod
-    # def _error_int(result: DecodeResult) -> DecodeResult[int]:
-    #     """Create a typed error result for int from another DecodeResult."""
-    #     return DecodeResult[int](
-    #         success=False,
-    #         error_code=result.error_code,
-    #         error_message=result.error_message,
-    #         bits_consumed=result.bits_consumed
-    #     )
+    @staticmethod
+    def _error_int(result: DecodeResult[DecType]) -> DecodeResult[int]:
+        """Create a typed error result for int from another DecodeResult."""
+        return DecodeResult[int](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
 
-    # @staticmethod
-    # def _error_float(result: DecodeResult) -> DecodeResult[float]:
-    #     """Create a typed error result for float from another DecodeResult."""
-    #     return DecodeResult[float](
-    #         success=False,
-    #         error_code=result.error_code,
-    #         error_message=result.error_message,
-    #         bits_consumed=result.bits_consumed
-    #     )
+    @staticmethod
+    def _error_float(result: DecodeResult[DecType]) -> DecodeResult[float]:
+        """Create a typed error result for float from another DecodeResult."""
+        return DecodeResult[float](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
 
-    # @staticmethod
-    # def _error_str(result: DecodeResult) -> DecodeResult[str]:
-    #     """Create a typed error result for str from another DecodeResult."""
-    #     return DecodeResult[str](
-    #         success=False,
-    #         error_code=result.error_code,
-    #         error_message=result.error_message,
-    #         bits_consumed=result.bits_consumed
-    #     )
+    @staticmethod
+    def _error_str(result: DecodeResult[DecType]) -> DecodeResult[str]:
+        """Create a typed error result for str from another DecodeResult."""
+        return DecodeResult[str](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )        
 
     #region PRIMITIVES
     # ============================================================================
@@ -232,10 +235,13 @@ class Decoder(Codec):
                 Invariant(Forall(int, lambda j: (
                     Implies(0 <= j and j < i, result[j] == ghost_full_segments[j].value))))
 
-                val = self.read_byte()
-                result.append(val.decoded_value)
-                Assert(val.decoded_value == ghost_full_segments[i].value)
-                bits_consumed += val.bits_consumed
+                byte_decode = self.read_byte()
+                
+                if not byte_decode.success or byte_decode.decoded_value is None:
+                    raise BitStreamError()
+                result.append(byte_decode.decoded_value)
+                Assert(byte_decode.decoded_value == ghost_full_segments[i].value)
+                bits_consumed += byte_decode.bits_consumed
                 i += 1
 
             Assert(self.segments.drop(Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))
@@ -310,7 +316,9 @@ class Decoder(Codec):
             # Calculate required buffer size
             complete_bytes = num_bits // NO_OF_BITS_IN_BYTE
             complete_decode = self.read_byte_array(complete_bytes)
-            result: bytearray = complete_decode.decoded_value
+            if not complete_decode.success or complete_decode.decoded_value is None:
+                    raise BitStreamError()
+            result = complete_decode.decoded_value
             bits_consumed = complete_decode.bits_consumed
 
             Assert(self.segments.drop(Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))

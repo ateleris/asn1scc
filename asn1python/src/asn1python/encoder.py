@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Optional, List, Union
 
 from .asn1_constants import NO_OF_BITS_IN_BYTE, NO_OF_BITS_IN_DWORD, NO_OF_BITS_IN_WORD
@@ -12,7 +11,6 @@ from .segment import Segment, segment_from_byte, segments_from_byteseq_full, seg
 
 class Encoder(Codec):
 
-    @abstractmethod
     def get_decoder(self) -> Decoder:
         Requires(Acc(self.codec_predicate(), 1/20))
         Ensures(Acc(self.codec_predicate(), 1/20))
@@ -22,7 +20,10 @@ class Encoder(Codec):
         Ensures(Result().buffer == self.buffer) # TODO is stil doesn't work, 
         # nagini_translation.lib.util.UnsupportedException: Unsupported type: NoneType for node self.segments
         Ensures(Result().segments == self.segments)
-        pass
+        
+        instance = Decoder.from_codec(self)
+        assert isinstance(instance, Decoder)
+        return instance
 
     #region Ghost
 
