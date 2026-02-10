@@ -398,7 +398,29 @@ class BitStream:
     
     def read_bit(self) -> bool:
         """Read a single bit"""
-        return self.__read_bit()
+        Requires(self.bitstream_invariant())
+        Requires(self.segments_predicate(self.buffer()))
+        Requires(self.validate_offset(1))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.segments_predicate(self.buffer()))
+        Ensures(self.current_used_bits == Old(self.current_used_bits + 1))
+        Ensures(self.buffer() is Old(self.buffer()))
+        Ensures(Result() == bool(byteseq_read_bits(self.buffer(), Old(self.current_used_bits), 1)))
+        Ensures(self.segments is Old(self.segments))
+        Ensures(Implies(Old(self.segments_read_aligned(1)), (
+            Result() == bool(self.segments[Old(self.segments_read_index)].value) and
+            self.segments_read_index == Old(self.segments_read_index + 1) and
+            segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits)))
+        
+        value = self.__read_bit()
+        if Old(self.segments_read_aligned(1)):
+            Unfold(self.segments_predicate(self.buffer()))
+            Fold(self.segments_predicate(self.buffer()))
+            lemma_segments_contained_read(self.buffer(), self.segments, self.segments_read_index)
+            
+            self._increment_segment_read_index()
+        
+        return value
 
     def read_bits(self, bit_count: int) -> int:
         """Read up to 32 bits"""
