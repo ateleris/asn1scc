@@ -499,6 +499,7 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
+        Ensures(isinstance(Result().decoded_value, int))
         Ensures(Result().decoded_value == Old(self.current_segment().value) + min_val)
         
         try:
@@ -572,6 +573,7 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + num_bits)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
+        Ensures(isinstance(Result().decoded_value, int))
         Ensures(Result().decoded_value == Old(self.current_segment().value))
         Ensures(Result().bits_consumed == num_bits)
         try:
@@ -622,6 +624,7 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
+        Ensures(isinstance(Result().decoded_value, int))
         Ensures(Result().decoded_value == Old(self.current_segment().value) + min_val)
         return self.decode_integer(min_val=min_val, max_val=max_val)
 
@@ -648,6 +651,7 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
+        Ensures(isinstance(Result().decoded_value, int))
         Ensures(Result().decoded_value == Old(self.current_segment().value) + min_val)
         return self.decode_integer(min_val=min_val, max_val=max_val)
 
