@@ -29,7 +29,7 @@ EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName
 """!>
 def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> None:
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
-    <arrsPostcond:{post|Ensures(<post>)}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
@@ -55,7 +55,7 @@ EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName
 @classmethod
 def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
-    <arrsPostcond:{post|Ensures(<post>)}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>

@@ -1008,7 +1008,7 @@ type LangGeneric_python() =
         (stmts |> List.choose id) @ ["# SequenceChild PROOF"]
 
     override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-        ["# Sequence PROOF"]
+        generateSequenceProof r enc t sq nestingScope sel codec this
 
     // override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
     //     Some 

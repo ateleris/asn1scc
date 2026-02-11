@@ -90,8 +90,8 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(self) -> Asn1ConstraintValidResult:
     Ensures(Result().is_valid == self.is_constraint_valid_pure())
-    Ensures(Implies(self.is_constraint_valid_pure(), Result().error_code == 0 and Result().message == ""))
-    Ensures(Implies(not self.is_constraint_valid_pure(), Result().error_code != 0))
+    Ensures(Implies(self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).error_code == 0 and ResultT(Asn1ConstraintValidResult).message == ""))
+    Ensures(Implies(not self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).error_code != 0))
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85

@@ -19,7 +19,7 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
 segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Check segments for <sChildName>
 <if(bIsPrimitive)>
-is_valid = is_valid and segments[0].length == <bitSize>
+is_valid = is_valid and len(segments) > 0 and segments[0].length == <bitSize>
 segments = segments_drop(segments, 1)
 <else>
 is_valid = is_valid and <sChildType>.segments_valid(segments)
@@ -147,10 +147,12 @@ def segments_count(segments: PSeq[Segment]) -> int:
 segments_count_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Segments count for <sChildName>
 <if(bIsPrimitive)>
-count, segments = count + 1, segments_drop(segments, 1)
+count = count + 1
+segments = segments_drop(segments, 1)
 <else>
 count_<sChildName> = <sChildType>.segments_count(segments)
-count, segments = count + count_<sChildName>, segments_drop(segments, count_<sChildName>)
+count = count + count_<sChildName>
+segments = segments_drop(segments, count_<sChildName>)
 <endif>
 >>
 
@@ -170,7 +172,8 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 segments_count_child_choice(sChildName, sChildType) ::= <<
 # Segments count for choice <sChildName>
 count_<sChildName> = <sChildType>.segments_count(segments)
-count, segments = count + count_<sChildName>, segments_drop(segments, count_<sChildName>)
+count = count + count_<sChildName>
+segments = segments_drop(segments, count_<sChildName>)
 >>
 
 segments_count_primitive(sTypeName, bitSize) ::= <<

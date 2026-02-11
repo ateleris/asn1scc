@@ -24,7 +24,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
             "codec.codec_predicate() and codec.read_invariant()";
             $"{typeName}.segments_valid(segments_drop(codec.segments, codec.segments_read_index))";
             $"codec.segments_read_index + {typeName}.segments_count(segments_drop(codec.segments, codec.segments_read_index)) 
-                <= len(codec.segments)"
+            <= len(codec.segments)"
         ]
 
 let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) (lg: ILangGeneric): string list =
@@ -34,25 +34,27 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
     match codec with
     | Encode ->
         [
-            "codec.codec_predicate() and codec.write_invariant()";
-            "codec.buffer_size == Old(codec.buffer_size)";
-            $"codec.segments is Old(codec.segments) + {typeName}.segments_of(self)"
+            "Ensures(codec.codec_predicate() and codec.write_invariant())";
+            "Ensures(codec.buffer_size == Old(codec.buffer_size))";
+            $"Ensures(codec.segments is Old(codec.segments) + {typeName}.segments_of(self))";
+            "Exsures(Asn1Exception, check_constraints and not self.is_constraint_valid_pure())"
         ]
     | Decode ->
         [
-            "codec.codec_predicate() and codec.read_invariant()";
-            "codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer)";
-            $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
-            $"codec.segments_read_index == Old(codec.segments_read_index) +
-                {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index)))"
-            $"{typeName}.segments_of(ResultT({typeName})) ==
-                segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(segments_drop(codec.segments, Old(codec.segments_read_index))))"
+            "Ensures(codec.codec_predicate() and codec.read_invariant())";
+            "Ensures(codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer))";
+            $"Ensures(codec.bit_index == Old(codec.bit_index) + {usedBits})";
+            $"Ensures(codec.segments_read_index == Old(codec.segments_read_index) +
+            {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index))))"
+            $"Ensures({typeName}.segments_of(ResultT({typeName})) ==
+            segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(segments_drop(codec.segments, Old(codec.segments_read_index)))))";
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
     | Integer _ | Boolean _ | Real _ | NullType _  -> true
     | _ -> false
 
+//#region AUXILIARIES
 let generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option) (lg: ILangGeneric): string list =
     let isPrimitive = isPrimitiveType t
     let typeName = t.FT_TypeDefinition[Python].asn1Name
@@ -216,3 +218,15 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
 
 let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     ["# BitString AUX"]
+
+//#endregion
+
+let generateSequenceProof(r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
+    let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+    
+    match codec with
+    | Encode -> 
+        [
+            $"Assert(codec.segments == Old(codec.segments) + {typeName}.segments_of(self))"
+        ]
+    | Decode -> []
