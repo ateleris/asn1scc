@@ -147,7 +147,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
 segments_count_child_mandatory(sChildName, sChildType, bIsPrimitive, bitSize) ::= <<
 # Segments count for <sChildName>
 <if(bIsPrimitive)>
-count = count + 1, segments_drop(segments, 1)
+count, segments = count + 1, segments_drop(segments, 1)
 <else>
 count_<sChildName> = <sChildType>.segments_count(segments)
 count, segments = count + count_<sChildName>, segments_drop(segments, count_<sChildName>)
