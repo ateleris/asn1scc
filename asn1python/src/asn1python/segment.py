@@ -339,12 +339,3 @@ def segments_to_byteseq(segments: PSeq[Segment], bit_length: int) -> PByteSeq:
         return full
 
 #endregion
-#region Named Tuple Helpers
-
-class SegmentsValid_ADT(ADT):
-    pass
-
-class SegmentsValid(SegmentsValid_ADT, NamedTuple('SegmentsValid', [('valid', bool), ('segments', PSeq[Segment])])):
-    pass
-
-#endregion
