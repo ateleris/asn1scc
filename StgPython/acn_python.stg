@@ -33,9 +33,9 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
-        res = self.<soIValidFuncName>()
-        if not res:
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+        valid_res = self.<soIValidFuncName>()
+        if not valid_res:
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     
     <sContent>
@@ -63,10 +63,10 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
     # acn_python.stg 60_2
     <if(soIValidFuncName)>
     if check_constraints:
-        res = <sVarName>.<soIValidFuncName>()
-        if not res:
+        valid_res = <sVarName>.<soIValidFuncName>()
+        if not valid_res:
             # acn_python.stg 70
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 >>
