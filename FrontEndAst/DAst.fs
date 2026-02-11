@@ -381,6 +381,7 @@ type IsValidFunction = {
                                                        //these are the bit and octet string values which cannot be expressed as single primitives in C/Ada
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
+    auxiliaries         : string list
 }
 
 

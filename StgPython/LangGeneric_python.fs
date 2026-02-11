@@ -950,6 +950,9 @@ type LangGeneric_python() =
         | Asn1AcnAst.Asn1TypeKind.Choice _, IsValidFunctionType -> ""
         | _ -> ""
 
+    override this.generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option): string list =
+        generateIsValidAuxiliaries r t typeDefinition funcName pureBody this
+
     // Verification auxiliary methods - generate helper functions for verification
     override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
         generateSequenceAuxiliaries r enc t sq nestingScope sel codec this

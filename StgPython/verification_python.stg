@@ -252,3 +252,21 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Ensures(left == right)
     return left.value == right.value
 >>
+
+/*
+*****************************************************************************************
+ I S   V A L I D   P U R E   F U N C T I O N S
+*****************************************************************************************
+*/
+
+is_constraint_valid_pure_primitive(sTypeName, sContent) ::= <<
+@Pure
+def is_constraint_valid_pure(self) -> bool:
+    <sContent>
+>>
+
+is_constraint_valid_pure_true(sTypeName) ::= <<
+@Pure
+def is_constraint_valid_pure(self) -> bool:
+    return True
+>>

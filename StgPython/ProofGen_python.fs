@@ -53,6 +53,15 @@ let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     | Integer _ | Boolean _ | Real _ | NullType _  -> true
     | _ -> false
 
+let generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option) (lg: ILangGeneric): string list =
+    let isPrimitive = isPrimitiveType t
+    let typeName = t.FT_TypeDefinition[Python].asn1Name
+
+    match isPrimitive, pureBody with
+    | true, Some body -> [is_constraint_valid_pure_primitive typeName body]
+    | false, Some body -> ["# NonPrimititive Valid AUX"]
+    | _ -> [is_constraint_valid_pure_true typeName]
+
 let generateChildHelper (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child) (func: (string -> string -> bool -> BigInteger -> string)): string =
     let childName = child._python_name
     // Get the type name using the proper method

@@ -119,11 +119,11 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
 
     let is_valid_funcs =
         match printIsValid with
-        | false -> ""
+        | false -> []
         | true  ->
             match fullCls.isValidFunction with
-            | None      -> ""
-            | Some f    -> combineStringOpts f.funcDef f.func
+            | None      -> []
+            | Some f    -> [combineStringOpts f.funcDef f.func] @ f.auxiliaries
 
     let uPerEncDec = 
         match printUper with 
@@ -145,7 +145,7 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
         | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries
         | _ -> []
 
-    let allProcs = [equal_funcs] @[is_valid_funcs] @special_init_funcs @[init_funcs] @uPerEncDec @sEncodingSizeConstant @acnEncFunc @acnDecFunc @xerEncFunc @xerDecFunc
+    let allProcs = [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerEncDec @sEncodingSizeConstant @acnEncFunc @acnDecFunc @xerEncFunc @xerDecFunc
     let generatedCode = lm.typeDef.Define_TAS type_definition allProcs
     generatedCode
 
@@ -687,7 +687,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             match t.Type.isValidFunction with
                             | None      -> []
                             | Some f    ->
-                                getValidFunctions f |> List.choose(fun f -> f.func)
+                                getValidFunctions f |> List.collect(fun f -> (f.func |> Option.toList) @ f.auxiliaries)
 
                     let uperEncDec =
                         if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then

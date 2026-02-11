@@ -410,6 +410,7 @@ type ILangGeneric () =
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
     abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string
+    abstract member generateIsValidAuxiliaries: Asn1AcnAst.AstRoot -> Asn1AcnAst.Asn1Type -> TypeDefinitionOrReference -> string option -> string option -> string list
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
@@ -514,6 +515,7 @@ type ILangGeneric () =
         this.getSeqChild p childName childTypeIsString childIsOptional
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.adaptFuncBodyChoice _ _ _ f _ = f
+    default this.generateIsValidAuxiliaries _ _ _ _ _ = []
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
