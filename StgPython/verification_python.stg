@@ -64,6 +64,7 @@ segments_of_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq()
@@ -101,6 +102,7 @@ segments_of_primitive(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val))
@@ -111,6 +113,7 @@ segments_of_boolean(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, val.value))
@@ -121,9 +124,21 @@ segments_of_nulltype(sTypeName, bitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<bitSize>, 0))
+    return segments
+>>
+
+segments_of_enum(sTypeName, bitSize) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(val.is_constraint_valid_pure())
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+    segments: PSeq[Segment] = PSeq(Segment(<bitSize>, int(val.val)))
     return segments
 >>
 
@@ -256,20 +271,28 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     return left.value == right.value
 >>
 
+segments_eq_lemma_enum(sTypeName, bitSize) ::= <<
+@Pure
+@Opaque
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    return left.val == right.val
+>>
+
 /*
 *****************************************************************************************
  I S   V A L I D   P U R E   F U N C T I O N S
 *****************************************************************************************
 */
 
-is_constraint_valid_pure_primitive(sTypeName, sContent) ::= <<
+is_constraint_valid_pure_expr(sTypeName, expr) ::= <<
 @Pure
 def is_constraint_valid_pure(self) -> bool:
-    <sContent>
+    return <expr>
 >>
 
 is_constraint_valid_pure_true(sTypeName) ::= <<
-@Pure
-def is_constraint_valid_pure(self) -> bool:
-    return True
+<is_constraint_valid_pure_expr(sTypeName=sTypeName, expr="True")>
 >>

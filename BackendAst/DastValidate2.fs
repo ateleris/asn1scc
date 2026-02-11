@@ -633,7 +633,8 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
         match pureBodyFncs with
         | [] -> None
         | _ ->
-            let combinedVcb = pureBodyFncs |> List.map (fun fnc -> fnc p) |> (ValidationCodeBlock_Multiple_And lm)
+            let vcbs = pureBodyFncs |> List.map (fun fnc -> fnc p)
+            let combinedVcb = vcbs |> List.fold (ValidationCodeBlock_AND lm) VCBTrue
             convertVCBToPureBoolExpression lm combinedVcb
     let auxiliaries = lm.lg.generateIsValidAuxiliaries r t typeDefinition funcName pureBody
     let ret =
