@@ -119,28 +119,33 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
 
     let is_valid_funcs =
         match printIsValid with
-        | false -> ""
+        | false -> []
         | true  ->
             match fullCls.isValidFunction with
-            | None      -> ""
-            | Some f    -> combineStringOpts f.funcDef f.func
+            | None      -> []
+            | Some f    -> [combineStringOpts f.funcDef f.func]
 
-    let uPerEncFunc = match printUper with true -> Some(combineStringOpts encDecCls.uperEncFunction.funcDef encDecCls.uperEncFunction.func) | false -> None
-    let uPerDecFunc = match printUper with true -> Some(combineStringOpts encDecCls.uperDecFunction.funcDef encDecCls.uperDecFunction.func) | false -> None
+    let uPerEncDec = 
+        match printUper with 
+        | true -> [combineStringOpts encDecCls.uperEncFunction.funcDef encDecCls.uperEncFunction.func] @
+                  encDecCls.uperEncFunction.auxiliaries @
+                  [combineStringOpts encDecCls.uperDecFunction.funcDef encDecCls.uperDecFunction.func] @
+                  encDecCls.uperDecFunction.auxiliaries
+        | false -> []
 
-    let xerEncFunc = match encDecCls.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
-    let xerDecFunc = match encDecCls.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+    let xerEncFunc = match encDecCls.xerEncFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
+    let xerDecFunc = match encDecCls.xerDecFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
 
     let acnEncFunc, sEncodingSizeConstant =
         match printAcn, encDecCls.acnEncFunction with
-        | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
-        | _  -> None, None
+        | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries, [x.encodingSizeConstant]
+        | _  -> [], []
     let acnDecFunc =
         match printAcn, encDecCls.acnDecFunction with
-        | true, Some x -> Some(combineStringOpts x.funcDef x.func)
-        | _ -> None
+        | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries
+        | _ -> []
 
-    let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+    let allProcs = [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerEncDec @sEncodingSizeConstant @acnEncFunc @acnDecFunc @xerEncFunc @xerDecFunc
     let generatedCode = lm.typeDef.Define_TAS type_definition allProcs
     generatedCode
 

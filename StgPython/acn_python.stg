@@ -20,7 +20,7 @@ class EncodeConstants:
     <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 # acn_python.stg 36
 <!"""
 <arrsAcnPrms; separator="\n">
@@ -30,11 +30,12 @@ EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName
 def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> None:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
-        res = self.<soIValidFuncName>()
-        if not res:
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+        valid_res = self.<soIValidFuncName>()
+        if not valid_res:
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     
     <sContent>
@@ -49,22 +50,23 @@ class DecodeConstants:
 
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 # acn_python.stg 60
 @classmethod
 def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> <if(bHasAcnChildrenToReturn)>Tuple['<sTypeDefName>', Dict[str, int]]<else>'<sTypeDefName>'<endif>:
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
 
     <sContent>
     
     # acn_python.stg 60_2
     <if(soIValidFuncName)>
     if check_constraints:
-        res = <sVarName>.<soIValidFuncName>()
-        if not res:
+        valid_res = <sVarName>.<soIValidFuncName>()
+        if not valid_res:
             # acn_python.stg 70
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 >>
@@ -624,7 +626,7 @@ res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNu
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 482
 decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]))
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
@@ -703,7 +705,7 @@ if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
 # acn_python.stg 424242
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
@@ -722,7 +724,7 @@ oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, b
 
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
-    if not decoded_result:
+    if not decoded_result or decoded_result.decoded_value is None:
         raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
     <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, decoded_result.decoded_value)
 else:
@@ -864,7 +866,7 @@ codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLeng
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
 decoded_result = codec.read_bits_null_terminated([<arruNullBytes; separator=", ">], <nBitPatternLength>, <nSizeMax>*8)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
 <p> = <sTypeDefName>(list(decoded_result.decoded_value))
 >>
