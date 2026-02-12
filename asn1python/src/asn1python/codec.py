@@ -4,7 +4,7 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
@@ -32,7 +32,7 @@ ERROR_BUFFER_OVERFLOW = ErrorCode.BUFFER_OVERFLOW
 ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
 
 
-@dataclass
+@dataclass(frozen=True)
 class EncodeResult:
     """Result of an encoding operation"""
     success: bool
@@ -46,7 +46,7 @@ class EncodeResult:
 
 TDVal = TypeVar('TDVal')
 
-@dataclass
+@dataclass(frozen=True)
 class DecodeResult(Generic[TDVal]):
     """Result of a decoding operation"""
     success: bool

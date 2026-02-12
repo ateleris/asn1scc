@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
 from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
 from .bitstream import BitStream
 
+DecType = TypeVar("DecType")
 
 class Decoder(Codec):
 
@@ -11,7 +12,7 @@ class Decoder(Codec):
     # ============================================================================
 
     @staticmethod
-    def _error_int(result: DecodeResult) -> DecodeResult[int]:
+    def _error_int(result: DecodeResult[DecType]) -> DecodeResult[int]:
         """Create a typed error result for int from another DecodeResult."""
         return DecodeResult[int](
             success=False,
@@ -21,7 +22,7 @@ class Decoder(Codec):
         )
 
     @staticmethod
-    def _error_float(result: DecodeResult) -> DecodeResult[float]:
+    def _error_float(result: DecodeResult[DecType]) -> DecodeResult[float]:
         """Create a typed error result for float from another DecodeResult."""
         return DecodeResult[float](
             success=False,
@@ -31,7 +32,7 @@ class Decoder(Codec):
         )
 
     @staticmethod
-    def _error_str(result: DecodeResult) -> DecodeResult[str]:
+    def _error_str(result: DecodeResult[DecType]) -> DecodeResult[str]:
         """Create a typed error result for str from another DecodeResult."""
         return DecodeResult[str](
             success=False,
