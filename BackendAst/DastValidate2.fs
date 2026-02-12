@@ -870,12 +870,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     let handleChild (child:ChChildInfo) (us:State) =
         let c_name = l.lg.getAsn1ChChildBackendName child
         let presentWhenName = l.lg.presentWhenName (Some defOrRef) child
+        let sChildTypeName = child.chType.typeDefinitionOrReference.longTypedefName2 (Some l.lg) l.lg.hasModules t.moduleName
         match child.chType.isValidFunction with
         | None                      ->
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name, []))
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChildTypeName, []))
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
@@ -896,9 +897,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                             | Scala -> child._scala_name
                             | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name, lv)
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChildTypeName, lv)
                         | ValidationStatementFalse   (st,lv)
-                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name, lv) )
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChildTypeName, lv) )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )

@@ -756,9 +756,9 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 <if(bIntroSnap)>
 <endif>
 
-decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
-<CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
+<CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
 <p>_arr = [None] * <p>_nCount
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
@@ -1113,6 +1113,7 @@ sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soCh
 # acn_python.stg 847
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
+<p>_<sChName>: Optional[<sChildTypedef>] = None
 if <soExistVar>:
     <soAlignmentCode>
     <if(bIsPrimitive)>
@@ -1128,9 +1129,7 @@ if <soExistVar>:
         <p>_<sChName> = instance_decode_<sChName>
 
     <endif>
-    <endif>
-else:
-    <p>_<sChName>: Optional[<sChildTypedef>] = None
+    <endif>    
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
