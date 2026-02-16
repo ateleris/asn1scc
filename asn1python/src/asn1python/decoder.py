@@ -913,34 +913,49 @@ class Decoder(Codec):
                 error_message=str(e)
             )
 
-    # def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list[int]]:
-    #     """
-    #     Decode octet string without length prefix, returning as list.
+    def decode_octet_string_no_length_vec(self, num_bytes: int) -> DecodeResult[list[int]]:
+        """
+        Decode octet string without length prefix, returning as list.
 
-    #     Matches Scala: BitStream.readByteArrayVec without length decoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
+        Matches Scala: BitStream.readByteArrayVec without length decoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
 
-    #     Args:
-    #         num_bytes: Number of bytes to decode
+        Args:
+            num_bytes: Number of bytes to decode
 
-    #     Returns:
-    #         DecodeResult containing list of byte values
-    #     """
-    #     result = self.decode_octet_string_no_length(num_bytes)
-    #     if result.success and result.decoded_value != None:
-    #         # Convert bytes to list
-    #         return DecodeResult(
-    #             success=True,
-    #             error_code=DECODE_OK,
-    #             decoded_value=list(result.decoded_value),
-    #             bits_consumed=result.bits_consumed
-    #         )
-    #     else:
-    #         return DecodeResult(
-    #             success=False,
-    #             error_code=result.error_code,
-    #             error_message=result.error_message
-    #         )
+        Returns:
+            DecodeResult containing list of byte values
+        """
+        Requires(self.codec_predicate() and self.read_invariant())
+        Requires(self.has_segments_of_length(num_bytes, NO_OF_BITS_IN_BYTE)) 
+        Ensures(self.codec_predicate() and self.read_invariant())
+        Ensures(self.segments is Old(self.segments) and self.buffer == Old(self.buffer))
+        Ensures(self.bit_index == Old(self.bit_index) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(self.segments_read_index == Old(self.segments_read_index) + num_bytes)
+        Ensures(Result().success)
+        Ensures(Result().bits_consumed == num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(isinstance(Result().decoded_value, list))
+        Ensures(list_pred(Result().decoded_value))
+        Ensures(len(ResultT(DecodeResult[list[int]]).decoded_value) == num_bytes)
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
+                            self.segments.drop(Old(self.segments_read_index))[j].value))))
+        
+        result = self.decode_octet_string_no_length(num_bytes)
+        if result.success and not result.decoded_value is None:
+            # Convert bytes to list
+            result_list = list(result.decoded_value)
+            return DecodeResult[list[int]](
+                success=True,
+                error_code=DECODE_OK,
+                decoded_value=result_list,
+                bits_consumed=result.bits_consumed
+            )
+        else:
+            return DecodeResult[list[int]](
+                success=False,
+                error_code=result.error_code,
+                error_message=result.error_message
+            )
 
     # def check_bit_pattern_present(self, pattern: bytearray, num_bits: int) -> DecodeResult[int]:
     #     """

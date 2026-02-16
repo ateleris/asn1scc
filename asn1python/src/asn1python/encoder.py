@@ -775,6 +775,7 @@ class Encoder(Codec):
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
         Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
         Ensures(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(ResultT(EncodeResult).success)
         Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
         
         try:
@@ -801,37 +802,46 @@ class Encoder(Codec):
                 error_message=str(e)
             )
 
-    # def encode_octet_string_no_length_vec(self, data: list, num_bytes: int) -> EncodeResult:
-    #     """
-    #     Encode octet string from list/vector without length prefix.
+    def encode_octet_string_no_length_vec(self, data: List[int], num_bytes: int) -> EncodeResult:
+        """
+        Encode octet string from list/vector without length prefix.
 
-    #     Matches Scala: BitStream.appendByteArrayVec without length encoding
-    #     Used by: ACN for fixed-size or externally-determined length octet strings
+        Matches Scala: BitStream.appendByteArrayVec without length encoding
+        Used by: ACN for fixed-size or externally-determined length octet strings
 
-    #     Args:
-    #         data: List of byte values (0-255) to encode
-    #         num_bytes: Number of bytes to encode from data
+        Args:
+            data: List of byte values (0-255) to encode
+            num_bytes: Number of bytes to encode from data
 
-    #     Returns:
-    #         EncodeResult with success/failure status
-    #     """
-    #     try:
-    #         if num_bytes > len(data):
-    #             return EncodeResult(
-    #                 success=False,
-    #                 error_code=ERROR_INVALID_VALUE,
-    #                 error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
-    #             )
+        Returns:
+            EncodeResult with success/failure status
+        """
+        Requires(self.codec_predicate() and self.write_invariant())
+        Requires(Acc(list_pred(data), 1/20))
+        Requires(Forall(data, lambda el: 0 <= el and el < 256))
+        Requires(0 <= num_bytes and num_bytes <= len(data))
+        Requires(self.remaining_bits >= num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(self.codec_predicate() and self.write_invariant())
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(Acc(list_pred(data), 1/20))
+        Ensures(Forall(data, lambda el: 0 <= el and el < 256))
+        Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
+        Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
+        Ensures(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
 
-    #         # Convert list to bytes
-    #         byte_data = bytearray(data[:num_bytes])
-    #         return self.encode_octet_string_no_length(byte_data, num_bytes)
-    #     except (ValueError, TypeError) as e:
-    #         return EncodeResult(
-    #             success=False,
-    #             error_code=ERROR_INVALID_VALUE,
-    #             error_message=f"Invalid data for octet string: {e}"
-    #         )
+        if num_bytes > len(data):
+            return EncodeResult(
+                success=False,
+                error_code=ERROR_INVALID_VALUE,
+                error_message=f"num_bytes {num_bytes} exceeds data length {len(data)}"
+            )
+
+        # Convert list to bytes
+        byte_data = bytearray(data)
+        return self.encode_octet_string_no_length(byte_data, num_bytes)
+
     
     # def enc_real(self, value: float) -> EncodeResult:
     #     """
