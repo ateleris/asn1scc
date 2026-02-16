@@ -172,7 +172,7 @@ class NullType(Asn1Base):
 #         return
     
     @classmethod
-    def decode(cls, codec: Decoder, check_constraints: bool = True):
+    def decode(cls, codec: Decoder, check_constraints: bool = True) -> 'NullType':
         return NullType()
 
 # Utility functions to match C and Scala implementations
