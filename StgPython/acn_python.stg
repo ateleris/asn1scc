@@ -31,6 +31,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
     <arrsPostcond:{post|<post>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
     <if(soIValidFuncName)>
     if check_constraints:
         valid_res = self.<soIValidFuncName>()
@@ -57,6 +58,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
     <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
     <arrsPostcond:{post|<post>}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
 
     <sContent>
     
@@ -626,7 +628,7 @@ res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNu
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 482
 decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]))
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
@@ -690,26 +692,26 @@ decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Ma
 
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 533
-bix = codec.get_bit_index()
+bix = codec.bit_index
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * <getStringSize(p)>:
+if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 7 * <getStringSize(p)>:
     # acn_python.stg 537
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 # acn_python.stg 542
-bix = codec.get_bit_index()
+bix = codec.bit_index
 if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
 # acn_python.stg 424242
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
-if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index() != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
+if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
     raise Asn1Exception(f"ERROR TODO")
 >>
 
@@ -724,7 +726,7 @@ oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, b
 
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
-    if not decoded_result:
+    if not decoded_result or decoded_result.decoded_value is None:
         raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
     <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, decoded_result.decoded_value)
 else:
@@ -756,9 +758,9 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 <if(bIntroSnap)>
 <endif>
 
-decoded_result = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
+decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
-<CheckDecodeResult(p=p+"_nCount", sInp="decoded_result", sErrCode=sErrCode, sType="int")>
+<CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
 <p>_arr = [None] * <p>_nCount
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
@@ -866,7 +868,7 @@ codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLeng
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
 decoded_result = codec.read_bits_null_terminated([<arruNullBytes; separator=", ">], <nBitPatternLength>, <nSizeMax>*8)
-if not decoded_result:
+if not decoded_result or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
 <p> = <sTypeDefName>(list(decoded_result.decoded_value))
 >>
@@ -1113,6 +1115,7 @@ sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soCh
 # acn_python.stg 847
 # Decode <sChName>
 <soSaveBitStrmPosStatement>
+<p>_<sChName>: Optional[<sChildTypedef>] = None
 if <soExistVar>:
     <soAlignmentCode>
     <if(bIsPrimitive)>
@@ -1128,9 +1131,7 @@ if <soExistVar>:
         <p>_<sChName> = instance_decode_<sChName>
 
     <endif>
-    <endif>
-else:
-    <p>_<sChName>: Optional[<sChildTypedef>] = None
+    <endif>    
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<

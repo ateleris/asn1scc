@@ -420,7 +420,7 @@ type LangGeneric_scala() =
             let precond = generatePrecond r enc t codec
             [show (ExprTree precond)]
 
-        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) : string list =
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
             match enc with
             | ACN ->
                 let errTpe = IntegerType Int

@@ -5,7 +5,7 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from .asn1_exceptions import *
@@ -122,9 +122,6 @@ class Asn1Boolean(Asn1Base):
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         return Asn1ConstraintValidResult(is_valid=True)
 
-#     def encode(self, codec: Encoder, check_constraints: bool = True):
-#         raise NotImplementedError()
-
 class NullType(Asn1Base):
     """
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
@@ -174,13 +171,9 @@ class NullType(Asn1Base):
 #     def encode(self, codec: Encoder, check_constraints: bool = True):
 #         return
     
-#     @classmethod
-#     def decode(cls, codec: Decoder, check_constraints: bool = True):
-#         return NullType()
-    
-#     @staticmethod
-#     def decode_pure(codec: Decoder, check_constraints: bool = True):
-#         return NullType()
+    @classmethod
+    def decode(cls, codec: Decoder, check_constraints: bool = True):
+        return NullType()
 
 # Utility functions to match C and Scala implementations
 # def int2uint(v: int) -> int:

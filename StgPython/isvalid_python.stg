@@ -308,9 +308,10 @@ Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= "self.kind == <sChPrese
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= "self.kind != <sChPresent>"
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChildTypeName) ::= <<
 if self.kind == <sChPresent>:
     # isvalid_python.stg 302
+    assert isinstance(self.data, <sChildTypeName>)
     <sChildBody>
 >>
 

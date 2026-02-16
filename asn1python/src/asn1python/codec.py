@@ -50,6 +50,7 @@ class EncodeResult:
 
 
 TDVal = TypeVar('TDVal')
+
 @dataclass(frozen=True)
 class DecodeResult(Generic[TDVal]):
     """Result of a decoding operation"""
