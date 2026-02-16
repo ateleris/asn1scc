@@ -18,7 +18,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
         [
             "codec.codec_predicate() and codec.write_invariant()";
             "codec.remaining_bits >= " + string(t.maxSizeInBits enc);
-            "check_constraints"
+            "check_constraints and self.is_constraint_valid_pure()"
         ]
     | Decode ->
         [
@@ -35,7 +35,6 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
     match codec with
     | Encode ->
         [
-            "Exsures(Asn1Exception, check_constraints and not self.is_constraint_valid_pure())";
             "Ensures(codec.codec_predicate() and codec.write_invariant())";
             "Ensures(codec.buffer_size == Old(codec.buffer_size))";
             $"Ensures(codec.segments is Old(codec.segments) + {typeName}.segments_of(self))"
