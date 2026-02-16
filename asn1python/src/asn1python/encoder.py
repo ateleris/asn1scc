@@ -510,6 +510,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(Result().success)
+        Ensures(Result().bits_encoded == (max_val - min_val).bit_length())
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
     def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
@@ -531,6 +533,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(Result().success)
+        Ensures(Result().bits_encoded == (max_val - min_val).bit_length())
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
     # def encode_semi_constrained_whole_number(self, value: int, min_val: int) -> EncodeResult:

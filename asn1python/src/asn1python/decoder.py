@@ -569,7 +569,7 @@ class Decoder(Codec):
         Requires(0 <= num_bits and num_bits <= MAX_BITOP_LENGTH)
         Requires(self.read_aligned(num_bits))
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + num_bits)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
@@ -620,7 +620,7 @@ class Decoder(Codec):
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
@@ -647,7 +647,7 @@ class Decoder(Codec):
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
-        Ensures(self.segments is Old(self.segments))
+        Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
         Ensures(self.bit_index == Old(self.bit_index) + (max_val - min_val).bit_length())
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
         Ensures(Result().success)
