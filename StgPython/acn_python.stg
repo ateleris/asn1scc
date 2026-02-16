@@ -34,7 +34,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     <if(soIValidFuncName)>
     if check_constraints:
         valid_res = self.<soIValidFuncName>()
-        if not valid_res:
+        if not valid_res.is_valid:
             raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     
@@ -64,7 +64,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
     <if(soIValidFuncName)>
     if check_constraints:
         valid_res = <sVarName>.<soIValidFuncName>()
-        if not valid_res:
+        if not valid_res.is_valid:
             # acn_python.stg 70
             raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
