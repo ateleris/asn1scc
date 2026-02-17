@@ -51,23 +51,12 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
         ]
 let rec isPrimitiveType (t: Asn1AcnAst.Asn1Type): bool =
     match t.Kind with
-    | Integer _ | Boolean _ | Real _ | NullType _  -> true
+    | Integer _ | Boolean _ | Real _ | NullType _  ->
+        match t.typeDefinitionOrReference.[Python] with
+        | ReferenceToExistingDefinition _ -> true
+        | TypeDefinition _ -> false
     | _ -> false
 
-//#region IsValid
-
-let generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option) (lg: ILangGeneric): string list =
-    let isPrimitive = isPrimitiveType t
-    let typeName = t.FT_TypeDefinition[Python].asn1Name
-
-    match isPrimitive, pureBody with
-    | false, Some body -> 
-        match t.Kind with
-        | _ -> ["# NonPrimititive Valid AUX"; is_constraint_valid_pure_expr typeName body]
-    | true, Some body -> ["# PRIMITIVE Valid AUX"; is_constraint_valid_pure_expr typeName body]
-    | _ -> ["# ALWAYS TRUE Valid"; is_constraint_valid_pure_true typeName]
-
-//#endregion
 //#region Auxiliaries
 
 let generateChildHelper (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child) (func: (string -> string -> bool -> BigInteger -> string)): string =
@@ -225,6 +214,45 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
 let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     ["# BitString AUX"]
 
+//#region IsValid Auxiliary
+
+let generateChildValidPure (lg: ILangGeneric) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+    let enc = UPER // Dummy to use generateChildHelper
+    let func (childName: string) (childTypeName: string) (bIsPrimitive: bool) (bitSize: BigInteger) =
+        match child.Type.Kind with
+        | SequenceOf _ -> is_constraint_valid_pure_child_sequenceof childName childTypeName bIsPrimitive
+        | Choice _ -> is_constraint_valid_pure_child_choice childName childTypeName
+        | _ ->
+            match child.Optionality with
+            | Some _ -> is_constraint_valid_pure_child_optional childName childTypeName bIsPrimitive
+            | None -> is_constraint_valid_pure_child_mandatory childName childTypeName bIsPrimitive
+    generateChildHelper lg enc moduleName child func
+
+let generateSequenceIsValidAuxiliaries (lg: ILangGeneric) (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (sq: Sequence) (typeName: string): string list =
+    let asn1Children =
+        sq.children |> List.choose (function
+            | Asn1Child ch -> Some ch
+            | _ -> None)
+    
+    let childValidPure =
+        asn1Children |> List.map (generateChildValidPure lg t.moduleName)
+
+    let validPureFunction = is_constraint_valid_pure_sequence typeName childValidPure
+    ["# SEQUENCE Valid"; validPureFunction]
+
+let generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option) (lg: ILangGeneric): string list =
+    let isPrimitive = isPrimitiveType t
+    let typeName = t.FT_TypeDefinition[Python].asn1Name
+
+    match isPrimitive, t.Kind, pureBody with
+    | false, _, Some body -> 
+        match t.Kind with
+        | _ -> ["# NonPrimititive Valid AUX"; is_constraint_valid_pure_expr typeName body]
+    | false, Sequence s, _-> generateSequenceIsValidAuxiliaries lg r t s typeName
+    | true, _, Some body -> ["# PRIMITIVE Valid AUX"; is_constraint_valid_pure_expr typeName body]
+    | _ -> ["# ALWAYS TRUE Valid"; is_constraint_valid_pure_true typeName]
+
+//#endregion
 //#endregion
 
 let generateSequenceProof(r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
