@@ -296,3 +296,29 @@ def is_constraint_valid_pure(self) -> bool:
 is_constraint_valid_pure_true(sTypeName) ::= <<
 <is_constraint_valid_pure_expr(sTypeName=sTypeName, expr="True")>
 >>
+
+is_constraint_valid_pure_sequence(sTypeName, arrsChildren) ::= <<
+@Pure
+def is_constraint_valid_pure(self) -> bool:
+    return <arrsChildren:{child|<child>}; separator=" and ">
+>>
+
+is_constraint_valid_pure_child_mandatory(sChildName, sChildType, bIsPrimitive) ::= <<
+<if(bIsPrimitive)>
+(True)
+<else>
+self.<sChildName>.is_constraint_valid_pure()
+<endif>
+>>
+
+is_constraint_valid_pure_child_optional(sChildName, sChildType, bIsPrimitive) ::= <<
+<if(bIsPrimitive)>
+(self.<sChildName> is None or True)
+<else>
+(self.<sChildName> is None or self.<sChildName>.is_constraint_valid_pure())
+<endif>
+>>
+
+is_constraint_valid_pure_child_sequenceof(sChildName, sChildType, bIsPrimitive) ::= <<>>
+
+is_constraint_valid_pure_child_choice(sChildName, sChildType) ::= <<>>
