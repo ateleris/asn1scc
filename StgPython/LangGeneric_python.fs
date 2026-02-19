@@ -315,6 +315,7 @@ type LangGeneric_python() =
 
     override this.Length exp sAcc =
         isvalid_python.ArrayLen exp sAcc
+    override this.FixedSizeSizableHasCount = true
 
     override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Python]
     override this.definitionOrRef (d:Map<ProgrammingLanguage, TypeDefinitionOrReference>) = d.[Python]

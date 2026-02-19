@@ -289,6 +289,8 @@ type ILangGeneric () =
     abstract member choiceIDForNone : Map<string,int> -> ReferenceToType -> string
 
     abstract member Length          : string -> string -> string
+    abstract member FixedSizeSizableHasCount : bool
+    default _.FixedSizeSizableHasCount = false
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member definitionOrRef : Map<ProgrammingLanguage, TypeDefinitionOrReference> -> TypeDefinitionOrReference
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
