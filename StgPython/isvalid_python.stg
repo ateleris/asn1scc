@@ -116,7 +116,7 @@ ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
 # isvalid_python.stg 109
-ret = <sExp1>
+ret.success = <sExp1>
 >>
 
 StatementOrStatement(sStat1, sStat2) ::= <<
