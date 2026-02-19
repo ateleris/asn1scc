@@ -2595,7 +2595,7 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
 let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (lg: ILangGeneric): string list =
-  if enc <> ACN || stmts.IsEmpty then []
+  if stmts.IsEmpty then []
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
