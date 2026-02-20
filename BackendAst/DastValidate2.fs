@@ -344,7 +344,11 @@ let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.E
     foldGenericCon l  printNamedItem c st
 
 let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
-    let getSizeFunc  (lm:LanguageMacros) p = l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
+    let getSizeFunc (lm:LanguageMacros) p =
+        if o.isFixedSize then
+            l.isvalid.StrLen (p.accessPath.joined l.lg)
+        else
+            l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
     let compareSingleValueFunc (p:CodegenScope) (v:Asn1AcnAst.OctetStringValue, (id,loc))  =
         let octet_var_string_equal = l.isvalid.octet_var_string_equal
         let octet_fix_string_equal = l.isvalid.octet_fix_string_equal
@@ -353,7 +357,8 @@ let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Language
         match o.isFixedSize with
         | true   -> VCBExpression (octet_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
         | false  -> VCBExpression (octet_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Length.AsBigInt) octArrLiteral)
-    let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
+    let hasCount = (not o.isFixedSize) || l.lg.FixedSizeSizableHasCount
+    let fnc, ns = foldSizableConstraint r l hasCount compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
 let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (equalFunc:EqualFunction) (c:BitStringConstraint) st =

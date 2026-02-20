@@ -536,9 +536,13 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
             | false -> children |> List.map (fun o ->
                 let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
                 // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
-                let optional = match o.Optionality with 
-                                | Some (Optional _ ) -> true
-                                | _ -> false
+                let optional =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python ->
+                        match o.Optionality with
+                        | Some (Optional _ ) -> true
+                        | _ -> false
+                    | _ -> o.Optionality.IsSome
                 define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName optional)
 
         let childrenPrivatePart =
@@ -553,7 +557,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceInvariants children
-            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment maxAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren 
+            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment maxAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren
             let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren childrenCompleteDefinitions arrsNullFieldsSavePos sizeDefinitions invariants
             let privateDef =
                 match childrenPrivatePart with
@@ -599,9 +603,13 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
             | false -> children |> List.map (fun o ->
                 let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
                 // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
-                let optional = match o.Optionality with 
-                                    | Some (Optional _ ) -> true
-                                    | _ -> false
+                let optional =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python ->
+                        match o.Optionality with
+                        | Some (Optional _ ) -> true
+                        | _ -> false
+                    | _ -> o.Optionality.IsSome
                 define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName optional)
 
         let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (lm.lg.getAsn1ChildBackendName0 c))
