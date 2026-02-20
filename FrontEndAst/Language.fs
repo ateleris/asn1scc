@@ -424,6 +424,8 @@ type ILangGeneric () =
     abstract member generateNullTypeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
+    abstract member generateIsValidPrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> string list
+    abstract member generateIsValidPostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> string list
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
     abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string list
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
@@ -531,6 +533,8 @@ type ILangGeneric () =
     default this.generateNullTypeAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
+    default this.generateIsValidPrecond _ _ _ = []
+    default this.generateIsValidPostcond _ _ _ = []
     default this.generatePrecond _ _ _ _ = []
     default this.generatePostcond _ _ _ _ _ = []
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id

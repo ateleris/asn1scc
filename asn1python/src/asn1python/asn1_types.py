@@ -34,8 +34,14 @@ class Asn1ConstraintValidResult:
             raise Exception("No error code must be set if the constraint is valid.")
 
 class Asn1Base(ABC):
+    @Predicate
+    def class_predicate(self) -> bool:
+        return True
+
     @abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        Requires(Acc(self.class_predicate(), 1/20))
+        Ensures(Acc(self.class_predicate(), 1/20))
         pass
 
 

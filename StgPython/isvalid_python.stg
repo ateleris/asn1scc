@@ -28,11 +28,13 @@ JoinItems2(sPart, sNestedPart) ::= <<
 
 always_true_statement ()::= <<
 # isvalid_python.stg 28
+Fold(Acc(self.class_predicate(), 1/20))
 return Asn1ConstraintValidResult(is_valid=True)
 >>
 
 always_false_statement(sErrorCodeName)::= <<
 # isvalid_python.stg 33
+Fold(Acc(self.class_predicate(), 1/20))
 return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
@@ -48,6 +50,7 @@ convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 # isvalid_python.stg 43
 ret = <sIsValidExp>
 if not ret:
+    Fold(Acc(self.class_predicate(), 1/20))
     return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
@@ -55,6 +58,7 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 # isvalid_python.stg 48
 <sStatement>
 if not ret:
+    Fold(Acc(self.class_predicate(), 1/20))
     return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
 >>
 
@@ -85,16 +89,17 @@ class ErrorCodes(IntEnum):
     <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced, arrsPrecond, arrsPostcond) ::= <<
 # isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(self) -> Asn1ConstraintValidResult:
-    Ensures(Result().is_valid == self.is_constraint_valid_pure())
-    Ensures(Implies(self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).error_code == 0 and ResultT(Asn1ConstraintValidResult).message == ""))
-    Ensures(Implies(not self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).error_code != 0))
+    <arrsPrecond:{pre|Requires(<pre>)}; separator="\n">
+    <arrsPostcond:{post|<post>}; separator="\n">
     <arrsLocalVars; separator="\n">
+    Unfold(Acc(self.class_predicate(), 1/20))
     <sContent>
     # isvalid_python.stg 85
+    Fold(Acc(self.class_predicate(), 1/20))
     return ret
 >>
 
@@ -346,6 +351,7 @@ ret = Asn1ConstraintValidResult(is_valid=True)
 for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
     <sInnerStatement>
     if not ret:
+        Fold(Acc(self.class_predicate(), 1/20))
         return ret
 >>
 

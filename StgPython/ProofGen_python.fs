@@ -10,12 +10,41 @@ open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open verification_python
 
+let getPermissionPrecond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
+    match t.Kind with
+    | OctetString _ -> 
+        [
+        ]
+    | _ -> []
+
+let getPermissionPostcond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
+    match t.Kind with
+    | OctetString _ -> 
+        [
+        ]
+    | _ -> []
+
+let generateIsValidPrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric): string list =
+    [
+        "Acc(self.class_predicate(), 1/20)"
+    ]
+
+let generateIsValidPostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric): string list =
+    [
+        "Ensures(Acc(self.class_predicate(), 1/20))";
+        "Ensures(Implies(self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).is_valid))";
+        "Ensures(Implies(ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code == 0 and ResultT(Asn1ConstraintValidResult).message == ''))";
+        "Ensures(Implies(not ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code != 0))"
+    ]
+
 let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec) (lg: ILangGeneric): string list =
     let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
 
     match codec with
     | Encode ->
+        getPermissionPrecond r t lg "self" @
         [
+            "Acc(self.class_predicate(), 1/20)";
             "codec.codec_predicate() and codec.write_invariant()";
             "codec.remaining_bits >= " + string(t.maxSizeInBits enc);
             "check_constraints and self.is_constraint_valid_pure()"
@@ -34,18 +63,21 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
 
     match codec with
     | Encode ->
+        getPermissionPostcond r t lg "self" @
         [
+            "Ensures(Acc(self.class_predicate(), 1/20))";
             "Ensures(codec.codec_predicate() and codec.write_invariant())";
             "Ensures(codec.buffer_size == Old(codec.buffer_size))";
             $"Ensures(codec.segments is Old(codec.segments) + {typeName}.segments_of(self))"
         ]
     | Decode ->
-        [
+        [   
             "Ensures(codec.codec_predicate() and codec.read_invariant())";
             "Ensures(codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer))";
             $"Ensures(codec.bit_index == Old(codec.bit_index) + {usedBits})";
             $"Ensures(codec.segments_read_index == Old(codec.segments_read_index) +
             {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index))))"
+            $"Ensures(Acc(ResultT({typeName}).class_predicate()) and ResultT({typeName}).is_constraint_valid_pure())";
             $"Ensures({typeName}.segments_of(ResultT({typeName})) ==
             segments_take(segments_drop(codec.segments, Old(codec.segments_read_index)), {typeName}.segments_count(segments_drop(codec.segments, Old(codec.segments_read_index)))))";
         ]
@@ -141,11 +173,11 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
 
         // Generate functions using templates
         let segmentsValidFunc = segments_valid_sequence typeName childSegmentsValid
-        let segmentsOfFunc = segments_of_sequence typeName childSegments
         let segmentsCountFunc = segments_count_sequence typeName childSegmentsCount
+        let segmentsOfFunc = segments_of_sequence typeName childSegments
         let segmentsEqLemma = segments_eq_lemma_sequence typeName childSegmentsEqLemma
 
-        [segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+        [segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _ -> []
 
 let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -159,11 +191,11 @@ let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName ((bitSize / BigInteger 32 + BigInteger 1).ToString())
         let segmentsOfFunc = segments_of_primitive typeName bitSize
-        let segmentsCountFunc = segments_count_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
-        ["# INTEGER AUX"; segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+        ["# INTEGER AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Integer AUX (unused)"]
 
 let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -173,11 +205,11 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_boolean typeName bitSize
-        let segmentsCountFunc = segments_count_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_boolean typeName bitSize
 
-        ["# BOOLEAN AUX"; segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+        ["# BOOLEAN AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Boolean AUX (unused)"]
 
 let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -187,11 +219,11 @@ let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_nulltype typeName bitSize
-        let segmentsCountFunc = segments_count_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
-        ["# NULLTYPE AUX"; segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+        ["# NULLTYPE AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# NullType AUX (unused)"]
 
 let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -201,15 +233,32 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_enum typeName bitSize
-        let segmentsCountFunc = segments_count_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_enum typeName bitSize
 
-        ["# ENUM AUX"; segmentsValidFunc; segmentsOfFunc; segmentsCountFunc; segmentsEqLemma]
+        ["# ENUM AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Enum AUX (unused)"]
 
-let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.OctetString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
-    ["# OctetString AUX"]
+let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
+    match codec, sel.steps.IsEmpty with
+    | Decode, true ->
+        let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        match os.isFixedSize with
+        | true ->
+            let segmentsCount = os.maxSize.ToString()
+            let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
+            let segmentsValidFunc = segments_valid_octetString typeName segmentsCount
+            let segmentsCountFunc = segments_count_primitive typeName segmentsCount
+            let segmentsOfFunc = segments_of_octetString typeName "arr"
+            let segmentsEqLemma = segments_eq_octetString typeName "arr"
+            ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+
+        | false ->
+            // let segmentsCountFunc = segments_count_var_size typeName
+
+            ["# OctetString AUX Var Size"]
+    | _, _ -> ["# OctetString AUX (unused)"]
 
 let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
     ["# BitString AUX"]
@@ -240,15 +289,22 @@ let generateSequenceIsValidAuxiliaries (lg: ILangGeneric) (r: Asn1AcnAst.AstRoot
     let validPureFunction = is_constraint_valid_pure_sequence typeName childValidPure
     ["# SEQUENCE Valid"; validPureFunction]
 
+let generateByteArrayIsValidAuxiliaries (lg: ILangGeneric) (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (expr: option<string>) (typeName: string): string list =
+    let lengthExpr = 
+        match t.Kind with
+        | OctetString os -> if os.isFixedSize then os.maxSize.ToString() else "self.nCount"
+        | _ -> "0"
+    let validPureFunction = is_constraint_valid_pure_octetString typeName "arr" lengthExpr expr
+    ["# ByteArray Valid"; validPureFunction]
+
 let generateIsValidAuxiliaries (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (typeDefinition: TypeDefinitionOrReference) (funcName: string option) (pureBody: string option) (lg: ILangGeneric): string list =
     let isPrimitive = isPrimitiveType t
     let typeName = t.FT_TypeDefinition[Python].asn1Name
 
     match isPrimitive, t.Kind, pureBody with
-    | false, _, Some body -> 
-        match t.Kind with
-        | _ -> ["# NonPrimititive Valid AUX"; is_constraint_valid_pure_expr typeName body]
     | false, Sequence s, _-> generateSequenceIsValidAuxiliaries lg r t s typeName
+    | false, OctetString _, expr -> generateByteArrayIsValidAuxiliaries lg r t expr typeName
+    | false, _, Some body -> ["# NonPrimititive Valid AUX"; is_constraint_valid_pure_expr typeName body]
     | true, _, Some body -> ["# PRIMITIVE Valid AUX"; is_constraint_valid_pure_expr typeName body]
     | _ -> ["# ALWAYS TRUE Valid"; is_constraint_valid_pure_true typeName]
 
