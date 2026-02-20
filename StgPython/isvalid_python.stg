@@ -116,7 +116,7 @@ ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
 # isvalid_python.stg 109
-ret.success = <sExp1>
+ret = Asn1ConstraintValidResult(is_valid=<sExp1>)
 >>
 
 StatementOrStatement(sStat1, sStat2) ::= <<
