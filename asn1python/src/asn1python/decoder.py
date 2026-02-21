@@ -31,7 +31,7 @@ class Decoder(Codec):
         Requires(self.codec_predicate())
         Requires(1 <= length and length <= MAX_BITOP_LENGTH)
 
-        segments = self.segments.drop(self.segments_read_index).take(num_segments)
+        segments = segments_take(segments_drop(self.segments, self.segments_read_index), num_segments)
 
         return (
             num_segments >= 0 and

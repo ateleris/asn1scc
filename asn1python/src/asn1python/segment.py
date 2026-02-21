@@ -20,25 +20,30 @@ def segment_invariant(seg: Segment) -> bool:
 @Opaque
 def segments_take(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    # Requires(0 <= length and length <= len(segments))
     Decreases(None)
     Ensures(Result() is segments.take(length))
     Ensures(Forall(segments.take(length), lambda seg: segment_invariant(seg)))
-    Ensures(Implies(0 <= length and length < len(segments), segments_total_length(Result()) + segments[length].length <= segments_total_length(segments)))
+    Ensures(Implies(0 <= length, segments_total_length(Result()) == 
+                    segments_total_length(segments) - segments_total_length(segments.drop(length))))
     Ensures(Implies(length == len(segments), Result() is segments))
 
-    if 0 <= length and length <= len(segments):
-        lemma_length_monotonic = __lemma_segments_total_length_monotonic(segments, length)
+    if 0 <= length:
+        Assert(lemma_segments_total_length_split(segments, length))
     return segments.take(length)
 
 @Pure
 @Opaque
 def segments_drop(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    # Requires(0 <= length and length <= len(segments))
     Decreases(None)
     Ensures(Result() is segments.drop(length))
     Ensures(Forall(segments.drop(length), lambda seg: segment_invariant(seg)))
+    Ensures(Implies(0 <= length, segments_total_length(Result()) == 
+                    segments_total_length(segments) - segments_total_length(segments.take(length))))
+    Ensures(Implies(length == 0, Result() is segments))
+
+    if 0 <= length:
+        Assert(lemma_segments_total_length_split(segments, length))
 
     return segments.drop(length)
 
@@ -69,29 +74,38 @@ def segments_total_length(segments: PSeq[Segment]) -> int:
     if len(segments) == 0:
         return 0
     
-    last_elem = len(segments) - 1
-    rec_segments = segments.take(last_elem)
-    segment = segments[last_elem]
+    last_idx = len(segments) - 1
+    rec_segments = segments.take(last_idx)
+    last_seg = segments[last_idx]
 
-    return segments_total_length(rec_segments) + segment.length    
+    return segments_total_length(rec_segments) + last_seg.length
 
 @Pure
 @Opaque
-def __lemma_segments_total_length_monotonic(segments: PSeq[Segment], prefix: int) -> bool:
+def lemma_segments_total_length_split(segments: PSeq[Segment], n: int) -> bool:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
-    Requires(0 <= prefix and prefix <= len(segments))
-    Decreases(len(segments) - prefix)
-    Ensures(segments_total_length(segments.take(prefix)) <= segments_total_length(segments))
-    Ensures(Implies(prefix < len(segments), segments_total_length(segments.take(prefix)) + segments[prefix].length <= segments_total_length(segments)))
-    
-    if len(segments) == prefix:
+    Requires(0 <= n)
+    Decreases(len(segments))
+    Ensures(segments_total_length(segments) ==
+            segments_total_length(segments.take(n)) + segments_total_length(segments.drop(n)))
+    Ensures(Result())
+
+    if n == 0 or n >= len(segments):
         return True
-    
-    rec_lemma = __lemma_segments_total_length_monotonic(segments, prefix + 1)
-    prev_seq = segments.take(prefix + 1)
-    new_seq = segments.take(prefix)
-    Assert(prev_seq.take(prefix) == new_seq) # TODO, take and drop need these additional checks
-    return segments_total_length(new_seq) <= segments_total_length(segments) and rec_lemma    
+
+    last_idx = len(segments) - 1
+    rec_segments = segments.take(last_idx)
+    last_seg = segments[last_idx]
+
+    rec_lemma = lemma_segments_total_length_split(rec_segments, n)
+    Assert(rec_lemma)
+
+    Assert(rec_segments.take(n) == segments.take(n))
+    Assert(segments.drop(n) == rec_segments.drop(n) + PSeq(last_seg))
+
+    drop_n = rec_segments.drop(n) + PSeq(last_seg)
+    Assert(drop_n.take(len(drop_n) - 1) == rec_segments.drop(n))
+    return True
 
 @Pure
 def segments_contained(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
@@ -103,11 +117,11 @@ def segments_contained(byteseq: PByteSeq, segments: PSeq[Segment]) -> bool:
     if len(segments) == 0:
         return True
 
-    last_elem = len(segments) - 1
-    rec_segments = segments.take(last_elem)
-    segment = segments[last_elem]
+    last_idx = len(segments) - 1
+    rec_segments = segments.take(last_idx)
+    last_seg = segments[last_idx]
 
-    contained = byteseq_read_bits(byteseq, segments_total_length(rec_segments), segment.length) == segment.value
+    contained = byteseq_read_bits(byteseq, segments_total_length(rec_segments), last_seg.length) == last_seg.value
     rec = segments_contained(byteseq, rec_segments)
     return contained and rec
     
@@ -134,16 +148,16 @@ def lemma_byteseq_equal_segments_contained(b1: PByteSeq, b2: PByteSeq, equal_end
     if len(segments) == 0:
         return True
     
-    last_elem = len(segments) - 1
-    rec_segments = segments.take(last_elem)
-    segment = segments[last_elem]
+    last_idx = len(segments) - 1
+    rec_segments = segments.take(last_idx)
+    last_seg = segments[last_idx]
 
     position = segments_total_length(rec_segments)
 
-    lemma_read_bits = lemma_byteseq_equal_read_bits(b1, b2, equal_end, position, segment.length)
-    b1_value = byteseq_read_bits(b1, position, segment.length)
-    b2_value = byteseq_read_bits(b2, position, segment.length)
-    Assert(segment.value == b2_value)
+    lemma_read_bits = lemma_byteseq_equal_read_bits(b1, b2, equal_end, position, last_seg.length)
+    b1_value = byteseq_read_bits(b1, position, last_seg.length)
+    b2_value = byteseq_read_bits(b2, position, last_seg.length)
+    Assert(last_seg.value == b2_value)
 
     rec = lemma_byteseq_equal_segments_contained(b1, b2, equal_end, rec_segments)
     return b1_value == b2_value and rec
