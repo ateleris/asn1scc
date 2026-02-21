@@ -10,17 +10,18 @@ open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open verification_python
 
-let getPermissionPrecond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
-    match t.Kind with
-    | OctetString _ -> 
-        [
-        ]
-    | _ -> []
+let Ensures (expr: string): string = $"Ensures({expr})"
 
-let getPermissionPostcond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
+let fieldOldEqual (fieldName: string): string =
+    Ensures $"Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}) ==
+            Old(Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}))"
+
+
+let getFieldsPostcond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
     match t.Kind with
     | OctetString _ -> 
         [
+            fieldOldEqual "ToSeq(self.arr)"
         ]
     | _ -> []
 
@@ -30,11 +31,13 @@ let generateIsValidPrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1A
     ]
 
 let generateIsValidPostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric): string list =
+    [Ensures "Acc(self.class_predicate(), 1/20)"] @
+    getFieldsPostcond r t lg "self" @
     [
-        "Ensures(Acc(self.class_predicate(), 1/20))";
-        "Ensures(Implies(self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).is_valid))";
-        "Ensures(Implies(ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code == 0 and ResultT(Asn1ConstraintValidResult).message == ''))";
-        "Ensures(Implies(not ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code != 0))"
+        
+        Ensures"Implies(self.is_constraint_valid_pure(), ResultT(Asn1ConstraintValidResult).is_valid)";
+        Ensures"Implies(ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code == 0 and ResultT(Asn1ConstraintValidResult).message == '')";
+        Ensures "Implies(not ResultT(Asn1ConstraintValidResult).is_valid, ResultT(Asn1ConstraintValidResult).error_code != 0)"
     ]
 
 let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec) (lg: ILangGeneric): string list =
@@ -42,7 +45,6 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
 
     match codec with
     | Encode ->
-        getPermissionPrecond r t lg "self" @
         [
             "Acc(self.class_predicate(), 1/20)";
             "codec.codec_predicate() and codec.write_invariant()";
@@ -63,17 +65,17 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
 
     match codec with
     | Encode ->
-        getPermissionPostcond r t lg "self" @
+        ["Ensures(Acc(self.class_predicate(), 1/20))"] @
+        getFieldsPostcond r t lg "self" @
         [
-            "Ensures(Acc(self.class_predicate(), 1/20))";
             "Ensures(codec.codec_predicate() and codec.write_invariant())";
             "Ensures(codec.buffer_size == Old(codec.buffer_size))";
             $"Ensures(codec.segments is Old(codec.segments) + {typeName}.segments_of(self))"
         ]
     | Decode ->
         [   
-            "Ensures(codec.codec_predicate() and codec.read_invariant())";
-            "Ensures(codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer))";
+            Ensures "codec.codec_predicate() and codec.read_invariant()";
+            Ensures "codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer)";
             $"Ensures(codec.bit_index == Old(codec.bit_index) + {usedBits})";
             $"Ensures(codec.segments_read_index == Old(codec.segments_read_index) +
             {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index))))"

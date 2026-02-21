@@ -91,8 +91,7 @@ segments_of_sequence(sTypeName, arrsChildren) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()))
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     Unfold(Rd(val.class_predicate()))
@@ -175,8 +174,7 @@ segments_of_octetString(sTypeName, sArrName) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()))
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     Unfold(Rd(val.class_predicate()))
@@ -263,8 +261,8 @@ segments_eq_lemma_sequence(sTypeName, arrsChildren) ::= <<
 @Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and Rd(right.class_predicate()))
-    Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
 
@@ -346,8 +344,8 @@ segments_eq_octetString(sTypeName, sArrName) ::= <<
 @Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and Rd(right.class_predicate()))
-    Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
 
