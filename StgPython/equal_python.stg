@@ -63,8 +63,13 @@ equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sConte
 # equal_python.stg 64
 @Pure
 def __eq__(self, other: object) -> bool:
+    Requires(Rd(self.class_predicate()))
+    Requires(Implies(isinstance(other, <sTypeDefName>), Rd(cast(<sTypeDefName>, other).class_predicate())))
     if not isinstance(other, <sTypeDefName>):
         return False
+
+    Unfold(self.class_predicate())
+    Unfold(other.class_predicate())
     <if(bExpression)>
     # equal_python.stg 67
     return <sContent>

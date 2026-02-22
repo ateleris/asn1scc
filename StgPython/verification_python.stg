@@ -353,7 +353,9 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Unfold(Rd(right.class_predicate()))
     left_seq = ToByteSeq(left.<sArrName>)
     right_seq = ToByteSeq(right.<sArrName>)
+    Assert(lemma_segments_byteseq_full_equal(left_seq, right_seq))
     Assert(left_seq == right_seq)
+    Assert(Forall(int, lambda i: Implies(0 \<= i and i \< len(left.arr), left.arr[i] == right.arr[i])))
     return left.<sArrName> == right.<sArrName>
 >>
 

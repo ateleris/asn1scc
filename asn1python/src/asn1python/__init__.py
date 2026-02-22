@@ -34,8 +34,11 @@ from .codec_uper import UPEREncoder, UPERDecoder
 from .acn_encoder import ACNEncoder
 from .acn_decoder import ACNDecoder
 
-from .segment import Segment, segments_take, segments_drop, segment_invariant, segments_from_byteseq_full
-
+from .segment import (
+    Segment, 
+    segments_take, segments_drop, segment_invariant, segments_from_byteseq_full,
+    lemma_segments_byteseq_full_equal
+)
 __version__ = "1.0.0"
 __author__ = "ASN.1 SCC Team"
 __description__ = "ASN.1 runtime library for Python"
@@ -67,5 +70,6 @@ __all__ = [
     "ERROR_INVALID_VALUE", "ERROR_CONSTRAINT_VIOLATION",
     
     # Verification
-    "Segment", "segments_take", "segments_drop", "segment_invariant", "segments_from_byteseq_full"
+    "Segment", "segments_take", "segments_drop", "segment_invariant", "segments_from_byteseq_full",
+    "lemma_segments_byteseq_full_equal"
 ]

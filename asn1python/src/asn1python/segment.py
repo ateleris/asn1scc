@@ -47,7 +47,6 @@ def segments_drop(segments: PSeq[Segment], length: int) -> PSeq[Segment]:
 
     return segments.drop(length)
 
-
 @Pure
 @Opaque
 def segments_add(segments: PSeq[Segment], length: int, value: int) -> PSeq[Segment]:
@@ -239,6 +238,17 @@ def lemma_segments_byteseq_full(seq: PByteSeq) -> bool:
     Assert(reverse_full.take(length - 1) == reverse_prefix)
     
     return prefix_eq and reverse_full == seq
+
+@Pure
+@Opaque
+def lemma_segments_byteseq_full_equal(left: PByteSeq, right: PByteSeq) -> bool:
+    Requires(segments_from_byteseq_full(left) is segments_from_byteseq_full(right))
+    Ensures(left is right)
+    Ensures(Result())
+    left_inverted = lemma_segments_byteseq_full(left)
+    right_inverted = lemma_segments_byteseq_full(right)
+    return left is right
+
 
 @Pure
 def segments_from_byteseq(seq: PByteSeq, bit_length: PInt) -> PSeq[Segment]:
