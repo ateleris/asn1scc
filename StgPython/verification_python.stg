@@ -64,6 +64,25 @@ is_valid = is_valid and <sChildType>.segments_valid(segments)
 segments = segments_drop(segments, <sChildType>.segments_count(segments))
 >>
 
+segments_valid_choice_child(nIndex, sChildType, bIsPrimitive, nDataBitSize, nTagBitSize) ::= <<
+(len(segments) >= 1 and segments[0].length == <nTagBitSize> and segments[0].value == <nIndex> and <if(bIsPrimitive)>len(segments) >= 2 and segments[1].length == <nDataBitSize><else><sChildType>.segments_valid(segments_drop(segments, 1))<endif>)>>
+
+segments_valid_choice(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    return (<arrsChildren:{child|<child>}; separator=" or\n           ">)
+>>
+
+segments_valid_sequenceOf(sTypeName, sSegCount, nBitSize) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    return len(segments) \>= <sSegCount> and Forall(segments_take(segments, <sSegCount>), lambda seg: seg.length == <nBitSize>)
+>>
+
 segments_valid_primitive(sTypeName, nBitSize) ::= <<
 @Pure
 @staticmethod
@@ -124,6 +143,39 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 segments_of_child_choice(sChildName, sChildType) ::= <<
 # Collect segments from choice <sChildName>
 segments = segments + <sChildType>.segments_of(val.<sChildName>)
+>>
+
+segments_of_choice_child(sPresentWhenName, nIndex, sChildType, bIsPrimitive, nDataBitSize, nTagBitSize) ::= <<
+if val.kind == <sPresentWhenName>:
+    <if(bIsPrimitive)>
+    segments = PSeq(Segment(<nTagBitSize>, <nIndex>)) + PSeq(Segment(<nDataBitSize>, val.data))
+    <else>
+    segments = PSeq(Segment(<nTagBitSize>, <nIndex>)) + <sChildType>.segments_of(val.data)
+    <endif>
+>>
+
+segments_of_choice(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+    Unfold(Rd(val.class_predicate()))
+    segments: PSeq[Segment] = PSeq()
+    <arrsChildren:{child|<child>}; separator="\nel">
+    return segments
+>>
+
+segments_of_sequenceOf(sTypeName, sArrName) ::= <<
+@Pure
+@staticmethod
+def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
+    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
+    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+    ## TODO
+    return segments   
 >>
 
 segments_of_primitive(sTypeName, nBitSize) ::= <<
@@ -232,6 +284,27 @@ count = count + count_<sChildName>
 segments = segments_drop(segments, count_<sChildName>)
 >>
 
+segments_count_choice_child(nIndex, sChildType, bIsPrimitive) ::= <<
+if segments[0].value == <nIndex>:
+    <if(bIsPrimitive)>
+    count = 2
+    <else>
+    segments = segments_drop(segments, 1)
+    count = 1 + <sChildType>.segments_count(segments)
+    <endif>
+>>
+
+segments_count_choice(sTypeName, arrsChildren) ::= <<
+@Pure
+@staticmethod
+def segments_count(segments: PSeq[Segment]) -> int:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(<sTypeName>.segments_valid(segments))
+    count = 0
+    <arrsChildren:{child|<child>}; separator="\nel">
+    return count
+>>
+
 segments_count_primitive(sTypeName, sSegCount) ::= <<
 @Pure
 @staticmethod
@@ -249,6 +322,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
     Requires(<sTypeName>.segments_valid(segments))
     return 1 + segments[0].value
 >>
+
 
 /*
 *****************************************************************************************
@@ -302,9 +376,55 @@ for item in val.<sChildName>.arr[:val.<sChildName>.nCount]:
 
 segments_eq_lemma_child_choice(sChildName, sChildType) ::= <<
 # Segments Eq Lemma for choice <sChildName>
-Assert(segments_left[0] == segments_right[0])
-segments_left = segments_drop(segments_left, 1)
-segments_right = segments_drop(segments_right, 1)
+Assert(<sChildType>.segments_eq_lemma(left.<sChildName>, right.<sChildName>))
+>>
+
+segments_eq_lemma_choice_child(sPresentWhenName, sChildType, bIsPrimitive) ::= <<
+if left.kind == <sPresentWhenName>:
+    <if(bIsPrimitive)>
+    Assert(segments_left[1] == segments_right[1])
+    <else>
+    Assert(<sChildType>.segments_eq_lemma(left.data, right.data))
+    <endif>
+>>
+
+segments_eq_lemma_choice(sTypeName, arrsChildren) ::= <<
+@Pure
+@Opaque
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    Ensures(Result())
+
+    Unfold(Rd(left.class_predicate()))
+    Unfold(Rd(right.class_predicate()))
+
+    segments_left = <sTypeName>.segments_of(left)
+    segments_right = <sTypeName>.segments_of(right)
+    <arrsChildren:{child|<child>}; separator="\nel">
+    return True
+>>
+
+
+segments_eq_lemma_sequenceOf(sTypeName, sArrName) ::= <<
+@Pure
+@Opaque
+@staticmethod
+def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
+    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
+    Ensures(left == right)
+    Ensures(Result())
+
+    Unfold(Rd(left.class_predicate()))
+    Unfold(Rd(right.class_predicate()))
+
+    ## TODO
+    return True
 >>
 
 segments_eq_lemma_primitive(sTypeName, nBitSize) ::= <<

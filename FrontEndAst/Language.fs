@@ -109,6 +109,11 @@ type SequenceOfLike =
     | SqOf of Asn1AcnAst.SequenceOf
     | StrType of Asn1AcnAst.StringType
 with
+    member this.definitionOrRef (prog: ProgrammingLanguage): TypeDefinitionOrReference =
+        match this with
+        | SqOf sqf -> sqf.definitionOrRef[prog]
+        | StrType st-> st.definitionOrRef[prog]
+
     member this.nbElems (enc: Asn1Encoding): bigint * bigint =
         let nbElemsMin, nbElemsMax =
             match this with
@@ -139,6 +144,10 @@ with
     member this.maxSizeInBits (enc: Asn1Encoding): bigint =
         snd (this.sizeInBits enc)
 
+    member this.elemFixedSize: bool =
+        match this with
+        | SqOf sqf-> sqf.isFixedSize
+        | StrType st -> st.isFixedSize
 
     member this.elemSizeInBits (enc: Asn1Encoding): bigint * bigint =
         match enc, this with

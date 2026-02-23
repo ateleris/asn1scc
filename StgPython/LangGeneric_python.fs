@@ -973,7 +973,7 @@ type LangGeneric_python() =
 
     override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list * string option =
         // Not implemented yet for Python
-        [], None
+        generateSequenceOfLikeAuxiliaries r enc o pg nestingScope sel codec this
 
     override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list * string =
         // Not implemented yet for Python
