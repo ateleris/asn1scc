@@ -206,6 +206,13 @@ let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: As
         let nChildren = ch.children |> List.length
         let tagBitSize = uperChoiceTagBitSize nChildren
 
+        let childPredicates  = 
+            ch.children |> List.map (fun child ->
+                let childTypeName = getChoiceChildTypeName lg t.moduleName child
+                let bIsPrimitive = isPrimitiveType child.Type
+                class_predicate_choice_child childTypeName bIsPrimitive
+            )
+
         let childSegmentsValid =
             ch.children |> List.mapi (fun i child ->
                 let childTypeName = getChoiceChildTypeName lg t.moduleName child
@@ -234,7 +241,7 @@ let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: As
                 let bIsPrimitive = isPrimitiveType child.Type
                 segments_eq_lemma_choice_child presentWhenName childTypeName bIsPrimitive)
 
-        let classPredicateFunc = class_predicate_fields []
+        let classPredicateFunc = class_predicate_choice childPredicates
         let segmentsValidFunc = segments_valid_choice typeName childSegmentsValid
         let segmentsCountFunc = segments_count_choice typeName childSegmentsCount
         let segmentsOfFunc = segments_of_choice typeName childSegmentsOf
@@ -309,10 +316,10 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         match os.isFixedSize with
         | true ->
-            let segmentsCount = os.maxSize.ToString()
+            let childCount = os.maxSize.ToString()
             let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
-            let segmentsValidFunc = segments_valid_sequenceOf typeName segmentsCount (BigInteger 8)
-            let segmentsCountFunc = segments_count_primitive typeName segmentsCount
+            let segmentsValidFunc = segments_valid_sequenceOf typeName childCount os.isFixedSize true true (BigInteger 8)
+            let segmentsCountFunc = segments_count_primitive typeName childCount
             let segmentsOfFunc = segments_of_sequenceOf typeName "arr"
             let segmentsEqLemma = segments_eq_octetString typeName "arr"
             ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
@@ -330,23 +337,22 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
     match codec, sel.steps.IsEmpty with
     | Decode, true ->
         let typeName = lg.getLongTypedefName (o.definitionOrRef Python)
+        let isChildPrimitive = 
+            match o with
+            | SqOf sqf -> isPrimitiveType sqf.child
+            | StrType _ -> true
 
-        match o.isFixedSize, o.elemFixedSize with
-        | true, true ->
-            let segmentsCount = (o.maxNbElems enc).ToString()
-            let bitSize = o.maxElemSizeInBits enc
-            let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
-            let segmentsValidFunc = segments_valid_sequenceOf typeName segmentsCount bitSize
-            let segmentsCountFunc = segments_count_primitive typeName segmentsCount
-            let segmentsOfFunc = segments_of_sequenceOf typeName "arr"
-            let segmentsEqLemma = segments_eq_lemma_sequenceOf typeName "arr"
-            ["# SequenceOf AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma], None
+        let childCount = (o.maxNbElems enc).ToString()
+        let bitSize = o.maxElemSizeInBits enc
 
-        | _, _ ->
-            // let segmentsCountFunc = segments_count_var_size typeName
+        let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
+        let segmentsValidFunc = segments_valid_sequenceOf typeName childCount o.isFixedSize isChildPrimitive o.elemFixedSize bitSize
+        let segmentsCountFunc = segments_count_sequenceOf typeName childCount o.isFixedSize isChildPrimitive o.elemFixedSize bitSize
+        let segmentsOfFunc = segments_of_sequenceOf typeName "arr"
+        let segmentsEqLemma = segments_eq_lemma_sequenceOf typeName "arr"
+        ["# SequenceOf AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma], None
 
-            ["# SequenceOf AUX"], None
-    | _, _ -> ["# SequenceOf AUX"], None
+    | _, _ -> ["# SequenceOf AUX (unused)"], None
     
     
 
