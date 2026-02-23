@@ -1290,7 +1290,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             ixVariable = i
         }
         let introSnap = nestingScope.nestingLevel = 0I
-        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (StrType o) sqfProofGen codec
+        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (StrType o) sqfProofGen nestingScope p.accessPath codec
 
         let funcBodyContent, localVariables =
             match o.minSize with
@@ -1572,7 +1572,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 elemDecodeFn = None
                 ixVariable = (i level)
             }
-            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (SqOf o) sqfProofGen codec
+            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (SqOf o) sqfProofGen nestingScope p.accessPath codec
 
             let ret =
                 match o.acnEncodingClass with
@@ -2495,7 +2495,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let combinedBody (p: CodegenScope) (existVar: string option): string =
                             ((presentWhenStmts |> Option.toList) @ (childBody |> Option.toList) |> List.map (fun f -> f p existVar)) |> Seq.StrJoin "\n"
                         let soc = {SequenceOptionalChild.t = t; sq = o; child = child; existVar = existVar; p = {p with accessPath = childSel}; nestingScope = childNestingScope; childBody = combinedBody}
-                        let optAux, theCombinedBody = lm.lg.generateOptionalAuxiliaries r ACN soc codec
+                        let optAux, theCombinedBody = lm.lg.generateOptionalAuxiliaries r ACN soc nestingScope p.accessPath codec
                         optAux, Some theCombinedBody
 
                 let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs;  userDefinedFunctions=childUserDefFuncs; errCodes = presentWhenErrs @ childErrs; icdComments = []}

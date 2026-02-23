@@ -351,11 +351,11 @@ type LangGeneric_scala() =
             let fds = generateBooleanAuxiliaries r enc t boolean nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
+        override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list * string option =
             let fds, call = generateSequenceOfLikeAuxiliaries r enc o pg codec this
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
 
-        override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
+        override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list * string =
             let fds, call = generateOptionalAuxiliaries r enc soc codec this
             let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
             innerFns, show (ExprTree call)
