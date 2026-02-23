@@ -69,6 +69,7 @@ def segments_total_length(segments: PSeq[Segment]) -> int:
     Ensures(Result() >= 0)
     Ensures(Implies(len(segments) == 0, Result() == 0))
     Ensures(Implies(len(segments) == 1, Result() == segments[0].length))
+    Ensures(Forall(segments, lambda seg: seg.length <= Result()))
 
     if len(segments) == 0:
         return 0
@@ -173,7 +174,6 @@ def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], in
     
     if len(segments) - 1 == index:
         return True
-    
     rec_segments = segments.take(len(segments) - 1)
     rec_lemma = lemma_segments_contained_read(byteseq, rec_segments, index)
     
@@ -182,7 +182,7 @@ def lemma_segments_contained_read(byteseq: PByteSeq, segments: PSeq[Segment], in
     segment = segments[index]
     Assert(segment == rec_segments[index])
     
-    return rec_lemma and byteseq_read_bits(byteseq, segments_total_length(segments_take(segments, index)), segment.length) == segment.value
+    return rec_lemma and byteseq_read_bits(byteseq, segments_total_length(prefix_segments), segment.length) == segment.value
 
 #region Conversions
 
