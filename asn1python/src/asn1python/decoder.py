@@ -6,7 +6,7 @@ from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitS
 from .bitstream import BitStream
 
 from nagini_contracts.contracts import *
-from .segment import Segment, lemma_segments_byteseq, segments_take, segments_drop, segments_from_byteseq, segments_total_length
+from .segment import Segment, lemma_segments_byteseq, segments_take, segments_drop, segments_from_byteseq, segments_total_length, lemma_segments_total_length_uniform
 from .verification import MAX_BITOP_LENGTH
 
 DecType = TypeVar("DecType")
@@ -29,15 +29,17 @@ class Decoder(Codec):
     @Pure
     def has_segments_of_length(self, num_segments: int, length: int) -> bool:
         Requires(self.codec_predicate())
+        Requires(self.read_invariant())
         Requires(1 <= length and length <= MAX_BITOP_LENGTH)
+        Ensures(Implies(Result(), self.remaining_bits >= num_segments * length))
 
         segments = segments_take(segments_drop(self.segments, self.segments_read_index), num_segments)
-
+    
         return (
             num_segments >= 0 and
-            num_segments * length <= self.remaining_bits and
             self.segments_read_index + num_segments <= len(self.segments) and
-            Forall(segments, lambda seg: seg.length == length)
+            Forall(segments, lambda seg: seg.length == length) and
+            lemma_segments_total_length_uniform(segments, length)
         )
 
     @Pure
@@ -47,16 +49,19 @@ class Decoder(Codec):
         if bit_count <= 0:
             return bit_count == 0
 
-        byte_count = (bit_count + 7) // NO_OF_BITS_IN_BYTE
-        segments = self.segments.drop(self.segments_read_index).take(byte_count)
+        full_bytes_count = bit_count // NO_OF_BITS_IN_BYTE
+        full_segments = segments_take(segments_drop(self.segments, self.segments_read_index), full_bytes_count)
+
+        total_bytes_count = (bit_count + 7) // NO_OF_BITS_IN_BYTE
+        remaining_bits = bit_count % NO_OF_BITS_IN_BYTE
+        segments = segments_drop(self.segments, self.segments_read_index).take(total_bytes_count)
 
         return (
             self.remaining_bits >= bit_count and
-            Forall(segments, lambda seg: seg.length <= NO_OF_BITS_IN_BYTE) and
-            Exists(PByteSeq, lambda seq: (
-                        (len(seq) * NO_OF_BITS_IN_BYTE) >= bit_count and
-                        segments == segments_from_byteseq(seq, bit_count) and
-                        lemma_segments_byteseq(seq, bit_count))))
+            len(self.segments) >= self.segments_read_index + total_bytes_count and
+            Forall(full_segments, lambda seg: seg.length == NO_OF_BITS_IN_BYTE) and
+            (remaining_bits == 0 or (len(self.segments) == len(full_segments) + 1 and segments[total_bytes_count - 1].length == remaining_bits))
+        )
     
     @Pure
     def current_segment(self) -> Segment:
@@ -210,6 +215,7 @@ class Decoder(Codec):
                             self.segments.drop(Old(self.segments_read_index))[j].value))))
         try:
             if self.remaining_bits < num_bytes * NO_OF_BITS_IN_BYTE:
+                Assert(False)
                 return DecodeResult[bytearray](
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -244,7 +250,8 @@ class Decoder(Codec):
                 bits_consumed += byte_decode.bits_consumed
                 i += 1
 
-            Assert(self.segments.drop(Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))
+            Assert(bits_consumed == num_bytes * NO_OF_BITS_IN_BYTE)
+            Assert(segments_drop(self.segments, Old(self.segments_read_index)) is segments_drop(self.segments, Old(self.segments_read_index)))
 
             return DecodeResult[bytearray](
                 success=True,
@@ -254,6 +261,7 @@ class Decoder(Codec):
             )
         
         except BitStreamError as e:
+            Assert(False)
             return DecodeResult[bytearray](
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
@@ -370,7 +378,8 @@ class Decoder(Codec):
         Ensures(self.bit_index == Old(self.bit_index) + (alignment - Old(self.bit_index)) % alignment)
         Ensures(self.bit_index % alignment == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
-        Ensures(Result().success)
+        Ensures(ResultT(DecodeResult[None]).success)
+        Ensures(ResultT(DecodeResult[None]).bits_consumed == (alignment - Old(self.bit_index)) % alignment)
         try:
             alignment_bits = (alignment - self.bit_index) % alignment
             Assert(self.read_aligned(alignment_bits))
@@ -416,10 +425,11 @@ class Decoder(Codec):
         Requires(self.read_aligned((NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE))
         Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
-        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - self.bit_index) % NO_OF_BITS_IN_BYTE)
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_BYTE - Old(self.bit_index)) % NO_OF_BITS_IN_BYTE)
         Ensures(self.bit_index % NO_OF_BITS_IN_BYTE == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
-        Ensures(Result().success)
+        Ensures(ResultT(DecodeResult[None]).success)
+        Ensures(ResultT(DecodeResult[None]).bits_consumed == (NO_OF_BITS_IN_BYTE - Old(self.bit_index)) % NO_OF_BITS_IN_BYTE)
         return self.__read_align(NO_OF_BITS_IN_BYTE)
             
     def align_to_word(self) -> DecodeResult[None]:
@@ -437,10 +447,11 @@ class Decoder(Codec):
         Requires(self.read_aligned((NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD))
         Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
-        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_WORD - self.bit_index) % NO_OF_BITS_IN_WORD)
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_WORD - Old(self.bit_index)) % NO_OF_BITS_IN_WORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_WORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
-        Ensures(Result().success)
+        Ensures(ResultT(DecodeResult[None]).success)
+        Ensures(ResultT(DecodeResult[None]).bits_consumed == (NO_OF_BITS_IN_WORD - Old(self.bit_index)) % NO_OF_BITS_IN_WORD)
         return self.__read_align(NO_OF_BITS_IN_WORD)
 
     def align_to_dword(self) -> DecodeResult[None]:
@@ -458,10 +469,11 @@ class Decoder(Codec):
         Requires(self.read_aligned((NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD))
         Ensures(self.codec_predicate() and self.read_invariant())
         Ensures(self.segments is Old(self.segments) and self.buffer is Old(self.buffer))
-        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_DWORD - self.bit_index) % NO_OF_BITS_IN_DWORD)
+        Ensures(self.bit_index == Old(self.bit_index) + (NO_OF_BITS_IN_DWORD - Old(self.bit_index)) % NO_OF_BITS_IN_DWORD)
         Ensures(self.bit_index % NO_OF_BITS_IN_DWORD == 0)
         Ensures(self.segments_read_index == Old(self.segments_read_index) + 1)
-        Ensures(Result().success)
+        Ensures(ResultT(DecodeResult[None]).success)
+        Ensures(ResultT(DecodeResult[None]).bits_consumed == (NO_OF_BITS_IN_DWORD - Old(self.bit_index)) % NO_OF_BITS_IN_DWORD)
         return self.__read_align(NO_OF_BITS_IN_DWORD)
 
     #endregion
@@ -577,7 +589,7 @@ class Decoder(Codec):
         Ensures(Result().decoded_value == Old(self.current_segment().value))
         Ensures(Result().bits_consumed == num_bits)
         try:
-            if self._bitstream.remaining_bits < num_bits:
+            if self.remaining_bits < num_bits:
                 return DecodeResult[int](
                     success=False,
                     error_code=ERROR_INSUFFICIENT_DATA,
@@ -937,8 +949,11 @@ class Decoder(Codec):
         Ensures(isinstance(Result().decoded_value, list))
         Ensures(list_pred(Result().decoded_value))
         Ensures(len(ResultT(DecodeResult[list[int]]).decoded_value) == num_bytes)
-        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, Result().decoded_value[j] == 
-                            self.segments.drop(Old(self.segments_read_index))[j].value))))
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes,
+                            0 <= ResultT(DecodeResult[list[int]]).decoded_value[j] and 
+                            ResultT(DecodeResult[list[int]]).decoded_value[j] < (1 << NO_OF_BITS_IN_BYTE)))))
+        Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes, ResultT(DecodeResult[list[int]]).decoded_value[j] == 
+                            segments_drop(self.segments, Old(self.segments_read_index))[j].value))))
         
         result = self.decode_octet_string_no_length(num_bytes)
         if result.success and not result.decoded_value is None:

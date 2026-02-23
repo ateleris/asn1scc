@@ -265,6 +265,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
+    Ensures(Result())
 
     Unfold(Rd(left.class_predicate()))
     Unfold(Rd(right.class_predicate()))
@@ -314,6 +315,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
+    Ensures(Result())
     return True
 >>
 
@@ -325,6 +327,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
+    Ensures(Result())
     return left.value == right.value
 >>
 
@@ -336,6 +339,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
+    Ensures(Result())
     return left.val == right.val
 >>
 
@@ -348,6 +352,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
+    Ensures(Result())
 
     Unfold(Rd(left.class_predicate()))
     Unfold(Rd(right.class_predicate()))

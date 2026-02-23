@@ -82,6 +82,30 @@ def segments_total_length(segments: PSeq[Segment]) -> int:
 
 @Pure
 @Opaque
+def lemma_segments_total_length_uniform(segments: PSeq[Segment], length: int) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    Requires(Forall(segments, lambda seg: seg.length == length))
+    Decreases(len(segments))
+    Ensures(segments_total_length(segments) == len(segments) * length)
+    Ensures(Result())
+
+    if len(segments) == 0:
+        return True
+    
+    last_idx = len(segments) - 1
+    rec_segments = segments.take(last_idx)
+    last_seg = segments[last_idx]
+
+    rec_length = segments_total_length(rec_segments)
+    Assert(lemma_segments_total_length_uniform(rec_segments, length))
+    Assert(rec_length == last_idx * length)
+
+    total_length = rec_length + last_seg.length
+    Assert(total_length == segments_total_length(segments))
+    return total_length == len(segments) * length
+
+@Pure
+@Opaque
 def lemma_segments_total_length_split(segments: PSeq[Segment], n: int) -> bool:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
     Requires(0 <= n)
@@ -263,7 +287,7 @@ def segments_from_byteseq(seq: PByteSeq, bit_length: PInt) -> PSeq[Segment]:
     # Ensures(Result().take(bit_length // NO_OF_BITS_IN_BYTE) is 
     #         segments_from_byteseq_full(seq.take(bit_length // NO_OF_BITS_IN_BYTE)))
     Ensures(segments_total_length(Result()) == bit_length)
-    
+
     if bit_length == 0:
         empty: PSeq[Segment] = PSeq()
         return empty
@@ -271,13 +295,13 @@ def segments_from_byteseq(seq: PByteSeq, bit_length: PInt) -> PSeq[Segment]:
     full_bytes = bit_length // NO_OF_BITS_IN_BYTE
     full = segments_from_byteseq_full(seq.take(full_bytes))
     Assert(segments_total_length(full) == bit_length - (bit_length % NO_OF_BITS_IN_BYTE))
-        
+
     remainder_length = bit_length % NO_OF_BITS_IN_BYTE
     if remainder_length > 0:
-        
+
         single = segment_from_byte(seq[full_bytes], remainder_length)
         Assert(segments_total_length(full) + single.length == bit_length)
-        
+
         full = full + PSeq(single)
         Assert(segments_total_length(full) == segments_total_length(full.take(full_bytes)) + single.length)
 

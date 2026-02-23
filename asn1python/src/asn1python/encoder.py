@@ -63,6 +63,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.segments is Old(self.segments) + PSeq(Segment(1, bit_value)))
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == 1)
         try:
             Unfold(self.codec_predicate())
             self._bitstream.write_bits(bit_value, 1)
@@ -94,9 +96,11 @@ class Encoder(Codec):
         Requires(0 <= byte_val and byte_val < 256)
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.buffer_size == Old(self.buffer_size))
-        Ensures(self.segments is Old(self.segments) + PSeq(Segment(8, byte_val)))
+        Ensures(self.segments is Old(self.segments) + PSeq(Segment(NO_OF_BITS_IN_BYTE, byte_val)))
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == NO_OF_BITS_IN_BYTE)
         try:
-            if not (0 <= byte_val <= 255):
+            if not (0 <= byte_val and byte_val < 256):
                 return EncodeResult(
                     success=False,
                     error_code=ERROR_INVALID_VALUE,
@@ -104,7 +108,7 @@ class Encoder(Codec):
                 )
 
             Unfold(self.codec_predicate())
-            self._bitstream.write_bits(byte_val, 8)
+            self._bitstream.write_bits(byte_val, NO_OF_BITS_IN_BYTE)
             Fold(self.codec_predicate())
 
             return EncodeResult(
@@ -141,6 +145,7 @@ class Encoder(Codec):
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
         Ensures(self.segments is Old(self.segments) + segments_from_byteseq_full(ToByteSeq(data).take(num_bytes)))
         Ensures(segments_total_length(self.segments) == segments_total_length(Old(self.segments)) + num_bytes * NO_OF_BITS_IN_BYTE)
+        Ensures(ResultT(EncodeResult).success)
         Ensures(ResultT(EncodeResult).bits_encoded == num_bytes * NO_OF_BITS_IN_BYTE)
 
         try:
@@ -202,6 +207,7 @@ class Encoder(Codec):
         Ensures(ToByteSeq(data) is Old(ToByteSeq(data)))
         Ensures(self.buffer_size == Old(self.buffer_size))
         Ensures(self.segments == Old(self.segments) + segments_from_byteseq(ToByteSeq(data), num_bits))
+        Ensures(ResultT(EncodeResult).success)
         Ensures(ResultT(EncodeResult).bits_encoded == num_bits)
         try:
             if num_bits < 0:
@@ -241,7 +247,7 @@ class Encoder(Codec):
             if remaining_bits > 0:
                 # Shift to get only the desired high-order bits
                 shifted_val = (data[complete_bytes] >> (NO_OF_BITS_IN_BYTE - remaining_bits)) % (1 << remaining_bits)
-                Assert(shifted_val == byte_read_bits(data[complete_bytes], 0, remaining_bits))
+                Assert(shifted_val == Reveal(byte_read_bits(data[complete_bytes], 0, remaining_bits)))
 
                 Unfold(self.codec_predicate())
                 self._bitstream.write_bits(shifted_val, remaining_bits)
@@ -393,6 +399,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == (max_val - min_val).bit_length())
 
         try:
             # Validate constraints
@@ -456,8 +464,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment(num_bits, value)))
         Ensures(self.buffer_size == Old(self.buffer_size))
-        Ensures(Result().success)
-        Ensures(Result().bits_encoded == num_bits)
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == num_bits)
         
         try:
             if value < 0:
@@ -510,8 +518,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
-        Ensures(Result().success)
-        Ensures(Result().bits_encoded == (max_val - min_val).bit_length())
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == (max_val - min_val).bit_length())
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
     def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
@@ -533,8 +541,8 @@ class Encoder(Codec):
         Ensures(self.codec_predicate() and self.write_invariant())
         Ensures(self.segments is Old(self.segments) + PSeq(Segment((max_val - min_val).bit_length(), value - min_val)))
         Ensures(self.buffer_size == Old(self.buffer_size))
-        Ensures(Result().success)
-        Ensures(Result().bits_encoded == (max_val - min_val).bit_length())
+        Ensures(ResultT(EncodeResult).success)
+        Ensures(ResultT(EncodeResult).bits_encoded == (max_val - min_val).bit_length())
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
     # def encode_semi_constrained_whole_number(self, value: int, min_val: int) -> EncodeResult:

@@ -192,12 +192,13 @@ let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let classPredicateFunc = class_predicate_fields []
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName ((bitSize / BigInteger 32 + BigInteger 1).ToString())
         let segmentsOfFunc = segments_of_primitive typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
-        ["# INTEGER AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+        ["# INTEGER AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Integer AUX (unused)"]
 
 let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -206,12 +207,13 @@ let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: A
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let classPredicateFunc = class_predicate_fields []
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_boolean typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_boolean typeName bitSize
 
-        ["# BOOLEAN AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+        ["# BOOLEAN AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Boolean AUX (unused)"]
 
 let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -220,12 +222,13 @@ let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let classPredicateFunc = class_predicate_fields []
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_nulltype typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_primitive typeName bitSize
 
-        ["# NULLTYPE AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+        ["# NULLTYPE AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# NullType AUX (unused)"]
 
 let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -234,12 +237,13 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
+        let classPredicateFunc = class_predicate_fields []
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_enum typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_enum typeName bitSize
 
-        ["# ENUM AUX"; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+        ["# ENUM AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# Enum AUX (unused)"]
 
 let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
