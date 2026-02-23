@@ -54,13 +54,13 @@ class Decoder(Codec):
 
         total_bytes_count = (bit_count + 7) // NO_OF_BITS_IN_BYTE
         remaining_bits = bit_count % NO_OF_BITS_IN_BYTE
-        segments = segments_drop(self.segments, self.segments_read_index).take(total_bytes_count)
+        segments = segments_take(segments_drop(self.segments, self.segments_read_index), total_bytes_count)
 
         return (
             self.remaining_bits >= bit_count and
             len(self.segments) >= self.segments_read_index + total_bytes_count and
             Forall(full_segments, lambda seg: seg.length == NO_OF_BITS_IN_BYTE) and
-            (remaining_bits == 0 or (len(self.segments) == len(full_segments) + 1 and segments[total_bytes_count - 1].length == remaining_bits))
+            (remaining_bits == 0 or (len(segments) == len(full_segments) + 1 and segments[total_bytes_count - 1].length == remaining_bits))
         )
     
     @Pure
