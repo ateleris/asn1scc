@@ -55,6 +55,10 @@ class Asn1Boolean(Asn1Base):
     """
     value: bool
 
+    @Predicate
+    def class_predicate(self) -> bool:
+        return True
+
     # --- Core protocol ---
     @Pure
     def __bool__(self) -> bool:
@@ -126,6 +130,8 @@ class Asn1Boolean(Asn1Base):
 
     # --- Stub-Implementations of Asn1Base Methods ---
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        Requires(Acc(self.class_predicate(), 1/20))
+        Ensures(Acc(self.class_predicate(), 1/20))
         return Asn1ConstraintValidResult(is_valid=True)
 
 class NullType(Asn1Base):
@@ -133,6 +139,10 @@ class NullType(Asn1Base):
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
     Always falsy, always equal to None, singleton instance.
     """
+    
+    @Predicate
+    def class_predicate(self) -> bool:
+        return True
 
 #     __slots__ = ()
 
@@ -171,6 +181,8 @@ class NullType(Asn1Base):
     #     raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
     
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        Requires(Acc(self.class_predicate(), 1/20))
+        Ensures(Acc(self.class_predicate(), 1/20))
         # todo: evaluate if NullType.is_constraint_valid should return True or False
         return Asn1ConstraintValidResult(is_valid=True)
     

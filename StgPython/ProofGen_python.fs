@@ -408,8 +408,11 @@ let generateSequenceProof(r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Acn
     let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
     
     match codec with
-    | Encode -> 
+    | Encode ->
+        // TODO, find better solution for repeated Fold / Unfold 
         [
-            $"Assert(codec.segments == Old(codec.segments) + {typeName}.segments_of(self))"
+            "Fold(Acc(self.class_predicate(), 1/20))";
+            $"Assert(codec.segments == Old(codec.segments) + {typeName}.segments_of(self))";
+            "Unfold(Acc(self.class_predicate(), 1/20))"
         ]
     | Decode -> []

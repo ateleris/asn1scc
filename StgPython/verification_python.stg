@@ -170,6 +170,7 @@ segments = segments + <sChildType>.segments_of(val.<sChildName>)
 
 segments_of_choice_child(sPresentWhenName, nIndex, sChildType, bIsPrimitive, nDataBitSize, nTagBitSize) ::= <<
 if val.kind == <sPresentWhenName>:
+    Assert(isinstance(val.data, <sChildType>))
     <if(bIsPrimitive)>
     segments = PSeq(Segment(<nTagBitSize>, <nIndex>)) + PSeq(Segment(<nDataBitSize>, val.data))
     <else>
@@ -205,7 +206,7 @@ segments_of_primitive(sTypeName, nBitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, val))
@@ -216,7 +217,7 @@ segments_of_boolean(sTypeName, nBitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, val.value))
@@ -227,7 +228,7 @@ segments_of_nulltype(sTypeName, nBitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, 0))
@@ -238,7 +239,7 @@ segments_of_enum(sTypeName, nBitSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(val.is_constraint_valid_pure())
+    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, int(val.val)))
@@ -481,7 +482,8 @@ segments_eq_lemma_primitive(sTypeName, nBitSize) ::= <<
 @Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
     Ensures(Result())
@@ -493,7 +495,8 @@ segments_eq_lemma_boolean(sTypeName, nBitSize) ::= <<
 @Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
     Ensures(Result())
@@ -505,7 +508,8 @@ segments_eq_lemma_enum(sTypeName, nBitSize) ::= <<
 @Opaque
 @staticmethod
 def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(left.is_constraint_valid_pure() and right.is_constraint_valid_pure())
+    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
+    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
     Ensures(Result())

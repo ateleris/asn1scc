@@ -68,8 +68,11 @@ class BitStream:
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
         Decreases(None)
+
+        prefix = segments_take(self.segments, self.segments_read_index)
+
         return (self.remaining_bits >= read_length and # Should be implicit by the remaining conditions
-                segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits and
+                segments_total_length(prefix) == self.current_used_bits and
                 self.segments_read_index < len(self.segments) and 
                 self.segments[self.segments_read_index].length == read_length)
 
