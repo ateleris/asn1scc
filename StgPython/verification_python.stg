@@ -86,13 +86,13 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
     return (<arrsChildren:{child|<child>}; separator=" or\n        ">)
 >>
 
-segments_valid_sequenceOf(sTypeName, sSegCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildBitSize) ::= <<
+segments_valid_sequenceOf(sTypeName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
 @Pure
 @staticmethod
 def segments_valid(segments: PSeq[Segment]) -> bool:
     Requires(Forall(segments, lambda seg: segment_invariant(seg)))
     <if(bIsFixedSize)>
-    segCount = <sSegCount>
+    segCount = <nChildMaxCount>
     <else>
     if len(segments) == 0:
         return False
@@ -100,7 +100,7 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
     segments = segments_drop(segments, 1)
     <endif>
     <if(bChildFixedSize)>
-    return len(segments) \>= segCount and Forall(segments_take(segments, <sSegCount>), lambda seg: seg.length == <nChildBitSize>)
+    return len(segments) \>= segCount and Forall(segments_take(segments, <nChildMaxCount>), lambda seg: seg.length == <nChildMinSize>)
     <else>
     return False #TODO
     <endif>
@@ -191,14 +191,18 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
     return segments
 >>
 
-segments_of_sequenceOf(sTypeName, sArrName) ::= <<
+segments_of_sequenceOf(sTypeName, sArrName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
     Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
-    ## TODO
+    segments: PSeq[Segment] = PSeq()
+    <if(!bIsFixedSize)>
+    segments.append((<nChildMaxCount> - <nChildMinCount>).bit_length(), len(val.<sArrName>))
+    <endif>
+    # TODO turn list into segments
     return segments   
 >>
 
@@ -329,7 +333,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
     return count
 >>
 
-segments_count_sequenceOf(sTypeName, sSegCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildBitSize) ::= <<
+segments_count_sequenceOf(sTypeName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
 @Pure
 @staticmethod
 def segments_count(segments: PSeq[Segment]) -> int:
@@ -337,7 +341,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
     Requires(<sTypeName>.segments_valid(segments))
     <if(bIsFixedSize)>
     segCount = 0
-    numChildren = <sSegCount>
+    numChildren = <nChildMaxCount>
     <else>
     segCount = 1
     numChildren = segments[0].value
@@ -345,11 +349,10 @@ def segments_count(segments: PSeq[Segment]) -> int:
     <endif>
 
     <if(bChildFixedSize)>
-    segCount += numChildren * <nChildBitSize> 
+    segCount += numChildren * <nChildMinSize>
     <else>
-    # TODO, child size not fixed
+    # TODO, child size not fixed | <nChildMinSize> - <nChildMaxSize>
     <endif>
-
     return segCount
 >>
 
@@ -459,7 +462,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
 >>
 
 
-segments_eq_lemma_sequenceOf(sTypeName, sArrName) ::= <<
+segments_eq_lemma_sequenceOf(sTypeName, sArrName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
 @Pure
 @Opaque
 @staticmethod
@@ -473,8 +476,17 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Unfold(Rd(left.class_predicate()))
     Unfold(Rd(right.class_predicate()))
 
+    <if(!bIsFixedSize)>
+    
+    Assert(len(left.<sArrName>) == len(right.<sArrName>))
+    <endif>
+    <if(bChildIsPrimitive)>
+    <else>
+    # TODO handle non-primitive child
+    <endif>
+
     ## TODO
-    return True
+    return left.<sArrName> == right.<sArrName>
 >>
 
 segments_eq_lemma_primitive(sTypeName, nBitSize) ::= <<

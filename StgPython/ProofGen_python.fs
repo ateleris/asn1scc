@@ -316,11 +316,12 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         match os.isFixedSize with
         | true ->
-            let childCount = os.maxSize.ToString()
+            let minChildCount = os.minSize.uper
+            let maxChildCount = os.maxSize.uper
             let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
-            let segmentsValidFunc = segments_valid_sequenceOf typeName childCount os.isFixedSize true true (BigInteger 8)
-            let segmentsCountFunc = segments_count_primitive typeName childCount
-            let segmentsOfFunc = segments_of_sequenceOf typeName "arr"
+            let segmentsValidFunc = segments_valid_sequenceOf typeName minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
+            let segmentsCountFunc = segments_count_primitive typeName (maxChildCount.ToString())
+            let segmentsOfFunc = segments_of_sequenceOf typeName "arr" minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
             let segmentsEqLemma = segments_eq_octetString typeName "arr"
             ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
 
@@ -342,14 +343,18 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
             | SqOf sqf -> isPrimitiveType sqf.child
             | StrType _ -> true
 
-        let childCount = (o.maxNbElems enc).ToString()
-        let bitSize = o.maxElemSizeInBits enc
+        let childMinCount = o.minNbElems enc
+        let childMaxCount = o.maxNbElems enc
+        let childMinSize = o.minElemSizeInBits enc
+        let childMaxSize = o.maxElemSizeInBits enc
+        // Apparently some types report elemFixedSize as False even though minSize == maxSize
+        let childFixedSize = o.elemFixedSize || (childMinSize = childMaxSize)
 
         let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
-        let segmentsValidFunc = segments_valid_sequenceOf typeName childCount o.isFixedSize isChildPrimitive o.elemFixedSize bitSize
-        let segmentsCountFunc = segments_count_sequenceOf typeName childCount o.isFixedSize isChildPrimitive o.elemFixedSize bitSize
-        let segmentsOfFunc = segments_of_sequenceOf typeName "arr"
-        let segmentsEqLemma = segments_eq_lemma_sequenceOf typeName "arr"
+        let segmentsValidFunc = segments_valid_sequenceOf typeName childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
+        let segmentsCountFunc = segments_count_sequenceOf typeName childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
+        let segmentsOfFunc = segments_of_sequenceOf typeName "arr" childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
+        let segmentsEqLemma = segments_eq_lemma_sequenceOf typeName "arr" childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
         ["# SequenceOf AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma], None
 
     | _, _ -> ["# SequenceOf AUX (unused)"], None

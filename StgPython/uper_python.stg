@@ -403,6 +403,7 @@ Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEn
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 # uper_python.stg 333
 if <p>.kind == <sChildID>:
+    assert(isinstance(<p>.data, <sChildTypeDef>))
     codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
