@@ -1205,6 +1205,7 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
     let functionCalls = us.functionCalls
     let requiresUPER = r.args.encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = r.args.encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
+    let requiresXer = r.args.encodings |> Seq.exists ( (=) Asn1Encoding.XER)
 
     let functionTypes =  
         seq {
@@ -1213,6 +1214,7 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
             if r.args.GenerateEqualFunctions then yield EqualFunctionType; 
             if requiresUPER then yield UperEncDecFunctionType; 
             if requiresAcn then yield AcnEncDecFunctionType; 
+            if requiresXer then yield XerEncDecFunctionType;
         } |> Seq.toList
     
     (*
