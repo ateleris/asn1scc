@@ -663,7 +663,7 @@ bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nS
 # uper_python.stg 574
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_length:
-    raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.EncodeConstants.<sErrCode>}: {decoded_length.error_message}")
+    raise Asn1Exception(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {decoded_length.error_message}")
 <p>_nCount = decoded_length.decoded_value
 decoded_<sTypeDefName> = codec.read_bits(int(<p>_nCount))
 <CheckDecodeResult(p=p+"_arr", sInp="decoded_"+sTypeDefName, sErrCode=sErrCode, sType="list")>
