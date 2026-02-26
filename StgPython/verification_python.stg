@@ -577,7 +577,7 @@ def is_constraint_valid_pure(self) -> bool:
 
 is_constraint_valid_pure_child_mandatory(sChildName, sChildType, bIsPrimitive) ::= <<
 <if(bIsPrimitive)>
-(True)
+True
 <else>
 self.<sChildName>.is_constraint_valid_pure()
 <endif>
@@ -591,9 +591,9 @@ is_constraint_valid_pure_child_optional(sChildName, sChildType, bIsPrimitive) ::
 <endif>
 >>
 
-is_constraint_valid_pure_child_sequenceof(sChildName, sChildType, bIsPrimitive) ::= <<>>
+is_constraint_valid_pure_child_sequenceof(sChildName, sChildType, bIsPrimitive) ::= <<self.<sChildName>.is_constraint_valid_pure()>>
 
-is_constraint_valid_pure_child_choice(sChildName, sChildType) ::= <<>>
+is_constraint_valid_pure_child_choice(sChildName, sChildType) ::= <<self.<sChildName>.is_constraint_valid_pure()>>
 
 is_constraint_valid_pure_octetString(sTypeName, sArrName, sArrLength, soExpr) ::= <<
 @Pure
