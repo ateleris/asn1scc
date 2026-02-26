@@ -541,6 +541,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
                     | Python ->
                         match o.Optionality with
                         | Some (Optional _ ) -> true
+                        | Some AlwaysAbsent -> true
                         | _ -> false
                     | _ -> o.Optionality.IsSome
                 define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName optional)
