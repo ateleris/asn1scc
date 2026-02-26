@@ -217,7 +217,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
         lm.isvalid.stringContainsChar newStr
 
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
-        let valToStrFunc1 v = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "ord(" + v.ToString().ISQ + ")" | _ -> v.ToString().ISQ
+        let valToStrFunc1 v = lm.lg.charToNumericValueExpression (v.ToString().ISQ)
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
             (fun _ (v:string)  s  -> (fun p -> VCBExpression (stringContainsChar v (p.accessPath.joined lm.lg))) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -344,7 +344,11 @@ let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.E
     foldGenericCon l  printNamedItem c st
 
 let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
-    let getSizeFunc  (lm:LanguageMacros) p = l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
+    let getSizeFunc (lm:LanguageMacros) p =
+        if o.isFixedSize then
+            l.isvalid.StrLen (p.accessPath.joined l.lg)
+        else
+            l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
     let compareSingleValueFunc (p:CodegenScope) (v:Asn1AcnAst.OctetStringValue, (id,loc))  =
         let octet_var_string_equal = l.isvalid.octet_var_string_equal
         let octet_fix_string_equal = l.isvalid.octet_fix_string_equal
@@ -353,7 +357,8 @@ let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Language
         match o.isFixedSize with
         | true   -> VCBExpression (octet_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
         | false  -> VCBExpression (octet_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Length.AsBigInt) octArrLiteral)
-    let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
+    let hasCount = (not o.isFixedSize) || l.lg.FixedSizeSizableHasCount
+    let fnc, ns = foldSizableConstraint r l hasCount compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
 let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
@@ -563,7 +568,7 @@ let hasValidationFunc allCons =
 
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    let prefix = match ProgrammingLanguage.ActiveLanguages.Head with Python -> "self.arr" | _ -> "str"
+    let prefix = lm.lg.validationStringPrefix
     ({CodegenScope.modName = typeid.ModName; accessPath = (AccessPath.emptyPath prefix ArrayElem).append (ArrayAccess ("i", ByValue))})
 
 type IsValidAux = {
@@ -870,12 +875,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     let handleChild (child:ChChildInfo) (us:State) =
         let c_name = l.lg.getAsn1ChChildBackendName child
         let presentWhenName = l.lg.presentWhenName (Some defOrRef) child
+        let sChildTypeName = child.chType.typeDefinitionOrReference.longTypedefName2 (Some l.lg) l.lg.hasModules t.moduleName
         match child.chType.isValidFunction with
         | None                      ->
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name, []))
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChildTypeName, []))
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
@@ -896,9 +902,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                             | Scala -> child._scala_name
                             | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name, lv)
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChildTypeName, lv)
                         | ValidationStatementFalse   (st,lv)
-                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name, lv) )
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChildTypeName, lv) )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )

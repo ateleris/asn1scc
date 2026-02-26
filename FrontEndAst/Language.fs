@@ -289,6 +289,8 @@ type ILangGeneric () =
     abstract member choiceIDForNone : Map<string,int> -> ReferenceToType -> string
 
     abstract member Length          : string -> string -> string
+    abstract member FixedSizeSizableHasCount : bool
+    default _.FixedSizeSizableHasCount = false
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member definitionOrRef : Map<ProgrammingLanguage, TypeDefinitionOrReference> -> TypeDefinitionOrReference
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
@@ -325,6 +327,8 @@ type ILangGeneric () =
     // Additional Methods for ACN Deep Field Access for Object Oriented Languages
     abstract member getAcnChildrenForDeepFieldAccess : Asn1Child list -> AcnChild list -> AcnInsertedFieldDependencies -> Map<string, (string * AcnChild) list>
     default this.getAcnChildrenForDeepFieldAccess _ _ _ = Map.empty
+    abstract member isAcnInlineRequired : Asn1AcnAst.Asn1Type -> string -> AcnInsertedFieldDependencies -> bool
+    default this.isAcnInlineRequired _ _ _ = false
     abstract member getExternalField : ((AcnDependency -> bool) -> string) -> RelativePath -> Asn1AcnAst.Sequence -> CodegenScope -> string
     default this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) _ _ _ =
         let filterDependency (d:AcnDependency) =
@@ -361,6 +365,34 @@ type ILangGeneric () =
     abstract member initMethod       :InitMethod
     abstract member decodingKind     :DecodingKind
     abstract member usesWrappedOptional: bool
+    abstract member isObjectOriented: bool
+    abstract member nullTerminatorByte: byte option
+    abstract member charToNumericValueExpression : string -> string
+    default this.charToNumericValueExpression charValue = charValue
+    abstract member validationStringPrefix : string
+    default this.validationStringPrefix = "str"
+    abstract member shouldRemoveModulePrefixFromTypedef : bool
+    default this.shouldRemoveModulePrefixFromTypedef = false
+    abstract member getEnumSelectionJoin : AccessPath -> string
+    default this.getEnumSelectionJoin path = this.joinSelection path
+    abstract member usePrefixForIntegerVariables : bool
+    default this.usePrefixForIntegerVariables = true
+    abstract member getAlignmentByteTypeName : string
+    default this.getAlignmentByteTypeName = "NextByte"
+    abstract member getAlignmentWordTypeName : string
+    default this.getAlignmentWordTypeName = "NextWord"
+    abstract member getAlignmentDWordTypeName : string
+    default this.getAlignmentDWordTypeName = "NextDWord"
+    abstract member shouldApplyToCToPackageName : bool
+    default this.shouldApplyToCToPackageName = false
+    abstract member shouldAppendToBodyFile : bool
+    default this.shouldAppendToBodyFile = false
+    abstract member shouldGenerateInitFiles : bool
+    default this.shouldGenerateInitFiles = false
+    abstract member shouldAppendTestCaseFile : bool
+    default this.shouldAppendTestCaseFile = false
+    abstract member shouldWriteThenAppendTestSuite : bool
+    default this.shouldWriteThenAppendTestSuite = false
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -383,6 +415,8 @@ type ILangGeneric () =
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateOctetStringAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.OctetString -> NestingScope -> AccessPath -> Codec -> string list
+    abstract member generateBitStringAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     abstract member generateOptionalAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
     abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> AccessPath -> Codec -> string list
@@ -390,7 +424,7 @@ type ILangGeneric () =
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string list
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
@@ -485,6 +519,8 @@ type ILangGeneric () =
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateOctetStringAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateBitStringAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
@@ -494,7 +530,7 @@ type ILangGeneric () =
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
     default this.generatePrecond _ _ _ _ = []
-    default this.generatePostcond _ _ _ _ _ = None
+    default this.generatePostcond _ _ _ _ _ = []
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ _ _ = []
     default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
@@ -552,10 +588,7 @@ type AccessPath with
         lg.joinSelection this
         
     member this.joinedEnum (lg: ILangGeneric): string =
-        if ProgrammingLanguage.ActiveLanguages.Head = Python then 
-            lg.joinSelectionEnum this
-        else
-            lg.joinSelection this
+        lg.getEnumSelectionJoin this
         
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
