@@ -364,6 +364,10 @@ type ILangGeneric () =
     abstract member orOp             :string
     abstract member initMethod       :InitMethod
     abstract member decodingKind     :DecodingKind
+    abstract member ArrayInitByAppend : bool
+    default _.ArrayInitByAppend = false
+    abstract member TempArrayItemSuffix: string
+    default _.TempArrayItemSuffix = "_Temp"
     abstract member usesWrappedOptional: bool
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option

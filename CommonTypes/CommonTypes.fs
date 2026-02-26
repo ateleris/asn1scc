@@ -57,14 +57,17 @@ type AccessStep =
 /// Generators render concrete lvalues/rvalues from this structure in a deterministic way.
 type AccessPath = {
     /// The identifier of the root function parameter holding the ASN.1 value (e.g., `val`, `pVal`, `pVal1`).
-    rootId: string              
+    rootId: string
     /// How the root must be accessed (value, pointer, array element).
     rootTargetType: AccessTargetType
     /// The sequence of access steps leading to the target.
     steps: AccessStep list             // in long fields, this is the path to the field
+    /// Extra depth that contributes to SequenceOfLevel without adding an ArrayAccess step.
+    /// Used when decoding into a temp variable instead of indexing into the array directly.
+    phantomArrayDepth: int
 } with
     static member emptyPath (receiverId: string) (receiverType: AccessTargetType): AccessPath =
-        { AccessPath.rootId = receiverId; rootTargetType = receiverType; steps = []}
+        { AccessPath.rootId = receiverId; rootTargetType = receiverType; steps = []; phantomArrayDepth = 0 }
     static member valueEmptyPath (receiverId: string): AccessPath = AccessPath.emptyPath receiverId ByValue
 
     member this.append (acc: AccessStep): AccessPath =
@@ -119,7 +122,8 @@ type AccessPath = {
         if this.steps.IsEmpty then this
         else this.asLast
     member this.SequenceOfLevel =
-        this.steps |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length
+        this.phantomArrayDepth +
+        (this.steps |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length)
 
 
 type UserError = {

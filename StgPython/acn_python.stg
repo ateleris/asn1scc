@@ -626,7 +626,7 @@ res = codec.enc_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNu
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 # acn_python.stg 482
 decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]))
-if not decoded_result or decoded_result.decoded_value is None:
+if not decoded_result.success or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
@@ -705,7 +705,7 @@ if <sExtFld> \< 0:
     raise Asn1Exception(464)
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
 # acn_python.stg 424242
-if not decoded_result or decoded_result.decoded_value is None:
+if not decoded_result.success or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
@@ -724,7 +724,7 @@ oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, b
 
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
-    if not decoded_result or decoded_result.decoded_value is None:
+    if not decoded_result.success or decoded_result.decoded_value is None:
         raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
     <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, decoded_result.decoded_value)
 else:
@@ -760,7 +760,7 @@ decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
 <CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
-<p>_arr = [None] * <p>_nCount
+<p>_arr: list = []
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
 <p> = <sType>(<p>_nCount, <p>_arr)
 >>
@@ -776,7 +776,7 @@ sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 # acn_python.stg 602
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
-    <p>_arr = [None] * <p>_nCount
+    <p>_arr: list = []
     for <i> in range(<p>_nCount):
         <sInternalItem>
     <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
@@ -835,7 +835,7 @@ bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSi
 # acn_python.stg 659
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<sExtFld>)
-    if not decode_result:
+    if not decode_result.success or decode_result.decoded_value is None:
         raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decode_result.error_message}")
     <p> = <sTypeDefName>(<sExtFld>, List[int](decode_result.decoded_value))
 else:
@@ -866,7 +866,7 @@ codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLeng
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 # acn_python.stg 690
 decoded_result = codec.read_bits_null_terminated([<arruNullBytes; separator=", ">], <nBitPatternLength>, <nSizeMax>*8)
-if not decoded_result or decoded_result.decoded_value is None:
+if not decoded_result.success or decoded_result.decoded_value is None:
     raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
 <p> = <sTypeDefName>(list(decoded_result.decoded_value))
 >>
@@ -1034,11 +1034,11 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bInlineRequired)>
 <sChildContent>
 <else>
-instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode_<sChName>, tuple):
-    instance_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
+<p>_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(<p>_decode_<sChName>, tuple):
+    <p>_<sChName>, <sChName>_acn_children = <p>_decode_<sChName>
 else:
-    instance_<sChName> = instance_decode_<sChName>
+    <p>_<sChName> = <p>_decode_<sChName>
 
 <endif>
 <endif>
@@ -1069,11 +1069,11 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bInlineRequired)>
 <soChildContent>
 <else>
-instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-if isinstance(instance_decode_<sChName>, tuple):
-    <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
+<p>_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+if isinstance(<p>_decode_<sChName>, tuple):
+    <p>_<sChName>, <sChName>_acn_children = <p>_decode_<sChName>
 else:
-    <p>_<sChName> = instance_decode_<sChName>
+    <p>_<sChName> = <p>_decode_<sChName>
 <endif>
 <endif>
 >>
@@ -1122,14 +1122,14 @@ if <soExistVar>:
 <if(bInlineRequired)>
     <sChildContent>
     <else>
-    instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    if isinstance(instance_decode_<sChName>, tuple):
-        <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
+    <p>_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    if isinstance(<p>_decode_<sChName>, tuple):
+        <p>_<sChName>, <sChName>_acn_children = <p>_decode_<sChName>
     else:
-        <p>_<sChName> = instance_decode_<sChName>
+        <p>_<sChName> = <p>_decode_<sChName>
 
     <endif>
-    <endif>    
+    <endif>
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
