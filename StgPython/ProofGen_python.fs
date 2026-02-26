@@ -321,7 +321,7 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
             let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
             let segmentsValidFunc = segments_valid_sequenceOf typeName minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
             let segmentsCountFunc = segments_count_primitive typeName (maxChildCount.ToString())
-            let segmentsOfFunc = segments_of_sequenceOf typeName "arr" minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
+            let segmentsOfFunc = segments_of_octetString typeName "arr"
             let segmentsEqLemma = segments_eq_octetString typeName "arr"
             ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
 

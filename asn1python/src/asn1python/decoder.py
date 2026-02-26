@@ -949,6 +949,7 @@ class Decoder(Codec):
         Ensures(isinstance(Result().decoded_value, list))
         Ensures(list_pred(Result().decoded_value))
         Ensures(len(ResultT(DecodeResult[list[int]]).decoded_value) == num_bytes)
+        Ensures(Forall(ResultT(DecodeResult[list[int]]).decoded_value, lambda el: 0 <= el and el < 256))
         Ensures(Forall(int, lambda j: (Implies(0 <= j and j < num_bytes,
                             0 <= ResultT(DecodeResult[list[int]]).decoded_value[j] and 
                             ResultT(DecodeResult[list[int]]).decoded_value[j] < (1 << NO_OF_BITS_IN_BYTE)))))

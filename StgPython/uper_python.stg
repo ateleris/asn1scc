@@ -619,6 +619,19 @@ decoded_<sTypeDefName> = codec.decode_octet_string_no_length_vec(<nFixedSize>)
 if not decoded_<sTypeDefName> or decoded_<sTypeDefName>.decoded_value is None:
     raise Asn1Exception(f"Decoding of decode_octet_string_no_length_vec failed: {decoded_<sTypeDefName>.error_message}")
 <p> = <sTypeDefName>(decoded_<sTypeDefName>.decoded_value)
+
+Fold(<p>.class_predicate())
+rem_segments = segments_drop(codec.segments, Old(codec.segments_read_index))
+segments_of = <sTypeDefName>.segments_of(<p>)
+segments_count = <sTypeDefName>.segments_count(rem_segments)
+Assert(len(segments_of) == segments_count)
+
+segments_contained = segments_take(rem_segments, segments_count)
+Assert(Forall(int, lambda j: (Implies(0 \<= j and j \< segments_count, 
+    segments_of[j] is segments_contained[j]), [[segments_of[j]], [segments_of[j]]])))
+Assert(segments_of == segments_contained)
+Assert(segments_of is segments_contained)
+Unfold(<p>.class_predicate())
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
