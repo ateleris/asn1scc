@@ -628,7 +628,7 @@ Assert(len(segments_of) == segments_count)
 
 segments_contained = segments_take(rem_segments, segments_count)
 Assert(Forall(int, lambda j: (Implies(0 \<= j and j \< segments_count, 
-    segments_of[j] is segments_contained[j]), [[segments_of[j]], [segments_of[j]]])))
+    segments_of[j] is segments_contained[j]), [[segments_of[j]], [segments_contained[j]]])))
 Assert(segments_of == segments_contained)
 Assert(segments_of is segments_contained)
 Unfold(<p>.class_predicate())
