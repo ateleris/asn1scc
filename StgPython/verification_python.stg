@@ -18,6 +18,14 @@ def class_predicate(self) -> bool:
     <endif>
 >>
 
+class_predicate_sequence_child_mandatory(sChildName, sChildType, bIsPrimitive, nBitSize) ::= <<
+<if(bIsPrimitive)>True<else>self.<sChildName>.class_predicate()<endif>
+>>
+
+class_predicate_sequence_child_optional(sChildName, sChildType, bIsPrimitive, nBitSize) ::= <<
+<if(bIsPrimitive)>True<else>(self.<sChildName> is None or self.<sChildName>.class_predicate())<endif>
+>>
+
 class_predicate_choice_child(sChildType, bIsPrimitive) ::= <<
 (isinstance(self.data, <sChildType>) <if(!bIsPrimitive)>and self.data.class_predicate()<endif>)
 >>

@@ -171,8 +171,13 @@ with
         | StrType st -> st.isFixedSize
 
 type Asn1TypeOrAcnRefIA5 =
-| Asn1 of Asn1AcnAst.Asn1Type
-| AcnRefIA5 of ReferenceToType * Asn1AcnAst.AcnReferenceToIA5String
+    | Asn1 of Asn1AcnAst.Asn1Type
+    | AcnRefIA5 of ReferenceToType * Asn1AcnAst.AcnReferenceToIA5String
+with
+    member this.typeDefinitionOrReference =
+        match this with
+        | Asn1 t -> t.typeDefinitionOrReference
+        | AcnRefIA5 (_, ia5) -> ia5.str.definitionOrRef
 
 // TODO: rename
 type SequenceOfLikeProofGen = {
@@ -200,13 +205,6 @@ type SequenceOfLikeProofGen = {
         | ACN -> this.acnMaxOffset
         | UPER -> this.uperMaxOffset
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
-type SequenceOfLikeProofGenResult = {
-    preSerde: string
-    postSerde: string
-    postInc: string
-    invariant: string
-}
 
 type SequenceOptionalChild = {
     t: Asn1AcnAst.Asn1Type
@@ -440,7 +438,7 @@ type ILangGeneric () =
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
-    abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
+    abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CodegenScope -> Codec -> string option
 
     abstract member generateOctetStringInvariants: SIZE -> SIZE -> string list
@@ -549,7 +547,7 @@ type ILangGeneric () =
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ _ _ = []
     default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
-    default this.generateSequenceOfLikeProof _ _ _ _ _ = None
+    default this.generateSequenceOfLikeProof _ _ _ _ _ = []
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
 
     default this.generateOctetStringInvariants _ _ = []

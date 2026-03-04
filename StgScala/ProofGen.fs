@@ -2827,8 +2827,8 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaEnum enc t nestingScope enm]
   else []
 
-let generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
-  None
+let generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list =
+  []
 
 let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec) (lg: ILangGeneric): FunDef list * Expr =
   let sqfTpe = fromSequenceOfLike sqf

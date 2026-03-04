@@ -111,6 +111,13 @@ let generateSequenceChildHelper (lg: ILangGeneric) (enc: Asn1Encoding) (moduleNa
 
     func childName childTypeName bIsPrimitive bitSize
 
+let generateSequenceChildSegmentsPredicate (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
+    let func (childName: string) (childTypeName: string) (bIsPrimitive: bool) (bitSize: BigInteger) =
+        match child.Optionality with
+        | Some _ -> class_predicate_sequence_child_optional childName childTypeName bIsPrimitive bitSize
+        | None -> class_predicate_sequence_child_mandatory childName childTypeName bIsPrimitive bitSize
+    generateSequenceChildHelper lg enc moduleName child func
+
 let generateSequenceChildSegmentsValid (lg: ILangGeneric) (enc: Asn1Encoding) (moduleName: string) (child: Asn1AcnAst.Asn1Child): string =
     let func (childName: string) (childTypeName: string) (bIsPrimitive: bool) (bitSize: BigInteger) =
         match child.Type.Kind with
@@ -165,6 +172,9 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
                 | Asn1Child ch -> Some ch
                 | _ -> None)
 
+        let childPredicates =
+            asn1Children |> List.map (generateSequenceChildSegmentsPredicate lg enc t.moduleName) 
+                         |> List.filter (function p -> p <> "True")
         let childSegmentsValid =
             asn1Children |> List.map (generateSequenceChildSegmentsValid lg enc t.moduleName)
         let childSegments =
@@ -175,7 +185,7 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
             asn1Children |> List.map (generateSequenceChildSegmentsEqLemma lg enc t.moduleName)
 
         // Generate functions using templates
-        let classPredicateFunc = class_predicate_fields []
+        let classPredicateFunc = class_predicate_fields childPredicates
         let segmentsValidFunc = segments_valid_sequence typeName childSegmentsValid
         let segmentsCountFunc = segments_count_sequence typeName childSegmentsCount
         let segmentsOfFunc = segments_of_sequence typeName childSegments
@@ -335,7 +345,7 @@ let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t:
     ["# BitString AUX"]
 
 let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list * string option =
-    match codec, sel.steps.IsEmpty with
+    match codec, pg.cs.accessPath.steps.IsEmpty with
     | Decode, true ->
         let typeName = lg.getLongTypedefName (o.definitionOrRef Python)
         let isChildPrimitive = 
@@ -421,3 +431,16 @@ let generateSequenceProof(r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Acn
             "Unfold(Acc(self.class_predicate(), 1/20))"
         ]
     | Decode -> []
+
+let generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec) (lg: ILangGeneric): string list =
+    let typeName = lg.getLongTypedefName pg.t.typeDefinitionOrReference[Python]
+    
+    match codec with
+    | Encode ->
+        [
+            "# SEQUENCE OF LIKE PROOF"
+        ]
+    | Decode ->
+        [
+            "# SEQUENCE OF LIKE PROOF"
+        ]

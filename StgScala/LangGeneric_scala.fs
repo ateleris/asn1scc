@@ -447,7 +447,7 @@ type LangGeneric_scala() =
         //     let proof = generateChoiceProof enc t ch stmt sel codec
         //     show (ExprTree proof)
 
-        override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+        override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list =
             generateSequenceOfLikeProof r enc o pg codec
 
         override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CodegenScope) (codec: Codec): string option =
