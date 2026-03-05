@@ -35,7 +35,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     if check_constraints:
         valid_res = self.<soIValidFuncName>()
         if not valid_res.is_valid:
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     
     <sContent>
@@ -66,7 +66,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
         valid_res = <sVarName>.<soIValidFuncName>()
         if not valid_res.is_valid:
             # acn_python.stg 70
-            raise Asn1Exception(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
     return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
 >>
@@ -89,7 +89,9 @@ if not <sInp>:
 CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # acn_python.stg 424242
 if not <sInp> or <sInp>.decoded_value is None:
-    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+    if <sInp>.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
 <if(sType)>
 <p> = <sType>(<sInp>.decoded_value)
 <else>
@@ -497,7 +499,9 @@ tmp = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", 
 
 res = codec.read_bit_pattern(tmp, <nSize>)
 if not res:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
+    if res.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1InvalidValueException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
 
 <p> = <if(!bEncValIsTrue)><sType>(not res.decoded_value)<else><sType>(res.decoded_value)<endif>
 >>
@@ -537,7 +541,9 @@ codec.read_bit_pattern_ignore_value(<nSize>)
 tmp = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">]
 res = codec.read_bit_pattern(bytearray(tmp), <nSize>)
 if not res:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}") 
+    if res.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
+    raise Asn1InvalidValueException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {res.error_message}")
 
 <p> = NullType()
 <endif>
@@ -627,7 +633,9 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sT
 # acn_python.stg 482
 decoded_result = codec.dec_string_ascii_null_terminated_mult(<nAsn1Max>, bytearray([<arruNullBytes; separator=", ">]))
 if not decoded_result or decoded_result.decoded_value is None:
-    raise Asn1Exception(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+    raise Asn1InvalidValueException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
 
@@ -702,15 +710,17 @@ Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max,
 # acn_python.stg 542
 bix = codec.bit_index
 if <sExtFld> \< 0:
-    raise Asn1Exception(464)
+    raise Asn1InvalidValueException(f"External field size is negative: {<sExtFld>}")
 decoded_result = codec.dec_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <sExtFld>)
 # acn_python.stg 424242
 if not decoded_result or decoded_result.decoded_value is None:
-    raise Asn1Exception(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")
 <p> = <sType>([ord(c) for c in decoded_result.decoded_value])
 
 if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 7 * (<p>.arr.index(0) if 0 in <p>.arr else len(<p>.arr)):
-    raise Asn1Exception(f"ERROR TODO")
+    raise Asn1InvalidValueException(f"IA5String bit index mismatch after decoding (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 
@@ -725,10 +735,12 @@ oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, b
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
     if not decoded_result or decoded_result.decoded_value is None:
-        raise Asn1Exception(f"Decoding of Constrained Positive Whole Number failed: {decoded_result.error_message}")
+        if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+            raise Asn1UnexpectedEndOfDataException(f"Decoding of octet string failed: {decoded_result.error_message}")
+        raise Asn1InvalidValueException(f"Decoding of octet string failed: {decoded_result.error_message}")
     <p> = <sTypedefName>(<if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>, decoded_result.decoded_value)
 else:
-    raise Asn1Exception(f"Error {cls.DecodeConstants<sErrCode>}")
+    raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
@@ -742,7 +754,7 @@ if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sEx
     decoded_result = codec.decode_octet_string_no_length_vec(<nSizeMax>)
     <CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
 else:
-    raise Asn1Exception(f"Decoding failed {sErrCode}: {decode_result.error_message}")
+    raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
@@ -782,7 +794,7 @@ if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sEx
     <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
     <soCallAux>
 else:
-    raise Asn1Exception(f"{<sErrCode>}")
+    raise Asn1InvalidValueException(f"External field size out of range (Error {<sErrCode>})")
 >>
 
 sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
@@ -795,7 +807,7 @@ sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
     <soCallAux>
 else:
-    raise Asn1Exception(f"{sErrCode}")
+    raise Asn1InvalidValueException(f"External field size out of range (Error {sErrCode})")
 >>
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
@@ -821,7 +833,7 @@ if (<i> == <nSizeMax>) and checkBitPatternPresentResult != 2:
     
 if checkBitPatternPresentResult == 0:
     # acn_python.stg 647
-    raise Asn1Exception(f"{<sErrCode>}")
+    raise Asn1InvalidValueException(f"Null-terminated pattern not found (Error {<sErrCode>})")
 elif checkBitPatternPresentResult == 2:
     <p><sAcc>nCount = <i>
 >>
@@ -836,10 +848,12 @@ bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSi
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<sExtFld>)
     if not decode_result:
-        raise Asn1Exception(f"Decoding failed {cls.DecodeConstants.<sErrCode>}: {decode_result.error_message}")
+        if decode_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+            raise Asn1UnexpectedEndOfDataException(f"Decoding of bit string failed: {decode_result.error_message}")
+        raise Asn1InvalidValueException(f"Decoding of bit string failed: {decode_result.error_message}")
     <p> = <sTypeDefName>(<sExtFld>, List[int](decode_result.decoded_value))
 else:
-    raise Asn1Exception(f"{cls.DecodeConstants.<sErrCode>}")
+    raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -854,7 +868,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<nSizeMax>)
     <CheckDecodeResult(p=p, sInp="decode_result", sErrCode=sErrCode, sType=sType)>
 else:
-    raise Asn1Exception(f"{<sErrCode>}")v
+    raise Asn1InvalidValueException(f"External field size out of range (Error {<sErrCode>})")
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
@@ -867,7 +881,9 @@ bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin,
 # acn_python.stg 690
 decoded_result = codec.read_bits_null_terminated([<arruNullBytes; separator=", ">], <nBitPatternLength>, <nSizeMax>*8)
 if not decoded_result or decoded_result.decoded_value is None:
-    raise Asn1Exception(f"Decoding of readBits_nullterminated failed (cls.DecodeConstants.ERR_ACNDECODE_MYPDU2): {decoded_result.error_message}")
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
+    raise Asn1InvalidValueException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
 <p> = <sTypeDefName>(list(decoded_result.decoded_value))
 >>
 
@@ -1205,7 +1221,7 @@ decode_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
 <arrsChildren: {ch|<ch>}; separator="\nel">
 else:
     # acn_python.stg 931
-    raise Asn1Exception(f"Decoding failed with error code {cls.DecodeConstants.<sErrCode>}")
+    raise Asn1InvalidValueException(f"Invalid choice index (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 /* Choice with presence determinants */
@@ -1251,7 +1267,7 @@ Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sEr
 <arrsChildren; separator="\n">
 else:
     # acn_python.stg 972
-    raise Asn1Exception(cls.DecodeConstants.<sErrCode>)
+    raise Asn1InvalidValueException(f"No matching choice alternative (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 /* Choice with Enum determinant */
@@ -1279,7 +1295,7 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefiniti
 <arrsChildren; separator="\nel">
 else:
     # acn_python.stg 998
-    raise Asn1Exception(cls.DecodeConstants.<sErrCode>)
+    raise Asn1InvalidValueException(f"No matching enum choice alternative (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 /* Updates */
@@ -1287,7 +1303,7 @@ SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 # acn_python.stg 1004
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
-    raise Asn1Exception(f"Exception while checking size dependency: Error Code 860")
+    raise Asn1ValueOutOfRangeException(f"Size dependency value {<v>} out of range [{<nMin>}, {<nMax>}]")
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
@@ -1346,7 +1362,7 @@ ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 choice = <sChPath>.kind
 <arrsChoiceItems; separator="\nel">
 else:
-    raise Asn1Exception(f"Encoding Exception! No match found for <sChPath>!")
+    raise Asn1InvalidValueException(f"Encoding Exception! No match found for <sChPath>!")
 >>
 
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
