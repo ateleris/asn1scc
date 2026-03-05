@@ -32,9 +32,10 @@ else:
 /*   U P E R                                           */
 /*******************************************************/
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 # uper_python.stg 26
 <sErrCode> = <nErrValue>
+<sErrCode>_path = "<sFieldPath>"
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
@@ -103,8 +104,8 @@ CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # uper_python.stg 424242
 if not <sInp> or <sInp>.decoded_value is None:
     if <sInp>.error_code == ErrorCode.INSUFFICIENT_DATA:
-        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
-    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
 <if(sType)>
 <p> = <sType>(<sInp>.decoded_value)
 <else>

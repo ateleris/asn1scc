@@ -599,7 +599,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
 
     let funcName            = lm.lg.getFuncNameGeneric typeDefinition  (lm.isvalid.methodNameSuffix())
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")))
-    let errCode, ns = getNextValidErrorCode us errCodeName errorCodeComment
+    let errCode, ns = getNextValidErrorCode us errCodeName errorCodeComment ""
 
     let funcBody = fncBodyE errCode
     let errCodes = errCode::childErrCodes

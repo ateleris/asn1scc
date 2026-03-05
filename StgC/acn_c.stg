@@ -8,7 +8,7 @@ getStringSize(p) ::= "strlen(<p>)"
 getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>nCount"
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<
 #define <sErrCode>		<nErrValue>  /*<soErrorCodeComment>*/
 >>
 

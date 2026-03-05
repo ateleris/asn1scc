@@ -23,7 +23,7 @@ val <p> = <sFuncName>(codec) match // uper:13
 /*   U P E R                                           */
 /*******************************************************/
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
 >>
 

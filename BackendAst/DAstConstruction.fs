@@ -74,7 +74,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
             funcBody codec prms nestingScope p, st
         let retFunc = DAstACN.handleSavePosition funBodyWithState ch.Type.savePosition (ToC ch.Name.Value) lvName ch.id lm codec
-        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None} prms nestingScope p |> fst
+        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None; fieldPath=""} prms nestingScope p |> fst
 
     let initExpression =
         match ch.Type with

@@ -14,7 +14,7 @@ call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 call_base_type_func_decode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 

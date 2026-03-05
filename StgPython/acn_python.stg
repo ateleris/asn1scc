@@ -4,9 +4,10 @@ getStringSize(p) ::= "len(<p>.arr)"
 getStringContent(p) /*nogen*/ ::= "\"\".join([chr(a) for a in <p>.arr])"
 getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.nCount"
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<
 # acn_python.stg 18
 <sErrCode> = <nErrValue>  <if(soErrorCodeComment)># <soErrorCodeComment><endif>
+<sErrCode>_path = "<sFieldPath>"
 >>
 
 // Need to initialize to a default type because it's used in the function definition of encode/decode after other default values
@@ -90,8 +91,8 @@ CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # acn_python.stg 424242
 if not <sInp> or <sInp>.decoded_value is None:
     if <sInp>.error_code == ErrorCode.INSUFFICIENT_DATA:
-        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
-    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}")
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
 <if(sType)>
 <p> = <sType>(<sInp>.decoded_value)
 <else>
