@@ -15,7 +15,7 @@ Header / Spec implementation
 """
 from asn1pylib.asn1python import *
 from typing import *
-from enum import Enum, IntEnum
+from enum import IntEnum
 from dataclasses import dataclass, field
 
 <if(arrsIncludedModules)>
@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 <!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
-__all__ = []
+__all__ : list[str] = []
 
 # Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">

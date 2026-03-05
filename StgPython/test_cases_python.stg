@@ -285,9 +285,9 @@ def <sFuncName>() -> None:
 
     <sInitializeTcData>
 
-    result = <sTasName>_<sEnc>enc_dec(tc_data, "<sFuncName>")
+    _ = <sTasName>_<sEnc>enc_dec(tc_data, "<sFuncName>")
 
-    <sGenerateDatFile>
+    <! Always empty - not generating: <sGenerateDatFile>!>
 >>
 
 

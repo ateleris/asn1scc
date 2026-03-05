@@ -259,9 +259,10 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
         let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        match r.lang with
-            | Python -> File.AppendAllText(outHFileName, contentH.Replace("\r",""))
-            | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        if lm.lg.shouldAppendTestCaseFile then
+            File.AppendAllText(outHFileName, contentH.Replace("\r",""))
+        else
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
         )
 
     let _, _, func_invocations =
@@ -285,11 +286,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
     if hasTestSuiteRunner then
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        match r.lang with
-        | Python ->
+        if lm.lg.shouldWriteThenAppendTestSuite then
             File.WriteAllText(outHFileName, contentH.Replace("\r",""))
             File.AppendAllText(outHFileName, contentC.Replace("\r", ""))
-        | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        else
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 
     arrsSrcTstFiles, arrsHdrTstFiles
