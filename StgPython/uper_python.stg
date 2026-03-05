@@ -1044,7 +1044,7 @@ sparkAnnotations_decode(sTypeDefName) ::= <<
 # uper_python.stg 935
 >>
 
-Null_declare(p) ::= "<p> = NullType()"
+Null_declare(p, sType) ::= "<p> = <sType>()"
 
 decode_nullType(p) ::= <<
 # uper_python.stg 941
