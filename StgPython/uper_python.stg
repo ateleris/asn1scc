@@ -194,8 +194,8 @@ res = codec.encode_unconstrained_whole_number(<p>)
 >>
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= << 
 # uper_python.stg 163
-decoded_result = codec.decode_unconstrained_whole_number()
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=soType)>
+decoded_int = codec.decode_unconstrained_whole_number()
+<CheckDecodeResult(p=p, sInp="decoded_int", sErrCode=sErrCode, sType=soType)>
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
@@ -409,7 +409,7 @@ choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemI
 if <p>_choice_index == <nChildIndex>:
     # uper_python.stg 340
     <sChildContent>
-    instance = cls(kind=<sChildID>, data=instance_data)
+    <p> = cls(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<

@@ -760,7 +760,7 @@ decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
 <CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
-<p>_arr: list = []
+<p>_arr: list[<sType>] = []
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
 <p> = <sType>(<p>_nCount, <p>_arr)
 >>
@@ -1184,7 +1184,7 @@ ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIn
 if <p>_choice_index == <nChildIndex>:
     # acn_python.stg 914
     <sChildContent>
-    instance = cls(kind=<sChildID>, data=instance_data)
+    <p> = cls(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
 sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
@@ -1234,11 +1234,11 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <else>
     instance_decode_<sChildName> = <sChildTypeDef>.decode(codec, check_constraints)
     if isinstance(instance_decode_<sChildName>, tuple):
-        instance_data, _ = instance_decode_<sChildName>
+        instance_<sChildName>, _ = instance_decode_<sChildName>
     else:
-        instance_data = instance_decode_<sChildName>
+        instance_<sChildName> = instance_decode_<sChildName>
     <endif>
-    <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_data)
+    <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
@@ -1270,7 +1270,7 @@ ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 if (hasattr(<p>, 'name') and <sEnmName>.name == <p>.name) or <p> == <sEnmName>:  # Map discriminator by enum name if it's an enum object
     # acn_python.stg 984
     <sChildBody>
-    <p> = cls(kind=<sEnmName>, data=<p>_data)
+    <p> = cls(kind=<sEnmName>, data=instance_<sChildName>)
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
