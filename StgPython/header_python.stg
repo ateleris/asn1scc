@@ -129,8 +129,9 @@ class <td.typeName>_Enum(IntEnum):
     __all__.append("<td.typeName>_Enum")
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 ENUMERATED type."""
     __all__.append("<td.typeName>")
     # initialize val with the first enum element by default
     val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
@@ -150,8 +151,9 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base): # header_python.stg 137
+    """ASN.1 IA5String type."""
     __all__.append("<td.typeName>")
     arr: List[int]
 >>
@@ -170,13 +172,33 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 
 <endif>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 OCTET STRING type."""
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
-    
+
     <arrsInvariants; separator="\n">
+
+    def to_hex(self) -> str:
+        """Return hex string of the octet data."""
+        return ''.join(f'{b:02x}' for b in self.arr[:<if(!bFixedSize)>self.nCount<endif>])
+
+    @classmethod
+    def from_hex(cls, hex_str: str) -> '<td.typeName>':
+        """Create from hex string."""
+        data = bytes.fromhex(hex_str)
+        return cls(<if(!bFixedSize)>nCount=len(data), <endif>arr=list(data))
+
+    def as_bytes(self) -> bytes:
+        """Return the octet data as Python bytes."""
+        return bytes(self.arr[:<if(!bFixedSize)>self.nCount<endif>])
+
+    @classmethod
+    def from_raw_bytes(cls, data: bytes) -> '<td.typeName>':
+        """Create from Python bytes."""
+        return cls(<if(!bFixedSize)>nCount=len(data), <endif>arr=list(data))
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
@@ -196,18 +218,29 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 <if(!bFixedSize)># nCount equals to Number of bits in the array. Max value is : <nMax><endif>
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 BIT STRING type."""
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
-    
+
     <arrsInvariants; separator="\n">
+
+    def to_hex(self) -> str:
+        """Return hex string of the bit data (packed into bytes)."""
+        n_bytes = <if(!bFixedSize)>(self.nCount + 7) // 8<else>len(self.arr)<endif>
+        return ''.join(f'{b:02x}' for b in self.arr[:n_bytes])
+
+    def to_bin(self) -> str:
+        """Return binary string representation (one char per bit)."""
+        n_bits = <if(!bFixedSize)>self.nCount<else><nMax><endif>
+        return ''.join(f'{b:08b}' for b in self.arr)[:n_bits]
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
 # header_python.stg 194 - Define_subType_bit_string
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
     
@@ -223,8 +256,9 @@ class <td.typeName>(<prTd.typeName>):
 Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 # header_python.stg 201
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 SEQUENCE OF type."""
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[<sChildType>] = field(default_factory=list)
@@ -270,15 +304,16 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.extension_function_positions>:
     __all__.append("<td.extension_function_positions>")
     <arrsNullFieldsSavePos; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
 <endif>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 SEQUENCE type."""
     __all__.append("<td.typeName>")
     <arrsChildren:{ch|<ch>}; separator="\n">
     <arrsInvariants; separator="\n">
@@ -287,7 +322,7 @@ class <td.typeName>(Asn1Base):
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 # header_python.stg 268
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>):
     __all__.append("<td.typeName>")
     <arrsExtraDefs; separator="\n">
@@ -313,8 +348,9 @@ class <td.typeName>InUse(IntEnum):
     __all__.append("<td.typeName>InUse")
     <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
+    """ASN.1 CHOICE type."""
     __all__.append("<td.typeName>")
     # which selection element is in use
     kind: <td.typeName>InUse = <td.typeName>InUse.<first(arrsPresent)>
