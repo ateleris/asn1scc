@@ -5,8 +5,12 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
+import dataclasses
+import json
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import IntEnum
 
 from .asn1_exceptions import *
 from .encoder import Encoder
@@ -32,6 +36,81 @@ class Asn1Base(ABC):
     @abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass
+
+    def __str__(self) -> str:
+        if dataclasses.is_dataclass(self):
+            fields = dataclasses.fields(self)
+            if not fields:
+                return f"{type(self).__name__}()"
+            inner = "\n".join(f"  {f.name} = {getattr(self, f.name)}" for f in fields)
+            return f"{type(self).__name__}(\n{inner}\n)"
+        return repr(self)
+
+    def to_dict(self):
+        """Recursively convert this ASN.1 value to a plain Python dict."""
+        if dataclasses.is_dataclass(self):
+            return {f.name: _to_dict_val(getattr(self, f.name)) for f in dataclasses.fields(self)}
+        if isinstance(self, int):
+            return int(self)
+        if isinstance(self, float):
+            return float(self)
+        return repr(self)
+
+    @classmethod
+    def from_dict(cls, d):
+        """Reconstruct an instance from a plain Python dict (inverse of to_dict)."""
+        if not dataclasses.is_dataclass(cls):
+            return cls(d)
+        hints = typing.get_type_hints(cls)
+        kind_val = d.get('kind') if isinstance(d, dict) else None
+        kwargs = {}
+        for f in dataclasses.fields(cls):
+            if f.name not in d:
+                continue
+            hint = hints.get(f.name, type(None))
+            kv = kind_val if f.name == 'data' else None
+            kwargs[f.name] = _from_dict_val(d[f.name], hint, kv)
+        return cls(**kwargs)
+
+    def to_json(self, indent: int = 2) -> str:
+        """Serialize this ASN.1 value to a JSON string."""
+        return json.dumps(self.to_dict(), indent=indent)
+
+    @classmethod
+    def from_json(cls, s: str):
+        """Deserialize an instance from a JSON string (inverse of to_json)."""
+        return cls.from_dict(json.loads(s))
+
+    def copy(self, **overrides):
+        """Return a shallow copy with optional field overrides."""
+        if dataclasses.is_dataclass(self):
+            return dataclasses.replace(self, **overrides)
+        return type(self)(overrides.get('value', self))
+
+    def to_bytes(self, check_constraints: bool = True) -> bytes:
+        """Encode this value to bytes using the type's default codec."""
+        ec = type(self).EncodeConstants
+        if ec._CODEC == 'UPER':
+            from .codec_uper import UPEREncoder
+            enc = UPEREncoder.of_size(ec._REQUIRED_BYTES)
+        else:
+            from .acn_encoder import ACNEncoder
+            enc = ACNEncoder.of_size(ec._REQUIRED_BYTES)
+        self.encode(enc, check_constraints)
+        encoded_bytes = (enc.bit_index + 7) // 8
+        return bytes(enc.get_bitstream_buffer()[:encoded_bytes])
+
+    @classmethod
+    def from_bytes(cls, data: bytes, check_constraints: bool = True):
+        """Decode an instance from bytes using the type's default codec."""
+        dc = cls.DecodeConstants
+        if dc._CODEC == 'UPER':
+            from .codec_uper import UPERDecoder
+            dec = UPERDecoder.from_buffer(bytearray(data))
+        else:
+            from .acn_decoder import ACNDecoder
+            dec = ACNDecoder.from_buffer(bytearray(data))
+        return cls.decode(dec, check_constraints)
 
 
 # Integer types using ctypes for automatic range validation and conversion
@@ -151,10 +230,78 @@ class NullType(Asn1Base):
     
     def encode(self, codec: Encoder, check_constraints: bool = True):
         return
-    
+
     @classmethod
     def decode(cls, codec: Decoder, check_constraints: bool = True):
         return NullType()
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers used by Asn1Base.to_dict / from_dict
+# ---------------------------------------------------------------------------
+
+def _to_dict_val(val):
+    """Convert a single field value to a dict-serializable form."""
+    if val is None:
+        return None
+    if isinstance(val, NullType):
+        return None
+    if isinstance(val, Asn1Boolean):
+        return bool(val)
+    if dataclasses.is_dataclass(val) and isinstance(val, Asn1Base):
+        return val.to_dict()
+    if isinstance(val, IntEnum):
+        return int(val)
+    if isinstance(val, list):
+        return [_to_dict_val(v) for v in val]
+    return val
+
+
+def _from_dict_val(val, hint, kind_val=None):
+    """Reconstruct a typed value from a dict-serializable value."""
+    origin = getattr(hint, '__origin__', None)
+    args = getattr(hint, '__args__', ())
+
+    if origin is typing.Union:
+        none_type = type(None)
+        has_python_none = none_type in args
+        non_none_args = [a for a in args if a is not none_type]
+        # Distinguish Optional[X] (Union[X, None]) from Choice data (Union[NullType, T1, T2, ...])
+        real_args = [a for a in non_none_args if not (isinstance(a, type) and issubclass(a, NullType))]
+
+        if val is None and has_python_none:
+            return None  # Optional sequence field is absent
+        if val is None:
+            return NullType()  # NullType ASN.1 value
+        if len(real_args) == 1:
+            return _from_dict_val(val, real_args[0])
+        if len(real_args) > 1 and kind_val is not None:
+            idx = int(kind_val)
+            if 0 <= idx < len(real_args):
+                return _from_dict_val(val, real_args[idx])
+        if non_none_args:
+            return _from_dict_val(val, non_none_args[0])
+        return val
+
+    if origin is list:
+        elem_type = args[0] if args else type(None)
+        return [_from_dict_val(v, elem_type) for v in (val or [])]
+
+    if hint is NullType or hint is type(None):
+        return NullType()
+
+    if isinstance(hint, type):
+        if issubclass(hint, Asn1Boolean):
+            return Asn1Boolean(val)
+        if issubclass(hint, Asn1Base) and isinstance(val, dict):
+            return hint.from_dict(val)
+        if issubclass(hint, IntEnum):
+            return hint(val)
+        if issubclass(hint, (int, float, str)):
+            return hint(val)
+
+    return val
+
 
 # Utility functions to match C and Scala implementations
 # def int2uint(v: int) -> int:

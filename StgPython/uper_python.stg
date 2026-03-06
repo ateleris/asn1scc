@@ -45,6 +45,8 @@ class EncodeConstants:
     <arrsErrcodes:{x|<x>}; separator="\n">
     <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
     <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+    _REQUIRED_BYTES: int = <nMaxBytesInPER>
+    _CODEC: str = 'UPER'
 <endif>
 >>
 
@@ -66,11 +68,10 @@ def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> Non
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
-<if(arrsErrcodes)>
 # uper_python.stg 61
 class DecodeConstants:
     <arrsErrcodes:{x|<x>}; separator="\n">
-<endif>
+    _CODEC: str = 'UPER'
 
 >>
 
