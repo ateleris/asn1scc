@@ -45,7 +45,6 @@ def byteseq_equal_until(b1: PByteSeq, b2: PByteSeq, end: PInt) -> bool:
     Requires(0 <= end and end <= len(b1) * NO_OF_BITS_IN_BYTE and end <= len(b2) * NO_OF_BITS_IN_BYTE)
     Decreases(None)
     Ensures(Implies(b1 == b2, Result()))
-    # Ensures(Result() == byteseq_equal_until(b2, b1, end))
 
     if end == 0:
         return True
@@ -477,41 +476,6 @@ def __lemma_byte_set_bits_value(byte: int, value: int, position: int, length: in
     new_byte = Reveal(byte_set_bits(byte, value, position, length))
     written_value = Reveal(byte_read_bits(new_byte, position, length))
     return written_value == value
-
-@Pure
-@Opaque
-def __lemma_byte_set_bits_suffix(byte: int, value: int, position: int, length: int) -> bool:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= value and value < (1 << length))
-    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position+length, NO_OF_BITS_IN_BYTE - (position+length)) == 
-            byte_read_bits(byte, position+length, NO_OF_BITS_IN_BYTE - (position+length))) # Remaining bits
-    Ensures(Result())
-    
-    lower_length = NO_OF_BITS_IN_BYTE - (position+length)
-    new_byte = Reveal(byte_set_bits(byte, value, position, length))
-    new_lower = Reveal(byte_read_bits(new_byte, position + length, lower_length))
-    lower = Reveal(byte_read_bits(byte, position + length, lower_length))
-    
-    return new_lower == lower
-
-@Pure
-@Opaque
-def _lemma_byte_set_bits(byte: int, value: int, position: int, length: int) -> bool:
-    Requires(0 <= byte and byte <= 0xFF)
-    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
-    Requires(0 <= value and value < (1 << length))
-    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position, length) == value) # Written value
-    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), 0, position) == byte_read_bits(byte, 0, position)) # Previous bits
-    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position+length, NO_OF_BITS_IN_BYTE - (position+length)) == byte_read_bits(byte, position+length, NO_OF_BITS_IN_BYTE - (position+length))) # Remaining bits
-    Ensures(Result())
-    
-    lemma_prefix = __lemma_byte_set_bits_prefix(byte, value, position, length)
-    lemma_value = __lemma_byte_set_bits_value(byte, value, position, length)
-    lemma_suffix = __lemma_byte_set_bits_suffix(byte, value, position, length)
-    return lemma_prefix and lemma_value and lemma_suffix
 
 #endregion
 #region Set Byteseq
