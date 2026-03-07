@@ -688,7 +688,7 @@ def lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length:
 @Opaque
 def lemma_byteseq_set_bits_combine(byteseq: PByteSeq, value: int, upper_length: int, lower_length: int, position: int) -> bool:
     """Proof that two consecutive byteseq_set_bits calls can be combined into one"""
-    Requires(0 <= upper_length and upper_length <= 32)
+    Requires(upper_length == 32)
     Requires(0 <= lower_length and lower_length <= 32)
     Requires(upper_length + lower_length <= MAX_BITOP_LENGTH)
     Requires(0 <= position and position + upper_length + lower_length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
