@@ -64,15 +64,20 @@ def main():
         description="Verify nagini functions individually and write timing results as CSV.")
     parser.add_argument("files", nargs="+", help="Python files to verify")
     parser.add_argument("-o", "--output", required=True, help="Output CSV file")
+    parser.add_argument("--append", action="store_true",
+                        help="Append to existing CSV instead of overwriting")
     parser.add_argument("--env", default=DEFAULT_ENV,
                         help=f"Conda environment name (default: {DEFAULT_ENV})")
     parser.add_argument("--base-dir", default=DEFAULT_BASE_DIR,
                         help=f"Nagini --base-dir argument (default: {DEFAULT_BASE_DIR!r})")
     args = parser.parse_args()
 
-    with open(args.output, "w", newline="") as csv_file:
-        writer = csv.writer(csv_file)
-        writer.writerow(["File", "Function", "Time", "Result"])
+    mode = "a" if args.append else "w"
+    write_header = not args.append or not Path(args.output).exists()
+    with open(args.output, mode, newline="") as csv_file:
+        writer = csv.writer(csv_file, delimiter=";")
+        if write_header:
+            writer.writerow(["File", "Function", "Time", "Result"])
 
         for file_str in args.files:
             file_path = Path(file_str)
