@@ -511,6 +511,35 @@ class BitStream:
         Fold(self.bitstream_invariant())
         self._shift_bit_index(1)
 
+    def __write_bits32(self, value: int, bit_count: int) -> None:
+        Requires(self.bitstream_invariant())
+        Requires(0 <= bit_count and bit_count <= 32) 
+        Requires(0 <= value and value < (1 << (bit_count)))
+        Requires(self.validate_offset(bit_count))
+        Ensures(self.bitstream_invariant())
+        Ensures(self.current_used_bits == Old(self.current_used_bits + bit_count))
+        Ensures(self.buffer_size == Old(self.buffer_size))
+        Ensures(self.buffer() is byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
+        ghost_current_value = 0
+        i: int = 0
+        
+        while i < bit_count:
+            Invariant(self.bitstream_invariant())
+            Invariant(0 <= i and i <= bit_count)
+            Invariant(self.validate_offset(bit_count - i))
+            Invariant(self.current_used_bits == Old(self.current_used_bits + i))
+            Invariant(ghost_current_value == value >> (bit_count - i))
+            Invariant(self.buffer() is byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
+
+            bit = bool((value >> (bit_count - 1 - i)) % 2)
+            self.__write_bit(bit)
+            
+            ghost_current_value = (ghost_current_value << 1) + bit
+            updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
+            i = i + 1
+            
+        Assert(ghost_current_value == value)
+
     def write_bit(self, bit: bool) -> None:
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
@@ -562,34 +591,27 @@ class BitStream:
         # Check if value fits in bit_count bits
         if value < 0 or value >= (1 << bit_count):
             raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
-        
-        ghost_current_value = 0
-        i: int = 0
-        
+                
         Unfold(self.segments_predicate(self.buffer()))
         Assert(segments_contained(self.buffer(), self._segments))
 
-        while i < bit_count:
-            Invariant(self.bitstream_invariant())
-            Invariant(0 <= i and i <= bit_count)
-            Invariant(self.validate_offset(bit_count - i))
-            Invariant(self.current_used_bits == Old(self.current_used_bits + i))
-            Invariant(ghost_current_value == value >> (bit_count - i))
-            Invariant(self.buffer() is byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i))
+        if bit_count > 32:
+            remaining_bits = bit_count - 32
+            upper_value = value >> remaining_bits
+            lower_value = value % (1 << remaining_bits)
 
-            bit = bool((value >> (bit_count - 1 - i)) % 2)
-            self.__write_bit(bit)
-            
-            ghost_current_value = (ghost_current_value << 1) + bit
-            updated_seq = Reveal(byteseq_set_bits(Old(self.buffer()), ghost_current_value, Old(self.current_used_bits), i + 1))
-            i = i + 1
-            
-        Assert(ghost_current_value == value)
-        lemma = lemma_byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count)
+            self.__write_bits32(upper_value, 32)
+            self.__write_bits32(lower_value, remaining_bits)
+            Assert(lemma_byteseq_set_bits_combine(Old(self.buffer()), value, 32, remaining_bits, Old(self.current_used_bits)))            
+        else:
+            self.__write_bits32(value, bit_count)
+        
+        Assert(self.buffer() is byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
+        Assert(lemma_byteseq_set_bits(Old(self.buffer()), value, Old(self.current_used_bits), bit_count))
 
         # Establish new segments
         lemma_byteseq_equal_segments_contained(self.buffer(), Old(self.buffer()), Old(self.current_used_bits), self._segments)
         self._segments = segments_add(self._segments, bit_count, value)    
         Fold(self.segments_predicate(self.buffer()))
-        
+
     #endregion

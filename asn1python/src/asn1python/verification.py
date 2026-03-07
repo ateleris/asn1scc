@@ -7,20 +7,7 @@ This module provides constraint validation functions for ASN.1 types.
 from nagini_contracts.contracts import *
 
 from .asn1_constants import NO_OF_BITS_IN_BYTE
-MAX_BITOP_LENGTH = 32
-
-# import re
-# from .asn1_types import Asn1Error
-
-
-# class ConstraintError(Asn1Error):
-#     """Raised when a constraint validation fails"""
-#     pass
-
-# @Pure
-# def byte_bounds(byte: int, length: int) -> bool:
-#     Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
-#     return 0 <= byte and byte < (1 << length)
+MAX_BITOP_LENGTH = 64
 
 #region Helpers
 
@@ -477,6 +464,41 @@ def __lemma_byte_set_bits_value(byte: int, value: int, position: int, length: in
     written_value = Reveal(byte_read_bits(new_byte, position, length))
     return written_value == value
 
+@Pure
+@Opaque
+def __lemma_byte_set_bits_suffix(byte: int, value: int, position: int, length: int) -> bool:
+    Requires(0 <= byte and byte <= 0xFF)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= value and value < (1 << length))
+    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position+length, NO_OF_BITS_IN_BYTE - (position+length)) == 
+            byte_read_bits(byte, position+length, NO_OF_BITS_IN_BYTE - (position+length))) # Remaining bits
+    Ensures(Result())
+    
+    lower_length = NO_OF_BITS_IN_BYTE - (position+length)
+    new_byte = Reveal(byte_set_bits(byte, value, position, length))
+    new_lower = Reveal(byte_read_bits(new_byte, position + length, lower_length))
+    lower = Reveal(byte_read_bits(byte, position + length, lower_length))
+    
+    return new_lower == lower
+
+@Pure
+@Opaque
+def _lemma_byte_set_bits(byte: int, value: int, position: int, length: int) -> bool:
+    Requires(0 <= byte and byte <= 0xFF)
+    Requires(0 <= length and length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= position and position + length <= NO_OF_BITS_IN_BYTE)
+    Requires(0 <= value and value < (1 << length))
+    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position, length) == value) # Written value
+    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), 0, position) == byte_read_bits(byte, 0, position)) # Previous bits
+    Ensures(byte_read_bits(byte_set_bits(byte, value, position, length), position+length, NO_OF_BITS_IN_BYTE - (position+length)) == byte_read_bits(byte, position+length, NO_OF_BITS_IN_BYTE - (position+length))) # Remaining bits
+    Ensures(Result())
+    
+    lemma_prefix = __lemma_byte_set_bits_prefix(byte, value, position, length)
+    lemma_value = __lemma_byte_set_bits_value(byte, value, position, length)
+    lemma_suffix = __lemma_byte_set_bits_suffix(byte, value, position, length)
+    return lemma_prefix and lemma_value
+
 #endregion
 #region Set Byteseq
 
@@ -661,6 +683,45 @@ def lemma_byteseq_set_bits(byteseq: PByteSeq, value: int, position: int, length:
     lemma_prefix = __lemma_byteseq_set_bits_prefix(byteseq, value, position, length)
     lemma_value = __lemma_byteseq_set_bits_value(byteseq, value, position, length)
     return lemma_prefix and lemma_value
+
+@Pure
+@Opaque
+def lemma_byteseq_set_bits_combine(byteseq: PByteSeq, value: int, upper_length: int, lower_length: int, position: int) -> bool:
+    """Proof that two consecutive byteseq_set_bits calls can be combined into one"""
+    Requires(0 <= upper_length and upper_length <= 32)
+    Requires(0 <= lower_length and lower_length <= 32)
+    Requires(upper_length + lower_length <= MAX_BITOP_LENGTH)
+    Requires(0 <= position and position + upper_length + lower_length <= len(byteseq) * NO_OF_BITS_IN_BYTE)
+    Requires(0 <= value and value < (1 << (upper_length + lower_length)))
+    Decreases(lower_length)
+    Ensures(byteseq_set_bits(
+                byteseq_set_bits(byteseq, value >> lower_length, position, upper_length),
+                value % (1 << lower_length), position + upper_length, lower_length)
+            == byteseq_set_bits(byteseq, value, position, upper_length + lower_length))
+    Ensures(Result())
+
+    combined_length = upper_length + lower_length
+    upper_value = value >> lower_length
+    lower_value = value % (1 << lower_length)
+    intermediate = byteseq_set_bits(byteseq, upper_value, position, upper_length)
+
+    if lower_length == 0:
+        return True
+
+    lhs_full = Reveal(byteseq_set_bits(intermediate, lower_value, position + upper_length, lower_length))
+    rhs_full = Reveal(byteseq_set_bits(byteseq, value, position, combined_length))
+
+    # Aids the verification
+    Assert((value >> 1) >> (lower_length - 1) == upper_value)
+    Assert((value >> 1) % (1 << (lower_length - 1)) == lower_value >> 1)
+    Assert(lower_value % 2 == value % 2)
+
+    rec_lemma = lemma_byteseq_set_bits_combine(byteseq, value >> 1, upper_length, lower_length - 1, position)
+
+    lhs_rec = byteseq_set_bits(intermediate, lower_value >> 1, position + upper_length, lower_length - 1)
+    rhs_rec = byteseq_set_bits(byteseq, value >> 1, position, combined_length - 1)
+    Assert(lhs_rec == rhs_rec)
+    return lhs_full == rhs_full
 
 #endregion
 
