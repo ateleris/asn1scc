@@ -351,7 +351,7 @@ class BitStream:
         
     @Pure
     @Opaque
-    def __read_current_bit_pure(self) -> bool:
+    def __read_current_bit(self) -> bool:
         Requires(Rd(self.bitstream_invariant()))
         Requires(1 <= self.remaining_bits)
         Unfold(Rd(self.bitstream_invariant()))
@@ -362,7 +362,7 @@ class BitStream:
     def _lemma_read_current_bit_pure(self) -> bool:
         Requires(Rd(self.bitstream_invariant()))
         Requires(1 <= self.remaining_bits)
-        Ensures(self.__read_current_bit_pure() == byteseq_read_bit(self.buffer(), self.current_used_bits))
+        Ensures(self.__read_current_bit() == byteseq_read_bit(self.buffer(), self.current_used_bits))
         Ensures(Result())
     
         ghost_buf = self.buffer()
@@ -373,7 +373,7 @@ class BitStream:
     
         ghost_bit = Reveal(byteseq_read_bit(ghost_buf, ghost_index))
         ghost_bit_inner = Reveal(byte_read_bit(ghost_buf[ghost_byte_pos], ghost_bit_pos))
-        read_bit = Reveal(self.__read_current_bit_pure())
+        read_bit = Reveal(self.__read_current_bit())
     
         Unfold(Rd(self.bitstream_invariant()))
         bit_pos_eq = self._current_bit == ghost_bit_pos
@@ -395,7 +395,7 @@ class BitStream:
         ghost = self._lemma_read_current_bit_pure()
         ghost = lemma_byteseq_read_bits_equal(self.buffer(), self.current_used_bits)
 
-        res = self.__read_current_bit_pure()
+        res = self.__read_current_bit()
         self._shift_bit_index(1)
         return res
     
@@ -571,7 +571,7 @@ class BitStream:
         Fold(self.segments_predicate(self.buffer()))
 
     def write_bits(self, value: int, bit_count: int) -> None:
-        """Write up to 32 bits"""
+        """Write up to 64 bits"""
         Requires(self.bitstream_invariant())
         Requires(self.segments_predicate(self.buffer()))
         Requires(0 <= bit_count and bit_count <= MAX_BITOP_LENGTH) 

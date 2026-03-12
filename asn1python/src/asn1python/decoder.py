@@ -503,7 +503,7 @@ class Decoder(Codec):
             size_in_bits: Optional hint for bits needed (must match range calculation)
         """
         Requires(self.codec_predicate() and self.read_invariant())
-        Requires(min_val <= max_val and (max_val - min_val) < (1 << 32))
+        Requires(min_val <= max_val and (max_val - min_val) < (1 << MAX_BITOP_LENGTH))
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
@@ -628,7 +628,7 @@ class Decoder(Codec):
             DecodeResult containing decoded value
         """
         Requires(self.codec_predicate() and self.read_invariant())
-        Requires(min_val <= max_val and (max_val - min_val) < (1 << 32))
+        Requires(min_val <= max_val and (max_val - min_val) < (1 << MAX_BITOP_LENGTH))
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
@@ -655,7 +655,7 @@ class Decoder(Codec):
             DecodeResult containing decoded value
         """
         Requires(self.codec_predicate() and self.read_invariant())
-        Requires(min_val <= max_val and (max_val - min_val) < (1 << 32))
+        Requires(min_val <= max_val and (max_val - min_val) < (1 << MAX_BITOP_LENGTH))
         Requires(self.read_aligned((max_val - min_val).bit_length()))
         Requires(self.current_segment().value + min_val <= max_val) # Only allow reading of values in range
         Ensures(self.codec_predicate() and self.read_invariant())
