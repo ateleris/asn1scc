@@ -23,7 +23,7 @@ val <p> = <sFuncName>(codec) match // uper:13
 /*   U P E R                                           */
 /*******************************************************/
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 @inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
 >>
 
@@ -907,7 +907,7 @@ sparkAnnotations_encode(sTypeDefName) ::= <<
 sparkAnnotations_decode(sTypeDefName) ::= <<
 >>
 
-Null_declare(p) ::= "val <p>: NullType = 0"
+Null_declare(p, sType) ::= "val <p>: NullType = 0"
 
 decode_nullType(p) ::= <<
 /*no encoding/decoding is required*/

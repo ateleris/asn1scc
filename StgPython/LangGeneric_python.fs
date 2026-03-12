@@ -497,16 +497,10 @@ type LangGeneric_python() =
                 acnChildrenEncoded
                 |> List.rev  // Reverse to get original order
                 |> List.map (fun (varName, acnCh) ->
-                    // In decode mode, complex types like AcnReferenceToIA5String have 'instance_' prefix
-                    // But primitive types like integers don't
-                    let actualVarName =
-                        if codec = Decode then
-                            match acnCh.Type with
-                            | Asn1AcnAst.AcnReferenceToIA5String _ -> $"instance_%s{varName}"
-                            | _ -> varName
-                        else
-                            varName
-                    $"'%s{acnCh.c_name}': %s{actualVarName}"
+                    // ACN children (determinants like hasFieldA) are decoded inline via
+                    // sequence_acn_child_decode which just inlines sChildContent directly,
+                    // producing a plain 'varName = ...' variable with no <p>_ prefix.
+                    $"'%s{acnCh.c_name}': %s{varName}"
                 )
                 |> String.concat ", "
 
@@ -663,6 +657,8 @@ type LangGeneric_python() =
     override this.orOp = "or"
     override this.initMethod = InitMethod.Procedure
     override _.decodingKind = Copy
+    override _.ArrayInitByAppend = true
+    override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
@@ -687,7 +683,6 @@ type LangGeneric_python() =
     override this.validationStringPrefix = "self.arr"
     override this.shouldRemoveModulePrefixFromTypedef = true
     override this.getEnumSelectionJoin path = this.joinSelectionEnum path
-    override this.usePrefixForIntegerVariables = false
     override this.getAlignmentByteTypeName = "byte"
     override this.getAlignmentWordTypeName = "word"
     override this.getAlignmentDWordTypeName = "dword"
@@ -763,7 +758,7 @@ type LangGeneric_python() =
             | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
             | _ -> ByPointer
         let recvId = match t.Kind, c with
-                        | _, Decode -> "instance"
+                        | _, Decode -> "instance_" + t.FT_TypeDefinition[Python].asn1Name
                         | Asn1AcnAst.Enumerated _, Encode -> "self.val" // For enums, we encapsulate the inner value into a "val" object
                         | _, Encode -> "self"                           // For class methods, the receiver is always "self"
 
@@ -988,13 +983,16 @@ type LangGeneric_python() =
     override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
         generateEnumAuxiliaries r enc t enm nestingScope sel codec this
 
-    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
+    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) (sChildName: string) =
         match childType with
         | Sequence _ | Enumerated _| IA5String _ ->
             match codec with
             | Encode -> u.call_base_type_func "self.data" childTypeDef codec
-            | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
+            | Decode -> u.call_base_type_func ("instance_" + sChildName) (childTypeDef + ".decode") codec
         | _ -> "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
+
+    override this.choiceChildDecodePath (sChildTypeDef: string) (sChildName: string) =
+        Some (AccessPath.valueEmptyPath ("instance_" + sChildName))
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody

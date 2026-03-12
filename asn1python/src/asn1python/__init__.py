@@ -9,7 +9,7 @@ from .asn1_constants import *
 
 from .asn1_exceptions import (
     # Error handling
-    Asn1Exception, Asn1InvalidValueException, Asn1OverflowException, Asn1ValueOutOfRangeException, Asn1ValueUnexpectedEndOfDataException,
+    Asn1Exception, Asn1InvalidValueException, Asn1OverflowException, Asn1ValueOutOfRangeException, Asn1UnexpectedEndOfDataException,
     
     # Testcase Errors
     Asn1TestcaseError, Asn1TestcaseEncodeFailedError, Asn1TestcaseDecodeFailedError, Asn1TestcaseConstraintFailedError, Asn1TestcaseDifferentResultError
@@ -53,7 +53,7 @@ __all__ = [
     "Asn1ConstraintValidResult",
 
     # Errors
-    "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException", "Asn1ValueOutOfRangeException", "Asn1ValueUnexpectedEndOfDataException",
+    "Asn1Exception", "Asn1InvalidValueException", "Asn1OverflowException", "Asn1ValueOutOfRangeException", "Asn1UnexpectedEndOfDataException",
 
     # Testcase Errors
     "Asn1TestcaseError", "Asn1TestcaseEncodeFailedError", "Asn1TestcaseDecodeFailedError", "Asn1TestcaseConstraintFailedError", "Asn1TestcaseDifferentResultError",

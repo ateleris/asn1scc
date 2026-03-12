@@ -71,7 +71,8 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
     let typeDef = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcName = lm.lg.getUPerFuncName r codec t typeDef
     let errCodeName = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")))
-    let errCode, ns = getNextValidErrorCode us errCodeName None
+    let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elem")
+    let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
     let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment = lm.uper.EmitTypeAssignment
     let EmitTypeAssignment_def = lm.uper.EmitTypeAssignment_def
@@ -99,7 +100,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                 let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
                 let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
-                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
+                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
                 let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
                 let ns2 =
                     match t.id.topLevelTas with
@@ -300,9 +301,11 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:Co
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, _ = adaptArgument lm codec p
         let aux = lm.lg.generateNullTypeAuxiliaries r UPER t o nestingScope p.accessPath codec
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         match codec, lm.lg.decodingKind with
         | Decode, Copy ->
-            Some ({UPERFuncBodyResult.funcBody = lm.uper.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; auxiliaries = aux})
+            Some ({UPERFuncBodyResult.funcBody = lm.uper.Null_declare pp sType; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; auxiliaries = aux})
         | _ -> None
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations [] us
@@ -629,7 +632,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let chFunc = child.getUperFunction codec
             let chp =
                 let recv = if lm.lg.decodingKind = Copy then AccessPath.emptyPath (p.accessPath.asIdentifier lm.lg) p.accessPath.selectionType else p.accessPath
-                {p with accessPath = lm.lg.getArrayItem recv i child.isIA5String}
+                if lm.lg.ArrayInitByAppend && codec = Decode then
+                    let tempPath = AccessPath.emptyPath (pp + lm.lg.TempArrayItemSuffix) ByValue
+                    {p with accessPath = { tempPath with phantomArrayDepth = recv.SequenceOfLevel + 1 }}
+                else
+                    {p with accessPath = lm.lg.getArrayItem recv i child.isIA5String}
             let internalItem = chFunc.funcBody childNestingScope chp fromACN
 
             let sqfProofGen = {
@@ -734,6 +741,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let absent, present =
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "false", "true"
+                | Python -> "False", "True"
                 | _ -> "0", "1"
             // please note that in decode, macro uper_sequence_presence_bit_fix
             // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
@@ -789,21 +797,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     | _ -> false
                 
                 
-                let childName =
-                    if ProgrammingLanguage.ActiveLanguages.Head = Python then
-                        childName.Replace("_arr_", "_")
-                    else
-                        childName
-                        
-                let x =
-                    if ProgrammingLanguage.ActiveLanguages.Head = Python then
-                        childContent.funcBody.Replace("_arr_", "_")
-                    else
-                        childContent.funcBody 
-                
                 let childBody, child_localVariables =
                     match child.Optionality with
-                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName x childTypeDef isPrimitiveType codec) , childContent.localVariables)
+                    | None -> TL "handleChild_12" (fun () -> Some (sequence_mandatory_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef isPrimitiveType codec) , childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysAbsent ->
                         TL "handleChild_13" (fun () -> 
                         match codec with
@@ -860,12 +856,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let childrenResultExpr = childrenStatements00 |> List.choose(fun res -> res.resultExpr)
         let childrenAuxiliaries = childrenStatements00 |> List.collect (fun s -> s.auxiliaries)
 
-        let childrenResultExpr =
-            if ProgrammingLanguage.ActiveLanguages.Head = Python then
-                childrenResultExpr |> List.map (fun s -> s.Replace("_arr_", "_"))
-            else
-                childrenResultExpr
-                
         // If we are Decoding with Copy decoding kind, then all children `resultExpr` must be defined as well (i.e. we must have the same number of `resultExpr` as children)
         assert (resultExpr.IsNone || childrenResultExpr.Length = nonAcnChildren.Length)
         let seqBuild    = resultExpr |> Option.map (fun res -> sequence_build res td p.accessPath.isOptional childrenResultExpr) |> Option.toList
@@ -910,20 +900,25 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     acnSiblingMaxSize = Some acnSiblingMaxSize
                     parents = (p, t) :: nestingScope.parents}
             let chFunc = child.chType.getUperFunction codec
-            let uperChildRes =
-                match lm.lg.uper.catd with
-                | false   -> chFunc.funcBody childNestingScope ({p with accessPath =  lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
-                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
-                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChild p.accessPath  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
             let sChildName = (lm.lg.getAsn1ChChildBackendName child)
             let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+            let uperChildRes =
+                match lm.lg.uper.catd with
+                | false   ->
+                    let childPath =
+                        match codec, lm.lg.choiceChildDecodePath sChildTypeDef sChildName with
+                        | Decode, Some customPath -> customPath
+                        | _ -> lm.lg.getChChild p.accessPath sChildName child.chType.isIA5String
+                    chFunc.funcBody childNestingScope ({p with accessPath = childPath}) fromACN
+                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")} fromACN
+                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChild p.accessPath sChildName child.chType.isIA5String}) fromACN
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
             let isEnum = match child.chType.Kind with | Enumerated _ -> true | _ -> false
             let sChildInitExpr = child.chType.initFunction.initExpressionFnc()
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
-                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef sChildName
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with
