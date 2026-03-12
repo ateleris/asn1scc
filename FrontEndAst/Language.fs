@@ -379,8 +379,6 @@ type ILangGeneric () =
     default this.shouldRemoveModulePrefixFromTypedef = false
     abstract member getEnumSelectionJoin : AccessPath -> string
     default this.getEnumSelectionJoin path = this.joinSelection path
-    abstract member usePrefixForIntegerVariables : bool
-    default this.usePrefixForIntegerVariables = true
     abstract member getAlignmentByteTypeName : string
     default this.getAlignmentByteTypeName = "NextByte"
     abstract member getAlignmentWordTypeName : string

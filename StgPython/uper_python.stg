@@ -8,11 +8,11 @@ super().encode(codec, check_constraints)
 >>
 call_superclass_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13_2
-instance_decode = <sFuncName>(codec, check_constraints)
-if isinstance(instance_decode, tuple):
-    <p>, superclass_acn_children = instance_decode
+<p>_decode = <sFuncName>(codec, check_constraints)
+if isinstance(<p>_decode, tuple):
+    <p>, superclass_acn_children = <p>_decode
 else:
-    <p> = instance_decode
+    <p> = <p>_decode
 >>
 
 call_base_type_func_encode(p, sFuncName) ::= <<
@@ -21,11 +21,11 @@ call_base_type_func_encode(p, sFuncName) ::= <<
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13
-instance_decode = <sFuncName>(codec, check_constraints)
-if isinstance(instance_decode, tuple):
-    <p>, arguments_acn_children = instance_decode
+<p>_decode = <sFuncName>(codec, check_constraints)
+if isinstance(<p>_decode, tuple):
+    <p>, arguments_acn_children = <p>_decode
 else:
-    <p> = instance_decode
+    <p> = <p>_decode
 >>
 
 /*******************************************************/
@@ -143,7 +143,7 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 # uper_python.stg 120
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-if decoded_result:
+if decoded_result and not decoded_result.decoded_value is None:
     <p>_arr[<i>] = allowedCharSet[int(decoded_result.decoded_value)]
 >>
 
@@ -280,7 +280,7 @@ extBit: Ref[Boolean] = Ref(false)
 
 # read extension bit
 decoded_result = codec.read_bit()
-if decoded_result:
+if decoded_result and not decoded_result.decoded_value is None:
     extBit = decoded_result.decoded_value
     if not extBit: # ext bit is zero ==> value is expected with root range
         <sIntBody>
@@ -460,6 +460,7 @@ sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
 # uper_python.stg 383
+assert not <p>.<sChName> is None
 codec.append_bit(<sVal>)
 >>
 
@@ -686,7 +687,7 @@ res = codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeM
 bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 # uper_python.stg 574
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
-if not decoded_length:
+if not decoded_length.success or decoded_length.decoded_value is None:
     if decoded_length.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {decoded_length.error_message}")
     raise Asn1InvalidValueException(f"Decoding Exception {<sTypeDefName>.DecodeConstants.<sErrCode>}: {decoded_length.error_message}")

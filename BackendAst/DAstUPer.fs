@@ -739,6 +739,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let absent, present =
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "false", "true"
+                | Python -> "False", "True"
                 | _ -> "0", "1"
             // please note that in decode, macro uper_sequence_presence_bit_fix
             // calls macro uper_sequence_presence_bit (i.e. behaves like optional)

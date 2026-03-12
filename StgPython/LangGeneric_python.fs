@@ -498,16 +498,10 @@ type LangGeneric_python() =
                 acnChildrenEncoded
                 |> List.rev  // Reverse to get original order
                 |> List.map (fun (varName, acnCh) ->
-                    // In decode mode, complex types like AcnReferenceToIA5String have 'instance_' prefix
-                    // But primitive types like integers don't
-                    let actualVarName =
-                        if codec = Decode then
-                            match acnCh.Type with
-                            | Asn1AcnAst.AcnReferenceToIA5String _ -> $"instance_%s{varName}"
-                            | _ -> varName
-                        else
-                            varName
-                    $"'%s{acnCh.c_name}': %s{actualVarName}"
+                    // ACN children (determinants like hasFieldA) are decoded inline via
+                    // sequence_acn_child_decode which just inlines sChildContent directly,
+                    // producing a plain 'varName = ...' variable with no <p>_ prefix.
+                    $"'%s{acnCh.c_name}': %s{varName}"
                 )
                 |> String.concat ", "
 
@@ -690,7 +684,6 @@ type LangGeneric_python() =
     override this.validationStringPrefix = "self.arr"
     override this.shouldRemoveModulePrefixFromTypedef = true
     override this.getEnumSelectionJoin path = this.joinSelectionEnum path
-    override this.usePrefixForIntegerVariables = false
     override this.getAlignmentByteTypeName = "byte"
     override this.getAlignmentWordTypeName = "word"
     override this.getAlignmentDWordTypeName = "dword"

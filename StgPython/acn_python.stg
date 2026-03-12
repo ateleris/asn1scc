@@ -69,7 +69,7 @@ def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAc
             # acn_python.stg 70
             raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
-    return <sVarName><if(bHasAcnChildrenToReturn)>, instance_acn_children<endif>
+    return <sVarName><if(bHasAcnChildrenToReturn)>, <sVarName>_acn_children<endif>
 >>
 
 A(sErrCode) /*nogen*/ ::= ""
@@ -509,9 +509,9 @@ if not res:
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode, sType) ::= <<
 if <p>:
-    data: bytearray = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+    data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 else:
-    data: bytearray = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
+    data = bytearray([<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
 codec.append_bits(data, <nSize>)
 >>
 
@@ -569,7 +569,7 @@ Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <
 # acn_python.stg 428
 if <sIntVal> == <nItemIdx>:
     # acn_python.stg 430
-    <sIntVal>_val = <sName>
+    <p>_val = <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -584,10 +584,8 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 # acn_python.stg 574
+<sIntVal>: Optional[int] = None
 <arrsItem; separator="\nel">
-else:
-    # acn_python.stg 577
-    <sIntVal> = None
 
 if <sIntVal> is not None:
     <sActualCodecFunc>
@@ -599,8 +597,8 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 
 <arrsItem; separator="\n">
 # Save enum value object as discriminator for choice determinants (to enable name-based lookup)
-<p>_discriminator = <sIntVal>_val
-<p> = <td.typeName>(<sIntVal>_val)
+<p>_discriminator = <p>_val
+<p> = <td.typeName>(<p>_val)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -773,7 +771,7 @@ decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
 <CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
-<p>_arr: list[<sType>] = []
+<p>_arr: list = []
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
 <p> = <sType>(<p>_nCount, <p>_arr)
 >>
@@ -1064,6 +1062,7 @@ else:
 sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
+assert(not self.<sChName> is None)
 <soAlignmentCode>
 <if(bIsPrimitive)>
 <soChildContent>
@@ -1193,6 +1192,7 @@ if <p> == <nChildIndex>:
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
 if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
+    assert(isinstance(<p>.data, <sChildTypeDef>))
     codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
@@ -1275,6 +1275,7 @@ else:
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 if <p>.kind == <sChildID>:
     # acn_python.stg 978
+    assert(isinstance(<p>.data, <sChildTypeDef>))
     <sChildBody>
 >>
 

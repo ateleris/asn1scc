@@ -812,7 +812,9 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
         let localVar, intVal =
             let varName =
                 let baseName = ToC (p.accessPath.asIdentifier lm.lg)
-                if lm.lg.usePrefixForIntegerVariables then $"intVal_{baseName}" else baseName
+                match ProgrammingLanguage.ActiveLanguages.Head with
+                | Python -> $"{baseName}_int"
+                | _ -> $"intVal_{baseName}"
             let lv =
                 match lm.lg.decodingKind with
                 | Copy -> []
