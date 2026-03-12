@@ -26,7 +26,7 @@ call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, p
 
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 #define <sErrCode>		<nErrValue>  /**/
 >>
 
@@ -928,7 +928,7 @@ sparkAnnotations_encode(sTypeDefName) ::= <<
 sparkAnnotations_decode(sTypeDefName) ::= <<
 >>
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 decode_nullType(p) ::= <<
 /*no encoding/decoding is required*/

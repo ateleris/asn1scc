@@ -12,7 +12,7 @@ ULong.fromRaw(<p><sAcc>nCount)
 <endif>
 >>
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<
 @inline @cCode.inline val <sErrCode>: Int = <nErrValue> /* <soErrorCodeComment> */
 >>
 
