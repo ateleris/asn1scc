@@ -18,6 +18,8 @@ import subprocess
 import argparse
 import sys
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 DEFAULT_ENV = "nagini"
@@ -66,11 +68,25 @@ def main():
     parser.add_argument("-o", "--output", required=True, help="Output CSV file")
     parser.add_argument("--append", action="store_true",
                         help="Append to existing CSV instead of overwriting")
+    parser.add_argument("-j", "--jobs", type=int, default=1,
+                        help="Number of parallel verification jobs (default: 1)")
     parser.add_argument("--env", default=DEFAULT_ENV,
                         help=f"Conda environment name (default: {DEFAULT_ENV})")
     parser.add_argument("--base-dir", default=DEFAULT_BASE_DIR,
                         help=f"Nagini --base-dir argument (default: {DEFAULT_BASE_DIR!r})")
     args = parser.parse_args()
+
+    print_lock = threading.Lock()
+
+    def verify_and_report(file_path: Path, name: str) -> tuple[str, bool, float, str]:
+        success, elapsed, output = run_nagini(file_path, name, args.env, args.base_dir)
+        result_str = "ok" if success else "FAIL"
+        with print_lock:
+            print(f"  {name} ... {elapsed:.2f}s  {result_str}")
+            if not success:
+                for line in output.splitlines():
+                    print(f"    {line}")
+        return name, success, elapsed, result_str
 
     mode = "a" if args.append else "w"
     write_header = not args.append or not Path(args.output).exists()
@@ -86,23 +102,20 @@ def main():
                 continue
 
             names = extract_names(file_path)
-            print(f"\n=== {file_path} ({len(names)} functions) ===")
+            print(f"\n=== {file_path} ({len(names)} functions, {args.jobs} job(s)) ===")
 
-            file_total = 0.0
-            any_failed = False
-            for name in names:
-                print(f"  {name} ...", end="", flush=True)
-                success, elapsed, output = run_nagini(file_path, name, args.env, args.base_dir)
-                file_total += elapsed
-                result_str = "ok" if success else "FAIL"
-                print(f" {elapsed:.2f}s  {result_str}")
-                if not success:
-                    any_failed = True
-                    for line in output.splitlines():
-                        print(f"    {line}")
-                writer.writerow([file_path, name, f"{elapsed:.3f}", result_str])
-                csv_file.flush()
+            results: dict[str, tuple[bool, float, str]] = {}
+            with ThreadPoolExecutor(max_workers=args.jobs) as executor:
+                futures = {executor.submit(verify_and_report, file_path, name): name for name in names}
+                for future in as_completed(futures):
+                    name, success, elapsed, result_str = future.result()
+                    results[name] = (success, elapsed, result_str)
+                    writer.writerow([file_path, name, f"{elapsed:.3f}", result_str])
+                    csv_file.flush()
 
+            # Write TOTAL row in original function order
+            file_total = sum(elapsed for _, elapsed, _ in results.values())
+            any_failed = any(not success for success, _, _ in results.values())
             total_result = "FAIL" if any_failed else "ok"
             writer.writerow([file_path, "TOTAL", f"{file_total:.3f}", total_result])
             csv_file.flush()
