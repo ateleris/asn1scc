@@ -18,22 +18,32 @@ def class_predicate(self) -> bool:
     <endif>
 >>
 
+class_predicate_sequence(arrsChildren) ::= <<
+@Predicate
+def class_predicate(self) -> bool:
+    <if(arrsChildren)>
+    return <arrsChildren:{acc|<acc>}; separator=" and ">
+    <else>
+    return True
+    <endif>
+>>
+
 class_predicate_sequence_child_mandatory(sChildName, sChildType, bIsPrimitive, nBitSize) ::= <<
-<if(bIsPrimitive)>True<else>self.<sChildName>.class_predicate()<endif>
+Acc(self.<sChildName>)<if(!bIsPrimitive)> and self.<sChildName>.class_predicate()<endif>
 >>
 
 class_predicate_sequence_child_optional(sChildName, sChildType, bIsPrimitive, nBitSize) ::= <<
-<if(bIsPrimitive)>True<else>(self.<sChildName> is None or self.<sChildName>.class_predicate())<endif>
+Acc(self.<sChildName>)<if(!bIsPrimitive)> and (self.<sChildName> is None or self.<sChildName>.class_predicate())<endif>
 >>
 
 class_predicate_choice_child(sChildType, bIsPrimitive) ::= <<
-(isinstance(self.data, <sChildType>) <if(!bIsPrimitive)>and self.data.class_predicate()<endif>)
+(isinstance(self.data, <sChildType>)<if(!bIsPrimitive)> and self.data.class_predicate()<endif>)
 >>
 
 class_predicate_choice(arrsChildren) ::= <<
 @Predicate
 def class_predicate(self) -> bool:
-    return (<arrsChildren:{child|<child>}; separator=" or\n        ">)
+    return Acc(self.data) and (<arrsChildren:{child|<child>}; separator=" or\n        ">)
 >>
 
 /*
@@ -108,7 +118,7 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
     segments = segments_drop(segments, 1)
     <endif>
     <if(bChildFixedSize)>
-    return len(segments) \>= segCount and Forall(segments_take(segments, <nChildMaxCount>), lambda seg: seg.length == <nChildMinSize>)
+    return len(segments) \>= segCount and Forall(segments_take(segments, segCount), lambda seg: seg.length == <nChildMinSize>)
     <else>
     return False #TODO
     <endif>
@@ -389,7 +399,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
 *****************************************************************************************
 */
 
-segments_eq_lemma_sequence(sTypeName, arrsChildren) ::= <<
+segments_eq_header(sTypeName) /*nogen*/ ::= <<
 @Pure
 @Opaque
 @staticmethod
@@ -399,10 +409,12 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
     Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
     Ensures(left == right)
     Ensures(Result())
-
     Unfold(Rd(left.class_predicate()))
     Unfold(Rd(right.class_predicate()))
-    
+>>
+
+segments_eq_lemma_sequence(sTypeName, arrsChildren) ::= <<
+<segments_eq_header(sTypeName=sTypeName)>
     segments_left = <sTypeName>.segments_of(left)
     segments_right = <sTypeName>.segments_of(right)
     <arrsChildren:{child|<child>}; separator="\n">
@@ -449,18 +461,7 @@ if left.kind == <sPresentWhenName>:
 >>
 
 segments_eq_lemma_choice(sTypeName, arrsChildren) ::= <<
-@Pure
-@Opaque
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
-    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    Ensures(Result())
-
-    Unfold(Rd(left.class_predicate()))
-    Unfold(Rd(right.class_predicate()))
+<segments_eq_header(sTypeName=sTypeName)>
 
     segments_left = <sTypeName>.segments_of(left)
     segments_right = <sTypeName>.segments_of(right)
@@ -471,18 +472,7 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
 
 
 segments_eq_lemma_sequenceOf(sTypeName, sArrName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
-@Pure
-@Opaque
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
-    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    Ensures(Result())
-
-    Unfold(Rd(left.class_predicate()))
-    Unfold(Rd(right.class_predicate()))
+<segments_eq_header(sTypeName=sTypeName)>
 
     <if(!bIsFixedSize)>
     
@@ -524,31 +514,13 @@ def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
 >>
 
 segments_eq_lemma_enum(sTypeName, nBitSize) ::= <<
-@Pure
-@Opaque
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
-    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    Ensures(Result())
+<segments_eq_header(sTypeName=sTypeName)>
     return left.val == right.val
 >>
 
 segments_eq_octetString(sTypeName, sArrName) ::= <<
-@Pure
-@Opaque
-@staticmethod
-def segments_eq_lemma(left: '<sTypeName>', right: '<sTypeName>') -> bool:
-    Requires(Rd(left.class_predicate()) and left.is_constraint_valid_pure())
-    Requires(Rd(right.class_predicate()) and right.is_constraint_valid_pure())
-    Requires(<sTypeName>.segments_of(left) == <sTypeName>.segments_of(right))
-    Ensures(left == right)
-    Ensures(Result())
+<segments_eq_header(sTypeName=sTypeName)>
 
-    Unfold(Rd(left.class_predicate()))
-    Unfold(Rd(right.class_predicate()))
     left_seq = ToByteSeq(left.<sArrName>)
     right_seq = ToByteSeq(right.<sArrName>)
     Assert(lemma_segments_byteseq_full_equal(left_seq, right_seq))

@@ -61,10 +61,10 @@ def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> Non
         if not valid_res.is_valid:
             raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
     <endif>
-    Unfold(Acc(self.class_predicate(), 1/20))
+    Unfold(Acc(self.class_predicate(), 1/2))
 
     <sContent>
-    Fold(Acc(self.class_predicate(), 1/20))
+    Fold(Acc(self.class_predicate(), 1/2))
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<

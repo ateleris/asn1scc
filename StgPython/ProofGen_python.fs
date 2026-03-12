@@ -14,7 +14,7 @@ let Ensures (expr: string): string = $"Ensures({expr})"
 
 let fieldOldEqual (fieldName: string): string =
     Ensures $"Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}) ==
-            Old(Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}))"
+            Old(Unfolding(Acc(self.class_predicate(), 1/20)), {fieldName}))"
 
 
 let getFieldsPostcond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
@@ -46,7 +46,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
     match codec with
     | Encode ->
         [
-            "Acc(self.class_predicate(), 1/20)";
+            "Acc(self.class_predicate(), 1/2)";
             "codec.codec_predicate() and codec.write_invariant()";
             "codec.remaining_bits >= " + string(t.maxSizeInBits enc);
             "check_constraints and self.is_constraint_valid_pure()"
@@ -65,7 +65,10 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
 
     match codec with
     | Encode ->
-        ["Ensures(Acc(self.class_predicate(), 1/20))"] @
+        [
+            "Ensures(Acc(self.class_predicate(), 1/2))";
+            "Ensures(self.is_constraint_valid_pure())"
+        ] @
         getFieldsPostcond r t lg "self" @
         [
             "Ensures(codec.codec_predicate() and codec.write_invariant())";
@@ -185,13 +188,13 @@ let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: 
             asn1Children |> List.map (generateSequenceChildSegmentsEqLemma lg enc t.moduleName)
 
         // Generate functions using templates
-        let classPredicateFunc = class_predicate_fields childPredicates
+        let classPredicateFunc = class_predicate_sequence childPredicates
         let segmentsValidFunc = segments_valid_sequence typeName childSegmentsValid
         let segmentsCountFunc = segments_count_sequence typeName childSegmentsCount
         let segmentsOfFunc = segments_of_sequence typeName childSegments
         let segmentsEqLemma = segments_eq_lemma_sequence typeName childSegmentsEqLemma
 
-        [classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
+        ["# SEQUENCE AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _ -> []
 
 //#endregion
@@ -311,7 +314,7 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
     | Decode, true ->
 
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        let classPredicateFunc = class_predicate_fields []
+        let classPredicateFunc = class_predicate_fields ["self.val"]
         let segmentsValidFunc = segments_valid_primitive typeName bitSize
         let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_enum typeName bitSize
@@ -324,21 +327,15 @@ let generateOctetStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (
     match codec, sel.steps.IsEmpty with
     | Decode, true ->
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
-        match os.isFixedSize with
-        | true ->
-            let minChildCount = os.minSize.uper
-            let maxChildCount = os.maxSize.uper
-            let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
-            let segmentsValidFunc = segments_valid_sequenceOf typeName minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
-            let segmentsCountFunc = segments_count_primitive typeName (maxChildCount.ToString())
-            let segmentsOfFunc = segments_of_octetString typeName "arr"
-            let segmentsEqLemma = segments_eq_octetString typeName "arr"
-            ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
-
-        | false ->
-            // let segmentsCountFunc = segments_count_var_size typeName
-
-            ["# OctetString AUX Var Size"]
+        
+        let minChildCount = os.minSize.uper
+        let maxChildCount = os.maxSize.uper
+        let classPredicateFunc = class_predicate_fields ((if os.isFixedSize then [] else ["self.nCount"]) @ ["self.arr"; list_perm_access "arr"])
+        let segmentsValidFunc = segments_valid_sequenceOf typeName minChildCount maxChildCount os.isFixedSize true true (BigInteger 8) (BigInteger 8)
+        let segmentsCountFunc = segments_count_sequenceOf typeName minChildCount maxChildCount os.isFixedSize true true (BigInteger 1) (BigInteger 1)
+        let segmentsOfFunc = segments_of_octetString typeName "arr"
+        let segmentsEqLemma = segments_eq_octetString typeName "arr"
+        ["# OctetString AUX"; classPredicateFunc; segmentsValidFunc; segmentsCountFunc; segmentsOfFunc; segmentsEqLemma]
     | _, _ -> ["# OctetString AUX (unused)"]
 
 let generateBitStringAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.BitString) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): string list =
@@ -360,7 +357,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
         // Apparently some types report elemFixedSize as False even though minSize == maxSize
         let childFixedSize = o.elemFixedSize || (childMinSize = childMaxSize)
 
-        let classPredicateFunc = class_predicate_fields [list_perm_access "arr"]
+        let classPredicateFunc = class_predicate_fields ((if o.isFixedSize then [] else ["self.nCount"]) @ ["self.arr"; list_perm_access "arr"])
         let segmentsValidFunc = segments_valid_sequenceOf typeName childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
         let segmentsCountFunc = segments_count_sequenceOf typeName childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
         let segmentsOfFunc = segments_of_sequenceOf typeName "arr" childMinCount childMaxCount o.isFixedSize isChildPrimitive childFixedSize childMinSize childMaxSize
