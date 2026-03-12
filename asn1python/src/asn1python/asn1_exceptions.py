@@ -17,9 +17,6 @@ class Asn1UnexpectedEndOfDataException(Asn1Exception):
         super().__init__(message)
         self.field_name = field_name
 
-# Backward compatibility alias for old name
-Asn1ValueUnexpectedEndOfDataException = Asn1UnexpectedEndOfDataException
-
 class Asn1InvalidValueException(Asn1Exception):
     """Exception raised when a decoded value is structurally invalid (e.g. unknown enum index, invalid choice discriminant)"""
     def __init__(self, message: str = "", field_name: Optional[str] = None):
