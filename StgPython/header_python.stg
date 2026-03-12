@@ -15,7 +15,7 @@ Header / Spec implementation
 """
 from asn1pylib.asn1python import *
 from typing import *
-from enum import Enum, IntEnum
+from enum import IntEnum
 from dataclasses import dataclass, field
 
 <if(arrsIncludedModules)>
@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 <!<arrsValueAssignments:{vas|<vas>}; separator="\n">!>
 <endif>
 
-__all__ = []
+__all__ : list[str] = []
 
 # Class Definitions
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
@@ -129,7 +129,7 @@ class <td.typeName>_Enum(IntEnum):
     __all__.append("<td.typeName>_Enum")
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     # initialize val with the first enum element by default
@@ -150,7 +150,7 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base): # header_python.stg 137
     __all__.append("<td.typeName>")
     arr: List[int]
@@ -170,7 +170,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 
 <endif>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
@@ -196,7 +196,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 <if(!bFixedSize)># nCount equals to Number of bits in the array. Max value is : <nMax><endif>
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
@@ -207,7 +207,7 @@ class <td.typeName>(Asn1Base):
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
 # header_python.stg 194 - Define_subType_bit_string
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
     
@@ -223,7 +223,7 @@ class <td.typeName>(<prTd.typeName>):
 Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 # header_python.stg 201
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
@@ -270,14 +270,14 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.extension_function_positions>:
     __all__.append("<td.extension_function_positions>")
     <arrsNullFieldsSavePos; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
 <endif>
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     <arrsChildren:{ch|<ch>}; separator="\n">
@@ -287,7 +287,7 @@ class <td.typeName>(Asn1Base):
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 # header_python.stg 268
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>):
     __all__.append("<td.typeName>")
     <arrsExtraDefs; separator="\n">
@@ -313,7 +313,7 @@ class <td.typeName>InUse(IntEnum):
     __all__.append("<td.typeName>InUse")
     <arrsPresent:{ch|<ch> = <i0>}; separator="\n">
 
-@dataclass(frozen=True)
+@dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     # which selection element is in use
