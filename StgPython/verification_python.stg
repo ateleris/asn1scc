@@ -132,6 +132,14 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
     return len(segments) > 0 and segments[0].length == <nBitSize>
 >>
 
+segments_valid_enum(sTypeName, nBitSize, arrsValidValues) ::= <<
+@Pure
+@staticmethod
+def segments_valid(segments: PSeq[Segment]) -> bool:
+    Requires(Forall(segments, lambda seg: segment_invariant(seg)))
+    return len(segments) > 0 and segments[0].length == <nBitSize> and segments[0].value in PSet(<arrsValidValues; separator=", ">)
+>>
+
 segments_valid_octetString(sTypeName, sSegCount) ::= <<
 @Pure
 @staticmethod
@@ -147,7 +155,7 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
 *****************************************************************************************
 */
 
-segments_of_sequence(sTypeName, arrsChildren) ::= <<
+segments_of_header(sTypeName) /*nogen*/ ::= <<
 @Pure
 @staticmethod
 def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
@@ -155,6 +163,10 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
     Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
     Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
     Unfold(Rd(val.class_predicate()))
+>>
+
+segments_of_sequence(sTypeName, arrsChildren) ::= <<
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\n">
     return segments
@@ -197,25 +209,14 @@ if val.kind == <sPresentWhenName>:
 >>
 
 segments_of_choice(sTypeName, arrsChildren) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
-    Unfold(Rd(val.class_predicate()))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq()
     <arrsChildren:{child|<child>}; separator="\nel">
     return segments
 >>
 
 segments_of_sequenceOf(sTypeName, sArrName, nChildMinCount, nChildMaxCount, bIsFixedSize, bChildIsPrimitive, bChildFixedSize, nChildMinSize, nChildMaxSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq()
     <if(!bIsFixedSize)>
     segments.append((<nChildMaxCount> - <nChildMinCount>).bit_length(), len(val.<sArrName>))
@@ -225,57 +226,31 @@ def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
 >>
 
 segments_of_primitive(sTypeName, nBitSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, val))
     return segments
 >>
 
 segments_of_boolean(sTypeName, nBitSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, val.value))
     return segments
 >>
 
 segments_of_nulltype(sTypeName, nBitSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, 0))
     return segments
 >>
 
 segments_of_enum(sTypeName, nBitSize) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
+<segments_of_header(sTypeName=sTypeName)>
     segments: PSeq[Segment] = PSeq(Segment(<nBitSize>, int(val.val)))
     return segments
 >>
 
 segments_of_octetString(sTypeName, sArrName) ::= <<
-@Pure
-@staticmethod
-def segments_of(val: '<sTypeName>') -> PSeq[Segment]:
-    Requires(Rd(val.class_predicate()) and val.is_constraint_valid_pure())
-    Ensures(Forall(ResultT(PSeq[Segment]), lambda seg: segment_invariant(seg)))
-    Ensures(<sTypeName>.segments_valid(ResultT(PSeq[Segment])))
-    Unfold(Rd(val.class_predicate()))
+<segments_of_header(sTypeName=sTypeName)>
     byteseq = ToByteSeq(val.<sArrName>)
     segments = segments_from_byteseq_full(byteseq)
     return segments    

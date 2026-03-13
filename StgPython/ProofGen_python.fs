@@ -312,10 +312,20 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
     let bitSize = t.maxSizeInBits enc
     match codec, sel.steps.IsEmpty with
     | Decode, true ->
-
         let typeName = lg.getLongTypedefName t.typeDefinitionOrReference[Python]
         let classPredicateFunc = class_predicate_fields ["self.val"]
-        let segmentsValidFunc = segments_valid_primitive typeName bitSize
+        let validValues =
+            match enc with
+            | ACN -> enm.validItems |> List.map (fun vi -> vi.acnEncodeValue.ToString())
+            | _ ->
+                // UPER encodes enum items as 0-based indices; find the index of each valid item
+                enm.items
+                |> List.mapi (fun i item -> (BigInteger i, item))
+                |> List.choose (fun (i, item) ->
+                    if enm.validItems |> List.exists (fun vi -> vi.Name.Value = item.Name.Value)
+                    then Some (i.ToString())
+                    else None)
+        let segmentsValidFunc = segments_valid_enum typeName bitSize validValues
         let segmentsCountFunc = segments_count_primitive typeName "1"
         let segmentsOfFunc = segments_of_enum typeName bitSize
         let segmentsEqLemma = segments_eq_lemma_enum typeName bitSize
