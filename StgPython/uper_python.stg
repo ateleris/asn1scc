@@ -99,13 +99,13 @@ def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sT
 
 CheckEncodeResult(sInp, sErrCode) /*nogen*/ ::= <<
 # uper_python.stg 434343
-if not <sInp>:
+if not <sInp>.success:
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {<sInp>.error_message}")
 >>
 
 CheckDecodeResult(p, sInp, sErrCode, sType) /*nogen*/ ::= <<
 # uper_python.stg 424242
-if not <sInp> or <sInp>.decoded_value is None:
+if not <sInp>.success or <sInp>.decoded_value is None:
     if <sInp>.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
     raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {<sInp>.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
@@ -312,7 +312,8 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="
 
 Boolean_encode(p, sErrCode, sType) ::= <<
 # uper_python.stg 256
-codec.append_bit(bool(<p>))
+res = codec.append_bit(bool(<p>))
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Boolean_decode(p, sErrCode, sType) ::= <<
