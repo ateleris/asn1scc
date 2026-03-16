@@ -827,6 +827,7 @@ class Encoder(Codec):
         Requires(self.codec_predicate() and self.write_invariant())
         Requires(Acc(list_pred(data), 1/20))
         Requires(Forall(data, lambda el: 0 <= el and el < 256))
+        Requires(Forall(int, lambda i: Implies(0 <= i and i < len(data), 0 <= data[i] and data[i] < 256)))
         Requires(0 <= num_bytes and num_bytes <= len(data))
         Requires(self.remaining_bits >= num_bytes * NO_OF_BITS_IN_BYTE)
         Ensures(self.codec_predicate() and self.write_invariant())
