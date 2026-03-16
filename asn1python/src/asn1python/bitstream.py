@@ -415,6 +415,9 @@ class BitStream:
             self.segments_read_index == Old(self.segments_read_index + 1) and
             segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits)))
         
+        if self.remaining_bits < 1:
+            raise BitStreamError("Cannot read beyond end of bitstream")
+
         value = self.__read_bit()
         if Old(self.segments_read_aligned(1)):
             Unfold(self.segments_predicate(self.buffer()))
@@ -442,6 +445,12 @@ class BitStream:
             self.segments_read_index == Old(self.segments_read_index + 1) and
             segments_total_length(segments_take(self.segments, self.segments_read_index)) == self.current_used_bits)))
        
+        if bit_count < 0 or bit_count > 64:
+            raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
+
+        if self.remaining_bits < bit_count:
+            raise BitStreamError("Cannot read beyond end of bitstream")
+
         value = 0
         i = 0
         while i < bit_count:
@@ -588,6 +597,12 @@ class BitStream:
         Ensures(self.segments is Old(self.segments) + PSeq(Segment(bit_count, value)))
         Ensures(segments_total_length(self.segments) == self.current_used_bits)
         
+        if bit_count < 0 or bit_count > 64:
+            raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
+
+        if self.remaining_bits < bit_count:
+            raise BitStreamError("Cannot write beyond end of bitstream")
+
         # Check if value fits in bit_count bits
         if value < 0 or value >= (1 << bit_count):
             raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
