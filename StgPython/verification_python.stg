@@ -558,9 +558,9 @@ def is_constraint_valid_pure(self) -> bool:
     <if(soExpr)>
     return (<soExpr> and
             len(self.<sArrName>) == <sArrLength> and 
-            Forall(self.<sArrName>, lambda i: 0 \<= i and i \< 256))
+            Forall(self.<sArrName>, lambda el: 0 \<= el and el \< 256))
     <else>
     return (len(self.<sArrName>) == <sArrLength> and
-            Forall(self.<sArrName>, lambda i: 0 \<= i and i \< 256))
+            Forall(self.<sArrName>, lambda el: 0 \<= el and el \< 256))
     <endif>
 >>

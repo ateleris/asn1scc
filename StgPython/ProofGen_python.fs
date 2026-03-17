@@ -14,7 +14,7 @@ let Ensures (expr: string): string = $"Ensures({expr})"
 
 let fieldOldEqual (fieldName: string): string =
     Ensures $"Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}) ==
-            Old(Unfolding(Acc(self.class_predicate(), 1/20)), {fieldName}))"
+            Old(Unfolding(Acc(self.class_predicate(), 1/20), {fieldName}))"
 
 
 let getFieldsPostcond (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (lg: ILangGeneric) (objectRef: string): string list =
