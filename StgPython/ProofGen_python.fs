@@ -48,7 +48,7 @@ let generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.A
         [
             "Acc(self.class_predicate(), 1/2)";
             "codec.codec_predicate() and codec.write_invariant()";
-            "codec.remaining_bits >= " + string(t.maxSizeInBits enc);
+            $"codec.remaining_bits >= {t.maxSizeInBits enc}";
             "check_constraints and self.is_constraint_valid_pure()"
         ]
     | Decode ->
@@ -66,20 +66,21 @@ let generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScop
     match codec with
     | Encode ->
         [
-            "Ensures(Acc(self.class_predicate(), 1/2))";
-            "Ensures(self.is_constraint_valid_pure())"
+            Ensures "Acc(self.class_predicate(), 1/2)";
+            Ensures "self.is_constraint_valid_pure()";
         ] @
         getFieldsPostcond r t lg "self" @
         [
-            "Ensures(codec.codec_predicate() and codec.write_invariant())";
-            "Ensures(codec.buffer_size == Old(codec.buffer_size))";
-            $"Ensures(codec.segments is Old(codec.segments) + {typeName}.segments_of(self))"
+            Ensures "codec.codec_predicate() and codec.write_invariant()";
+            Ensures "codec.buffer_size == Old(codec.buffer_size)";
+            Ensures $"codec.remaining_bits == Old(codec.remaining_bits) - {t.maxSizeInBits enc}";
+            Ensures $"codec.segments is Old(codec.segments) + {typeName}.segments_of(self)"
         ]
     | Decode ->
         [   
             Ensures "codec.codec_predicate() and codec.read_invariant()";
             Ensures "codec.segments is Old(codec.segments) and codec.buffer == Old(codec.buffer)";
-            $"Ensures(codec.bit_index == Old(codec.bit_index) + {usedBits})";
+            Ensures $"codec.bit_index == Old(codec.bit_index) + {usedBits}";
             $"Ensures(codec.segments_read_index == Old(codec.segments_read_index) +
             {typeName}.segments_count(Old(segments_drop(codec.segments, codec.segments_read_index))))"
             $"Ensures(Acc(ResultT({typeName}).class_predicate()) and ResultT({typeName}).is_constraint_valid_pure())";

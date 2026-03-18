@@ -398,7 +398,7 @@ else:
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 # uper_python.stg 312
 decoded_index = codec.decode_constrained_whole_number(0, <nLastItemIndex>)
-<CheckDecodeResult(p=p+"_int", sInp="decoded_index", sErrCode=sErrCode, sType="int")>
+<CheckDecodeResult(p=p+"_int", sInp="decoded_index", sErrCode=sErrCode)>
 
 <arrsItem; separator="\n">
 

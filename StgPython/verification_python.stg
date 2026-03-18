@@ -66,10 +66,12 @@ segments_valid_child_mandatory(sChildName, sChildType, bIsPrimitive, nBitSize) :
 # Check segments for <sChildName>
 <if(bIsPrimitive)>
 is_valid = is_valid and len(segments) > 0 and segments[0].length == <nBitSize>
-segments = segments_drop(segments, 1)
+if is_valid:
+    segments = segments_drop(segments, 1)
 <else>
 is_valid = is_valid and <sChildType>.segments_valid(segments)
-segments = segments_drop(segments, <sChildType>.segments_count(segments))
+if is_valid:
+    segments = segments_drop(segments, <sChildType>.segments_count(segments))
 <endif>
 >>
 
