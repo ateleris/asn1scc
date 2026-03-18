@@ -116,7 +116,7 @@ def segments_valid(segments: PSeq[Segment]) -> bool:
     <else>
     if len(segments) == 0:
         return False
-    segCount = segments[0]
+    segCount = segments[0].value
     segments = segments_drop(segments, 1)
     <endif>
     <if(bChildFixedSize)>
@@ -340,7 +340,7 @@ def segments_count(segments: PSeq[Segment]) -> int:
     <else>
     segCount = 1
     numChildren = segments[0].value
-    segments = segments_drop(1)
+    segments = segments_drop(segments, 1)
     <endif>
 
     <if(bChildFixedSize)>
