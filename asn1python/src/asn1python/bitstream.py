@@ -105,6 +105,19 @@ class BitStream:
         Ensures(self.segments_read_index == 0)
     
     @classmethod
+    def of_size(cls, byte_size: int = 1024 * 1024) -> 'BitStream':
+        """Create a new BitStream of length byte_size."""
+        Ensures(Result().bitstream_invariant())
+        Ensures(Result().current_bit_position == 0)
+        Ensures(Result().current_byte_position == 0)
+        Ensures(len(Result().buffer()) == byte_size)
+        Ensures(Result().segments_predicate(Result().buffer()))
+        Ensures(len(Result().segments) == 0)
+        Ensures(Result().segments_read_index == 0)
+
+        return cls(bytearray(byte_size))
+
+    @classmethod
     def from_bitstream(cls, other: 'BitStream') -> 'BitStream':
         """Ghost method to create a BitStream from an existing BitStream. Copies buffer and segments"""
         Requires(Acc(other.bitstream_invariant(), 1/20) and Acc(other.segments_predicate(other.buffer()), 1/20))
