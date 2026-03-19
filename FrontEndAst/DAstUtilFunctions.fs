@@ -953,7 +953,7 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     | None  -> false
     | Some (XerFunction fnc) ->
             let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
+            let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None; fieldPath=""}
             match fnc.funcBody_e errCode p None  with
             | None   -> false
             | Some _ -> true
