@@ -64,11 +64,11 @@ class Asn1Boolean(Asn1Base):
     def __bool__(self) -> bool:
         return self.value
 
-    # def __repr__(self) -> str:
-    #     return f"Asn1Boolean({self._val})"
+    def __repr__(self) -> str:
+        return f"Asn1Boolean({self.value})"
 
-    # def __str__(self) -> str:
-    #     return str(self._val)
+    def __str__(self) -> str:
+        return str(self.value)
 
     # --- Equality / ordering ---
     @Pure
@@ -151,11 +151,11 @@ class NullType(Asn1Base):
     def __bool__(self) -> bool:
         return False
 
-    # def __repr__(self) -> str:
-    #     return "None"
+    def __repr__(self) -> str:
+        return "None"
 
-    # def __str__(self) -> str:
-    #     return "None"
+    def __str__(self) -> str:
+        return "None"
 
     # --- Equality ---
     @Pure
