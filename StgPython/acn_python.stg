@@ -19,6 +19,8 @@ class EncodeConstants:
     <arrsErrcodes; separator="\n">
     <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
     <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
+    _REQUIRED_BYTES = <nMaxBytesInACN>
+    _CODEC = 'ACN'
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -43,11 +45,10 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
-<if(arrsErrcodes)>
 # acn_python.stg 55
 class DecodeConstants:
     <arrsErrcodes; separator="\n">
-<endif>
+    _CODEC = 'ACN'
 
 >>
 
