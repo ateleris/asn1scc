@@ -48,14 +48,14 @@ convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 # isvalid_python.stg 43
 ret = <sIsValidExp>
 if not ret:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=_ErrorCodes.<sErrCode>)
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 # isvalid_python.stg 48
 <sStatement>
 if not ret:
-    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
+    return Asn1ConstraintValidResult(is_valid=False, error_code=_ErrorCodes.<sErrCode>)
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -89,6 +89,7 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 # isvalid_python.stg 79
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(self) -> Asn1ConstraintValidResult:
+    _ErrorCodes = <sTypeDefName>.ErrorCodes
     <arrsLocalVars; separator="\n">
     <sContent>
     # isvalid_python.stg 85
@@ -205,7 +206,7 @@ if ret:
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 # isvalid_python.stg 198
-<i>: int = 0
+<i> = 0
 while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
@@ -215,7 +216,7 @@ Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
 def chars_are_valid(self) -> Asn1ConstraintValidResult:
     valid: bool = True
-    i: int = 0
+    i = 0
     while valid and i \< len(self.arr) and self.arr[i] != 0x0:
         valid = valid and (<arrsAlphaConBody; separator=" and ">)
         i += 1
@@ -316,7 +317,7 @@ choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 # isvalid_python.stg 308
 <arrsChildren; separator="\nel">
 else:
-    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {type(self).__name__}: {self.kind}")
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=_ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {type(self).__name__}: {self.kind}")
 >>
 
 /* CHOICE end*/
