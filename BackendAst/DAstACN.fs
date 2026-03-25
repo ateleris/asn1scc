@@ -390,10 +390,11 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
+                    let intZero  = lm.lg.asn1SccIntValueToString 0I false
                     let emitPrm  = lm.acn.EmitAcnParameter
                     match p.asn1Type with
-                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType
-                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
+                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType intZero
+                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType lm.lg.FalseLiteral
                     | AcnGenericTypes.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
                     | AcnGenericTypes.AcnPrmRefType(md,ts)          ->
                         let prmTypeName =
@@ -406,22 +407,22 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         match ProgrammingLanguage.ActiveLanguages.Head with
                         | Python ->
                             // For Python, use basic types: enumerations -> int, strings -> str
-                            let basicType =
+                            let basicType, defaultVal =
                                 try
                                     let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
                                     let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
                                     match refTas with
                                     | Some tas ->
                                         match tas.Type.ActualType.Kind with
-                                        | Asn1AcnAst.Enumerated _ -> "int"
+                                        | Asn1AcnAst.Enumerated _ -> "int", intZero
                                         | Asn1AcnAst.IA5String _
-                                        | Asn1AcnAst.NumericString _ -> "str"
-                                        | _ -> "int"  // Default to int for other types
-                                    | None -> "int"  // Default if not found
+                                        | Asn1AcnAst.NumericString _ -> "str", "\"\""
+                                        | _ -> "int", intZero
+                                    | None -> "int", intZero
                                 with
-                                | _ -> "int"  // Default on any error
-                            emitPrm p.c_name basicType
-                        | _ -> emitPrm p.c_name prmTypeName
+                                | _ -> "int", intZero
+                            emitPrm p.c_name basicType defaultVal
+                        | _ -> emitPrm p.c_name prmTypeName ""
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
@@ -429,24 +430,26 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let handleAcnChild (ch:Asn1AcnAst.AcnChild) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
+                    let intZero  = lm.lg.asn1SccIntValueToString 0I false
                     let emitPrm  = lm.acn.EmitAcnParameter
                     match ch.Type with
-                    | Asn1AcnAst.AcnInteger  _ -> emitPrm ch.c_name intType
-                    | Asn1AcnAst.AcnNullType _ -> emitPrm ch.c_name boolType
-                    | Asn1AcnAst.AcnBoolean  _ -> emitPrm ch.c_name boolType
+                    | Asn1AcnAst.AcnInteger  _ -> emitPrm ch.c_name intType intZero
+                    | Asn1AcnAst.AcnNullType _ -> emitPrm ch.c_name boolType lm.lg.FalseLiteral
+                    | Asn1AcnAst.AcnBoolean  _ -> emitPrm ch.c_name boolType lm.lg.FalseLiteral
                     | Asn1AcnAst.AcnReferenceToEnumerated a ->
-                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value))
+                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value)) intZero
                     | Asn1AcnAst.AcnReferenceToIA5String a ->
-                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value))
+                        emitPrm ch.c_name (ToC2(r.args.TypePrefix + a.tasName.Value)) "\"\""
 
                 // Handler for DastAcnParameter (similar to handleAcnParameter but for DAst types)
                 let handleDastAcnParameter (p:DastAcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
+                    let intZero  = lm.lg.asn1SccIntValueToString 0I false
                     let emitPrm  = lm.acn.EmitAcnParameter
                     match p.asn1Type with
-                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType
-                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
+                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType intZero
+                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType lm.lg.FalseLiteral
                     | AcnGenericTypes.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
                     | AcnGenericTypes.AcnPrmRefType(md,ts)          ->
                         let prmTypeName =
@@ -459,22 +462,22 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         match ProgrammingLanguage.ActiveLanguages.Head with
                         | Python ->
                             // For Python, use basic types: enumerations -> int, strings -> str
-                            let basicType =
+                            let basicType, defaultVal =
                                 try
                                     let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
                                     let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
                                     match refTas with
                                     | Some tas ->
                                         match tas.Type.ActualType.Kind with
-                                        | Asn1AcnAst.Enumerated _ -> "int"
+                                        | Asn1AcnAst.Enumerated _ -> "int", intZero
                                         | Asn1AcnAst.IA5String _
-                                        | Asn1AcnAst.NumericString _ -> "str"
-                                        | _ -> "int"  // Default to int for other types
-                                    | None -> "int"  // Default if not found
+                                        | Asn1AcnAst.NumericString _ -> "str", "\"\""
+                                        | _ -> "int", intZero
+                                    | None -> "int", intZero
                                 with
-                                | _ -> "int"  // Default on any error
-                            emitPrm p.c_name basicType
-                        | _ -> emitPrm p.c_name prmTypeName
+                                | _ -> "int", intZero
+                            emitPrm p.c_name basicType defaultVal
+                        | _ -> emitPrm p.c_name prmTypeName ""
                 // Combine t.acnParameters with additional ACN parameters from additionalAcnPrms
                 let baseAcnParams = t.acnParameters |> List.map handleAcnParameter
                 let additionalPrms = additionalAcnPrms |> List.map handleDastAcnParameter
