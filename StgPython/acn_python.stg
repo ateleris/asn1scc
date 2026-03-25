@@ -917,8 +917,8 @@ else:
 
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 # acn_python.stg 727
-decoded_result = codec.read_bit()
-<CheckDecodeResult(p=soExistVar, sInp="decoded_result", sErrCode=sErrCode, sType="bool")>
+<soExistVar>_result = codec.read_bit()
+<CheckDecodeResult(p=soExistVar, sInp=soExistVar+"_result", sErrCode=sErrCode, sType="bool")>
 >>
 
 sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
