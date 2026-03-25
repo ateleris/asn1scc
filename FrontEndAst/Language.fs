@@ -377,6 +377,8 @@ type ILangGeneric () =
     default this.validationStringPrefix = "str"
     abstract member shouldRemoveModulePrefixFromTypedef : bool
     default this.shouldRemoveModulePrefixFromTypedef = false
+    abstract member subtypeDecodeWrap : pp:string -> currentTypeName:string -> isPrimitive:bool -> string option
+    default _.subtypeDecodeWrap _pp _currentTypeName _isPrimitive = None
     abstract member getEnumSelectionJoin : AccessPath -> string
     default this.getEnumSelectionJoin path = this.joinSelection path
     abstract member getAlignmentByteTypeName : string

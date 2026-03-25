@@ -498,10 +498,12 @@ type LangGeneric_python() =
                 acnChildrenEncoded
                 |> List.rev  // Reverse to get original order
                 |> List.map (fun (varName, acnCh) ->
-                    // ACN children (determinants like hasFieldA) are decoded inline via
-                    // sequence_acn_child_decode which just inlines sChildContent directly,
-                    // producing a plain 'varName = ...' variable with no <p>_ prefix.
-                    $"'%s{acnCh.c_name}': %s{varName}"
+                    let varRef =
+                        match acnCh.Type with
+                        | Asn1AcnAst.AcnReferenceToIA5String _ ->
+                            $"{p.accessPath.asIdentifier this}_{varName}"
+                        | _ -> varName
+                    $"'{acnCh.c_name}': {varRef}"
                 )
                 |> String.concat ", "
 
@@ -658,6 +660,9 @@ type LangGeneric_python() =
     override this.orOp = "or"
     override this.initMethod = InitMethod.Procedure
     override _.decodingKind = Copy
+    override _.subtypeDecodeWrap pp currentTypeName isPrimitive =
+        if isPrimitive then Some $"{pp} = {currentTypeName}({pp})"
+        else Some $"{pp} = {currentTypeName}(**vars({pp}))"
     override _.ArrayInitByAppend = true
     override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false

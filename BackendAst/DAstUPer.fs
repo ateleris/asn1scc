@@ -990,9 +990,21 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                             let toc = ToC str
                             toc, Some toc
                         | _ -> str, None)
-                    let funcBodyContent = TL "UPER_REF_05" (fun () -> 
+                    let funcBodyContent = TL "UPER_REF_05" (fun () ->
                         match p.accessPath.steps with
-                        | [] -> callSuperclassFunc lm pp baseFncName codec
+                        | [] ->
+                            let baseContent = callSuperclassFunc lm pp baseFncName codec
+                            match codec with
+                            | Decode when nestingScope.nestingLevel = 0I ->
+                                let rec isPrimitive (kind: Asn1AcnAst.Asn1TypeKind) =
+                                    match kind with
+                                    | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.Boolean _ -> true
+                                    | Asn1AcnAst.ReferenceType refType -> isPrimitive refType.resolvedType.Kind
+                                    | _ -> false
+                                match lm.lg.subtypeDecodeWrap pp (lm.lg.getLongTypedefName typeDefinition) (isPrimitive o.resolvedType.Kind) with
+                                | Some wrapLine -> baseContent + "\n" + wrapLine
+                                | None -> baseContent
+                            | _ -> baseContent
                         | _ -> callBaseTypeFunc lm pp baseFncName codec
                     )
                     let funcBodyContent = funcBodyContent
