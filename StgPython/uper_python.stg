@@ -4,7 +4,7 @@ rtlModuleName() ::= ""
 
 call_superclass_func_encode(p, sFuncName) ::= <<
 # uper_python.stg 6_2
-super().encode(codec, check_constraints)
+super().<sFuncName>(codec, check_constraints)
 >>
 call_superclass_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13_2
@@ -17,7 +17,7 @@ else:
 
 call_base_type_func_encode(p, sFuncName) ::= <<
 # uper_python.stg 6
-<p>.encode(codec, check_constraints)
+<p>.<sFuncName>(codec, check_constraints)
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13
@@ -39,13 +39,9 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
-<if(arrsErrcodes)>
-# uper_python.stg 33
-class EncodeConstants:
-    <arrsErrcodes:{x|<x>}; separator="\n">
-    <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
-    <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
-<endif>
+<arrsErrcodes:{x|<x>}; separator="\n">
+<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
+<sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -66,12 +62,7 @@ def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> Non
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
-<if(arrsErrcodes)>
-# uper_python.stg 61
-class DecodeConstants:
-    <arrsErrcodes:{x|<x>}; separator="\n">
-<endif>
-
+<arrsErrcodes:{x|<x>}; separator="\n">
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -473,7 +464,7 @@ sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, 
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<p><sAcc><sChName>.encode(codec, check_constraints)
+<p><sAcc><sChName>.encode_uper(codec, check_constraints)
 <endif>
 >>
 
@@ -483,7 +474,7 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, 
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-instance_<sChName> = <sChildTypedef>.decode(codec, check_constraints)
+instance_<sChName> = <sChildTypedef>.decode_uper(codec, check_constraints)
 <endif>
 >>
 
@@ -494,7 +485,7 @@ if <p><sAcc><sChName> is not None:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    self.<sChName>.encode(codec, check_constraints)
+    <p><sAcc><sChName>.encode_uper(codec, check_constraints)
     <endif>
 >>
 
@@ -506,7 +497,7 @@ if <soExistVar>:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <p>_<sChName> = <sChildTypedef>.decode(codec, check_constraints)   
+    <p>_<sChName> = <sChildTypedef>.decode_uper(codec, check_constraints)
     <endif>
 >>
 

@@ -825,14 +825,20 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | Some v ->
                             let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
                             Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit isPrimitiveType codec), childContent.localVariables)
-                TL "handleChild_16" (fun () ->                 
+                TL "handleChild_16" (fun () ->
+                // For non-primitive children in decode mode for python, the template generates variables as instance_<childName>
+                // So we need to override the resultExpr to match what the template generates
+                let adjustedResultExpr =
+                    match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
+                    | Decode, Copy, false, Python -> Some $"instance_{childName}"
+                    | _ -> childContent.resultExpr
                 {
                     stmt = Some {
                         body = childBody
                         lvs = child_localVariables
                         errCodes = childContent.errCodes
                     }
-                    resultExpr = childContent.resultExpr
+                    resultExpr = adjustedResultExpr
                     props = props
                     auxiliaries = childContent.auxiliaries
                 }, newAcc)
@@ -913,9 +919,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let chFunc = child.chType.getUperFunction codec
             let uperChildRes =
                 match lm.lg.uper.catd with
-                | false   -> chFunc.funcBody childNestingScope ({p with accessPath =  lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
+                | false   -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChildForKind p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String child.chType.Kind codec}) fromACN
                 | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
-                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChild p.accessPath  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
+                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChildForKind p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String child.chType.Kind codec}) fromACN
             let sChildName = (lm.lg.getAsn1ChChildBackendName child)
             let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
@@ -924,7 +930,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
-                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec UPER childContent sChildTypeDef
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with

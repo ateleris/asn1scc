@@ -827,6 +827,7 @@ class Encoder(Codec, ABC):
             exponent = raw_exponent - 53
 
             # Remove trailing zeros from mantissa (optimization)
+            # todo: REMOVE 3 LINES?
             while mantissa > 0 and (mantissa & 1) == 0:
                 mantissa >>= 1
                 exponent += 1

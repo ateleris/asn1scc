@@ -25,7 +25,7 @@ from asn1pylib.asn1python import *
 
 Codec_Encode(sModName, sFuncName, sVal) ::= <<
 # test_cases_python.stg:54
-<sVal>.encode(encoder, True)
+<sVal>.<sFuncName>(encoder, True)
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
@@ -35,7 +35,7 @@ decoder = encoder.get_decoder()
 
 # Decode value
 try:
-    res = <sTasName>.decode(decoder)
+    res = <sTasName>.<sFuncName>(decoder)
     if isinstance(res, tuple):
         decodedPDU, _ = res
     else:

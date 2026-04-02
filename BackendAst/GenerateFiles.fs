@@ -146,7 +146,37 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
         | _ -> []
 
     let allProcs = [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerEncDec @sEncodingSizeConstant @acnEncFunc @acnDecFunc @xerEncFunc @xerDecFunc
-    let generatedCode = lm.typeDef.Define_TAS type_definition allProcs
+
+    // Separated constants and funcs-only for Python's assembleAllProcs (merged EncodeConstants class)
+    let allEncConstBodies =
+        [ (if printUper then encDecCls.uperEncFunction.funcDef else None)
+          (if printAcn then encDecCls.acnEncFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+        |> List.choose id
+    let allDecConstBodies =
+        [ (if printUper then encDecCls.uperDecFunction.funcDef else None)
+          (if printAcn then encDecCls.acnDecFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+        |> List.choose id
+    let uPerFuncsOnly =
+        match printUper with
+        | true ->
+            [defaultArg encDecCls.uperEncFunction.func ""] @
+            encDecCls.uperEncFunction.auxiliaries @
+            [defaultArg encDecCls.uperDecFunction.func ""] @
+            encDecCls.uperDecFunction.auxiliaries
+        | false -> []
+    let acnEncFuncOnly =
+        match printAcn, encDecCls.acnEncFunction with
+        | true, Some x -> [defaultArg x.func ""] @ x.auxiliaries
+        | _ -> []
+    let acnDecFuncOnly =
+        match printAcn, encDecCls.acnDecFunction with
+        | true, Some x -> [defaultArg x.func ""] @ x.auxiliaries
+        | _ -> []
+    let allFuncsAndOtherProcs =
+        [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerFuncsOnly @sEncodingSizeConstant @acnEncFuncOnly @acnDecFuncOnly @xerEncFunc @xerDecFunc
+
+    let finalProcs = lm.lg.assembleAllProcs allEncConstBodies allDecConstBodies allFuncsAndOtherProcs allProcs
+    let generatedCode = lm.typeDef.Define_TAS type_definition finalProcs
     generatedCode
 
 let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =

@@ -106,11 +106,19 @@ namespace PUS_C_Scala_Test
             if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
                 ret += outFolderTestFix;
 
-            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
-                ret += outFolderSuffixUPER;
+            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER &&
+                (sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+            {
+                ret += "ACN_" + outFolderSuffixUPER;
+            }
+            else
+            {
+                if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
+                    ret += outFolderSuffixUPER;
 
-            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
-                ret += outFolderSuffixACN;
+                if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+                    ret += outFolderSuffixACN;
+            }
 
             ret += serviceName;
 
@@ -128,8 +136,8 @@ namespace PUS_C_Scala_Test
 
         public void Run_TestService(PUS_C_Service service, string folderSuffix, ServiceVariation sv)
         {
-            if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
-                throw new InvalidOperationException("can't do nothing or both UPER and ACN");
+            // if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
+            //     throw new InvalidOperationException("can't do nothing or both UPER and ACN");
 
             List<string> folders = [];
             
@@ -189,6 +197,7 @@ namespace PUS_C_Scala_Test
                 // Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
                 if (r1.BaseStream.Length != r2.BaseStream.Length)
                 {
+                    Console.WriteLine($"file length for {binsA[i]} and {binsB[i]} are different");
                     failedTests.Add(i + 1);
                     continue;
                 }
@@ -201,6 +210,7 @@ namespace PUS_C_Scala_Test
 
                 if (!isSame)
                 {
+                    Console.WriteLine($"file {binsA[i]} contents are not equal to {binsB[i]}");
                     failedTests.Add(i + 1);
                 }
                 // Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");

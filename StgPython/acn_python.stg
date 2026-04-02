@@ -14,11 +14,9 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldP
 EmitAcnParameter(sName, sType) ::= "<sName>: <sType> = None"
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
-# acn_python.stg 29
-class EncodeConstants:
-    <arrsErrcodes; separator="\n">
-    <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
-    <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
+<arrsErrcodes; separator="\n">
+<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
+<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -43,12 +41,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
 >>
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
-<if(arrsErrcodes)>
-# acn_python.stg 55
-class DecodeConstants:
-    <arrsErrcodes; separator="\n">
-<endif>
-
+<arrsErrcodes; separator="\n">
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -599,8 +592,8 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 
 <arrsItem; separator="\n">
 # Save enum value object as discriminator for choice determinants (to enable name-based lookup)
-<p>_discriminator = <sIntVal>_val
-<p> = <td.typeName>(<sIntVal>_val)
+<sIntVal>_discriminator = <sIntVal>_val
+<sIntVal> = <td.typeName>(<sIntVal>_val)
 >>
 
 EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
@@ -1012,7 +1005,7 @@ if not <sChName>_is_initialized and <sChName> is None:
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<sChName>.encode(codec, check_constraints)
+<sChName>.encode_acn(codec, check_constraints)
 <endif>
 >>
 
@@ -1035,7 +1028,7 @@ sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bInlineRequired)>
 <sChildContent>
 <else>
-<p><sAcc><sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<p><sAcc><sChName>.encode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 <endif>
 >>
@@ -1051,7 +1044,7 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPo
 <if(bInlineRequired)>
 <sChildContent>
 <else>
-instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+instance_decode_<sChName> = <sChildTypedef>.decode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode_<sChName>, tuple):
     instance_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
@@ -1071,7 +1064,7 @@ sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bInlineRequired)>
 <soChildContent>
 <else>
-self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+<p><sAcc><sChName>.encode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 <endif>
 <endif>
 >>
@@ -1086,7 +1079,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <if(bInlineRequired)>
 <soChildContent>
 <else>
-instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+instance_decode_<sChName> = <sChildTypedef>.decode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
 if isinstance(instance_decode_<sChName>, tuple):
     <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
 else:
@@ -1121,7 +1114,7 @@ if <p>.<sChName> is not None:
 <if(bInlineRequired)>
     <sChildContent>
     <else>
-    self.<sChName>.encode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    <p><sAcc><sChName>.encode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     <endif>
     <endif>
 >>
@@ -1139,14 +1132,14 @@ if <soExistVar>:
 <if(bInlineRequired)>
     <sChildContent>
     <else>
-    instance_decode_<sChName> = <sChildTypedef>.decode(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
+    instance_decode_<sChName> = <sChildTypedef>.decode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     if isinstance(instance_decode_<sChName>, tuple):
         <p>_<sChName>, <sChName>_acn_children = instance_decode_<sChName>
     else:
         <p>_<sChName> = instance_decode_<sChName>
 
     <endif>
-    <endif>    
+    <endif>
 >>
 
 sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
@@ -1233,7 +1226,7 @@ if <arrsConditions; separator=" and ">:
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    self.data.encode(codec, check_constraints)
+    self.data.encode_acn(codec, check_constraints)
     <endif>
 >>
 
@@ -1249,7 +1242,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    instance_decode_<sChildName> = <sChildTypeDef>.decode(codec, check_constraints)
+    instance_decode_<sChildName> = <sChildTypeDef>.decode_acn(codec, check_constraints)
     if isinstance(instance_decode_<sChildName>, tuple):
         instance_data, _ = instance_decode_<sChildName>
     else:

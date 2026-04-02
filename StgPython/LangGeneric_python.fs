@@ -346,7 +346,15 @@ type LangGeneric_python() =
         methodSuffix
 
     override this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
-        baseTypeDefinitionName + "." + methodSuffix
+        // codecName is "" for UPER, "_ACN" for ACN; methodSuffix is "encode" or "decode" for Python
+        let encodingSuffix = if codecName = "_ACN" then "_acn" else "_uper"
+        let fullMethodName = methodSuffix + encodingSuffix
+        if methodSuffix = "encode" then
+            // encode is an instance method: return just method name, caller does p.methodName()
+            fullMethodName
+        else
+            // decode is a classmethod: return Class.methodName, called directly
+            baseTypeDefinitionName + "." + fullMethodName
 
     override this.getFuncNameGeneric (typeDefinition:TypeDefinitionOrReference) (nameSuffix: string): string option  =
         match typeDefinition with
@@ -354,10 +362,14 @@ type LangGeneric_python() =
         | TypeDefinition   td                   -> Some nameSuffix
 
     override this.getUPerFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): option<string> =
-        this.getACNFuncName r codec t td
+        match codec with
+        | CommonTypes.Encode -> Some "encode_uper"
+        | CommonTypes.Decode -> Some "decode_uper"
 
     override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option =
-        Some codec.suffix
+        match codec with
+        | CommonTypes.Encode -> Some "encode_acn"
+        | CommonTypes.Decode -> Some "decode_acn"
         // match t.acnParameters with
         // | []    ->
         //     match t.id.tasInfo with
@@ -704,20 +716,19 @@ type LangGeneric_python() =
         sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) childIsOptional
     
     override this.getSeqChildDependingOnChoiceParent (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list) (p: AccessPath) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
-        // Check if parent is a Choice
-        let isParentChoice =
-            match parents with
-            | (_, parentType) :: _ ->
-                match parentType.Kind with
-                | Asn1AcnAst.Choice _ -> true
-                | _ -> false
-            | [] -> false
-        
-        // In python, if the parent is a Choice, we must not return the full name, because the accessor will be self.data
-        if isParentChoice then p else this.getSeqChild p childName childTypeIsString childIsOptional
+        // When a sequence is inlined as a choice child, p.accessPath is already self.data (the choice's data field).
+        // We must still append the field name to get self.data.fieldName.
+        this.getSeqChild p childName childTypeIsString childIsOptional
             
     override this.getChChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) : AccessPath =
         sel.appendSelection "data" ByValue false
+
+    override this.getChChildForKind (accessPath: AccessPath) (childName: string) (isString: bool) (kind: Asn1TypeKind) (codec: Codec) =
+        let childPath = this.getChChild accessPath childName isString
+        // Python enum wrappers store their value in a .val field; for encode we need self.data.val, not self.data
+        match kind, codec with
+        | Enumerated _, Encode -> childPath.appendSelection "val" ByValue false
+        | _ -> childPath
 
     override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) = ""
 
@@ -977,13 +988,24 @@ type LangGeneric_python() =
     // override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
 
-    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) =
-        match childType with
-        | Sequence _ | Enumerated _| IA5String _ ->
-            match codec with
-            | Encode -> u.call_base_type_func "self.data" childTypeDef codec
-            | Decode -> u.call_base_type_func "instance_data" (childTypeDef + ".decode") codec
-        | _ -> "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
+    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (enc: Asn1Encoding) (childContent_funcBody: string) (childTypeDef: string) =
+        childContent_funcBody
+
+    override this.assembleAllProcs (arrsEncConstBodies: string list) (arrsDecConstBodies: string list) (arrsFuncsAndOtherProcs: string list) (_: string list) =
+        let makeConstantsClass (className: string) (bodies: string list) =
+            let filtered = bodies |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s))
+            if filtered.IsEmpty then None
+            else
+                let lines =
+                    filtered
+                    |> List.collect (fun body -> body.Split('\n') |> Array.toList)
+                    |> List.filter (fun l -> not (System.String.IsNullOrWhiteSpace l))
+                    |> List.map (fun l -> "    " + l.Trim())
+                Some (sprintf "class %s:\n%s" className (String.concat "\n" lines))
+        [ makeConstantsClass "EncodeConstants" arrsEncConstBodies
+          makeConstantsClass "DecodeConstants" arrsDecConstBodies ]
+        |> List.choose id
+        |> (@) (arrsFuncsAndOtherProcs |> List.filter (fun s -> not (System.String.IsNullOrWhiteSpace s)))
 
     // override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
     //     funcBody
