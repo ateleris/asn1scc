@@ -1313,21 +1313,21 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 >>
 
 ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
-if <v> == <nChoiceIdx>:
+if <v>_choice == <nChoiceIdx>:
     <v> = <sEnumCName>
+    <v>_is_initialized = True
 >>
 
 ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 # acn_python.stg 1027
 # Map choice discriminator to ASN.1 enum value
 <if(!bIsOptional)>
-<sV> = <sChPath>.kind
-<sV>_is_initialized = True
+<sV>_choice = <sChPath>.kind
 # Convert discriminator to ASN.1 enum
 <arrsChoiceEnumItems; separator="\nel">
 <else>
 if <sChPath> is not None:
-    <sV> = <sChPath>.kind
+    <sV>_choice = <sChPath>.kind
     <sV>_is_initialized = True
     # Convert discriminator to ASN.1 enum
     <arrsChoiceEnumItems; separator="\nel">
@@ -1345,14 +1345,14 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
-if choice == <sChildNamePresent>:
+if <v>_choice == <sChildNamePresent>:
     # acn_python.stg 1041
     <v> = <sChildRetVal>
     <v>_is_initialized = True
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
-if choice == <sChildNamePresent>:
+if <v>_choice == <sChildNamePresent>:
     # acn_python.stg 1047
     <v> = <sChildTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
     <v>_is_initialized = True
@@ -1360,7 +1360,7 @@ if choice == <sChildNamePresent>:
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 # acn_python.stg 1053
-choice = <sChPath>.kind
+<v>_choice = <sChPath>.kind
 <arrsChoiceItems; separator="\nel">
 else:
     raise Asn1InvalidValueException(f"Encoding Exception! No match found for <sChPath>!")
