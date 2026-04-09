@@ -460,7 +460,6 @@ sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
 # uper_python.stg 383
-assert not <p>.<sChName> is None
 codec.append_bit(<sVal>)
 >>
 

@@ -376,7 +376,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
                 match isEqualBody val1 val2 with
                 | Some (funcBody,lvars) ->
                     let lvars = lvars |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                    Some ((lm.equal.PrintEqualComposite funcName typeDefinitionName funcBody lvars) + "\n# RefType Equal Function"), Some (stgMacroDefFunc funcName typeDefinitionName)
+                    Some (lm.equal.PrintEqualComposite funcName typeDefinitionName funcBody lvars), Some (stgMacroDefFunc funcName typeDefinitionName)
                 | None -> None, None
         {
             EqualFunction.isEqualFuncName  = isEqualFuncName
