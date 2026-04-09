@@ -448,6 +448,11 @@ type ILangGeneric () =
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
     abstract member getTypeBasedSuffix: FunctionType -> Asn1AcnAst.Asn1TypeKind -> string
+    abstract member getRealEncodingSuffix: floatingPointSizeInBytes:BigInteger -> RealClass -> string
+    default _.getRealEncodingSuffix _ cls =
+        match cls with
+        | ASN1SCC_REAL | ASN1SCC_FP64 -> ""
+        | ASN1SCC_FP32                -> "_fp32"
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c

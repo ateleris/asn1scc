@@ -1152,3 +1152,26 @@ class Decoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def dec_real_fp32(self) -> 'DecodeResult[float]':
+        """
+        Decode 32-bit IEEE 754 float (big-endian, uPER style).
+
+        Used when -fpWordSize 4 is specified at asn1scc call time.
+        Matches C: BitStream_DecodeReal_fp32(pBitStrm, v)
+        """
+        import struct
+        try:
+            if self._bitstream.remaining_bits < 32:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message="Insufficient data for 32-bit REAL"
+                )
+            result = self.read_byte_array(4)
+            if not result.success or result.decoded_value is None:
+                return self._error_float(result)
+            value: float = struct.unpack('>f', result.decoded_value)[0]
+            return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=value, bits_consumed=32)
+        except (BitStreamError, struct.error) as e:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))

@@ -310,7 +310,7 @@ decoded_<sType> = codec.read_bit()
 >>
 
 Real_encode(p, sSuffix, sErrCode, sType) ::= <<
-res = codec.enc_real(<p>)
+res = codec.enc_real<sSuffix>(<p>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 

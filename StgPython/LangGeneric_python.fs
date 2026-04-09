@@ -963,6 +963,12 @@ type LangGeneric_python() =
         | Asn1AcnAst.Asn1TypeKind.Choice _, IsValidFunctionType -> ""
         | _ -> ""
 
+    override _.getRealEncodingSuffix (fpWordSize: System.Numerics.BigInteger) (cls: Asn1AcnAst.RealClass) =
+        match cls with
+        | ASN1SCC_FP32 -> "_fp32"
+        | ASN1SCC_FP64 -> ""
+        | ASN1SCC_REAL -> if fpWordSize = 4I then "_fp32" else ""
+
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []

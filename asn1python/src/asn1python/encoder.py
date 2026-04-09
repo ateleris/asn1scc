@@ -826,12 +826,6 @@ class Encoder(Codec, ABC):
             mantissa = int(mantissa_frac * (1 << 53))
             exponent = raw_exponent - 53
 
-            # Remove trailing zeros from mantissa (optimization)
-            # todo: REMOVE 3 LINES?
-            while mantissa > 0 and (mantissa & 1) == 0:
-                mantissa >>= 1
-                exponent += 1
-
             # Calculate lengths
             # Mantissa length (bytes needed)
             if mantissa == 0:
@@ -910,3 +904,20 @@ class Encoder(Codec, ABC):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def enc_real_fp32(self, value: float) -> EncodeResult:
+        """
+        Encode real value as 32-bit IEEE 754 float (big-endian, uPER style).
+
+        Used when -fpWordSize 4 is specified at asn1scc call time.
+        Matches C: BitStream_EncodeReal(pBitStrm, (float)value) with FP_WORD_SIZE=4
+        """
+        import struct
+        try:
+            packed = struct.pack('>f', value)
+            result = self.append_byte_array(packed, len(packed))
+            if not result.success:
+                return result
+            return EncodeResult(success=True, error_code=ENCODE_OK, bits_encoded=32)
+        except (BitStreamError, struct.error) as e:
+            return EncodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))

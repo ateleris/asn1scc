@@ -899,11 +899,8 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
     let Real_32_little_endian               = lm.acn.Real_32_little_endian
     let Real_64_little_endian               = lm.acn.Real_64_little_endian
 
-    let sSuffix =
-        match o.getClass r.args with
-        | ASN1SCC_REAL   -> ""
-        | ASN1SCC_FP32   -> "_fp32"
-        | ASN1SCC_FP64   -> ""
+    let cls = o.getClass r.args
+    let sSuffix = lm.lg.getRealEncodingSuffix r.args.floatingPointSizeInBytes cls
 
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =

@@ -243,11 +243,7 @@ let castRPp  = DAstEqual.castRPp
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let cls = o.getClass r.args
-    let sSuffix =
-        match cls with
-        | ASN1SCC_REAL   -> ""
-        | ASN1SCC_FP32   -> "_fp32"
-        | ASN1SCC_FP64   -> ""
+    let sSuffix = lm.lg.getRealEncodingSuffix r.args.floatingPointSizeInBytes cls
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
