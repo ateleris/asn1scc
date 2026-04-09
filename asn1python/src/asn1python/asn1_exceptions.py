@@ -1,6 +1,14 @@
 from typing import Optional
 
 # Error classes
+
+class Asn1SccError:
+    def __init__(self, error_code: int):
+        self.error_code = error_code
+
+    def get_error_code(self) -> int:
+        return self.error_code
+
 class Asn1Exception(Exception):
     """Base class for ASN.1 runtime errors"""
     pass

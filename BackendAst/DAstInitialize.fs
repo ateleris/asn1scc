@@ -813,7 +813,12 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let i = sprintf "i%d" ii
                         let resVar = (p.accessPath.asIdentifier lm.lg)
                         let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
-                        let chp = {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
+                        let chp =
+                            if lm.lg.ArrayInitByAppend then
+                                let tempPath = AccessPath.emptyPath (resVar + "_arr_elem") ByValue
+                                {p with accessPath = { tempPath with phantomArrayDepth = p.accessPath.SequenceOfLevel + 1 }}
+                            else
+                                {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
                         let childCase = atc.initTestCaseFunc chp
                         let childBody = lm.atc.decodingCaseKind childCase.funcBody (chp.accessPath.asIdentifier lm.lg)
                         let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (o.minSize.uper = o.maxSize.uper) [childBody] false i resVar
@@ -829,7 +834,12 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let arrsInnerItems, childLocalVars =
                             childTestCases |>
                             List.mapi(fun idx atc ->
-                                let chp = {p with accessPath = lm.lg.getArrayItem p.accessPath  i childType.isIA5String}
+                                let chp =
+                                    if lm.lg.ArrayInitByAppend then
+                                        let tempPath = AccessPath.emptyPath (resVar + "_arr_elem") ByValue
+                                        {p with accessPath = { tempPath with phantomArrayDepth = p.accessPath.SequenceOfLevel + 1 }}
+                                    else
+                                        {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
                                 let sChildItem = atc.initTestCaseFunc chp
                                 let funcBody = initTestCaseSizeSequenceOf_innerItem (idx=0) (idx = childTestCases.Length-1) idx.AsBigInt sChildItem.funcBody i (BigInteger childTestCases.Length) (chp.accessPath.asIdentifier lm.lg)
                                 (funcBody, (SequenceOfIndex (ii, None))::sChildItem.localVariables)) |>

@@ -367,6 +367,10 @@ type ILangGeneric () =
     abstract member orOp             :string
     abstract member initMethod       :InitMethod
     abstract member decodingKind     :DecodingKind
+    abstract member ArrayInitByAppend : bool
+    default _.ArrayInitByAppend = false
+    abstract member TempArrayItemSuffix: string
+    default _.TempArrayItemSuffix = "_Temp"
     abstract member usesWrappedOptional: bool
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option
@@ -376,10 +380,10 @@ type ILangGeneric () =
     default this.validationStringPrefix = "str"
     abstract member shouldRemoveModulePrefixFromTypedef : bool
     default this.shouldRemoveModulePrefixFromTypedef = false
+    abstract member subtypeDecodeWrap : pp:string -> currentTypeName:string -> isPrimitive:bool -> string option
+    default _.subtypeDecodeWrap _pp _currentTypeName _isPrimitive = None
     abstract member getEnumSelectionJoin : AccessPath -> string
     default this.getEnumSelectionJoin path = this.joinSelection path
-    abstract member usePrefixForIntegerVariables : bool
-    default this.usePrefixForIntegerVariables = true
     abstract member getAlignmentByteTypeName : string
     default this.getAlignmentByteTypeName = "NextByte"
     abstract member getAlignmentWordTypeName : string
@@ -414,9 +418,12 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
-    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> Asn1Encoding -> string -> string -> string
+    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> Asn1Encoding -> string -> string -> string -> string
+    abstract member choiceChildDecodePath: sChildTypeDef:string -> sChildName:string -> AccessPath option
     // Merges encode/decode constant bodies into single classes (Python) or returns legacy procs (others)
     abstract member assembleAllProcs: arrsEncConstBodies:string list -> arrsDecConstBodies:string list -> arrsFuncsAndOtherProcs:string list -> arrsLegacyAllProcs:string list -> string list
+    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string -> string
+    abstract member choiceChildDecodePath: sChildTypeDef:string -> sChildName:string -> AccessPath option
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
@@ -527,8 +534,9 @@ type ILangGeneric () =
     default this.getChChildForKind (accessPath: AccessPath) (childName: string) (isString: bool) (kind: Asn1TypeKind) (codec: Codec) =
         this.getChChild accessPath childName isString
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
-    default this.adaptFuncBodyChoice _ _ _ f _ = f  // enc: Asn1Encoding, not used by default
+    default this.adaptFuncBodyChoice _ _ _ f _ _ = f
     default this.assembleAllProcs _ _ _ arrsLegacyAllProcs = arrsLegacyAllProcs
+    default this.choiceChildDecodePath _ _ = None
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
