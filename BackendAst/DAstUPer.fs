@@ -918,7 +918,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
-                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec UPER childContent sChildTypeDef sChildName
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef sChildName
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with

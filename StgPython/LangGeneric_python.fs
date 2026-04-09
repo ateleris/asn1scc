@@ -994,7 +994,7 @@ type LangGeneric_python() =
     // override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
 
-    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (enc: Asn1Encoding) (childContent_funcBody: string) (childTypeDef: string) (sChildName: string) =
+    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) (sChildName: string) =
         match childType with
         | Sequence _ | Enumerated _| IA5String _ ->
             match codec with

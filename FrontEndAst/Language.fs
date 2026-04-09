@@ -418,12 +418,10 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
-    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> Asn1Encoding -> string -> string -> string -> string
+    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string -> string
     abstract member choiceChildDecodePath: sChildTypeDef:string -> sChildName:string -> AccessPath option
     // Merges encode/decode constant bodies into single classes (Python) or returns legacy procs (others)
     abstract member assembleAllProcs: arrsEncConstBodies:string list -> arrsDecConstBodies:string list -> arrsFuncsAndOtherProcs:string list -> arrsLegacyAllProcs:string list -> string list
-    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string -> string
-    abstract member choiceChildDecodePath: sChildTypeDef:string -> sChildName:string -> AccessPath option
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
