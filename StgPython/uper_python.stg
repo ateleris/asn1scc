@@ -290,7 +290,7 @@ if <sRootBaseConstraint>:
 else:
     # value is not within root range, so ext bit is one and value is encoded as unconstrained
     codec.append_bit(True)
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
 >>
 
 IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint=sRootBaseConstraint, sIntBody=sIntBody, sErrCode=sErrCode)>"
