@@ -418,7 +418,7 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
-    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string -> string
+    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> Asn1Encoding -> string -> string -> string -> string
     abstract member choiceChildDecodePath: sChildTypeDef:string -> sChildName:string -> AccessPath option
     // Merges encode/decode constant bodies into single classes (Python) or returns legacy procs (others)
     abstract member assembleAllProcs: arrsEncConstBodies:string list -> arrsDecConstBodies:string list -> arrsFuncsAndOtherProcs:string list -> arrsLegacyAllProcs:string list -> string list
@@ -532,7 +532,7 @@ type ILangGeneric () =
     default this.getChChildForKind (accessPath: AccessPath) (childName: string) (isString: bool) (kind: Asn1TypeKind) (codec: Codec) =
         this.getChChild accessPath childName isString
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
-    default this.adaptFuncBodyChoice _ _ _ f _ _ = f
+    default this.adaptFuncBodyChoice _ _ _ _ f _ _ = f
     default this.assembleAllProcs _ _ _ arrsLegacyAllProcs = arrsLegacyAllProcs
     default this.choiceChildDecodePath _ _ = None
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []

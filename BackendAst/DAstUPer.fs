@@ -819,7 +819,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 // So we need to override the resultExpr to match what the template generates
                 let adjustedResultExpr =
                     match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
-                    | Decode, Copy, false, Python -> Some $"instance_{childName}"
+                    | Decode, Copy, false, Python -> Some $"{pp}_{childName}"
                     | _ -> childContent.resultExpr
                 {
                     stmt = Some {
@@ -918,7 +918,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
-                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef sChildName
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper UPER childContent sChildTypeDef sChildName
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with

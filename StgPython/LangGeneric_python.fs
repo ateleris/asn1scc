@@ -994,12 +994,14 @@ type LangGeneric_python() =
     // override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
 
-    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (childContent_funcBody: string) (childTypeDef: string) (sChildName: string) =
+    override this.adaptFuncBodyChoice (childType: Asn1TypeKind) (codec: Codec) (u: IUper) (enc: Asn1Encoding) (childContent_funcBody: string) (childTypeDef: string) (sChildName: string) =
         match childType with
         | Sequence _ | Enumerated _| IA5String _ ->
+            let encodeFuncName = match enc with | ACN -> "encode_acn" | _ -> "encode_uper"
+            let decodeFuncName = match enc with | ACN -> "decode_acn" | _ -> "decode_uper"
             match codec with
-            | Encode -> u.call_base_type_func "self.data" childTypeDef codec
-            | Decode -> u.call_base_type_func ("instance_" + sChildName) (childTypeDef + ".decode") codec
+            | Encode -> u.call_base_type_func "self.data" encodeFuncName codec
+            | Decode -> u.call_base_type_func ("instance_" + sChildName) (childTypeDef + "." + decodeFuncName) codec
         | _ -> "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
 
     override this.choiceChildDecodePath (sChildTypeDef: string) (sChildName: string) =
