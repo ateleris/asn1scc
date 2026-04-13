@@ -118,6 +118,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         elif language == 'Ada':
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
+        elif language == 'python':
+            return  # No compilation step for Python; asn1scc success is sufficient
         else:
             # Scala
             res = mysystem("cd " + targetDir + os.sep + "; sbt compile", False)
@@ -228,6 +230,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "BUG in python script, Unexpected combination "
                 "of res, behavior")
         os.chdir(prevDir)
+    elif language == 'python':
+        mysystem("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest", False)
     else:
         # Scala
         pass
@@ -404,7 +408,7 @@ def usage():
     print("where <options> are:")
     print("Mandatory:")
     print("     -l, --lang  <language_name>")
-    print("           where <language_name> is c or Ada")
+    print("           where <language_name> is c, Ada, Scala, or python")
     print("Optional:")
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
@@ -469,7 +473,7 @@ def main():
         submain("Ada", "ACN", "", cntTest, workDir)
         submain("Scala", "ACN", "", cntTest, workDir)
     else:
-        if lang not in ["c", "Ada", 'Scala']:
+        if lang not in ["c", "Ada", 'Scala', 'python']:
             print("Invalid language argument")
             usage()
 
