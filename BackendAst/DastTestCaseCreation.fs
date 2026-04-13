@@ -78,6 +78,17 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
         match ProgrammingLanguage.ActiveLanguages.Head, resolveReferenceType v.Type.Kind with
         | Scala, Integer _ -> "val tc_data = " + initStatement
         | Python, Integer _ -> "tc_data = " + valueType + "(" + initStatement + ")"
+        | Python, Real _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, IA5String _ ->
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, (Sequence _ | SequenceOf _) ->
+            // initStatement is "ShortName(args...)" - replace short name with fully-qualified valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
         | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
         | _, _ -> initStatement
     let sTestCaseIndex = idx.ToString()

@@ -165,7 +165,7 @@ res = codec.encode_constrained_whole_number(<p>, <nMin>, <nMax>)
 
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 # uper_python.stg 144
-decoded_result = codec.decode_constrained_whole_number<sSsuffix>(<nMin>, <nMax>)
+decoded_result = codec.decode_constrained_whole_number(<nMin>, <nMax>)
 <CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=soType)>
 >>
 
@@ -226,6 +226,7 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of decode_semi_constrained_whole_number failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of decode_semi_constrained_whole_number failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
@@ -241,6 +242,7 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of decode_semi_constrained_pos_whole_number failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of decode_semi_constrained_pos_whole_number failed: {decoded_result.error_message}")
+<p> = cls(decoded_result.decoded_value)
 >>
 
 /*case: A:: = INTEGER (5..5) */
@@ -267,18 +269,15 @@ codec.append_bit(False) # write extension bit
 
 IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 # uper_python.stg 224
-extBit: Ref[Boolean] = Ref(false)
-
 # read extension bit
-decoded_result = codec.read_bit()
-if decoded_result and not decoded_result.decoded_value is None:
-    extBit = decoded_result.decoded_value
-    if not extBit: # ext bit is zero ==> value is expected with root range
-        <sIntBody>
-    else
-        <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
-else
-    ret = <sErrCode>
+decoded_ext_bit = codec.read_bit()
+if not decoded_ext_bit or decoded_ext_bit.decoded_value is None:
+    raise Asn1UnexpectedEndOfDataException(f"Decoding of extension bit failed: {decoded_ext_bit.error_message}")
+if not decoded_ext_bit.decoded_value: # ext bit is zero ==> value is expected with root range
+    <sIntBody>
+else:
+    <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
+    <p> = cls(<p>)
 >>
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */

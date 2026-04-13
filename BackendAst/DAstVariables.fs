@@ -62,7 +62,18 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
         | BooleanValue      v -> lm.vars.PrintBooleanValue v
         | StringValue       v ->
             match t.ActualType.Kind with
-            | IA5String st  -> convertStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
+            | IA5String st  ->
+                let strLiteral = convertStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
+                match ProgrammingLanguage.ActiveLanguages.Head with
+                | Python ->
+                    let qualifiedName =
+                        match t.typeDefinitionOrReference with
+                        | TypeDefinition td ->
+                            let modName = ToC (t.id.ModName)
+                            modName + "." + td.typedefName
+                        | _ -> lm.lg.getLongTypedefName t.typeDefinitionOrReference
+                    qualifiedName + "(arr=[ord(c) for c in " + strLiteral + "])"
+                | _ -> strLiteral
             | _             -> raise(BugErrorException "unexpected type")
 
         | BitStringValue    v ->
