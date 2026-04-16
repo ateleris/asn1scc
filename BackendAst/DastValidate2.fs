@@ -686,10 +686,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
     let conToStrFunc_basic (p:CodegenScope)  =
-        let namespacePrefix = l.lg.rtlModuleName
-        match o.relativeObjectId with
-        | false -> VCBExpression (sprintf "%sObjectIdentifier_isValid(%s)" namespacePrefix (l.lg.getPointer p.accessPath))
-        | true  -> VCBExpression (sprintf "%sRelativeOID_isValid(%s)" namespacePrefix (l.lg.getPointer p.accessPath))
+        VCBExpression (l.lg.getObjectIdentifierIsValidExpr p o.relativeObjectId)
 
     let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
     let fncs = conToStrFunc_basic::fnc

@@ -331,13 +331,15 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of ObjectIdentifier_decode failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of ObjectIdentifier_decode failed: {decoded_result.error_message}")
+_tmp_oid = decoded_result.decoded_value
+<p> = (cls if issubclass(cls, Asn1ObjectIdentifier) else Asn1ObjectIdentifier)(_tmp_oid.nCount, _tmp_oid.values)
 >>
 
 RelativeOID_encode(p, sErrCode) ::= <<
 res = codec.RelativeOID_encode(<p>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-    
+
 RelativeOID_decode(p, sErrCode) ::= <<
 # uper_python.stg 281
 decoded_result = codec.RelativeOID_decode()
@@ -345,6 +347,8 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of RelativeOID_decode failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of RelativeOID_decode failed: {decoded_result.error_message}")
+_tmp_oid = decoded_result.decoded_value
+<p> = (cls if issubclass(cls, Asn1ObjectIdentifier) else Asn1ObjectIdentifier)(_tmp_oid.nCount, _tmp_oid.values)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= <<

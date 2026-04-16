@@ -818,6 +818,11 @@ type LangGeneric_python() =
                 | _ -> pu + "." + ref.typedefName
             | None    -> ref.typedefName
 
+    override this.getObjectIdentifierIsValidExpr (p: CodegenScope) (isRelative: bool) : string =
+        let ptr = this.getPointer p.accessPath
+        if isRelative then ptr + ".is_roid_structurally_valid()"
+        else ptr + ".is_structurally_valid()"
+
     override this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (modName: string) : string =
         match tdr with
         | TypeDefinition td -> modName + "." + td.typedefName

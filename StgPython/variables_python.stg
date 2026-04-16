@@ -73,15 +73,11 @@ SYNTAX ERROR
 >>
 
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
-{	<nCount>,
-    {
-        <arrnValues; separator=",\n">
-    }
-}
+Asn1ObjectIdentifier(<nCount>, [<arrnValues; separator=", ">])
 >>
 
 PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
-type("Asn1ObjectIdentifier", (Asn1ObjectIdentifier, object), {"nCount": <nCount>, "values": {<arrnValues; wrap, anchor, separator=", ">})
+Asn1ObjectIdentifier(<nCount>, [<arrnValues; separator=", ">])
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<

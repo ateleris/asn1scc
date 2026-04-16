@@ -345,8 +345,15 @@ type ILangGeneric () =
     abstract member updateStateForCrossSequenceAcnParams : Asn1AcnAst.AstRoot -> State -> CodegenScope -> Asn1AcnAst.SeqChildInfo list -> Asn1Child -> NestingScope -> AcnInsertedFieldDependencies -> Asn1AcnAst.Asn1Type -> Codec -> (Asn1AcnAst.Asn1Module -> ReferenceToType -> State -> (AcnChildUpdateResult option*State)) -> (Determinant -> string) -> (Asn1AcnAst.Asn1Module -> Asn1AcnAst.AcnInsertedType -> string) -> (SequenceChildStmt list * string list * State)
     default this.updateStateForCrossSequenceAcnParams _ s _ _ _ _ _ _ _ _ _ _ = [], [], s
         
+    abstract member getObjectIdentifierIsValidExpr : CodegenScope -> bool -> string
+    default this.getObjectIdentifierIsValidExpr (p: CodegenScope) (isRelative: bool) : string =
+        let namespacePrefix = this.rtlModuleName
+        let ptr = this.getPointer p.accessPath
+        if isRelative then sprintf "%sRelativeOID_isValid(%s)" namespacePrefix ptr
+        else sprintf "%sObjectIdentifier_isValid(%s)" namespacePrefix ptr
+
     // End of additional methods
-    
+
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool

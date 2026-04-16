@@ -649,8 +649,12 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
         List.map (fun vl ->
             {AutomaticTestCase.initTestCaseFunc = (fun (p:CodegenScope) ->
                 let resVar = (p.accessPath.asIdentifier lm.lg)
-                let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_valid (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) ((i+lm.lg.ArrayStartIndex).ToString()) b)
-                {InitFunctionResult.funcBody = initObjectIdentifier (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (BigInteger vl.Length)  arrsBytes; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+                let (pStr, sAccStr) =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python -> (resVar, "")
+                    | _ -> (p.accessPath.joined lm.lg, lm.lg.getAccess p.accessPath)
+                let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_valid pStr sAccStr ((i+lm.lg.ArrayStartIndex).ToString()) b)
+                {InitFunctionResult.funcBody = initObjectIdentifier pStr sAccStr (BigInteger vl.Length) arrsBytes; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
 
     let tasInitFunc (p:CodegenScope) =
         let resVar = (p.accessPath.asIdentifier lm.lg)

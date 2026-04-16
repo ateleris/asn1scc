@@ -90,6 +90,11 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
         | Python, Boolean _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, ObjectIdentifier _ ->
+            // initStatement is "Asn1ObjectIdentifier(n, [v1, v2, ...])" — reuse the args with valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, Enumerated _ ->
             // Construct qualified enum ref: MOD.TypeName_Enum.itemName
             let enumItemName =
@@ -125,6 +130,11 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             | Some initProc -> initProc.funcName
             | None -> ""
         | _ -> initAmper
+    let initStatement =
+        match ProgrammingLanguage.ActiveLanguages.Head, t.ActualType.Kind with
+        | Python, ObjectIdentifier _ ->
+            initStatement.Replace("Asn1ObjectIdentifier(", modName + "." + sTasName + "(")
+        | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()
