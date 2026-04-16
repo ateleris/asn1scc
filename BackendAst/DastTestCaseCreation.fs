@@ -89,6 +89,19 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
             "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
+        | Python, Boolean _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, Enumerated _ ->
+            // Construct qualified enum ref: MOD.TypeName_Enum.itemName
+            let enumItemName =
+                match v.Value.kind with
+                | EnumValue itemName -> ToC itemName
+                | _ -> raise (BugErrorException "Impossible: Enumerated type must have EnumValue kind")
+            let typedefName =
+                match v.Type.typeDefinitionOrReference with
+                | TypeDefinition td -> td.typedefName
+                | ReferenceToExistingDefinition ref -> ref.typedefName
+            let enumRef = modName + "." + typedefName + "_Enum." + enumItemName
+            "tc_data: " + valueType + " = " + valueType + "(" + enumRef + ")"
         | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
         | _, _ -> initStatement
     let sTestCaseIndex = idx.ToString()

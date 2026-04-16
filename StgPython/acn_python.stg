@@ -375,7 +375,7 @@ res = codec.enc_sint_ascii_const_size(<if(soMF)><soMF>_encode(<p>)<else><p><endi
 ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 # acn_python.stg 276
 res = codec.dec_sint_ascii_const_size(<nSizeInBytes>)
-<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType="cls")>
+<CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 <MF(soMF)>
 >>
 
@@ -558,7 +558,6 @@ if <p> == <sName>:
     <sIntVal> = <sItemVal>
 >>
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
-# acn_python.stg 428
 if <sIntVal> == <nItemIdx>:
     # acn_python.stg 430
     <p>_val = <sName>
@@ -587,7 +586,10 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 # acn_python.stg 451
 <sActualCodecFunc>
 
-<arrsItem; separator="\n">
+<p>_val = None
+<arrsItem; separator="\nel">
+if <p>_val is None:
+    raise Asn1InvalidValueException(f"ACN Decode Error: unknown enumeration value {<sIntVal>}")
 # Save enum value object as discriminator for choice determinants (to enable name-based lookup)
 <p>_discriminator = <p>_val
 <p> = <td.typeName>(<p>_val)
