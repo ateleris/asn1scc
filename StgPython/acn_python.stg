@@ -611,7 +611,12 @@ res = codec.enc_string_ascii_fix_size(<nAsn1Max>, <getStringContent(p)>)
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 # acn_python.stg 472
 decoded_result = codec.dec_string_ascii_fix_size(<nAsn1Max>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType="")>
+# acn_python.stg 424242
+if not decoded_result or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<p> = cls([ord(c) for c in decoded_result.decoded_value])
 >>
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
@@ -638,52 +643,80 @@ res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <getStringCo
 Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
 # acn_python.stg 488
 decoded_result = codec.dec_string_ascii_external_field_determinant(<nAsn1Max>, <sExtFld>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
+# acn_python.stg 424242
+if not decoded_result or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<p> = cls([ord(c) for c in decoded_result.decoded_value])
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 # acn_python.stg 493
-res = codec.enc_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>, <p>)
+res = codec.enc_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 # acn_python.stg 498
 decoded_result = codec.dec_string_ascii_internal_field_determinant(<nAsn1Max>, <nAsn1Min>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
+# acn_python.stg 424242
+if not decoded_result or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<p> = cls([ord(c) for c in decoded_result.decoded_value])
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
 # acn_python.stg 503
-allowedCharSet: List[int] = [<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
+allowedCharSet: bytearray = bytearray([<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">])
 >>
 
 Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 508
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-res = codec.enc_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
+res = codec.enc_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 514
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-decoded_result = codec.dec_string_char_index_fix_size(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
+decoded_result = codec.dec_string_char_index_fix_size(<nAsn1Max>, allowedCharSet)
+# acn_python.stg 424242
+if not decoded_result or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<if(sType)>
+<p> = <sType>([ord(c) for c in decoded_result.decoded_value])
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 520
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-res = codec.enc_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
+res = codec.enc_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 # acn_python.stg 526
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
-<CheckDecodeResult(p=p, sInp="decoded_result", sErrCode=sErrCode, sType=sType)>
+decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <sExtFld>)
+# acn_python.stg 424242
+if not decoded_result or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<if(sType)>
+<p> = <sType>([ord(c) for c in decoded_result.decoded_value])
+<else>
+<p> = decoded_result.decoded_value
+<endif>
 >>
 
 

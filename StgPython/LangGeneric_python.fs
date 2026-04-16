@@ -817,7 +817,15 @@ type LangGeneric_python() =
                 | "" -> ref.typedefName
                 | _ -> pu + "." + ref.typedefName
             | None    -> ref.typedefName
-    
+
+    override this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (modName: string) : string =
+        match tdr with
+        | TypeDefinition td -> modName + "." + td.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu when pu <> "" -> pu + "." + ref.typedefName
+            | _ -> modName + "." + ref.typedefName
+
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
         if tdr.programUnit = ToC currentModule
         then

@@ -311,6 +311,7 @@ type ILangGeneric () =
     abstract member getChChildForKind : AccessPath -> string -> bool -> Asn1TypeKind -> Codec -> AccessPath
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string
+    abstract member getQualifiedTypeName : TypeDefinitionOrReference -> string -> string
     abstract member getLongTypedefNameBasedOnModule : FE_TypeDefinition -> string -> string
     abstract member getLongTypedefNameFromReferenceToTypeAndCodegenScope : ReferenceToType -> TypeDefinitionOrReference -> CodegenScope -> string option
     abstract member longTypedefName2 : TypeDefinitionOrReference -> bool -> string -> string
@@ -470,6 +471,8 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (_modName: string) : string =
+        this.getLongTypedefName tdr
     default this.getLongTypedefNameBasedOnModule (fe:FE_TypeDefinition) (currentModule: string) = fe.typeName
     default this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) = Some rf.AsString
     default this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =

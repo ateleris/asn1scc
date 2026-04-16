@@ -2324,6 +2324,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                             match d.dependencyKind with
                             | AcnDepRefTypeArgument _
                             | AcnDepSizeDeterminant _
+                            | AcnDepIA5StringSizeDeterminant _
                             | AcnDepChoiceDeterminant _ -> true
                             | _ -> false)
                         |> List.choose(fun d ->

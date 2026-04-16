@@ -214,7 +214,7 @@ while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> Asn1ConstraintValidResult:
+def <sFuncName>(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i = 0
     while valid and i \< len(self.arr) and self.arr[i] != 0x0:
@@ -252,10 +252,10 @@ AllExceptConstraint(sCon)  ::= "(not <sCon>)"
 
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
 
-callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
-callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid()"
-alphaFuncBaseName(p) ::= "<p>.chars_are_valid"
-alphaFuncNameWithIndex(p, nIdx) ::= "<p>.chars_are_valid_<nIdx>"
+callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid_0()"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid_<nIdx>()"
+alphaFuncBaseName(p) ::= "<p>.chars_are_valid_0"
+alphaFuncNameWithIndex(p, nIdx) ::= "chars_are_valid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 

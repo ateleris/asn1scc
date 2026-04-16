@@ -165,4 +165,4 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 >>
 
 PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
-<td.typeName>(<if(!bIsFixedSize)><nLength>, <endif>[<arrsInnerValues:{ch|<ch>}; separator=", ">])>>
+<if(td.programUnit)><td.programUnit>.<endif><td.typeName>(<if(!bIsFixedSize)><nLength>, <endif>[<arrsInnerValues:{ch|<ch>}; separator=", ">])>>

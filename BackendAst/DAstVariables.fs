@@ -66,13 +66,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                 let strLiteral = convertStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Python ->
-                    let qualifiedName =
-                        match t.typeDefinitionOrReference with
-                        | TypeDefinition td ->
-                            let modName = ToC (t.id.ModName)
-                            modName + "." + td.typedefName
-                        | _ -> lm.lg.getLongTypedefName t.typeDefinitionOrReference
-                    qualifiedName + "(arr=[ord(c) for c in " + strLiteral + "])"
+                    lm.lg.getQualifiedTypeName t.typeDefinitionOrReference (ToC t.id.ModName) + "(arr=[ord(c) for c in " + strLiteral + "])"
                 | _ -> strLiteral
             | _             -> raise(BugErrorException "unexpected type")
 
@@ -133,7 +127,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | Sequence s ->
                 let td = lm.lg.getSequenceTypeDefinition s.baseInfo.typeDef
-                let typeDefName  = lm.lg.getLongTypedefName t.typeDefinitionOrReference
+                let typeDefName = lm.lg.getQualifiedTypeName t.typeDefinitionOrReference (ToC t.id.ModName)
                 let optChildren =
                     s.children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
@@ -169,7 +163,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
         | ChValue           v ->
             match t.ActualType.Kind with
             | Choice s ->
-                let typeDefName  = lm.lg.getLongTypedefName t.typeDefinitionOrReference
+                let typeDefName = lm.lg.getQualifiedTypeName t.typeDefinitionOrReference (ToC t.id.ModName)
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
                 List.map(fun x ->
