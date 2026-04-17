@@ -144,7 +144,21 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
                         | Some v    ->
                             let childType = x.Type
-                            Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) (printValue r lm curProgramUnitName childType (Some gv) v.Value.kind))
+                            let rawVal = printValue r lm curProgramUnitName childType (Some gv) v.Value.kind
+                            let childVal =
+                                match ProgrammingLanguage.ActiveLanguages.Head with
+                                | Python ->
+                                    let pyBuiltins = set ["int"; "float"; "bool"]
+                                    let typedefName =
+                                        match childType.typeDefinitionOrReference with
+                                        | TypeDefinition td -> td.typedefName
+                                        | ReferenceToExistingDefinition ref -> ref.typedefName
+                                    match childType.ActualType.Kind with
+                                    | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins |> Set.contains typedefName) ->
+                                        lm.lg.getQualifiedTypeName childType.typeDefinitionOrReference (ToC childType.id.ModName) + "(" + rawVal + ")"
+                                    | _ -> rawVal
+                                | _ -> rawVal
+                            Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childVal)
                         | None      ->
                             let chV =
                                 match x.Optionality with

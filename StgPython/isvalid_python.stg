@@ -350,22 +350,22 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
 # isvalid_python.stg 341
-OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
 # isvalid_python.stg 346
-OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
 # isvalid_python.stg 351
-BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
 # isvalid_python.stg 356
-BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 

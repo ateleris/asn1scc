@@ -90,6 +90,11 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
         | Python, Boolean _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, (OctetString _ | BitString _) ->
+            // initStatement is "MOD.TypeName(nCount, [0xAA, ...])" — reuse the args with valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, ObjectIdentifier _ ->
             // initStatement is "Asn1ObjectIdentifier(n, [v1, v2, ...])" — reuse the args with valueType
             let parenIdx = initStatement.IndexOf('(')
