@@ -1514,7 +1514,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
                 let lv = SequenceOfIndex (p.accessPath.SequenceOfLevel + 1, None)
-                let fncBody = lm.acn.bit_string_null_terminated td pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+                let bFixedSize = o.minSize.acn = o.maxSize.acn
+                let fncBody = lm.acn.bit_string_null_terminated td pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
                 let fncBody = bitString_FixSize td pp access o.minSize.acn errCode.errCodeName codec

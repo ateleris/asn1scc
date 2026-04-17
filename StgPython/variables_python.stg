@@ -147,10 +147,8 @@ PrintSequenceValue_child_exists(sName, sExistsBit) ::= ""
 PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<
 <sTasName>(<arrsChildren:{ch|<ch>}; separator=", ">)>>
 
-PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<{
-    'kind': <sChildNamePresent>,    # variables:165
-    'u': { '<sChildName>': <sChildVal>} # variables:166
-}
+PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<
+<sTasName>(kind=<sChildNamePresent>, data=<sChildVal>)
 >>
 
 

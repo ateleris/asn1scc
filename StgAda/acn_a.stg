@@ -1480,12 +1480,12 @@ if result.Success then
 end if;
 >>
 
-bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
-bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength)  ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize)  ::= <<
 <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
 if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE

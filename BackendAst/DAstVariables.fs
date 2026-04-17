@@ -99,8 +99,16 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             | Enumerated enm    ->
                 let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
-                let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
-                lm.vars.PrintEnumValue itmName
+                match ProgrammingLanguage.ActiveLanguages.Head with
+                | Python ->
+                    let enumTd = lm.lg.getEnumTypeDefinition enm.baseInfo.typeDef
+                    let qualTypeName =
+                        if enumTd.programUnit = "" then enumTd.typeName
+                        else enumTd.programUnit + "." + enumTd.typeName
+                    qualTypeName + "(" + qualTypeName + "_Enum." + (ToC itm.Name.Value) + ")"
+                | _ ->
+                    let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
+                    lm.vars.PrintEnumValue itmName
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> lm.vars.PrintNullValue ()
         | ObjOrRelObjIdValue v  ->
@@ -182,8 +190,20 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                 List.filter(fun x -> x.Name.Value = v.name)  |>
                 List.map(fun x ->
                     let chValue = printValue r  lm curProgramUnitName x.chType (Some gv) v.Value.kind
-                    let sChildNamePresent = lm.lg.presentWhenName  (Some t.typeDefinitionOrReference) x
-                    lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) chValue sChildNamePresent true ) |>
+                    let sChildNamePresentBase = lm.lg.presentWhenName  (Some t.typeDefinitionOrReference) x
+                    let sChildNamePresent =
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python -> (ToC t.id.ModName) + "." + sChildNamePresentBase
+                        | _ -> sChildNamePresentBase
+                    let chValueWrapped =
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python ->
+                            match x.chType.ActualType.Kind with
+                            | Integer _ | Real _ | Boolean _ | NullType _ ->
+                                lm.lg.getQualifiedTypeName x.chType.typeDefinitionOrReference (ToC x.chType.id.ModName) + "(" + chValue + ")"
+                            | _ -> chValue
+                        | _ -> chValue
+                    lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) chValueWrapped sChildNamePresent true ) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
         | RefValue ((md,vs),v)         ->
@@ -388,8 +408,20 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             List.map(fun x ->
 
                 let childValue = (x.chType.printValue curProgramUnitName (Some gv) chVal.Value.kind)
-                let sChildNamePresent = lm.lg.presentWhenName (Some defOrRef) x
-                lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) childValue   sChildNamePresent true
+                let sChildNamePresentBase = lm.lg.presentWhenName (Some defOrRef) x
+                let sChildNamePresent =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python -> (ToC t.id.ModName) + "." + sChildNamePresentBase
+                    | _ -> sChildNamePresentBase
+                let childValueWrapped =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python ->
+                        match x.chType.ActualType.Kind with
+                        | Integer _ | Real _ | Boolean _ | NullType _ ->
+                            lm.lg.getQualifiedTypeName x.chType.typeDefinitionOrReference (ToC x.chType.id.ModName) + "(" + childValue + ")"
+                        | _ -> childValue
+                    | _ -> childValue
+                lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) childValueWrapped sChildNamePresent true
                 ) |>
             List.head
         | RefValue ((md,vs),ov)   -> vs

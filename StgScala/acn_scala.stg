@@ -679,12 +679,12 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
 codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
-bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 val <p> = codec.base.bitStream.readBits_nullterminated(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) match
     case NoneMut() => return LeftMut(<sErrCode>)
     case SomeMut(arr, i) => <sTypeDefName>(arr)

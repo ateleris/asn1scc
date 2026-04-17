@@ -906,13 +906,13 @@ else:
     raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
-bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 # acn_python.stg 684
-codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>nCount)
+codec.append_bits(bytearray(<p><sAcc>arr), <if(bFixedSize)><nSizeMax><else><p><sAcc>nCount<endif>)
 codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
-bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 # acn_python.stg 690
 decoded_result = codec.read_bits_null_terminated([<arruNullBytes; separator=", ">], <nBitPatternLength>, <nSizeMax>*8)
 if not decoded_result.success or decoded_result.decoded_value is None:
@@ -920,7 +920,7 @@ if not decoded_result.success or decoded_result.decoded_value is None:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
 <p>_arr = list(decoded_result.decoded_value)
-<p> = <sTypeDefName>(decoded_result.bits_consumed, <p>_arr)
+<if(bFixedSize)><p> = <sTypeDefName>(arr=<p>_arr)<else><p> = <sTypeDefName>(nCount=decoded_result.bits_consumed, arr=<p>_arr)<endif>
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"
@@ -1228,7 +1228,7 @@ if <p> == <nChildIndex>:
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 # acn_python.stg 907
-if <p>.kind == <sChoiceTypeName>InUse.<sChildName>:
+if <p>.kind == <sChildID>:
     assert(isinstance(<p>.data, <sChildTypeDef>))
     codec.encode_constrained_whole_number(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
