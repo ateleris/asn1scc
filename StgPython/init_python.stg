@@ -261,13 +261,20 @@ initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
 # init_python.stg 270
-def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None:
-    <sVarName>.arr[<nZeroBasedByteIndex>] |= <sHexByteMax>
+def set_<sNamedBit>(self) -> None:
+    self.set_bit(self.NamedBits['<sNamedBit>'.upper()])
+
+def has_<sNamedBit>(self) -> bool:
+    return self.has_bit(self.NamedBits['<sNamedBit>'.upper()])
 >>
 
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 # init_python.stg 276
-def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None: ...
+def set_<sNamedBit>(self) -> None:
+    self.set_bit(self.NamedBits['<sNamedBit>'.upper()])
+
+def has_<sNamedBit>(self) -> bool:
+    return self.has_bit(self.NamedBits['<sNamedBit>'.upper()])
 >>
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<

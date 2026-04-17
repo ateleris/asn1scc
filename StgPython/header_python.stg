@@ -218,21 +218,42 @@ class <td.typeName>(<prTd.typeName>): # header_python.stg 164
 /***********************************       BIT STRING    ************************************************************/
 
 Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
-# TODO: Unclear what to do here
-<td.typeName>_<sTargetLangBitName> = 0x<sHexValue>  /*<sComment>*/
+<sTargetLangBitName> = 0x<sHexValue>
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
 # header_python.stg 175
-<arrsNamedBits:{it|<it>}; separator="\n">
-
 <if(!bFixedSize)># nCount equals to Number of bits in the array. Max value is : <nMax><endif>
 @dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     <if(!bFixedSize)>    nCount: int = 0<endif>
     arr: List[int] = field(default_factory=list)
-    
+
+    <if(arrsNamedBits)>
+    class NamedBits(IntEnum):
+        <arrsNamedBits:{it|<it>}; separator="\n">
+
+    def has_bit(self, bit: 'NamedBits') -> bool:
+        N = int(bit).bit_length() - 1
+        return bool(self.arr[N // 8] & (0x80 \>\> (N % 8))) if N // 8 \< len(self.arr) else False
+
+    def set_bit(self, bit: 'NamedBits') -> None:
+        N = int(bit).bit_length() - 1
+        byte_idx = N // 8
+        while len(self.arr) \<= byte_idx:
+            self.arr.append(0)
+        self.arr[byte_idx] |= 0x80 \>\> (N % 8)
+        if hasattr(self, 'nCount') and self.nCount \< N + 1:
+            self.nCount = N + 1
+
+    def clear_bit(self, bit: 'NamedBits') -> None:
+        N = int(bit).bit_length() - 1
+        byte_idx = N // 8
+        if byte_idx \< len(self.arr):
+            self.arr[byte_idx] &= ~(0x80 \>\> (N % 8))
+
+    <endif>
     <arrsInvariants; separator="\n">
 
     <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
