@@ -474,12 +474,12 @@ type LangGeneric_python() =
         | RelativePath (_ ::_) ->
             // Build language-specific access path for deep field reference
             // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
-            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) : Choice<CodegenScope, string> =
                 match lp with
-                | []    -> pSeq
+                | []    -> Choice1Of2 pSeq
                 | x1::xs ->
                     match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
-                    | None -> pSeq  // Fallback if path not found
+                    | None -> Choice1Of2 pSeq  // Fallback if path not found
                     | Some ch ->
                         match ch with
                         | Asn1AcnAst.Asn1Child ch  ->
@@ -490,11 +490,12 @@ type LangGeneric_python() =
                                 getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
                             | _, _ ->
                                 // Reached the target field
-                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
-                        | Asn1AcnAst.AcnChild ch  -> pSeq
+                                Choice1Of2 {pSeq with accessPath = newPath}
+                        | Asn1AcnAst.AcnChild acnCh  -> Choice2Of2 acnCh.c_name
 
-            let resolvedPath = getChildResult o p relPath
-            resolvedPath.accessPath.joined this
+            match getChildResult o p relPath with
+            | Choice1Of2 resolvedPath -> resolvedPath.accessPath.joined this
+            | Choice2Of2 varName -> varName
     
     override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
         // Check if this sequence has inline ACN children that need to be returned to parent
