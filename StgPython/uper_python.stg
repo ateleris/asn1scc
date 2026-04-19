@@ -216,11 +216,11 @@ if decoded_result.success:
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= <<
 res = codec.encode_semi_constrained_whole_number(<p>, <nMin>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 # uper_python.stg 190
 decoded_result = codec.decode_semi_constrained_whole_number(<nMin>)
 if not decoded_result.success or decoded_result.decoded_value is None:
@@ -228,15 +228,15 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of decode_semi_constrained_whole_number failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of decode_semi_constrained_whole_number failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<if(soType)><p> = <soType>(decoded_result.decoded_value)<else><p> = decoded_result.decoded_value<endif>
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= <<
 res = codec.encode_semi_constrained_pos_whole_number(<p>, <nMin>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 # uper_python.stg 199
 decoded_result = codec.decode_semi_constrained_pos_whole_number(<nMin>)
 if not decoded_result.success or decoded_result.decoded_value is None:
@@ -244,7 +244,7 @@ if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of decode_semi_constrained_pos_whole_number failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of decode_semi_constrained_pos_whole_number failed: {decoded_result.error_message}")
-<p> = cls(decoded_result.decoded_value)
+<if(soType)><p> = <soType>(decoded_result.decoded_value)<else><p> = decoded_result.decoded_value<endif>
 >>
 
 /*case: A:: = INTEGER (5..5) */
@@ -530,7 +530,7 @@ sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 # uper_python.stg 453
 for <i> in range(int(<fixedSize>)):
-    <sInternalItem>
+    <sInternalItem; null="pass">
 >>
 
 
@@ -1006,60 +1006,57 @@ if <sLengthTmp> \< <nSizeMin> or <sLengthTmp> \> <nSizeMax>:
 
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # uper_python.stg 874
-# TODO: open new scope to declare some variables
-    # encode to a temporary bitstream
-    static byte arr[<sReqBytesForUperEncoding>]
-    BitStream bitStrm
-    BitStream_Init(&bitStrm, arr, sizeof(arr))
-
-    ret = <sFuncName>(<p>, &bitStrm, false) # TODO call wrong
-    if ret:
-        nCount: int = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
-        ret = pBitStrm.encodeOctetString(arr, nCount, <nMinSize>, <nMaxSize>)
+# Encode self as the contained type into a temporary buffer
+_inner_enc = UPEREncoder.of_size(<nMaxSize>)
+super().<sFuncName>(_inner_enc, False)
+_inner_bytes = _inner_enc.get_bitstream_buffer()
+_nCount = (_inner_enc.bit_index + 7) // 8
+codec.encode_constrained_whole_number(_nCount, <nMinSize>, <nMaxSize>)
+_res = codec.encode_octet_string_no_length(_inner_bytes, _nCount)
+if not _res:
+    raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # uper_python.stg 888
-# TODO: open new scope to declare some variables
-# decode to a temporary bitstream
-static byte arr[<sReqBytesForUperEncoding>]
-BitStream bitStrm
-BitStream_Init(&bitStrm, arr, sizeof(arr))
-nCount: int = 0
-ret = pBitStrm.decodeOctetString(arr, &nCount, <nMinSize>, <nMaxSize>)
-if ret:
-    ret = <sFuncName>(<p>, &bitStrm)
+# Decode contained type from octet string
+_nCount_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
+if not _nCount_len_res or _nCount_len_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: bad length")
+_nCount = int(_nCount_len_res.decoded_value)
+_inner_bytes_res = codec.read_byte_array(_nCount)
+if not _inner_bytes_res or _inner_bytes_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bytes")
+_inner_dec = UPERDecoder.from_buffer(_inner_bytes_res.decoded_value)
+<p> = <sFuncName>(_inner_dec, False)
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # uper_python.stg 901
-# open new scope to declare some variables
-# encode to a temporary bitstream
-static byte arr[<sReqBytesForUperEncoding>]
-BitStream bitStrm
-BitStream_Init(&bitStrm, arr, sizeof(arr))
-
-ret = <sFuncName>(<p>, &bitStrm, false)
-if not ret:
-     raise Asn1Exception(f"Encoding Exception: {ret.error_message}")
-     
-nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit
-ret = pBitStrm.encodeBitString(arr, nCount, <nMinSize>, <nMaxSize>)
+# Encode self as the contained type into a temporary buffer
+_inner_enc = UPEREncoder.of_size((<nMaxSize> + 7) // 8)
+super().<sFuncName>(_inner_enc, False)
+_inner_bits = _inner_enc.bit_index
+_inner_bytes = _inner_enc.get_bitstream_buffer()
+codec.encode_constrained_whole_number(_inner_bits, <nMinSize>, <nMaxSize>)
+_res = codec.append_bits(_inner_bytes, _inner_bits)
+if not _res:
+    raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # uper_python.stg 915
-# open new scope to declare some variables
-
-#decode to a temporary bitstream*/
-static byte arr[<sReqBytesForUperEncoding>]
-BitStream bitStrm
-BitStream_Init(&bitStrm, arr, sizeof(arr))
-nCount: int = 0
-ret = pBitStrm.decodeBitString(arr, &nCount, <nMinSize>, <nMaxSize>)
-if not ret:
-    raise Asn1Exception(f"Encoding Exception: {ret.error_message}")
-ret = <sFuncName>(<p>, &bitStrm)
+# Decode contained type from bit string
+_nBits_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
+if not _nBits_len_res or _nBits_len_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: bad bit length")
+_nBits = int(_nBits_len_res.decoded_value)
+_nBytes = (_nBits + 7) // 8
+_inner_bits_res = codec.read_bits(_nBits)
+if not _inner_bits_res or _inner_bits_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bits")
+_inner_dec = UPERDecoder.from_buffer(bytearray(_inner_bits_res.decoded_value))
+<p> = <sFuncName>(_inner_dec, False)
 
 >>
 

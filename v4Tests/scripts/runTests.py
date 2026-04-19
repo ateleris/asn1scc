@@ -231,7 +231,11 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "of res, behavior")
         os.chdir(prevDir)
     elif language == 'python':
-        mysystem("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest", False)
+        ret = mysystem("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest", True)
+        if ret != 0 and ret != 5:  # exit code 5 = no tests collected, treat as success
+            PrintFailed("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest")
+            mysystem("cat tmp.err"+"_"+language, True)
+            sys.exit(1)
     else:
         # Scala
         pass

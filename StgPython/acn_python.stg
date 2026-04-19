@@ -95,7 +95,7 @@ if not <sInp> or <sInp>.decoded_value is None:
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 # acn_python.stg 98
 for <i> in range(int(<fixedSize>)):
-    <sInternalItem>
+    <sInternalItem; null="pass">
 >>
 
 MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
@@ -1264,13 +1264,13 @@ else:
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 if <arrsConditions; separator=" and ">:
     # acn_python.stg 938
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    self.data.encode_acn(codec, check_constraints)
+    <p><sAcc>data.encode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     <endif>
 >>
 
@@ -1280,13 +1280,13 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 (list(<sExtFld>.arr) if hasattr(<sExtFld>, 'arr') else list(<sExtFld>)) == [<arruVal:{b|0x<b;format="X2">}; separator=", ">]
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 <if(bFirst)>if<else>elif<endif> <arrsConditions; separator=" and ">:
     # acn_python.stg 952
     <if(bIsPrimitive)>
     <sChildBody>
     <else>
-    instance_decode_<sChildName> = <sChildTypeDef>.decode_acn(codec, check_constraints)
+    instance_decode_<sChildName> = <sChildTypeDef>.decode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
     if isinstance(instance_decode_<sChildName>, tuple):
         instance_<sChildName>, _ = instance_decode_<sChildName>
     else:
@@ -1343,6 +1343,7 @@ SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
     raise Asn1ValueOutOfRangeException(f"Size dependency value {<v>} out of range [{<nMin>}, {<nMax>}]")
+<v>_is_initialized = True
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
@@ -1379,7 +1380,8 @@ instance_<sV> = <sV>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 # acn_python.stg 1036
-<v> = self<sAcc><sChildName> is not None
+<v> = <sSeqPath><sAcc><sChildName> is not None
+<v>_is_initialized = True
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
@@ -1400,8 +1402,6 @@ ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 # acn_python.stg 1053
 <v>_choice = <sChPath>.kind
 <arrsChoiceItems; separator="\nel">
-else:
-    raise Asn1InvalidValueException(f"Encoding Exception! No match found for <sChPath>!")
 >>
 
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
@@ -1448,7 +1448,7 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
 
 <arrsGetFirstIntValue; separator="\n">
 <if(!bIsFirstIntValueSingle)>
-else <sDefaultExpr>
+else: pass
 <endif>
 
 
@@ -1464,19 +1464,14 @@ checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
 
 SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
 # acn_python.stg 1120
-{
-    # first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
-    pBitStrm_save: BitStream = pBitStrm
-    pBitStrm = BitStream_Init(len(arr))
-    <sInner>
-    pBitStrm = pBitStrm_save
-}
-<if(bIsOctet)>
-<v> = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
-<else>
-<v> = bitStrm.currentByte*8+bitStrm.currentBit
-<endif>
-
+# Encode containing field to a temporary codec to determine size and capture bytes
+_codec_save = codec
+codec = ACNEncoder.of_size(1024)
+<sInner>
+<if(bIsOctet)><v> = (codec.bit_index + 7) // 8<else><v> = codec.bit_index<endif>
+arr = bytearray(codec.get_bitstream_buffer())
+<v>_is_initialized = True
+codec = _codec_save
 >>
 
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
@@ -1486,23 +1481,14 @@ codec.encode_octet_string_no_length_vec(arr, int(<sExtField>))
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 # acn_python.stg 1142
-# TODO: open new scope to declare some variables
-
-# decode to a temporary bitstream
-pBitStrm_save: BitStream = pBitStrm
-bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
-
-if int(<sExtField>) \<= <sReqBytesForUperEncoding>:
-    match codec.decode_octet_string_no_length_vec(<sExtField>):
-        case NoneMut():
-            # acn_python.stg 1152
-            return Asn1ConstraintValidResult(is_valid=False, error_code=<pErrCode>)
-        case SomeMut(arr):
-            bitStrm.buf = arr
-
-    pBitStrm = bitStrm
-    <soInner>
-    pBitStrm = pBitStrm_save
+_decoded_bytes_result = codec.decode_octet_string_no_length_vec(<sExtField>)
+if not _decoded_bytes_result.success or _decoded_bytes_result.decoded_value is None:
+    # acn_python.stg 1152
+    return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+_codec_save = codec
+codec = ACNDecoder.from_buffer(bytearray(_decoded_bytes_result.decoded_value))
+<soInner>
+codec = _codec_save
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1520,7 +1506,7 @@ if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
     match codec.read_bits((int)<sExtField>):
         case NoneMut():
             # acn_python.stg 1176
-            return Asn1ConstraintValidResult(is_valid=False, error_code=<pErrCode>)
+            return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
         case SomeMut(arr):
             bitStrm.buf = arr
 
@@ -1536,129 +1522,73 @@ sparkAnnotations_decode(sTypeDefName) ::= ""
 
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 # acn_python.stg 1192
-# TODO: open new scope to declare some variables
-
-# encode to a temporary bitstream
-bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
-res = <sFuncName>(<p>, bitStrm, false)
-if not res:
-    # acn_python.stg 1199
-    return res
-    
-nCount: int = bitStrm.currentByte if bitStrm.currentBit == 0 else (bitStrm.currentByte + 1)
-<if(bFixedSize)>
-codec.encode_octet_string_no_length(bitStrm.buf, nCount)
-
-<else>
-codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)
-codec.encode_octet_string_no_length(bitStrm.buf, nCount)
+# Encode self as the contained type into a temporary ACN buffer
+_inner_enc = ACNEncoder.of_size(<nMaxSize>)
+super().<sFuncName>(_inner_enc, False)
+_inner_bytes = _inner_enc.get_bitstream_buffer()
+_nCount = (_inner_enc.bit_index + 7) // 8
+<if(!bFixedSize)>
+codec.encode_constrained_whole_number(_nCount, <nMinSize>, <nMaxSize>)
 
 <endif>
+_res = codec.encode_octet_string_no_length(_inner_bytes, _nCount)
+if not _res:
+    raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 # acn_python.stg 1214
-# TODO: open new scope to declare some variables*/
-
-# decode to a temporary bitstream
-bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
-
 <if(bFixedSize)>
-arr = codec.decode_octet_string_no_length(<nMinSize>):
-if arr is None:
-    # acn_python.stg 1223
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    bitStrm.buf = arr
+_nCount = <nMinSize>
+
 <else>
-
-nCount: int = 0
-x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
-if x is None:
-    # acn_python.stg 1232
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    nCount = x
-
-arr = codec.decode_octet_string_no_length(nCount)
-if arr is None:
-    # acn_python.stg 1239
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    bitStrm.buf = arr
+_nCount_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
+if not _nCount_res or _nCount_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: bad length")
+_nCount = int(_nCount_res.decoded_value)
 
 <endif>
-res =  <sFuncName>(<p>, &bitStrm)
-if not res:
-    # acn_python.stg 1247
-    return res
+_inner_bytes_res = codec.decode_octet_string_no_length(_nCount)
+if not _inner_bytes_res or _inner_bytes_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bytes")
+_inner_dec = ACNDecoder.from_buffer(bytearray(_inner_bytes_res.decoded_value))
+<p> = <sFuncName>(_inner_dec, False)
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 # acn_python.stg 1252
-# TODO: open new scope to declare some variables
-
-# encode to a temporary bitstream 
-bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
-
-res = <sFuncName>(<p>, bitStrm, false)
-if not res:
-    # acn_python.stg 1260
-    return res
-
-nCount: int = bitStrm.currentByte*8 + bitStrm.currentBit
-<if(bFixedSize)>
-codec.append_bits(bitStrm.buf, nCount)
-
-<else>
-codec.encode_constrained_whole_number(nCount, <nMinSize>, <nMaxSize>)
-codec.append_bits(bitStrm.buf, nCount)
+# Encode self as the contained type into a temporary ACN buffer
+_inner_enc = ACNEncoder.of_size((<nMaxSize> + 7) // 8)
+super().<sFuncName>(_inner_enc, False)
+_inner_bits = _inner_enc.bit_index
+_inner_bytes = _inner_enc.get_bitstream_buffer()
+<if(!bFixedSize)>
+codec.encode_constrained_whole_number(_inner_bits, <nMinSize>, <nMaxSize>)
 
 <endif>
+_res = codec.append_bits(_inner_bytes, _inner_bits)
+if not _res:
+    raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 # acn_python.stg 1275
-# TODO: open new scope to declare some variables
-
-# decode to a temporary bitstream
-codec: Codec = ACN(BitStream_Init(<sReqBytesForAcnEncoding>))
-
 <if(bFixedSize)>
-arr = codec.read_bits(<nMinSize>)
-if arr is None:
-    # acn_python.stg 1284
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    bitStrm.buf = arr
-
-res = <sFuncName>(<p>, bitStrm)
-if not res:
-    # acn_python.stg 1291
-    return res
+_nBits = <nMinSize>
 
 <else>
-nCount: int = 0
-x = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>):
-if x is None:
-    # acn_python.stg 1298
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    nCount = x
-
-arr = codec.read_bits(nCount)
-if arr is None:
-    # acn_python.stg 1305
-    return Asn1ConstraintValidResult(is_valid=False, error_code=pErrCode)
-else:
-    bitStrm.buf = arr
-
-res = <sFuncName>(<p>, bitStrm)
-if not res:
-    # acn_python.stg 1312
-    return res
+_nBits_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
+if not _nBits_res or _nBits_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: bad bit length")
+_nBits = int(_nBits_res.decoded_value)
 
 <endif>
+_nBytes = (_nBits + 7) // 8
+_inner_bits_res = codec.read_bits(_nBits)
+if not _inner_bits_res or _inner_bits_res.decoded_value is None:
+    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bits")
+_inner_dec = ACNDecoder.from_buffer(bytearray(_inner_bits_res.decoded_value))
+<p> = <sFuncName>(_inner_dec, False)
 >>
 
 

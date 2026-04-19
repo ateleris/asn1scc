@@ -1174,7 +1174,7 @@ case <p><sAcc>kind is
 end case;
 >>
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 when <sChildID> =>
 	<sChildBody>
 >>
@@ -1189,7 +1189,7 @@ else
 end if;
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 <if(bFirst)>if<else>elsif<endif> (<arrsConditions; separator=" and ">) then
   <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
   <sChildBody>

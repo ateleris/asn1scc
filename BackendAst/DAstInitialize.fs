@@ -466,7 +466,11 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 List.map(fun (compLit) ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let ret = sprintf "%s%s%s;" (lm.lg.getValue p.accessPath) lm.lg.AssignOperator compLit
+                        let lhs =
+                            match ProgrammingLanguage.ActiveLanguages.Head with
+                            | Python -> resVar
+                            | _ -> lm.lg.getValue p.accessPath
+                        let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
@@ -573,7 +577,11 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                 List.map(fun compLit ->
                     let retFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let ret = sprintf "%s%s%s;" (lm.lg.getValue p.accessPath) lm.lg.AssignOperator compLit
+                        let lhs =
+                            match ProgrammingLanguage.ActiveLanguages.Head with
+                            | Python -> resVar
+                            | _ -> lm.lg.getValue p.accessPath
+                        let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = retFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
@@ -1024,15 +1032,33 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
 
                         let testCaseFunc (p: CodegenScope): InitFunctionResult =
                             let resVar = (p.accessPath.asIdentifier lm.lg)
-                            let children = children_ith_testCase |> List.map (fun atc -> atc.initTestCaseFunc p)
-                            let joinedBodies = children |> List.map (fun c -> c.funcBody) |> Seq.StrJoin "\n"
+                            let atcedChildren = children_ith_testCase |> List.map (fun atc -> atc.initTestCaseFunc p)
+                            let joinedBodies = atcedChildren |> List.map (fun c -> c.funcBody) |> Seq.StrJoin "\n"
                             let bodyRes =
                                 if lm.lg.decodingKind = Copy then
                                     let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
-                                    let seqBuild = lm.uper.sequence_build resVar tdName p.accessPath.isOptional (children |> List.map (fun ch -> ch.resultVar))
+                                    // Build resultVar list for ALL children, not just those with ATCs.
+                                    // Children excluded from ATCs (e.g. empty sequences) use initExpressionFnc directly.
+                                    let atcedResultVarMap =
+                                        List.zip
+                                            (childrenATCs |> List.map (fun (c,_,_) -> lm.lg.getAsn1ChildBackendName c))
+                                            (atcedChildren |> List.map (fun ch -> ch.resultVar))
+                                        |> Map.ofList
+                                    let allChildResultVars =
+                                        children |>
+                                        List.map(fun c ->
+                                            let childName = lm.lg.getAsn1ChildBackendName c
+                                            match atcedResultVarMap.TryFind childName with
+                                            | Some rv -> rv
+                                            | None ->
+                                                // Use module-qualified type name for proper import resolution in test context
+                                                let childTk = lm.lg.getTypeDefinition c.Type.FT_TypeDefinition
+                                                let childTypeName = lm.lg.getLongTypedefNameBasedOnModule childTk p.modName
+                                                lm.lg.getEmptySequenceInitExpression childTypeName)
+                                    let seqBuild = lm.uper.sequence_build resVar tdName p.accessPath.isOptional allChildResultVars
                                     joinedBodies + "\n" + seqBuild
                                 else joinedBodies
-                            {funcBody = bodyRes; resultVar = resVar; localVariables = children |> List.collect (fun c -> c.localVariables)}
+                            {funcBody = bodyRes; resultVar = resVar; localVariables = atcedChildren |> List.collect (fun c -> c.localVariables)}
 
                         let combinedTestCases = children_ith_testCase |> List.fold (fun map atc -> mergeMaps map atc.testCaseTypeIDsMap) Map.empty
                         {AutomaticTestCase.initTestCaseFunc = testCaseFunc; testCaseTypeIDsMap = combinedTestCases})

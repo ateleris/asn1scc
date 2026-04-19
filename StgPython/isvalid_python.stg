@@ -265,7 +265,7 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
-call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>()"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>() if hasattr(super(), '<sFuncName>') else Asn1ConstraintValidResult(is_valid=True)"
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
 call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
@@ -349,22 +349,18 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
-# isvalid_python.stg 341
 (<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
-# isvalid_python.stg 346
 (<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-# isvalid_python.stg 351
 (<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-# isvalid_python.stg 356
 (<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 

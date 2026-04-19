@@ -1114,10 +1114,11 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         let lastNode = nodes |> List.rev |> List.head
         match lastNode with
         | PRM prmName   ->
-            if r.args.acnDeferred then
+            if r.args.acnDeferred || ProgrammingLanguage.ActiveLanguages.Head = Python then
                 // In deferred mode, the parameter IS the value — it arrives
                 // as an AcnInsertedFieldRef* formal parameter.  Do NOT follow
                 // RefTypeArgumentDependency chains; stop here.
+                // For Python: parameters are formal args in generated functions, use them directly.
                 prmId
             else
                 let newDeterminantId =
@@ -1659,7 +1660,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         match o.isFixedSize with
                         | true  -> None
                         | false ->
-                            let funcBody = varSize pp access td (i level) "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType codec
+                            // Pass null (not "") so templates can detect empty body via <if(sInternalItem)> (e.g. NULL element type)
+                            let funcBody = varSize pp access td (i level) (null : string) o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType codec
                             Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = (lv level)@nStringLength; userDefinedFunctions=[]; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd})
 
                     | Some internalItem ->
@@ -1786,6 +1788,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value)
         let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
+        // Guard: newTypesMap may be empty when called via hasAcnEncodeFunction with emptyState
+        if not (us.newTypesMap.ContainsKey(d.asn1Type)) then
+            None, us
+        else
         let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
         let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
         let errCodes0, localVariables0, ns =
@@ -2016,9 +2022,11 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             let isAlwaysInit (d: AcnDependency): bool =
                 match d.dependencyKind with
                 | AcnDepRefTypeArgument p ->
-                    // Last item is the determinant, and the second-to-last is the field referencing the determinant
-                    not p.id.dropLast.lastItemIsOptional
+                    // In multi-dep context, alternatives are mutually exclusive — none is always-init
+                    if ds.Length > 1 then false
+                    else not p.id.dropLast.lastItemIsOptional
                 | AcnDepChoiceDeterminant (_, c, isOpt) -> not isOpt
+                | AcnDepPresence _ | AcnDepPresenceStr _ -> false
                 | _ -> true
 
             let firstAlwaysInit = ds |> List.tryFind isAlwaysInit
@@ -2099,6 +2107,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
     let bitStreamName                                   = lm.lg.bitStreamName
     let sequence_call_post_encoding_function_prototype  = lm.acn.sequence_call_post_encoding_function_prototype
     let sequence_call_post_decoding_validator_prototype = lm.acn.sequence_call_post_decoding_validator_prototype
+
+    let m =
+        let (ReferenceToType tNodes) = t.id
+        match tNodes with
+        | (MD mn) :: _ -> r.modulesMap.[mn]
+        | _ -> failwith "createSequenceFunction_inline: no module in type id"
 
     let acnExpressionToBackendExpression (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (exp:AcnExpression) =
         let unaryNotOperator    = lm.lg.unaryNotOperator
@@ -2319,13 +2333,20 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     // NOTE: Presence determinants (AcnDepPresence, AcnDepPresenceBool, AcnDepPresenceStr) control
                     // whether to decode the child at all, not what to pass to the child's decode function.
                     // They should NOT be included in the parameter list.
+                    // NOTE: AcnDepSizeDeterminant params should only be passed to INLINE (anonymous) types.
+                    // For reference types (named global types like EntityId), the size dep uses a field-instance ID
+                    // that differs from the global type's ID, so the global encode_acn doesn't declare the param.
+                    let childIsReference =
+                        match child.Type.Kind with
+                        | DAst.Asn1TypeKind.ReferenceType _ -> true
+                        | _ -> false
                     deps.acnDependencies
                         |> List.filter(fun d ->
                             d.asn1Type = child.Type.id &&
                             match d.dependencyKind with
-                            | AcnDepRefTypeArgument _
+                            | AcnDepRefTypeArgument _ -> true
                             | AcnDepSizeDeterminant _
-                            | AcnDepIA5StringSizeDeterminant _
+                            | AcnDepIA5StringSizeDeterminant _ -> not childIsReference
                             | AcnDepChoiceDeterminant _ -> true
                             | _ -> false)
                         |> List.choose(fun d ->
@@ -2383,13 +2404,11 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                                                 | AcnReferenceToEnumerated _ ->
                                                     // For enumerated determinants, check the dependency kind
                                                     match d.dependencyKind with
-                                                    | AcnDepChoiceDeterminant _ ->
-                                                        // Direct choice determinant - use wire value
-                                                        $"%s{varName}_discriminator"
-                                                    | AcnDepRefTypeArgument param ->
-                                                        // Enum parameter being passed - use discriminator for choice params
-                                                        // (enum parameters are typically used as choice determinants)
-                                                        $"%s{varName}_discriminator"
+                                                    | AcnDepChoiceDeterminant _
+                                                    | AcnDepRefTypeArgument _ ->
+                                                        // Pass the wrapper (not raw discriminator) so ChoiceChild_Enum_decode
+                                                        // can match via the .val.name endswith check
+                                                        varName
                                                     | _ ->
                                                         // For other uses, use the enum value
                                                         $"%s{varName}.val"
@@ -2413,11 +2432,20 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                                         | None ->
                                             // Not found - this might be an error, but let the original behavior handle it
                                             None
-                            | AcnParameterDeterminant _ ->
-                                // ACN parameters from AcnParameterDeterminant are already in scope
-                                // (passed down from parent), so we don't need to pass them again.
-                                // Skip generating a parameter for this case.
-                                None
+                            | AcnParameterDeterminant paramDet ->
+                                // For decode, pass the parameter only if it is in scope in the current function,
+                                // i.e., it is one of the parent type's own ACN parameters.
+                                // If not in scope, a sibling AcnChildDeterminant dep handles the mapping.
+                                let paramInScope = t.acnParameters |> List.exists (fun p -> p.c_name = paramDet.c_name)
+                                match codec, paramInScope with
+                                | Decode, true ->
+                                    let targetParamName =
+                                        match d.dependencyKind with
+                                        | AcnDepRefTypeArgument param -> param.c_name
+                                        | AcnDepChoiceDeterminant _ -> paramDet.c_name
+                                        | _ -> paramDet.c_name
+                                    Some $"%s{targetParamName}=%s{paramDet.c_name}"
+                                | _ -> None
                         )
                 | AcnChild _ -> []
 
@@ -2438,8 +2466,10 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 
                 let crossSeqAcnUpdateStmts, crossSeqAcnParamsList, ns0 = lm.lg.updateStateForCrossSequenceAcnParams r us p o.children child childNestingScope deps t codec wrapUpdateFnc wrapDeterminantTypeFunc wrapInitExpr
                 
-                // Merge cross-sequence ACN parameters with existing ACN parameters
-                let acnParamsForTemplate = acnParamsForTemplate @ crossSeqAcnParamsList
+                // Merge cross-sequence ACN parameters with existing ACN parameters, dedup by param name
+                let acnParamsForTemplate =
+                    (acnParamsForTemplate @ crossSeqAcnParamsList)
+                    |> List.distinctBy (fun s -> s.Split('=').[0])
                 // printfn "[DEBUG] handleChild: Total ACN parameters for template: %d [%A]" acnParamsForTemplate.Length acnParamsForTemplate
 
                 // Detect if inlining is required: when child sequence has ACN-inserted fields whose values come from outside
@@ -2643,15 +2673,51 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                         // Skip update code generation if this ACN child has external dependencies
                         // (it will be provided as a parameter from the parent)
                         if hasExternalDependency && lm.lg.isObjectOriented then
-                            // printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
                             None, us
                         else
-                            let pRoot : CodegenScope = lm.lg.getParamType t codec  //????
+                            let pRoot : CodegenScope = lm.lg.getParamType t codec
+                            // In standalone OO context, dep paths may include this type's field prefix.
+                            // Strip t.id's field nodes from dep asn1Type paths so getAccessFromScopeNodeList
+                            // generates self.field instead of self.thisType.field.
+                            let effectiveFnc, ns0 =
+                                if nestingScope.parents.IsEmpty && lm.lg.isObjectOriented then
+                                    let (ReferenceToType tNodes) = t.id
+                                    let tFieldNodes = tNodes |> List.skip 2  // skip MD and TA
+                                    let tFieldCount = tFieldNodes.Length
+                                    if tFieldCount > 0 then
+                                        let hasPathsToStrip =
+                                            acnChildDeps |> List.exists (fun d ->
+                                                let (ReferenceToType dNodes) = d.asn1Type
+                                                match dNodes with
+                                                | _ :: _ :: dFields ->
+                                                    dFields.Length > tFieldCount &&
+                                                    (List.take tFieldCount dFields) = tFieldNodes
+                                                | _ -> false)
+                                        if hasPathsToStrip then
+                                            let strippedDeps =
+                                                deps.acnDependencies
+                                                |> List.map (fun d ->
+                                                    let (ReferenceToType dNodes) = d.asn1Type
+                                                    match dNodes with
+                                                    | (MD dMod) :: (TA dTas) :: dFields
+                                                        when d.determinant.id = acnChild.id &&
+                                                             dFields.Length > tFieldCount &&
+                                                             (List.take tFieldCount dFields) = tFieldNodes ->
+                                                        {d with asn1Type = ReferenceToType ((MD dMod) :: (TA dTas) :: (List.skip tFieldCount dFields))}
+                                                    | _ -> d)
+                                            let strippedDepsRecord = {deps with acnDependencies = strippedDeps}
+                                            getUpdateFunctionUsedInEncoding r strippedDepsRecord lm m acnChild.id us
+                                        else
+                                            acnChild.funcUpdateStatement, us
+                                    else
+                                        acnChild.funcUpdateStatement, us
+                                else
+                                    acnChild.funcUpdateStatement, us
                             let updateStatement, lvs, errCodes, icdComments =
-                                match acnChild.funcUpdateStatement with
-                                | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments
-                                | None                     -> None, [], [], []
-                            Some {body=updateStatement; lvs=lvs; errCodes=errCodes; userDefinedFunctions = []; icdComments=icdComments}, us
+                                match effectiveFnc with
+                                | Some f -> Some (f.updateAcnChildFnc acnChild childNestingScope childP pRoot), f.localVariables, f.errCodes, f.icdComments
+                                | None -> None, [], [], []
+                            Some {body=updateStatement; lvs=lvs; errCodes=errCodes; userDefinedFunctions = []; icdComments=icdComments}, ns0
                     | Decode -> None, us
 
                 //acn child encode/decode
@@ -2769,6 +2835,13 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             | _ -> None, []
 
         let acnChildrenDictStmts, tupleReturn = lm.lg.getAcnChildrenDictStatements codec scs.acnChildrenEncoded p
+        // When a sequence receives ACN parameters (bHasAcnChildrenToReturn = true due to receivesParameters),
+        // but has no inline ACN children to return, we still need to define the _acn_children dict.
+        let acnChildrenDictStmts =
+            if ProgrammingLanguage.ActiveLanguages.Head = Python && codec = Decode && t.acnParameters.Length > 0 && acnChildrenDictStmts.IsEmpty then
+                [$"%s{p.accessPath.lastIdOrArr}_acn_children = {{}}"]
+            else
+                acnChildrenDictStmts
 
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
@@ -2942,6 +3015,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
+        // If all alternatives are always-absent, there's nothing to encode/decode
+        if children.IsEmpty then None, us
+        else
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
@@ -3072,7 +3148,28 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
-                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef typeDefinitionName sChildInitExpr isPrimitiveType codec)
+                        // Compute ACN parameters to pass to the child's encode_acn/decode_acn call (for present-when choices whose alternatives need ACN params)
+                        let acnParamsForChoiceChild =
+                            deps.acnDependencies
+                            |> List.filter(fun d ->
+                                d.asn1Type = child.chType.id &&
+                                match d.dependencyKind with
+                                | AcnDepRefTypeArgument _ -> true
+                                | _ -> false)
+                            |> List.choose(fun d ->
+                                match d.determinant with
+                                | AcnParameterDeterminant paramDet ->
+                                    let paramInScope = t.acnParameters |> List.exists (fun p -> p.c_name = paramDet.c_name)
+                                    match paramInScope with
+                                    | true ->
+                                        let targetParamName =
+                                            match d.dependencyKind with
+                                            | AcnDepRefTypeArgument param -> param.c_name
+                                            | _ -> paramDet.c_name
+                                        Some $"%s{targetParamName}=%s{paramDet.c_name}"
+                                    | false -> None
+                                | _ -> None)
+                        Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef typeDefinitionName sChildInitExpr isPrimitiveType acnParamsForChoiceChild codec)
             [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
@@ -3209,7 +3306,6 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
                 TL "ACN_REF_02" (fun () ->
-                // printfn "[DEBUG] createReferenceFunction funcBody: t.id=%s, calling createAcnFunction with acnAlignment=%A" (t.id.AsString) t.acnAlignment
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.accessPath codec
                     match codec, lm.lg.decodingKind with

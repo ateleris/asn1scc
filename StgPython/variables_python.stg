@@ -37,8 +37,7 @@ PrintCharValue(cValue)    ::= "'<cValue>'"
 
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 
-// todo: null = None oder 0?
-PrintNullValue()    ::= "0"
+PrintNullValue()    ::= ""
 
 PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
 # TODO variables_python.stg

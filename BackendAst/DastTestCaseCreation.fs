@@ -101,17 +101,13 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
             "tc_data: " + valueType + " = " + valueType + argsStr
         | Python, Enumerated _ ->
-            // Construct qualified enum ref: MOD.TypeName_Enum.itemName
-            let enumItemName =
-                match v.Value.kind with
-                | EnumValue itemName -> ToC itemName
-                | _ -> raise (BugErrorException "Impossible: Enumerated type must have EnumValue kind")
-            let typedefName =
-                match v.Type.typeDefinitionOrReference with
-                | TypeDefinition td -> td.typedefName
-                | ReferenceToExistingDefinition ref -> ref.typedefName
-            let enumRef = modName + "." + typedefName + "_Enum." + enumItemName
-            "tc_data: " + valueType + " = " + valueType + "(" + enumRef + ")"
+            // initStatement is "MOD.ActualTypeName(MOD.ActualTypeName_Enum.item)"
+            // Subtypes (My2ndEnum ::= BaseEnum) need MOD.My2ndEnum(MOD.BaseEnum_Enum.item),
+            // so reuse the args from initStatement (which already has the correct base _Enum).
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, NullType _ -> "tc_data: " + valueType + " = " + valueType + "()"
         | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
         | _, _ -> initStatement
     let sTestCaseIndex = idx.ToString()

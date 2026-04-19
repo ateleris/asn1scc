@@ -127,7 +127,21 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | SequenceOf so ->
                 let td =  lm.lg.getSizeableTypeDefinition so.baseInfo.typeDef
-                let childVals = v |> List.map (fun chv -> printValue r lm curProgramUnitName so.childType (Some gv) chv.kind)
+                let rawChildVals = v |> List.map (fun chv -> printValue r lm curProgramUnitName so.childType (Some gv) chv.kind)
+                let childVals =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python ->
+                        let pyBuiltins = set ["int"; "float"; "bool"]
+                        let typedefName =
+                            match so.childType.typeDefinitionOrReference with
+                            | TypeDefinition td -> td.typedefName
+                            | ReferenceToExistingDefinition ref -> ref.typedefName
+                        match so.childType.ActualType.Kind with
+                        | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins |> Set.contains typedefName) ->
+                            let qualName = lm.lg.getQualifiedTypeName so.childType.typeDefinitionOrReference (ToC so.childType.id.ModName)
+                            rawChildVals |> List.map (fun v -> qualName + "(" + v + ")")
+                        | _ -> rawChildVals
+                    | _ -> rawChildVals
                 let sDefValue = so.childType.initFunction.initExpressionFnc ()
                 lm.vars.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
@@ -175,7 +189,10 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                                     | Some v    ->
                                         let chV = (mapValue v).kind
                                         Some (printValue r lm curProgramUnitName x.Type None chV)
-                                    | None      -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
+                                    | None      ->
+                                        match ProgrammingLanguage.ActiveLanguages.Head with
+                                        | Python -> Some "None"
+                                        | _ -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
                                 | _             -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
                             match chV with
                             | None -> None
