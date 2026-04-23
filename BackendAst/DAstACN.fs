@@ -1414,11 +1414,11 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
-                let fncBody = fixedSize td pp access o.minSize.acn codec
+                let fncBody = fixedSize sType pp access o.minSize.acn codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
-                let fncBody = varSize td pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
+                let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -1426,7 +1426,24 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
                 Some(fncBody, [errCode],nStringLength)
             | SZ_EC_ExternalField _ ->
-                let extField = getExternalField r deps t.id
+                let rawExtField = getExternalField r deps t.id
+                // For Python inline use: if rawExtField is a parameter name and we have acnArgs,
+                // the function body is being inlined into a parent sequence where the parameter
+                // is not in scope — look up the actual ACN child that was passed as the argument.
+                let extField =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python when acnArgs |> List.exists (fun (_, prm) -> prm.c_name = rawExtField) ->
+                        let actualDep =
+                            deps.acnDependencies
+                            |> List.tryFind (fun d ->
+                                d.asn1Type = t.id &&
+                                match d.dependencyKind with
+                                | AcnDepRefTypeArgument prm when prm.c_name = rawExtField -> true
+                                | _ -> false)
+                        match actualDep with
+                        | Some dep -> getAcnDeterminantName dep.determinant.id
+                        | None -> rawExtField
+                    | _ -> rawExtField
                 let tp = getExternalFieldType r deps t.id
                 let unsigned =
                     match tp with
@@ -1435,8 +1452,8 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | _ -> false
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size sType pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field sType pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1495,18 +1512,33 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let bitString_FixSize = lm.uper.bitString_FixSize
     let bitString_VarSize = lm.uper.bitString_VarSize
 
-    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.accessPath
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
-                let extField = getExternalField r deps t.id
+                let rawExtField = getExternalField r deps t.id
+                let extField =
+                    match ProgrammingLanguage.ActiveLanguages.Head with
+                    | Python when acnArgs |> List.exists (fun (_, prm) -> prm.c_name = rawExtField) ->
+                        let actualDep =
+                            deps.acnDependencies
+                            |> List.tryFind (fun d ->
+                                d.asn1Type = t.id &&
+                                match d.dependencyKind with
+                                | AcnDepRefTypeArgument prm when prm.c_name = rawExtField -> true
+                                | _ -> false)
+                        match actualDep with
+                        | Some dep -> getAcnDeterminantName dep.determinant.id
+                        | None -> rawExtField
+                    | _ -> rawExtField
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
-                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                    | true  -> lm.acn.bit_string_external_field_fixed_size sType pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                    | false  -> lm.acn.bit_string_external_field sType pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1516,15 +1548,15 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
                 let lv = SequenceOfIndex (p.accessPath.SequenceOfLevel + 1, None)
                 let bFixedSize = o.minSize.acn = o.maxSize.acn
-                let fncBody = lm.acn.bit_string_null_terminated td pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
+                let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
-                let fncBody = bitString_FixSize td pp access o.minSize.acn errCode.errCodeName codec
+                let fncBody = bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
                 let fncBody =
-                    bitString_VarSize td pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
+                    bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -1539,6 +1571,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
 
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] acnPrms us
 
@@ -2481,9 +2514,19 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     let newArg = if lm.lg.usesWrappedOptional && childSel.isOptional && codec = Encode then childSel.asLast else childSel
                     {p with accessPath = newArg}
 
+                let acnArgsForChild =
+                    deps.acnDependencies
+                    |> List.filter(fun d -> d.asn1Type = child.Type.id)
+                    |> List.choose(fun d ->
+                        match d.dependencyKind with
+                        | AcnDepRefTypeArgument acnPrm ->
+                            Some (AcnGenericTypes.RelativePath [], acnPrm)
+                        | _ -> None
+                    )
+
                 let childContentResult, ns1 =
                     match chFunc with
-                    | Some chFunc -> chFunc.funcBodyAsSeqComp ns0 [] childNestingScope childP childName bitStreamPositionsLocalVar
+                    | Some chFunc -> chFunc.funcBodyAsSeqComp ns0 acnArgsForChild childNestingScope childP childName bitStreamPositionsLocalVar
                     | None -> None, ns0
 
                 //handle present-when acn property
@@ -3101,15 +3144,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_enum (enm,_) ->
                         let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
-                            match p.modName = a.modName with
+                            match p.modName = ToC a.modName with
                             | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
                             | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName); typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
 
 
                         let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | Python -> Some (choiceChild_Enum (p.accessPath.joinedEnum lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
-                        | _ -> Some (choiceChild_Enum (p.accessPath.joinedEnum lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
+                        Some (choiceChild_Enum (p.accessPath.joinedEnum lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef typeDefinitionName sChildInitExpr codec)
                     | CEC_presWhen  ->
                         let isPrimitiveType =
                             match (lm.lg.getTypeDefinition child.chType.FT_TypeDefinition) with
