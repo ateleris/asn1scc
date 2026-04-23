@@ -919,11 +919,12 @@ type TypeDefinition = {
     /// and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;
     /// For composite types, typedefBody contains also the definition of any
     /// inner children
-    typedefBody : unit -> string
-    
+    typedefBody : Asn1Encoding list -> string
+
     /// the definition of only this type, without including child type definitions
     /// useful for backends like Python where you want to generate classes separately
-    typedefBodyOnly : unit -> string
+    /// encodings controls which dispatch branches are emitted (uPER, ACN, XER, etc.)
+    typedefBodyOnly : Asn1Encoding list -> string
     baseType    : ReferenceToExistingDefinition option
 
     /// extra information that is needed for the type definition

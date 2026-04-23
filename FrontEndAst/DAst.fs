@@ -266,7 +266,7 @@ type TypeDefinition = {
     /// and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;
     /// For composite types, typedefBody contains also the definition of any
     /// inner children
-    typedefBody : unit -> string
+    typedefBody : Asn1Encoding list -> string
     baseType    : ReferenceToExistingDefinition option
 
     /// extra information that is needed for the type definition
