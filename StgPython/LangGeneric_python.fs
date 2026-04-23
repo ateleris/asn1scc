@@ -462,22 +462,73 @@ type LangGeneric_python() =
                 shouldInline
             )
         // Also require inlining when a sibling ACN field provides this child's size (AcnDepSizeDeterminant).
-        // In that case, the inline content encodes bytes-only (no length prefix), preventing double-writing.
+        // Only applies to OCTET STRING / BIT STRING — their standalone encode_acn writes a length prefix,
+        // causing double-writing when the parent also writes the ACN size field.
+        // SEQUENCE-OF encode_acn uses self.nCount and writes NO length prefix, so no double-counting;
+        // forcing it inline would break the nLen parameter passing in decode.
         let hasExternalSizeDet =
             let normalizedChildFieldPath = childFieldPath.Replace("-", "_")
-            deps.acnDependencies
-            |> List.exists (fun d ->
-                let normalizedDependentPath = d.asn1Type.AsString.Replace("-", "_")
-                let dependentIsThisChild =
-                    normalizedDependentPath = normalizedChildFieldPath ||
-                    normalizedDependentPath.StartsWith(normalizedChildFieldPath + ".")
-                let isSizeDep =
-                    match d.dependencyKind with
-                    | AcnDepSizeDeterminant _ -> true
+            let hasSizeDep =
+                deps.acnDependencies
+                |> List.exists (fun d ->
+                    let normalizedDependentPath = d.asn1Type.AsString.Replace("-", "_")
+                    let dependentIsThisChild =
+                        normalizedDependentPath = normalizedChildFieldPath ||
+                        normalizedDependentPath.StartsWith(normalizedChildFieldPath + ".")
+                    let isSizeDep =
+                        match d.dependencyKind with
+                        | AcnDepSizeDeterminant _ -> true
+                        | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                        | _ -> false
+                    dependentIsThisChild && isSizeDep
+                )
+            if not hasSizeDep then false
+            else
+                match parentTypeId.Kind with
+                | Asn1AcnAst.Sequence sq ->
+                    sq.children
+                    |> List.exists (fun c ->
+                        match c with
+                        | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
+                            match ac.Type.Kind with
+                            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                            | Asn1AcnAst.ReferenceType ref when ref.encodingOptions.IsSome -> true
+                            | _ ->
+                                match ac.Type.ActualType.Kind with
+                                | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                                | _ -> false
+                        | _ -> false
+                    )
+                | _ -> false
+        // Also require inlining when a sizable child has a fixed-size ACN encoding class.
+        // WITH COMPONENTS narrowing (e.g. buf (SIZE(10))) gives SZ_EC_LENGTH_EMBEDDED 0I, which
+        // means 0 bits for the length prefix (min==max). The named class method would call the
+        // base type's encode_acn (e.g. Non_Generic_buf with SIZE(0..200)) which writes a non-zero
+        // length prefix. Inlining the anonymous type's function avoids that mismatch.
+        let isFixedSizeSizable =
+            match parentTypeId.Kind with
+            | Asn1AcnAst.Sequence sq ->
+                sq.children
+                |> List.exists (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
+                        let isEffectivelyFixed (kind: Asn1AcnAst.Asn1TypeKind) =
+                            match kind with
+                            | Asn1AcnAst.OctetString os ->
+                                os.acnEncodingClass = SZ_EC_FIXED_SIZE || os.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | Asn1AcnAst.BitString bs ->
+                                bs.acnEncodingClass = SZ_EC_FIXED_SIZE || bs.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | Asn1AcnAst.SequenceOf sof ->
+                                sof.acnEncodingClass = SZ_EC_FIXED_SIZE || sof.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | _ -> false
+                        isEffectivelyFixed ac.Type.Kind ||
+                        (match ac.Type.Kind with
+                         | Asn1AcnAst.ReferenceType rt -> isEffectivelyFixed rt.resolvedType.Kind
+                         | _ -> false)
                     | _ -> false
-                dependentIsThisChild && isSizeDep
-            )
-        shouldInlineAny || hasExternalSizeDet
+                )
+            | _ -> false
+        shouldInlineAny || hasExternalSizeDet || isFixedSizeSizable
 
     override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
         match relPath with

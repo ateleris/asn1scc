@@ -3286,8 +3286,6 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
       let shouldUseSlowPath = t.acnAlignment.IsSome
       match o.hasExtraConstrainsOrChildrenOrAcnArgs && not shouldUseSlowPath with
       | true  ->
-          // TODO: this is where stuff gets inlined
-          // printfn "[DEBUG] createReferenceFunction: FAST PATH for %s (no alignment)" (t.id.AsString)
           TL "ACN_REF_01" (fun () ->
           match codec with
             | Codec.Encode  -> baseType.getAcnFunction codec, us
@@ -3301,7 +3299,6 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         let funcBody us (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
                             baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) nestingScope p
                         Some  {baseTypeAcnFunction with funcBody = funcBody}
-
                 ret, us)
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
