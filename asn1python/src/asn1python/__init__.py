@@ -30,7 +30,7 @@ from .asn1_types import (
 from .bitstream import BitStream, BitStreamError
 
 from .codec import (
-    Codec, EncodeResult, DecodeResult, ErrorCode,
+    Encoding, Codec, EncodeResult, DecodeResult, ErrorCode,
     ENCODE_OK, DECODE_OK, ERROR_INSUFFICIENT_DATA,
     ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION,
 )
@@ -70,7 +70,7 @@ __all__ = [
     "BitStream", "BitStreamError",
 
     # Codecs
-    "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
+    "Encoding", "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
     "ACNDecoder", "ACNEncoder", "UPERDecoder", "UPEREncoder", #"XERCodec", "BERCodec", "PERCodec",
 
     # Constants

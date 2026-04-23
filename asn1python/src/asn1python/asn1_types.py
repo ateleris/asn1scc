@@ -7,6 +7,7 @@ that match the behavior of the C and Scala runtime libraries.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Self
 
 from .asn1_exceptions import *
 from .encoder import Encoder
@@ -29,6 +30,14 @@ class Asn1ConstraintValidResult:
             raise Exception("No error code must be set if the constraint is valid.")
 
 class Asn1Base(ABC):
+    
+    # def encode(encoding: Encoding) -> bytearray:
+    #     pass
+    
+    # @classmethod
+    # def decode(cls, encoding: Encoding, data: bytearray) -> Self:
+    #     Decoder.from
+    
     @abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass

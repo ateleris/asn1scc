@@ -243,11 +243,7 @@ let castRPp  = DAstEqual.castRPp
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let cls = o.getClass r.args
-    let sSuffix =
-        match cls with
-        | ASN1SCC_REAL   -> ""
-        | ASN1SCC_FP32   -> "_fp32"
-        | ASN1SCC_FP64   -> ""
+    let sSuffix = lm.lg.getRealEncodingSuffix r.args.floatingPointSizeInBytes cls
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
@@ -818,14 +814,20 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | Some v ->
                             let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
                             Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit isPrimitiveType codec), childContent.localVariables)
-                TL "handleChild_16" (fun () ->                 
+                TL "handleChild_16" (fun () ->
+                // For non-primitive children in decode mode for python, the template generates variables as instance_<childName>
+                // So we need to override the resultExpr to match what the template generates
+                let adjustedResultExpr =
+                    match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
+                    | Decode, Copy, false, Python -> Some $"{pp}_{childName}"
+                    | _ -> childContent.resultExpr
                 {
                     stmt = Some {
                         body = childBody
                         lvs = child_localVariables
                         errCodes = childContent.errCodes
                     }
-                    resultExpr = childContent.resultExpr
+                    resultExpr = adjustedResultExpr
                     props = props
                     auxiliaries = childContent.auxiliaries
                 }, newAcc)
@@ -909,14 +911,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | _ -> lm.lg.getChChild p.accessPath sChildName child.chType.isIA5String
                     chFunc.funcBody childNestingScope ({p with accessPath = childPath}) fromACN
                 | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")} fromACN
-                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChild p.accessPath sChildName child.chType.isIA5String}) fromACN
+                | true -> chFunc.funcBody childNestingScope ({p with accessPath = lm.lg.getChChildForKind p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String child.chType.Kind codec}) fromACN
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
             let isEnum = match child.chType.Kind with | Enumerated _ -> true | _ -> false
             let sChildInitExpr = child.chType.initFunction.initExpressionFnc()
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =
-                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent sChildTypeDef sChildName
+                let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper UPER childContent sChildTypeDef sChildName
                 choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with

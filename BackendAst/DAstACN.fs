@@ -904,11 +904,8 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
     let Real_32_little_endian               = lm.acn.Real_32_little_endian
     let Real_64_little_endian               = lm.acn.Real_64_little_endian
 
-    let sSuffix =
-        match o.getClass r.args with
-        | ASN1SCC_REAL   -> ""
-        | ASN1SCC_FP32   -> "_fp32"
-        | ASN1SCC_FP64   -> ""
+    let cls = o.getClass r.args
+    let sSuffix = lm.lg.getRealEncodingSuffix r.args.floatingPointSizeInBytes cls
 
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
@@ -2475,8 +2472,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                             match codec with
                             | Encode -> None, [], [], None, ns1
                             | Decode ->
-                                // let extField = lm.lg.getExternalField (getExternalField0 r deps child.Type.id) relPath o p
-                                let extField = relPath.AsString
+                                let extField = lm.lg.getExternalField (getExternalField0 r deps child.Type.id) relPath o p
                                 let body (p: CodegenScope) (existVar: string option): string =
                                     assert existVar.IsSome
                                     sequence_presence_optChild_pres_bool (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName existVar.Value codec
@@ -2966,8 +2962,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         | Decode, Some customPath -> {CodegenScope.modName = p.modName; accessPath = customPath}
                         | _ ->
                             if lm.lg.acn.choice_requires_tmp_decoding && codec = Decode then
-                                {CodegenScope.modName = p.modName; accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
-                            else {p with accessPath = lm.lg.getChChild p.accessPath sChildName child.chType.isIA5String}
+                                {CodegenScope.modName = p.modName; accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
+                            else {p with accessPath = lm.lg.getChChildForKind p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String child.chType.Kind codec}
                     
                     let acnArgsForChild =
                       deps.acnDependencies
@@ -3017,7 +3013,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.userDefinedFunctions, childContent.errCodes, childContent.auxiliaries
 
             let childBody =
-                let childContent_funcBody = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper childContent_funcBody sChildTypeDef sChildName
+                let childContent_funcBody = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper ACN childContent_funcBody sChildTypeDef sChildName
                 match child.Optionality with
                 | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
                 | Some (ChoiceAlwaysPresent)

@@ -5,7 +5,7 @@ This module provides the base codec framework for ASN.1 encoding/decoding operat
 """
 
 from abc import ABC
-from typing import Optional, TypeVar, Generic
+from typing import Optional, Self, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
 from .bitstream import BitStream, BitStreamError
@@ -31,6 +31,10 @@ ERROR_CONSTRAINT_VIOLATION = ErrorCode.CONSTRAINT_VIOLATION
 ERROR_BUFFER_OVERFLOW = ErrorCode.BUFFER_OVERFLOW
 ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
 
+
+class Encoding(IntEnum):
+    uPER = 0
+    ACN = 1
 
 @dataclass(frozen=True)
 class EncodeResult:
@@ -79,16 +83,16 @@ class Codec(ABC):
         self._bitstream = BitStream.from_bitstream(bitstream)
 
     @classmethod
-    def from_codec(cls, codec: 'Codec') -> 'Codec':
+    def from_codec(cls, codec: 'Codec') -> Self:
         instance = cls(codec._bitstream)
         return instance
 
     @classmethod
-    def from_buffer(cls, buffer: bytearray) -> 'Codec':        
+    def from_buffer(cls, buffer: bytearray) -> Self:        
         return cls(BitStream(buffer))
 
     @classmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> 'Codec':
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> Self:
         """Create a new codec with a buffer of length buffer_byte_size."""        
         return cls.from_buffer(bytearray(buffer_byte_size))
     

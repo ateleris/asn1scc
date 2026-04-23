@@ -107,7 +107,32 @@ class <sTypeDefinitionName>(<if(soParentTypePackage)><soParentTypePackage>.<endi
     <soExtraDefs>
 >>
 
+Define_Generic_Encode_Decode(sTypeName) ::= /*nogen*/<<
+# TODO, resolve circular imports and move to base class instead
+# TODO, make encoding options dependent on generated encoding methods
+def encode(self, encoding: Encoding) -> bytearray:
+    if encoding == Encoding.uPER:
+        encoder = UPEREncoder.of_size()
+        self.encode_uper(encoder)
+        return encoder.get_bitstream_buffer()
+    elif encoding == Encoding.ACN:
+        encoder = ACNEncoder.of_size()
+        self.encode_acn(encoder)
+        return encoder.get_bitstream_buffer()
+    else:
+        raise Asn1Exception(f"Invalid encoding type {encoding}")
 
+@classmethod
+def decode(cls, encoding: Encoding, data: bytearray) -> '<sTypeName>':
+    if encoding == Encoding.uPER:
+        decoder = UPERDecoder.from_buffer(data)
+        return cls.decode_uper(decoder)
+    elif encoding == Encoding.ACN:
+        decoder = ACNDecoder.from_buffer(data)
+        return cls.decode_acn(decoder)
+    else:
+        raise Asn1Exception(f"Invalid encoding type {encoding}")
+>>
 
 
 
@@ -134,6 +159,8 @@ class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
     # initialize val with the first enum element by default
     val: <td.typeName>_Enum = <td.typeName>_Enum.<first(arrsEnumNames)>
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
@@ -154,6 +181,8 @@ Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlph
 class <td.typeName>(Asn1Base): # header_python.stg 137
     __all__.append("<td.typeName>")
     arr: List[int]
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
@@ -177,6 +206,8 @@ class <td.typeName>(Asn1Base):
     arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
@@ -203,6 +234,8 @@ class <td.typeName>(Asn1Base):
     arr: List[int] = field(default_factory=list)
     
     <arrsInvariants; separator="\n">
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
@@ -238,6 +271,8 @@ class <td.typeName>(Asn1Base):
 # object <td.typeName>:
     # <arrsSizeObjDefinition; separator="\n\n">
     <endif>
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
@@ -283,6 +318,8 @@ class <td.typeName>(Asn1Base):
     <arrsChildren:{ch|<ch>}; separator="\n">
     <arrsInvariants; separator="\n">
     <arrsSizeDefinition; separator="\n\n">
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
@@ -324,6 +361,8 @@ class <td.typeName>(Asn1Base):
     data: Union[NullType, <arrsChildrenTypes:{t|<t>}; separator=", ">] = NullType()
 
     <arrsSizeDefinition; separator="\n\n">
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName)>
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<

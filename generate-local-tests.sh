@@ -763,4 +763,10 @@ echo "Running Asn1SCC Compiler for ASN1..."
 echo "Running Asn1SCC Compiler for TestLib..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
 
+echo "Running Asn1SCC Compiler for Dual-Wield ASN1/ACN..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_acn_dual" $ASN1_FILES $ACN_FILES 
+
+echo "Running Asn1SCC Compiler for Dual-Wield TestLib..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_dual" $TESTLIB_FILES
+
 
