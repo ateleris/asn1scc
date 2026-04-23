@@ -16,3 +16,7 @@ scalaTests:
 	./scripts/runTests.py -l Scala -s
 	./scripts/runTests.py -l Scala
 
+pythonTests:
+	./scripts/runTests.py -l python -s
+	./scripts/runTests.py -l python
+
