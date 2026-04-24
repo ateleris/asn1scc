@@ -97,11 +97,10 @@ let rec getResolvedTypeAndChildren (t:Asn1Type) : Asn1Type list =
 
 let private combineStringOpts(a: string option) (b: string option) = (defaultArg a "") + "\n" + (defaultArg b "")
 
-let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecCls: Asn1Type) (lm: LanguageMacros) (printInit: bool) (printEquals: bool) (printIsValid: bool) (printUper: bool) (printAcn: bool) (runEncodings: Asn1Encoding list) =
+let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecCls: Asn1Type) (lm: LanguageMacros) (printInit: bool) (printEquals: bool) (printIsValid: bool) (printUper: bool) (printAcn: bool) =
     let type_definition =
         match fullCls.typeDefinitionOrReference with
-        | TypeDefinition td ->
-            td.typedefBodyOnly runEncodings
+        | TypeDefinition td -> td.typedefBodyOnly ()
         | ReferenceToExistingDefinition _ -> raise(BugErrorException "Type Assignment with no Type Definition")
 
     let init_funcs        =
@@ -331,7 +330,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                         false, myTas.Type
 
 
-                            let typeDef = printUnitInternal correctTas fullCls encDecCls lm printInit printEquals printIsValid printUper printAcn encodings
+                            let typeDef = printUnitInternal correctTas fullCls encDecCls lm printInit printEquals printIsValid printUper printAcn
 
                             // Store with multiple keys so it can be looked up flexibly:
                             // 1. Full scope path from encDecCls
@@ -513,7 +512,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
                             let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
                             // printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
-                            printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn encodings
+                            printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn
                         )
 
                     typeDefsFromMap @ typeDefsGenerated
@@ -572,12 +571,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 List.map(fun tas ->
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-                    let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
-                    let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
                     let type_definition =
                         match tas.Type.typeDefinitionOrReference with
-                        | TypeDefinition td -> td.typedefBody encodings
+                        | TypeDefinition td -> td.typedefBody ()
                         | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")
                     let init_def        =
                         match r.callersSet |> Set.contains (f InitFunctionType) with

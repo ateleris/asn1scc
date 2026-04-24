@@ -86,7 +86,7 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots, arr_Asn1Encoding) ::= <<
 <arrsAnnots:{ann|@<ann>}; separator=" ">
 type <sTypeDefinitionName> = <sParentType>
 <soExtraDefs>
@@ -123,7 +123,7 @@ object <td.typeName>:
 
 
 
-Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -139,7 +139,7 @@ Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlph
 type <td.typeName> = Vector[UByte]
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -156,7 +156,7 @@ case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte
 }
 >>
 
-Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -179,7 +179,7 @@ case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte
 }
 >>
 
-Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -201,7 +201,7 @@ object <td.typeName> {
 }
 >>
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition, arr_Asn1Encoding) ::= <<
 
 <soChildDefinition>
 
@@ -248,7 +248,7 @@ case class <td.typeName> (
 
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs, arr_Asn1Encoding) ::= <<
 type <td.typeName> = <prTd.typeName>
 
 object <td.typeName> {
@@ -277,7 +277,7 @@ enum <td.typeName>:
     <arrsSizeDefinition; separator="\n\n">
 >>
 
-Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 

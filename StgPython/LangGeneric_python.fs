@@ -491,7 +491,15 @@ type LangGeneric_python() =
                             | _, _ ->
                                 // Reached the target field
                                 {pSeq with accessPath = newPath} // Can't navigate through ACN children
-                        | Asn1AcnAst.AcnChild ch  -> pSeq
+                        | Asn1AcnAst.AcnChild _  ->
+                            // ACN-inserted fields are local variables named by the dependency lookup,
+                            // not accessible via the parent instance access path
+                            let filterDependency (d: AcnDependency) =
+                                match d.dependencyKind with
+                                | AcnDepPresenceBool -> true
+                                | _ -> false
+                            let acnChildName = getExternalField0 filterDependency
+                            {pSeq with accessPath = AccessPath.valueEmptyPath acnChildName}
 
             let resolvedPath = getChildResult o p relPath
             resolvedPath.accessPath.joined this

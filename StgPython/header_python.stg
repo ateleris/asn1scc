@@ -100,11 +100,13 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateLocalTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots, arr_Asn1Encoding) ::= <<
 # header_python.stg 91
 class <sTypeDefinitionName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType>):
     __all__.append("<sTypeDefinitionName>")
     <soExtraDefs>
+
+    <Define_Generic_Encode_Decode(sTypeName=sTypeDefinitionName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 Define_Generic_Encode_Decode(sTypeName, arr_Asn1Encoding) ::= /*nogen*/<<
@@ -166,9 +168,11 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 125
     __all__.append("<td.typeName>")
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
@@ -188,9 +192,11 @@ class <td.typeName>(Asn1Base): # header_python.stg 137
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 141
     __all__.append("<td.typeName>")
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -213,9 +219,11 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, arr_Asn1Encoding) ::= <<
 class <td.typeName>(<prTd.typeName>): # header_python.stg 164
     __all__.append("<td.typeName>")
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 /***********************************       BIT STRING    ************************************************************/
@@ -241,16 +249,18 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize, arr_Asn1Encoding) ::= <<
 # header_python.stg 194 - Define_subType_bit_string
 @dataclass
 class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
-    
+
     <if(bFixedSize)>
     def __init__(self, arr: List[int]):
         super().__init__(<nMin>, arr)
     <endif>
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -278,12 +288,14 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition, arr_Asn1Encoding) ::= <<
 # header_python.stg 222
 <soChildDefinition>
 
 class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 
@@ -325,7 +337,7 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs, arr_Asn1Encoding) ::= <<
 # header_python.stg 268
 @dataclass
 class <td.typeName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>):
@@ -335,6 +347,8 @@ class <td.typeName>(<if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.
 <if (arrsNullFieldsSavePos)>
     <td.extension_function_positions> = <prTd.extension_function_positions>
 <endif>
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 /***********************************       CHOICE    ************************************************************/
@@ -368,12 +382,14 @@ class <td.typeName>(Asn1Base):
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
-Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 <td.typeName>InUse = <prTd.typeName>InUse
 
 class <td.typeName>(<prTd.typeName>): # header_python.stg 300
     __all__.append("<td.typeName>")
     __all__.append("<td.typeName>InUse")
+
+    <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<
