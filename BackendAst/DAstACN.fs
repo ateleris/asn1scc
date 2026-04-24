@@ -2055,9 +2055,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             let isAlwaysInit (d: AcnDependency): bool =
                 match d.dependencyKind with
                 | AcnDepRefTypeArgument p ->
-                    // In multi-dep context, alternatives are mutually exclusive — none is always-init
-                    if ds.Length > 1 then false
-                    else not p.id.dropLast.lastItemIsOptional
+                    not p.id.dropLast.lastItemIsOptional
                 | AcnDepChoiceDeterminant (_, c, isOpt) -> not isOpt
                 | AcnDepPresence _ | AcnDepPresenceStr _ -> false
                 | _ -> true

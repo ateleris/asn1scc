@@ -627,10 +627,13 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let chFunc = child.getUperFunction codec
             let chp =
                 // For Copy+Decode, use asIdentifier to get temp variable names (needed for phantomArrayDepth/SequenceOfLevel tracking).
-                // For Copy+Encode, use the actual access path so nested array accesses produce correct Python paths (e.g. self.arr[i1], not self_arr[i1]).
+                // For Copy+Encode: languages with ArrayInitByAppend (Python) need the actual path for correct nested access (e.g. self.arr[i1]);
+                // languages without it (Scala) need asIdentifier so loop-extracted helpers receive the array as a named parameter.
                 let recv =
                     match lm.lg.decodingKind, codec with
                     | Copy, Decode -> AccessPath.emptyPath (p.accessPath.asIdentifier lm.lg) p.accessPath.selectionType
+                    | Copy, Encode when not lm.lg.ArrayInitByAppend ->
+                        AccessPath.emptyPath (p.accessPath.asIdentifier lm.lg) p.accessPath.selectionType
                     | _ -> p.accessPath
                 if lm.lg.ArrayInitByAppend && codec = Decode then
                     let tempPath = AccessPath.emptyPath (pp + lm.lg.TempArrayItemSuffix) ByValue
