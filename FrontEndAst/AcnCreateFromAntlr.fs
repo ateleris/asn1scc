@@ -1409,7 +1409,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                         | Asn1Ast.MarkAbsent        -> Some ChoiceAlwaysAbsent
                         | Asn1Ast.MarkOptional      -> None ) |>
                     Seq.distinct |> Seq.toList
-                let hasWithComponentsConstraints = not childrenNameConstraints.IsEmpty
+                let hasWithComponentsConstraints = not childNamedConstraints.IsEmpty
                 let newOptionality =
                     match c.Optionality with
                     | None

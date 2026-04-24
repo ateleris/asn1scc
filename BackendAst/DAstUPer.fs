@@ -871,10 +871,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let proof = lm.lg.generateSequenceProof r UPER t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r UPER t o nestingScope p.accessPath codec
         let seqContent  = (childrenStatements@seqBuild@proof) |> nestChildItems lm codec
-        TL "SQ_UPER_8" (fun () -> 
-            match seqContent with
-            | None  -> None
-            | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux}))
+        TL "SQ_UPER_8" (fun () ->
+            match seqContent, codec with
+            | None, CommonTypes.Decode ->
+                match lm.lg.decodeEmptySeq pp with
+                | None -> None
+                | Some decodeEmptySeq -> Some ({UPERFuncBodyResult.funcBody = decodeEmptySeq; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=true; resultExpr=resultExpr; auxiliaries=[]})
+            | None, _ -> None
+            | Some ret, _ -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux}))
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us

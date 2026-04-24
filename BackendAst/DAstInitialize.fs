@@ -922,10 +922,16 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
             let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName initCountValue o.maxSize.uper (isFixedSize) [childInitRes_funcBody] false i resVar
             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
         let nonEmbeddedChildrenFuncs =
-            match childType.initFunction.initProcedure with
-            | None  -> []
-            | Some _ when r.args.generateConstInitGlobals  -> []
-            | Some _  -> [childType.initFunction]
+            match lm.lg.initMethod with
+            | Procedure when r.args.generateConstInitGlobals -> []
+            | Procedure ->
+                match childType.initFunction.initProcedure with
+                | None  -> []
+                | Some _ -> [childType.initFunction]
+            | Function ->
+                match childType.initFunction.initFunction with
+                | None -> []
+                | Some _ -> [childType.initFunction]
 
         initTasFunction, nonEmbeddedChildrenFuncs
 
@@ -1122,9 +1128,15 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                 | None  ->
                     match ch.Type.initFunction.initProcedure with
                     | None  ->
-                        match ch.Type.typeDefinitionOrReference with
-                        | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) -> nonEmbeddedChildrenFunc
-                        | _       ->    None
+                        match lm.lg.initMethod with
+                        | Function ->
+                            match ch.Type.initFunction.initFunction with
+                            | None -> None
+                            | Some _ -> nonEmbeddedChildrenFunc
+                        | Procedure ->
+                            match ch.Type.typeDefinitionOrReference with
+                            | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) -> nonEmbeddedChildrenFunc
+                            | _       ->    None
                     | Some initProc  -> nonEmbeddedChildrenFunc
                 | Some _    ->nonEmbeddedChildrenFunc
 
