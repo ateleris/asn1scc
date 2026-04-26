@@ -795,6 +795,22 @@ let private createDeferredReferenceFunction
 
             let specP : CodegenScope = lm.lg.getParamType t codec
 
+            // After boundary post-processing rewrites &name → formal param name
+            // in the body text, the matching AcnInsertedFieldRef local variable
+            // declarations injected by inner callerFuncBodies become orphans.
+            // Strip them — they are now provided by this function's formal params.
+            let stripOwnParamLocals (locals: LocalVariable list) =
+                let ownParamNames =
+                    o.resolvedType.acnParameters
+                    |> List.map (fun prm -> ToC prm.name)
+                    |> Set.ofList
+                let detTypeName = lm.acn.acn_deferred_det_type_name()
+                locals |> List.filter (fun lv ->
+                    match lv with
+                    | GenericLocalVariable gl ->
+                        not (gl.varType = detTypeName && Set.contains gl.name ownParamNames)
+                    | _ -> true)
+
             // Generate body content
             let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries, ns2 =
                 match isContainingExternalField, baseAcnFunc.funcName.IsNone with
@@ -837,7 +853,7 @@ let private createDeferredReferenceFunction
                             | None ->
                                 funcBody0  // fallback: no wrapping if size param not found
 
-                        wrappedBody, br.errCodes @ [errCode], br.localVariables,
+                        wrappedBody, br.errCodes @ [errCode], stripOwnParamLocals br.localVariables,
                             br.bBsIsUnReferenced, br.bValIsUnReferenced,
                             br.userDefinedFunctions, br.auxiliaries, ns2
                 | true, false ->
@@ -880,7 +896,7 @@ let private createDeferredReferenceFunction
                                 let paramRef = DAstACN.getAcnDeterminantName prm.id
                                 body.Replace(localRef, paramRef)
                             ) br.funcBody
-                        funcBody0, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
+                        funcBody0, br.errCodes, stripOwnParamLocals br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
 
             // Step 2b (Encode only): Append PatchDet calls for each consumer-side
             // acnParameter.  For CONTAINING ExternalField with standalone base function
