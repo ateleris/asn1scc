@@ -327,53 +327,6 @@ let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
 //  Deferred SEQUENCE function
 // ---------------------------------------------------------------------------
 
-/// Create a synthetic AcnChild that only declares an AcnInsertedFieldRef
-/// local variable.  It produces no encoding output — the variable is used
-/// by child specialized functions that receive &name as actual parameter.
-let private makeDeferredDetDeclaration
-        (lm: LanguageMacros)
-        (codec: CommonTypes.Codec)
-        (parentType: Asn1AcnAst.Asn1Type)
-        (detName: string) : SeqChildInfo =
-    let c_name = ToC detName
-    let (ReferenceToType parentPath) = parentType.id
-    let syntheticId = ReferenceToType (parentPath @ [SQF])  // dummy scope node
-    let dummyLoc = parentType.Location
-    let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
-        Asn1AcnAst.AcnNullType.acnProperties = { NullTypeAcnProperties.encodingPattern = None; savePosition = false }
-        acnAlignment = None
-        acnMaxSizeInBits = 0I
-        acnMinSizeInBits = 0I
-        Location = dummyLoc
-        defaultValue = ""
-    }
-    // funcBody returns no encoding but declares the AcnInsertedFieldRef local variable
-    let funcBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
-        fun _codec _acnArgs _nestingScope _p _bsPos ->
-            Some {
-                AcnFuncBodyResult.funcBody = ""
-                errCodes = []
-                localVariables = [GenericLocalVariable { name = c_name; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
-                bValIsUnReferenced = false
-                bBsIsUnReferenced = false
-                resultExpr = None
-                auxiliaries = []
-                icdResult = None
-                userDefinedFunctions = []
-            }
-    DAst.AcnChild {
-        DAst.AcnChild.Name = { StringLoc.Value = detName; Location = dummyLoc }
-        c_name = c_name
-        id = syntheticId
-        Type = dummyNullType
-        typeDefinitionBodyWithinSeq = lm.acn.acn_deferred_det_type_name()
-        funcBody = funcBody
-        funcUpdateStatement = None
-        Comments = [||]
-        deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [] }
-        initExpression = lm.acn.acn_deferred_det_init_expr()
-    }
-
 /// Create a **synthetic** AcnChild node that emits fallback PatchDet code.
 ///
 /// This is NOT a real ASN.1 or ACN field.  It is a fake child node injected
@@ -637,21 +590,10 @@ let private createDeferredSequenceFunction
                         child
                 | _ -> child)
 
-        // For deferred det names that are NOT direct ACN children of this
-        // SEQUENCE (i.e., the determinant lives inside a child reference type),
-        // create synthetic AcnChild entries that only declare the
-        // AcnInsertedFieldRef local variable.  These are prepended so the
-        // variable is in scope when child function calls reference &name.
-        // Exclude own parameters — they arrive as formal AcnInsertedFieldRef*
-        // parameters and don't need a local variable declaration.
-        let missingDetNames =
-            deferredDetNamesFromChildren
-            |> Set.filter (fun name -> not (Set.contains name directAcnChildNames))
-            |> Set.filter (fun name -> not (Set.contains name deferredDetNamesFromOwnParams))
-        let syntheticChildren =
-            missingDetNames
-            |> Set.toList
-            |> List.map (makeDeferredDetDeclaration lm codec t)
+        // Determinants that live inside a child reference type are declared
+        // as AcnInsertedFieldRef locals by the deferred reference's caller
+        // funcBody (createDeferredReferenceFunction), via its localVariables
+        // result.  Nothing to do here.
 
         // Collect fallback PatchDet info for local deferred dets (encode only).
         // When all consumers of a shared determinant are absent at runtime
@@ -707,7 +649,7 @@ let private createDeferredSequenceFunction
                     [makeFallbackPatchChild lm codec t fallbackCode]
             | CommonTypes.Codec.Decode -> []
 
-        let allChildren = syntheticChildren @ modifiedChildren @ fallbackChildren
+        let allChildren = modifiedChildren @ fallbackChildren
 
         DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc allChildren acnPrms us
 
@@ -1098,28 +1040,50 @@ let private createDeferredReferenceFunction
                         toc, Some toc
                     | _ -> str, None
 
-                let extraActualParams =
-                    o.acnArguments |> List.map (fun arg ->
+                // For each acnArgument, classify the call site:
+                //   - Intermediate level (parent param exists) → pass parent's
+                //     formal param name (pointer pass-through).  No local
+                //     declaration needed; the parent already has it.
+                //   - Declaration level (no parent param) → pass &localName.
+                //     The local AcnInsertedFieldRef must be declared in the
+                //     caller's scope, so emit a localVariable for it.
+                let extraActualParams, declLevelLocalNames =
+                    o.acnArguments |> List.fold (fun (paramsAcc, localsAcc) arg ->
                         let (AcnGenericTypes.RelativePath parts) = arg
                         let argName = parts |> List.last |> fun sl -> sl.Value
-                        // Check if this argument maps to a parent parameter
-                        // (intermediate level, e.g., inside a CHOICE specialized
-                        // function).  If so, pass the parent's formal param
-                        // directly (pointer pass-through, no &).
                         let parentParam =
                             acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
                         match parentParam with
                         | Some (_, prm) ->
-                            // Intermediate level: pass parent's formal param name
-                            DAstACN.getAcnDeterminantName prm.id
+                            let pStr = DAstACN.getAcnDeterminantName prm.id
+                            paramsAcc @ [pStr], localsAcc
                         | None ->
-                            // Declaration level: address of local variable
-                            lm.acn.acn_deferred_det_actual_param (ToC argName) codec)
+                            let cName = ToC argName
+                            let pStr = lm.acn.acn_deferred_det_actual_param cName codec
+                            paramsAcc @ [pStr], localsAcc @ [cName]
+                    ) ([], [])
 
                 let baseFuncCall = callBaseTypeFunc lm pp specFuncName codec
                 let funcBodyContent = insertActualParams baseFuncCall extraActualParams
 
-                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [callerErrCode]; localVariables = []; userDefinedFunctions = bodyResult_udfcs; bValIsUnReferenced = false; bBsIsUnReferenced = false; resultExpr = resultExpr; auxiliaries = allAuxiliaries; icdResult = None}), callerUs
+                // Declaration-level AcnInsertedFieldRef locals.  Distinct
+                // by name in case the same determinant is referenced via
+                // multiple acnArguments paths (e.g. hdr.x and direct x);
+                // duplicates would be deduped later anyway, but we save
+                // work by deduping here.
+                let extraLocals =
+                    declLevelLocalNames
+                    |> List.distinct
+                    |> List.map (fun cName ->
+                        GenericLocalVariable {
+                            name = cName
+                            varType = lm.acn.acn_deferred_det_type_name()
+                            arrSize = None
+                            isStatic = false
+                            initExp = Some (lm.acn.acn_deferred_det_init_expr())
+                        })
+
+                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [callerErrCode]; localVariables = extraLocals; userDefinedFunctions = bodyResult_udfcs; bValIsUnReferenced = false; bBsIsUnReferenced = false; resultExpr = resultExpr; auxiliaries = allAuxiliaries; icdResult = None}), callerUs
 
             // Record the function call dependency (caller → callee)
             let ns3 =
