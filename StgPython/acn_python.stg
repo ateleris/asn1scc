@@ -1429,11 +1429,7 @@ MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleEl
 >>
 
 MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
-<if(bIsAlwaysInit)>
-(<sV0> == <sVi>)
-<else>
 ((<sVi>_is_initialized and <sV0> == <sVi>) or not <sVi>_is_initialized)
-<endif>
 >>
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 # acn_python.stg 1090

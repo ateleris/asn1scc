@@ -135,7 +135,7 @@ ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
-ret = <p1><sAcc><sChName> == <p2><sAcc><sChName>
+<if(bIsOptional)>ret = <p1><sAcc><sChName> == <p2><sAcc><sChName><else><if(soInnerStatement)><soInnerStatement><else>ret = <p1><sAcc><sChName> == <p2><sAcc><sChName><endif><endif>
 >>
 
 

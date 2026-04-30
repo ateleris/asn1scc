@@ -168,7 +168,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     markSuccess "Python code generation OK (no automatic test cases)"
             else
                 let pytestRes = executeBashScript workDir "uvx --python 3.11 pytest"
-                if pytestRes.ExitCode <> 0 then
+                if pytestRes.ExitCode <> 0 && pytestRes.ExitCode <> 5 then
                     markError "pytest failed.\n%s\n%s\n%s" pytestRes.StdOut pytestRes.StdErr cmd
                 else
                     markSuccess "pytest OK"

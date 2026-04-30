@@ -115,6 +115,17 @@ class Asn1Boolean(Asn1Base):
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         raise NotImplementedError()
 
+import struct as _struct
+
+class Real32(float):
+    """Float subclass that rounds to single (IEEE-754 binary32) precision on construction.
+    Used as the base class for ASN.1 REAL types when the target word size is 4 bytes,
+    mirroring C's behaviour where `asn1Real` is `float` (not `double`)."""
+    def __new__(cls, value=0.0):
+        rounded = _struct.unpack('f', _struct.pack('f', float(value)))[0]
+        return super().__new__(cls, rounded)
+
+
 class NullType(Asn1Base):
     """
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.

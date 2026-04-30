@@ -94,10 +94,9 @@ type LangBasic_python() =
     override this.getBoolRtlTypeName = "", "bool", "bool"
 
 let isClassVariable (receiverId: string) : bool =
-        // For Python class methods, we need to detect when the receiverId should be treated as "self"
-        // Class methods are generated via EmitTypeAssignment_composite template which expects self parameter
-        // We detect this by checking if we're in a context where the receiverId should reference the class instance
-        receiverId = "self" || receiverId.StartsWith("self")
+        // True when the receiverId is an instance attribute that needs "self." prefix.
+        // "self" itself is the receiver parameter — no prefix needed (would produce "self.self.field").
+        receiverId <> "self" && receiverId.StartsWith("self")
 
 // Helper type to store cross-sequence ACN dependency information
 type CrossSequenceAcnDep = {
@@ -1056,6 +1055,12 @@ type LangGeneric_python() =
         | ASN1SCC_FP32 -> "_fp32"
         | ASN1SCC_FP64 -> ""
         | ASN1SCC_REAL -> if fpWordSize = 4I then "_fp32" else ""
+
+    override this.castRealForEquality fpWordSize realClass pp realTypeName real32TypeName =
+        match realClass with
+        | ASN1SCC_REAL when fpWordSize = 4I -> this.castExpression pp real32TypeName
+        | ASN1SCC_FP32                      -> this.castExpression pp realTypeName
+        | _                                 -> pp
 
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =

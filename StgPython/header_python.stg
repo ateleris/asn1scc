@@ -72,7 +72,7 @@ Declare_UInt32() ::="int"
 Declare_Int64() ::="int"
 Declare_UInt64() ::="int"
 
-Declare_Real32() ::= "float"
+Declare_Real32() ::= "Real32"
 Declare_Real64() ::= "float"
 
 Declare_BooleanNoRTL() ::= "Asn1Boolean"

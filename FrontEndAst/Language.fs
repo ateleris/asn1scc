@@ -250,6 +250,11 @@ type ILangGeneric () =
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
+    abstract member castRealForEquality : floatingPointSizeInBytes:BigInteger -> realClass:RealClass -> pp:string -> realTypeName:string -> real32TypeName:string -> string
+    default this.castRealForEquality _ realClass pp realTypeName _ =
+        match realClass with
+        | ASN1SCC_FP32 -> this.castExpression pp realTypeName
+        | _            -> pp
     abstract member createSingleLineComment : string -> string
     abstract member SpecNameSuffix: string
     abstract member SpecExtension : string
