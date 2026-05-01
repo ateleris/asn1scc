@@ -47,7 +47,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 # uper_python.stg 40
 
-def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> None:
+def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> UPEREncoder:
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <arrsPostcond:{post|<post>}; separator="\n">

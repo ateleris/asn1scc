@@ -615,6 +615,7 @@ type LanguageMacros = {
     atc     : ITestCases
     xer     : IXer
     src     : ISrcBody
+    encodings: Asn1Encoding list
 }
 
 type AccessPath with
