@@ -136,6 +136,15 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             match funcName  with
             | None              -> None, None
             | Some funcName     ->
+                let isPrimitiveType =
+                    match lm.lg.getTypeDefinition t.FT_TypeDefinition with
+                    | FE_PrimitiveTypeDefinition _ -> true
+                    | _ -> false
+                let hasBaseType =
+                    match typeDefinition with
+                    | TypeDefinition td -> td.baseType.IsSome
+                    | _ -> false
+                let bInherit = isPrimitiveType || hasBaseType
                 let content, lvars, bExp, bUnreferenced =
                     match isEqualBody with
                     | EqualBodyExpression       expFunc ->
@@ -147,7 +156,7 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | Some (content, lvars) -> content, lvars, false, false
                         | None                  -> alwaysTrue, [], true, true
                 let lvarsStr = lvars |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition) content lvarsStr bExp bUnreferenced
+                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition) content lvarsStr bExp bUnreferenced bInherit
                 let isEqualFuncDef = equalTypeAssignment_def varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition)
                 Some  isEqualFunc, Some isEqualFuncDef
 
