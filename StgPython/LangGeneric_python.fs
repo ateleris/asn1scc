@@ -540,12 +540,12 @@ type LangGeneric_python() =
         | RelativePath (_ ::_) ->
             // Build language-specific access path for deep field reference
             // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
-            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) : Choice<CodegenScope, string> option =
                 match lp with
-                | []    -> pSeq
+                | []    -> Some (Choice1Of2 pSeq)
                 | x1::xs ->
                     match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
-                    | None -> pSeq  // Fallback if path not found
+                    | None -> None  // Not found in children - signal to caller to use dependency lookup
                     | Some ch ->
                         match ch with
                         | Asn1AcnAst.Asn1Child ch  ->
@@ -556,19 +556,19 @@ type LangGeneric_python() =
                                 getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
                             | _, _ ->
                                 // Reached the target field
-                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
-                        | Asn1AcnAst.AcnChild _  ->
-                            // ACN-inserted fields are local variables named by the dependency lookup,
-                            // not accessible via the parent instance access path
-                            let filterDependency (d: AcnDependency) =
-                                match d.dependencyKind with
-                                | AcnDepPresenceBool -> true
-                                | _ -> false
-                            let acnChildName = getExternalField0 filterDependency
-                            {pSeq with accessPath = AccessPath.valueEmptyPath acnChildName}
+                                Some (Choice1Of2 {pSeq with accessPath = newPath})
+                        | Asn1AcnAst.AcnChild acnCh  -> Some (Choice2Of2 acnCh.c_name)
 
-            let resolvedPath = getChildResult o p relPath
-            resolvedPath.accessPath.joined this
+            match getChildResult o p relPath with
+            | Some (Choice1Of2 resolvedPath) -> resolvedPath.accessPath.joined this
+            | Some (Choice2Of2 varName) -> varName
+            | None ->
+                // Path not found in sequence children (e.g. ACN parameter) - use dependency lookup
+                let filterDependency (d:AcnDependency) =
+                    match d.dependencyKind with
+                    | AcnDepPresenceBool -> true
+                    | _ -> false
+                getExternalField0 filterDependency
     
     override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
         // Check if this sequence has inline ACN children that need to be returned to parent

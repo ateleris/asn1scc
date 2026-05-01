@@ -758,7 +758,7 @@ codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <sExtFld>)
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 # acn_python.stg 558
 
-if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><noSizeMax><else><noSizeMax><endif>):
+if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>)<if(noSizeMax)> and (<sExtFld> \<= <noSizeMax>)<endif><else><if(noSizeMax)>(<sExtFld> \<= <noSizeMax>)<else>True<endif><endif>:
     decoded_result = codec.decode_octet_string_no_length_vec(<if(bIsUnsigned)>(<sExtFld>)<else><sExtFld><endif>)
     if not decoded_result.success or decoded_result.decoded_value is None:
         if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
@@ -880,7 +880,7 @@ codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>nCount)
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 # acn_python.stg 659
-if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<noSizeMax>):
+if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>)<if(noSizeMax)> and (<sExtFld>\<=<noSizeMax>)<endif><else><if(noSizeMax)>(<sExtFld>\<=<noSizeMax>)<else>True<endif><endif>:
     decode_result = codec.read_bits(<sExtFld>)
     if not decode_result.success or decode_result.decoded_value is None:
         if decode_result.error_code == ErrorCode.INSUFFICIENT_DATA:
