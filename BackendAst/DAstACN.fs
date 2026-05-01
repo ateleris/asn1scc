@@ -1465,8 +1465,8 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size sType pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field sType pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1564,8 +1564,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
-                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
-                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access noSizeMin noSizeMax extField codec
+                    | true  -> lm.acn.bit_string_external_field_fixed_size sType pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
+                    | false  -> lm.acn.bit_string_external_field sType pp errCode.errCodeName access noSizeMin noSizeMax extField codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
