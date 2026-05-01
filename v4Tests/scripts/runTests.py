@@ -238,9 +238,10 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "of res, behavior")
         os.chdir(prevDir)
     elif language == 'python':
-        ret = mysystem("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest", True)
+        pyCmd = "cd " + targetDir + os.sep + "; uvx --python 3.11 pytest"
+        ret = mysystem(pyCmd, True)
         if ret != 0 and ret != 5:  # exit code 5 = no tests collected, treat as success
-            PrintFailed("cd " + targetDir + os.sep + "; uvx --python 3.11 pytest")
+            PrintFailed(pyCmd)
             mysystem("cat tmp.err"+"_"+language, True)
             sys.exit(1)
     else:
@@ -505,6 +506,7 @@ def main():
         submain("c", "ACN", "", cntTest, workDir)
         submain("Ada", "ACN", "", cntTest, workDir)
         submain("Scala", "ACN", "", cntTest, workDir)
+        submain("python", "ACN", "", cntTest, workDir)
     else:
         if lang not in ["c", "Ada", 'Scala', 'python']:
             print("Invalid language argument")
