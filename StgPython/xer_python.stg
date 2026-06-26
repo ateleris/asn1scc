@@ -50,155 +50,104 @@ def <sFuncName>(cls, codec: XERDecoder, check_constraints: bool = True, xml_tag:
 
 
 Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 88
-ret = Xer_EncodeInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = 0 if ret : <sErrCode>;
+codec.encode_integer(<sTag>, <p>, <nLevel>)
 >>
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 93
-ret = Xer_DecodeInteger(pByteStrm, <sTag>, <p>, pErrCode);
+<p> = codec.decode_integer(<sTag>)
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 100
-ret = Xer_EncodePosInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_integer(<sTag>, <p>, <nLevel>)
 >>
 IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 105
-ret = Xer_DecodePosInteger(pByteStrm, <sTag>, <p>, pErrCode);
+<p> = codec.decode_integer(<sTag>)
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 112
-ret = Xer_EncodeBoolean(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_boolean(<sTag>, <p>, <nLevel>)
 >>
 
 Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 118
-ret = Xer_DecodeBoolean(pByteStrm, <sTag>, <p>, pErrCode);
+<p> = codec.decode_boolean(<sTag>)
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 
 
 Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 127
-ret = Xer_EncodeReal(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_real(<sTag>, <p>, <nLevel>)
 >>
 
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 133
-ret = Xer_DecodeReal(pByteStrm, <sTag>, <p>, pErrCode);
+<p> = codec.decode_real(<sTag>)
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
 ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 141
-ret = Xer_EncodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+raise Asn1Exception("XER: OBJECT IDENTIFIER not supported")
 >>
 
 ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 147
-ret = Xer_DecodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+raise Asn1Exception("XER: OBJECT IDENTIFIER not supported")
 >>
 
 
 TimeType_encode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 155
-ret = Xer_Encode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+raise Asn1Exception("XER: TIME types not supported")
 >>
 
 TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 161
-ret = Xer_Decode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+raise Asn1Exception("XER: TIME types not supported")
 >>
 
 
 
 Null_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 170
-ret = Xer_EncodeNull(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_null(<sTag>, <nLevel>)
 >>
 
 Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 176
-ret = Xer_DecodeNull(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+codec.decode_null(<sTag>)
 >>
 
 
 
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 185
-ret = Xer_EncodeString(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_string(<sTag>, <p>, <nLevel>)
 >>
 
 String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 191
-ret = Xer_DecodeString(pByteStrm, <sTag>, <p>, pErrCode);
+<p> = codec.decode_string(<sTag>)
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
 Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
-# xer_python.stg 199
-case <sItemID>:
-	ret = Xer_EncodeEnumerated(pByteStrm, <sTag>, "<sXerValue>", pErrCode, <nLevel>);
-    *pErrCode = ret ? 0 : <sErrCode>;
-	break;
+<if(!bFirst)>el<endif>if <p> == <sItemID>:
+    codec.encode_enumerated(<sTag>, "<sXerValue>", <nLevel>)
 >>
 
 Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 207
-<p> match: // xer:183
-    <arrsItems; separator="\n">
-    case _ =>
-	    ret = <sErrCode>
+<arrsItems; separator="\n">
+else:
+    raise Asn1InvalidValueException(f"XER encode: invalid enum value", field_name=<sTag>)
 >>
 
 
 Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
-# xer_python.stg 216
-<if(!bFirst)>else <endif>if(strcmp(enmLabel,"<sXerValue>") == 0)
-    <p> = <sItemID>;
+<if(!bFirst)>el<endif>if _enm_label == "<sXerValue>":
+    <p> = <sItemID>
 >>
 
 Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 222
-{
-	char enmLabel[200];
-	ret = Xer_DecodeEnumerated(pByteStrm, <sTag>, enmLabel, pErrCode);
-    if (ret) {
-        <arrsItems; separator="\n">
-	    else {
-		    *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-	    }
-    } else {
-        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-    }
-	<if(soCheckExp)><soCheckExp><endif>
-	*pErrCode = ret  ? 0 : <sErrCode>;
-}
+_enm_label = codec.decode_enumerated(<sTag>)
+<arrsItems; separator="\n">
+else:
+    raise Asn1InvalidValueException(f"XER decode: invalid enum label {_enm_label}", field_name=<sTag>)
+<if(soCheckExp)><soCheckExp><endif>
 >>
 
 
