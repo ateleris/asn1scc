@@ -129,7 +129,7 @@ def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1Scc
 PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
 # test_cases_python.stg:142
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    encoder = XEREncoder.of_size(<sTasName>.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
+    encoder = XEREncoder.of_size(0)
     <sNestedStatements>
     # test_cases_python.stg 133
     return True

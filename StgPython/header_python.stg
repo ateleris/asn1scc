@@ -122,7 +122,7 @@ def encode(self, encoding: Encoding) -> bytearray:
     self.encode_acn(encoder)
     return encoder.get_bitstream_buffer()
     <endif><if(enc.IsXER)>if encoding == Encoding.XER:
-    encoder = XEREncoder.of_size(type(self).<sTypeName>_REQUIRED_BYTES_FOR_XER_ENCODING)
+    encoder = XEREncoder.of_size(0)
     self._XERencode(encoder)
     return encoder.get_bitstream_buffer()
     <endif>}; separator="\nel">
