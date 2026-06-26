@@ -199,3 +199,13 @@ class XEREncoder:
             level: The nesting level for indentation.
         """
         self.encode_primitive(tag, bits[:num_bits], level)
+
+    def get_decoder(self) -> "XERDecoder":
+        """
+        Create an XERDecoder that reads back the XML accumulated in this encoder.
+
+        Returns:
+            An XERDecoder positioned at the start of the encoded XML.
+        """
+        from asn1python.xer_decoder import XERDecoder
+        return XERDecoder.from_codec(self)
