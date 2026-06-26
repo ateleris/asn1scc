@@ -365,9 +365,9 @@ codec.complex_end(<sTag>)
 
 
 
-call_base_type_func_encode(p, soXmlTag, sFuncName) ::= <<
-<p>._XERencode(codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
+<sBaseTypeName>._XERencode(<p>, codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
 >>
-call_base_type_func_decode(p, soXmlTag, sFuncName) ::= <<
-<p> = cls._XERdecode(codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
+<p> = <sBaseTypeName>._XERdecode(codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
 >>

@@ -430,8 +430,8 @@ if (ret) {
 
 
 
-call_base_type_func_encode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode, FALSE);"
-call_base_type_func_decode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode);"
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode, FALSE);"
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode);"
 
 
 

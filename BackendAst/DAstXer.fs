@@ -445,7 +445,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
                         match o.resolvedType.Kind with
                         | Asn1AcnAst.Choice(_) -> None
                         | _                    ->   Some ((XerLiteralConstant o.tasName.Value).p)
-                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.accessPath codec) soXmlTag baseFncName codec
+                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.accessPath codec) soXmlTag baseFncName baseTypeDefinitionName codec
                 Some {XERFuncBodyResult.funcBody = funcBodyContent; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=baseXerFunc.encodingSizeInBytes}
             | None      -> None
 
