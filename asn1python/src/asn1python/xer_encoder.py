@@ -174,3 +174,28 @@ class XEREncoder:
         """
         self.indent(level)
         self._parts.append(f"</{tag}>\n")
+
+    def encode_octet_string(self, tag: str, data: bytes, num_bytes: int, level: int) -> None:
+        """
+        Encode an octet string as uppercase hex: <tag>0A1B</tag>.
+
+        Args:
+            tag: The element tag name.
+            data: The bytes to encode.
+            num_bytes: The number of bytes to encode.
+            level: The nesting level for indentation.
+        """
+        hex_text = bytes(data[:num_bytes]).hex().upper()
+        self.encode_primitive(tag, hex_text, level)
+
+    def encode_bit_string(self, tag: str, bits: str, num_bits: int, level: int) -> None:
+        """
+        Encode a bit string as a sequence of 0/1 characters: <tag>1011</tag>.
+
+        Args:
+            tag: The element tag name.
+            bits: A string of '0' and '1' characters.
+            num_bits: The number of bits to encode (first num_bits chars).
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, bits[:num_bits], level)
