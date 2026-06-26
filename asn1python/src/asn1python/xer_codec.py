@@ -4,8 +4,6 @@ ASN.1 XER (XML Encoding Rules) codec base module.
 This module provides shared XER functionality including indentation and XML escaping.
 """
 
-from abc import ABC
-
 XER_INDENT_UNIT = "    "  # 4 spaces per nesting level
 
 
