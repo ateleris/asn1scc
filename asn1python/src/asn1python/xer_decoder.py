@@ -8,7 +8,7 @@ using xml.etree.ElementTree.iterparse for bounded-memory streaming decoding.
 from io import BytesIO
 from typing import Optional, Tuple
 import xml.etree.ElementTree as ET
-from asn1python.asn1_exceptions import Asn1InvalidValueException
+from .asn1_exceptions import Asn1InvalidValueException
 
 
 def _local(tag: str) -> str:

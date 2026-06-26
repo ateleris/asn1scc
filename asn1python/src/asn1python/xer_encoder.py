@@ -5,7 +5,7 @@ This module provides the XEREncoder for encoding ASN.1 values to XML.
 """
 
 from typing import List
-from asn1python.xer_codec import XER_INDENT_UNIT, xml_escape
+from .xer_codec import XER_INDENT_UNIT, xml_escape
 
 
 class XEREncoder:
@@ -207,5 +207,5 @@ class XEREncoder:
         Returns:
             An XERDecoder positioned at the start of the encoded XML.
         """
-        from asn1python.xer_decoder import XERDecoder
+        from .xer_decoder import XERDecoder
         return XERDecoder.from_codec(self)

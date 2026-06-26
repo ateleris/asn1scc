@@ -14,14 +14,15 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
-def <sFuncName>(self, codec: XEREncoder, check_constraints: bool = True, xml_tag: Optional[str] = None) -> None:
-    tag = xml_tag if xml_tag is not None else "<sTasName>"
+def <sFuncName>(self, codec: XEREncoder, check_constraints: bool = True, xmlTag: Optional[str] = None) -> None:
+    xmlTag = xmlTag if xmlTag is not None else "<sTasName>"
     <arrsLocalVariables; separator="\n">
 <if(soIValidFuncName)>
     if check_constraints:
         valid_res = self.<soIValidFuncName>()
         if not valid_res.is_valid:
             raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+
 <endif>
     <sContent>
 >>
@@ -32,18 +33,19 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 
 EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
 @classmethod
-def <sFuncName>(cls, codec: XERDecoder, check_constraints: bool = True, xml_tag: Optional[str] = None) -> '<sTypeDefName>':
-    tag = xml_tag if xml_tag is not None else "<sTasName>"
+def <sFuncName>(cls, codec: XERDecoder, check_constraints: bool = True, xmlTag: Optional[str] = None) -> '<sTypeDefName>':
+    xmlTag = xmlTag if xmlTag is not None else "<sTasName>"
     <arrsLocalVariables; separator="\n">
+
     <sContent>
-    instance = <sInitialExp>
 <if(soIValidFuncName)>
     if check_constraints:
-        valid_res = instance.<soIValidFuncName>()
+        valid_res = <sVarName>.<soIValidFuncName>()
         if not valid_res.is_valid:
             raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+
 <endif>
-    return instance
+    return <sVarName>
 >>
 
 
@@ -53,7 +55,7 @@ Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 codec.encode_integer(<sTag>, <p>, <nLevel>)
 >>
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-<p> = codec.decode_integer(<sTag>)
+<p> = cls(codec.decode_integer(<sTag>))
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
@@ -61,7 +63,7 @@ IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 codec.encode_integer(<sTag>, <p>, <nLevel>)
 >>
 IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-<p> = codec.decode_integer(<sTag>)
+<p> = cls(codec.decode_integer(<sTag>))
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
@@ -70,7 +72,7 @@ codec.encode_boolean(<sTag>, <p>, <nLevel>)
 >>
 
 Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-<p> = codec.decode_boolean(<sTag>)
+<p> = cls(codec.decode_boolean(<sTag>))
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
@@ -81,7 +83,7 @@ codec.encode_real(<sTag>, <p>, <nLevel>)
 >>
 
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-<p> = codec.decode_real(<sTag>)
+<p> = cls(codec.decode_real(<sTag>))
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
@@ -147,6 +149,7 @@ _enm_label = codec.decode_enumerated(<sTag>)
 <arrsItems; separator="\n">
 else:
     raise Asn1InvalidValueException(f"XER decode: invalid enum label {_enm_label}", field_name=<sTag>)
+<p> = cls(val=<p>)
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
