@@ -5,7 +5,7 @@ This module provides the XEREncoder for encoding ASN.1 values to XML.
 """
 
 from typing import List
-from asn1python.xer_codec import XER_INDENT_UNIT
+from asn1python.xer_codec import XER_INDENT_UNIT, xml_escape
 
 
 class XEREncoder:
@@ -74,3 +74,103 @@ class XEREncoder:
             The XML encoded as UTF-8 bytes in a bytearray.
         """
         return bytearray(self.get_xml().encode("utf-8"))
+
+    def encode_primitive(self, tag: str, value_text: str, level: int) -> None:
+        """
+        Emit a simple element with text content: <indent><tag>value</tag>\n
+
+        Args:
+            tag: The element tag name.
+            value_text: The text content (already formatted for XML).
+            level: The nesting level for indentation.
+        """
+        self.indent(level)
+        self._parts.append(f"<{tag}>{value_text}</{tag}>\n")
+
+    def encode_integer(self, tag: str, value: int, level: int) -> None:
+        """
+        Encode an integer as <tag>value</tag>.
+
+        Args:
+            tag: The element tag name.
+            value: The integer value.
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, str(int(value)), level)
+
+    def encode_boolean(self, tag: str, value: bool, level: int) -> None:
+        """
+        Encode a boolean as <tag><true/></tag> or <tag><false/></tag>.
+
+        Args:
+            tag: The element tag name.
+            value: The boolean value.
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, "<true/>" if value else "<false/>", level)
+
+    def encode_real(self, tag: str, value: float, level: int) -> None:
+        """
+        Encode a floating-point number using Python's repr().
+
+        Args:
+            tag: The element tag name.
+            value: The floating-point value.
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, repr(float(value)), level)
+
+    def encode_null(self, tag: str, level: int) -> None:
+        """
+        Emit a self-closing element: <indent><tag />\n
+
+        Args:
+            tag: The element tag name.
+            level: The nesting level for indentation.
+        """
+        self.indent(level)
+        self._parts.append(f"<{tag} />\n")
+
+    def encode_string(self, tag: str, value: str, level: int) -> None:
+        """
+        Encode a string with XML escaping: <tag>escaped_value</tag>.
+
+        Args:
+            tag: The element tag name.
+            value: The string value.
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, xml_escape(value), level)
+
+    def encode_enumerated(self, tag: str, xer_value: str, level: int) -> None:
+        """
+        Encode an enumerated value as <tag><xer_value /></tag>.
+
+        Args:
+            tag: The element tag name.
+            xer_value: The enumeration value name (unescaped tag).
+            level: The nesting level for indentation.
+        """
+        self.encode_primitive(tag, f"<{xer_value} />", level)
+
+    def complex_start(self, tag: str, level: int) -> None:
+        """
+        Emit an opening element: <indent><tag>\n
+
+        Args:
+            tag: The element tag name.
+            level: The nesting level for indentation.
+        """
+        self.indent(level)
+        self._parts.append(f"<{tag}>\n")
+
+    def complex_end(self, tag: str, level: int) -> None:
+        """
+        Emit a closing element: <indent></tag>\n
+
+        Args:
+            tag: The element tag name.
+            level: The nesting level for indentation.
+        """
+        self.indent(level)
+        self._parts.append(f"</{tag}>\n")
