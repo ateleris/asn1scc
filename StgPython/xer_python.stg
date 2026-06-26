@@ -3,82 +3,47 @@ group xer_python;
 rtlModuleName() ::= ""
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
-    # xer_python.stg 6
-    const int <sErrCode> = <nErrValue>;
+<sErrCode> = <nErrValue>  # <sFieldPath>
 >>
 
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
-# xer_python.stg 12
 <arrsErrcodes; separator="\n">
-#define <sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING       <nMaxBytesInXER>
-
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints);
-flag <sFuncName>_aux(const <sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints);
-
+<! Constant kept for API parity; XER codec ignores it (no pre-allocation). !>
+<sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING = <nMaxBytesInXER>
 >>
 
 EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
-flag <sFuncName>_aux(const <sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-	(void)<sVarName>;
-	(void)xmlTag;
-	(void)pByteStrm;
-
-	<arrsLocalVariables:{lv|<lv>}; separator="\n">
-    <if(soIValidFuncName)>
-	ret = <soIValidFuncName>(<sVarName>, pErrCode) if bCheckConstraints else TRUE ;
-	if (ret) {
-	    <sContent>
-    }
-
-    <else>
-    pErrCode = 0;
-    bCheckConstraints=bCheckConstraints;
+def <sFuncName>(self, codec: XEREncoder, check_constraints: bool = True, xml_tag: Optional[str] = None) -> None:
+    tag = xml_tag if xml_tag is not None else "<sTasName>"
+    <arrsLocalVariables; separator="\n">
+<if(soIValidFuncName)>
+    if check_constraints:
+        valid_res = self.<soIValidFuncName>()
+        if not valid_res.is_valid:
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+<endif>
     <sContent>
-
-    <endif>
-
-    # xer_python.stg 43
-    return ret;
-}
-
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode, flag bCheckConstraints)
-{
-    # xer_python.stg 49
-    return <sFuncName>_aux(<sVarName>, "<sTasName>", pByteStrm, pErrCode, bCheckConstraints);
-}
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
-# xer_python.stg 55
 <arrsErrcodes; separator="\n">
-flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode);
-flag <sFuncName>_aux(<sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteStream* pByteStrm, int* pErrCode);
 >>
 
 EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
-flag <sFuncName>_aux(<sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteStream* pByteStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	<arrsLocalVariables:{lv|<lv>}; separator="\n">
-	(void)<sVarName>;
-	(void)xmlTag;
-	(void)pByteStrm;
-	(void)pErrCode;
-
-	<sContent>
-
-	# xer_python.stg 73
-	return ret;
-}
-
-flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, ByteStream* pByteStrm, int* pErrCode)
-{
-    # xer_python.stg 79
-    return <sFuncName>_aux(<sVarName>, "<sTasName>", pByteStrm, pErrCode);
-}
+@classmethod
+def <sFuncName>(cls, codec: XERDecoder, check_constraints: bool = True, xml_tag: Optional[str] = None) -> '<sTypeDefName>':
+    tag = xml_tag if xml_tag is not None else "<sTasName>"
+    <arrsLocalVariables; separator="\n">
+    <sContent>
+    instance = <sInitialExp>
+<if(soIValidFuncName)>
+    if check_constraints:
+        valid_res = instance.<soIValidFuncName>()
+        if not valid_res.is_valid:
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+<endif>
+    return instance
 >>
 
 
