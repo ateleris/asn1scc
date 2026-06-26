@@ -22,3 +22,29 @@ def test_get_decoder_roundtrip_from_encoder():
     e = XEREncoder.of_size(); e.encode_integer("age", 7, 0)
     d = e.get_decoder()
     assert d.read_text_element("age") == "7"
+
+def test_expect_end_skips_same_named_nested():
+    # XML: <outer><value><value>1</value></value></outer>
+    # The outer <value> contains a nested <value>1</value>.
+    # expect_end("value") after consuming the outer start must skip the inner
+    # <value>...</value> and consume the OUTER </value>, leaving </outer> next.
+    d = XERDecoder.from_buffer(bytearray(b"<outer><value><value>1</value></value></outer>"))
+    d.expect_start("outer")
+    d.expect_start("value")              # consume outer <value>
+    assert d.read_text_element("value") == "1"   # inner <value>1</value>
+    # At this point the outer </value> is next; expect_end must consume it
+    # without desyncing (previously it would have already consumed the inner
+    # </value> and crashed / left </outer> as the "end" for "value").
+    d.expect_end("value")               # must find and consume the OUTER </value>
+    d.expect_end("outer")              # must still find </outer>
+
+def test_read_text_element_skips_same_named_nested():
+    # read_text_element("outer") on <outer><outer>inner</outer></outer> must
+    # return "" (the outer element's own text, not dive into the child)
+    # and leave the stream fully consumed without raising.
+    d = XERDecoder.from_buffer(bytearray(b"<outer><outer>inner</outer></outer>"))
+    text = d.read_text_element("outer")
+    # The outer element has no direct text node; its child is a nested element.
+    assert text == ""
+    # Stream is fully consumed; no leftover events that could desync a caller.
+    assert d.peek_start_tag() is None

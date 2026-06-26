@@ -120,7 +120,8 @@ class XERDecoder:
         """
         Consume the matching end event for </tag>.
 
-        Skips any nested events until the matching end is reached.
+        Tracks nesting depth so that nested elements with the same tag name are
+        correctly skipped rather than stopping at an inner </tag>.
 
         Args:
             tag: The element local tag name whose end to consume.
@@ -128,18 +129,33 @@ class XERDecoder:
         Raises:
             Asn1InvalidValueException: If the stream ends before the end event is found.
         """
-        while not self.at_end_element(tag):
+        depth = 0
+        while True:
             if self._lookahead is None:
                 raise Asn1InvalidValueException(
                     f"XER decode: missing </{tag}>", field_name=tag
                 )
-            self._advance()
-        self._lookahead[1].clear()
-        self._advance()
+            ev, el = self._lookahead
+            local = _local(el.tag)
+            if ev == "start" and local == tag:
+                depth += 1
+                self._advance()
+            elif ev == "end" and local == tag:
+                if depth == 0:
+                    el.clear()
+                    self._advance()
+                    return
+                depth -= 1
+                self._advance()
+            else:
+                self._advance()
 
     def read_text_element(self, tag: str) -> str:
         """
         Consume <tag>...text...</tag> and return the text content.
+
+        Tracks nesting depth so that nested elements with the same tag name are
+        correctly skipped rather than stopping at an inner </tag>.
 
         Args:
             tag: The element local tag name.
@@ -151,14 +167,25 @@ class XERDecoder:
             Asn1InvalidValueException: If the expected start or end tags are missing.
         """
         el = self.expect_start(tag)
-        # Advance past any nested events until we reach this element's end
-        while not self.at_end_element(tag):
+        # Outer start is already consumed; track depth for any nested same-named elements.
+        depth = 0
+        while True:
             if self._lookahead is None:
                 raise Asn1InvalidValueException(
                     f"XER decode: missing </{tag}>", field_name=tag
                 )
-            self._advance()
-        text = el.text or ""
-        el.clear()
-        self._advance()  # consume the end event
-        return text
+            ev, cur = self._lookahead
+            local = _local(cur.tag)
+            if ev == "start" and local == tag:
+                depth += 1
+                self._advance()
+            elif ev == "end" and local == tag:
+                if depth == 0:
+                    text = el.text or ""
+                    el.clear()
+                    self._advance()  # consume the outer end event
+                    return text
+                depth -= 1
+                self._advance()
+            else:
+                self._advance()
