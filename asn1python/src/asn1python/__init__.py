@@ -37,8 +37,11 @@ from .codec import (
 from .codec_uper import UPEREncoder, UPERDecoder
 from .acn_encoder import ACNEncoder
 from .acn_decoder import ACNDecoder
-from .xer_encoder import XEREncoder
-from .xer_decoder import XERDecoder
+try:
+    from .xer_encoder import XEREncoder
+    from .xer_decoder import XERDecoder
+except ImportError:
+    pass
 # from .codec_xer import XERCodec
 # from .codec_ber import BERCodec
 # from .codec_per import PERCodec
@@ -71,9 +74,13 @@ __all__ = [
 
     # Codecs
     "Encoding", "Codec", "EncodeResult", "DecodeResult", "ErrorCode",
-    "ACNDecoder", "ACNEncoder", "UPERDecoder", "UPEREncoder", "XEREncoder", "XERDecoder", #"XERCodec", "BERCodec", "PERCodec",
+    "ACNDecoder", "ACNEncoder", "UPERDecoder", "UPEREncoder", #"XERCodec", "BERCodec", "PERCodec",
 
     # Constants
     "ENCODE_OK", "DECODE_OK", "ERROR_INSUFFICIENT_DATA",
     "ERROR_INVALID_VALUE", "ERROR_CONSTRAINT_VIOLATION",
 ]
+
+# Conditionally export XER classes when available (only present with -XER flag)
+if 'XEREncoder' in vars():
+    __all__ += ["XEREncoder", "XERDecoder"]

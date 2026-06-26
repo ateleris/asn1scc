@@ -155,77 +155,69 @@ else:
 
 
 OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 241
-ret = Xer_EncodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+codec.encode_octet_string(<sTag>, bytes(<p><sAcc>arr), <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
 >>
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 247
-ret = Xer_DecodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+_os = codec.decode_octet_string(<sTag>)
+<if(!bIsFixedSize)>
+<p> = cls(nCount=len(_os), arr=list(_os))
+<else>
+<p> = cls(arr=list(_os))
+<endif>
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
 BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 255
-ret = Xer_EncodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+_bs_bits = ''.join(f'{_b:08b}' for _b in <p><sAcc>arr)[:<if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>]
+codec.encode_bit_string(<sTag>, _bs_bits, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
 >>
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 261
-ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+_bs = codec.decode_bit_string(<sTag>)
+_bs_ncount = <if(!bIsFixedSize)>len(_bs)<else><nSizeMax><endif>
+_bs_padded = _bs.ljust((_bs_ncount + 7) // 8 * 8, '0')
+_bs_arr = [int(_bs_padded[_i*8:_i*8+8], 2) for _i in range(len(_bs_padded) // 8)]
+<if(!bIsFixedSize)>
+<p> = cls(nCount=_bs_ncount, arr=_bs_arr)
+<else>
+<p> = cls(arr=_bs_arr)
+<endif>
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
 
 SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 270
-/* SEQUENCE OF Encode*/
-ret = Xer_EncodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
-if (ret) {
-    for(<sI>=0;((<sI> \< <if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>) && ret);<sI>++)
-    {
-	    <sChildBody>
-    }
-    if (ret) {
-        ret = Xer_EncodeComplexElementEnd(pByteStrm, <sTag>, pErrCode, <nLevel>);
-        *pErrCode = ret ? 0 : <sErrCode>;
-    }
-}
+codec.complex_start(<sTag>, <nLevel>)
+for <sI> in range(<if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>):
+    <sChildBody>
+codec.complex_end(<sTag>, <nLevel>)
 >>
 
 
 SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
-# xer_python.stg 288
-/* SEQUENCE OF Decode*/
-ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
-if (ret) {
-    <if(!bFixedSize)><p><sAcc>nCount: int = 0;<endif>
-    <sI>: int = 0;
-    while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
-    {
-	    <sChildBody>
-	    <sI>++;
-	    <if(!bFixedSize)><p><sAcc>nCount++;<endif>
-    }
-    if (ret) {
-        ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
-    }
-}
-<if(bFixedSize)>
-*pErrCode = (ret && <sI> == <nSizeMax>) ? 0 : <sErrCode>;
-
-<else>
-<if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+codec.complex_start(<sTag>)
+_seqof_cls = cls
+import typing as _xer_t
+_xer_arr_hint = _xer_t.get_type_hints(cls).get('arr')
+cls = _xer_t.get_args(_xer_arr_hint)[0] if _xer_arr_hint and _xer_t.get_args(_xer_arr_hint) else cls
+<p> = _seqof_cls.__new__(_seqof_cls)
+<p><sAcc>arr = [None] * <nSizeMax>
+<sI> = 0
+while not codec.at_end_element(<sTag>):
+    if <sI> >= <nSizeMax>:
+        raise Asn1InvalidValueException("XER decode: SEQUENCE OF too long", field_name=<sTag>)
+    <sChildBody>
+    <sI> += 1
+<if(!bFixedSize)>
+<p><sAcc>nCount = <sI>
 
 <endif>
+<p><sAcc>arr = <p><sAcc>arr[:<sI>]
+codec.complex_end(<sTag>)
+<if(soCheckExp)><soCheckExp><endif>
 >>
 
 
