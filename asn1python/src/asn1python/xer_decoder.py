@@ -189,3 +189,48 @@ class XERDecoder:
                 self._advance()
             else:
                 self._advance()
+
+    def decode_integer(self, tag: str) -> int:
+        return int(self.read_text_element(tag).strip())
+
+    def decode_real(self, tag: str) -> float:
+        return float(self.read_text_element(tag).strip())
+
+    def decode_string(self, tag: str) -> str:
+        return self.read_text_element(tag)
+
+    def decode_null(self, tag: str) -> None:
+        self.expect_start(tag)
+        self.expect_end(tag)
+        return None
+
+    def _read_single_child_tag(self, tag: str) -> str:
+        self.expect_start(tag)
+        child = self.peek_start_tag()
+        if child is None:
+            raise Asn1InvalidValueException(
+                f"XER decode: <{tag}> expected a child element", field_name=tag)
+        # consume the (empty) child: start then its end
+        self.expect_start(child)
+        self.expect_end(child)
+        self.expect_end(tag)
+        return child
+
+    def decode_boolean(self, tag: str) -> bool:
+        return self._read_single_child_tag(tag) == "true"
+
+    def decode_enumerated(self, tag: str) -> str:
+        return self._read_single_child_tag(tag)
+
+    def decode_octet_string(self, tag: str) -> bytes:
+        text = self.read_text_element(tag).strip()
+        return bytes.fromhex(text) if text else b""
+
+    def decode_bit_string(self, tag: str) -> str:
+        return self.read_text_element(tag).strip()
+
+    def complex_start(self, tag: str) -> ET.Element:
+        return self.expect_start(tag)
+
+    def complex_end(self, tag: str) -> None:
+        self.expect_end(tag)
