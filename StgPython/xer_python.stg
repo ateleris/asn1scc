@@ -200,6 +200,10 @@ codec.complex_end(<sTag>, <nLevel>)
 
 SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 codec.complex_start(<sTag>)
+# Invariant: save cls into _seqof_cls before switching cls to the element type,
+# then restore at the end. Each construction using cls is always immediately
+# preceded by its own "cls = specific_type" assignment, so the restored value
+# is never used for construction -- it only matters if the caller reads cls after this block.
 _seqof_cls = cls
 cls = <sElemTypeDef>
 <p> = _seqof_cls.__new__(_seqof_cls)
@@ -230,6 +234,12 @@ Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef
 
 Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 # xer_python.stg 324 - decode mandatory child
+# cls save/restore invariant: _xer_saved_cls saves the surrounding cls before
+# switching to the child type, and is restored afterwards.  When sChildContent
+# is an inlined anonymous aggregate, that inner block also uses _xer_saved_cls,
+# overwriting the outer save.  This is safe because the next sibling child block
+# always sets cls to its own type before any cls() construction, so the stale
+# intermediate value is never used for object construction.
 if not codec.next_start_element_is("<sChildTag>"):
     raise Asn1InvalidValueException("XER decode: expected element <sChildTag>", field_name="<sChildTag>")
 _xer_saved_cls = cls

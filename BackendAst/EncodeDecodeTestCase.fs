@@ -230,7 +230,6 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let joinItems                       = lm.atc.JoinItems
     let write_bitstreamToFile           = lm.atc.Codec_write_CharstreamToFile
     let encodeXER                       = lm.atc.Codec_Encode_XER
-    let encode                          = lm.atc.Codec_Encode
     let decode                          = lm.atc.Codec_Decode_XER
     let validateOutput                  = lm.atc.Codec_validate_output
     let compareInputWithOutput          = lm.atc.Codec_compare_input_with_output
