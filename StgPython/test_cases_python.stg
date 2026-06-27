@@ -28,6 +28,11 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 <sVal>.<sFuncName>(encoder, True)
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+# test_cases_python.stg:54b - class-dispatch encode: ensures alias xmlTag is used even for base-type instances
+<sTasName>.<sFuncName>(<sVal>, encoder, True)
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 # test_cases_python.stg:62
 
@@ -135,9 +140,11 @@ def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     return True
 
 def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    encoded = <sVal>.encode(Encoding.XER)
+    _xer_gen_encoder = XEREncoder.of_size(0)
+    <sTasName>._XERencode(<sVal>, _xer_gen_encoder, True)
+    encoded = _xer_gen_encoder.get_bitstream_buffer()
     try:
-        decodedPDU = <sTasName>.decode(Encoding.XER, encoded)
+        decodedPDU = <sTasName>._XERdecode(XERDecoder.from_buffer(encoded))
     except Exception as e:
         raise Asn1TestcaseDecodeFailedError(e)
     res = decodedPDU.is_constraint_valid()

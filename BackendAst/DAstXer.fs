@@ -306,7 +306,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0I
         let contentSize = o.maxSize.uper * chSize
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let sElemTypeDef = lm.lg.getLongTypedefName child.typeDefinitionOrReference
+        let sElemTypeDef = child.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
         let bodyStm = SequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName sElemTypeDef codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
@@ -336,7 +336,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             match childContentResult with
             | None              -> None
             | Some childContent ->
-                let sChildTypeDef = lm.lg.getLongTypedefName child.Type.typeDefinitionOrReference
+                let sChildTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
                 let childBody, child_localVariables =
                     match child.Optionality with
                     | None                          ->  sequence_mandatory_child (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value sChildTypeDef codec, childContent.localVariables
@@ -389,7 +389,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             | None  -> None
             | Some childContent ->
                 let sChildName = lm.lg.getAsn1ChChildBackendName child
-                let sChildTypeDef = lm.lg.getLongTypedefName child.chType.typeDefinitionOrReference
+                let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
                 let sChoiceTypeName = typeDefinitionName
                 let childBody = choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) childContent.funcBody (childIndex = 0) child.Name.Value sChildName sChildTypeDef sChoiceTypeName codec
                 Some (childBody, childContent.localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
