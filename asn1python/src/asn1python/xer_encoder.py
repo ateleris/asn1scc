@@ -85,7 +85,11 @@ class XEREncoder:
             level: The nesting level for indentation.
         """
         self.indent(level)
-        self._parts.append(f"<{tag}>{value_text}</{tag}>\n")
+        if tag:
+            self._parts.append(f"<{tag}>{value_text}</{tag}>\n")
+        else:
+            # Empty tag: emit the value content directly (e.g. Boolean with no wrapper tag in SEQUENCE OF)
+            self._parts.append(f"{value_text}\n")
 
     def encode_integer(self, tag: str, value: int, level: int) -> None:
         """

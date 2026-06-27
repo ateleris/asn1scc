@@ -113,6 +113,7 @@ codec.encode_null(<sTag>, <nLevel>)
 
 Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 codec.decode_null(<sTag>)
+<p> = cls()
 >>
 
 
@@ -189,7 +190,7 @@ _bs_arr = [int(_bs_padded[_i*8:_i*8+8], 2) for _i in range(len(_bs_padded) // 8)
 
 
 
-SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 codec.complex_start(<sTag>, <nLevel>)
 for <sI> in range(<if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>):
     <sChildBody>
@@ -197,12 +198,10 @@ codec.complex_end(<sTag>, <nLevel>)
 >>
 
 
-SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 codec.complex_start(<sTag>)
 _seqof_cls = cls
-import typing as _xer_t
-_xer_arr_hint = _xer_t.get_type_hints(cls).get('arr')
-cls = _xer_t.get_args(_xer_arr_hint)[0] if _xer_arr_hint and _xer_t.get_args(_xer_arr_hint) else cls
+cls = <sElemTypeDef>
 <p> = _seqof_cls.__new__(_seqof_cls)
 <p><sAcc>arr = [None] * <nSizeMax>
 <sI> = 0
@@ -217,57 +216,61 @@ while not codec.at_end_element(<sTag>):
 <endif>
 <p><sAcc>arr = <p><sAcc>arr[:<sI>]
 codec.complex_end(<sTag>)
+cls = _seqof_cls
 <if(soCheckExp)><soCheckExp><endif>
 >>
 
 
 /* SEQUENCE Start*/
 
-Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 # xer_python.stg 318 - encode mandatory child
 <sChildContent>
 >>
 
-Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 # xer_python.stg 324 - decode mandatory child
 if not codec.next_start_element_is("<sChildTag>"):
     raise Asn1InvalidValueException("XER decode: expected element <sChildTag>", field_name="<sChildTag>")
-cls = _xer_field_types.get("<sChName>", _xer_seq_cls)
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
 <sChildContent>
-cls = _xer_seq_cls
+cls = _xer_saved_cls
 >>
 
-Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 # xer_python.stg 333 - encode optional child
 if <p><sAcc><sChName> is not None:
     <sChildContent>
 >>
 
-Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 # xer_python.stg 341 - decode optional child
-cls = _xer_field_types.get("<sChName>", _xer_seq_cls)
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
 if codec.next_start_element_is("<sChildTag>"):
     <sChildContent>
 else:
     <p><sAcc><sChName> = None
-cls = _xer_seq_cls
+cls = _xer_saved_cls
 >>
 
-Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 # xer_python.stg 351 - encode default child (same as optional: only encode if not None)
 if <p><sAcc><sChName> is not None:
     <sChildContent>
 >>
 
 
-Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 # xer_python.stg 357 - decode default child (absent => None, like optional)
-cls = _xer_field_types.get("<sChName>", _xer_seq_cls)
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
 if codec.next_start_element_is("<sChildTag>"):
     <sChildContent>
 else:
     <p><sAcc><sChName> = None
-cls = _xer_seq_cls
+cls = _xer_saved_cls
 >>
 
 
@@ -278,14 +281,9 @@ ret = True
 >>
 
 SEQUENCE_start_decode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
-# xer_python.stg 376 - decode SEQUENCE start: create instance, collect field types
+# xer_python.stg 376 - decode SEQUENCE start: create instance
 codec.complex_start(<sTag>)
-import typing as _xer_typing
 _xer_seq_cls = cls
-def _xer_unwrap_type(t):
-    args = _xer_typing.get_args(t)
-    return next((a for a in args if a is not type(None)), t) if args else t
-_xer_field_types = {k: _xer_unwrap_type(v) for k, v in (_xer_typing.get_type_hints(_xer_seq_cls) if hasattr(_xer_seq_cls, '__annotations__') else {}).items()}
 <p> = _xer_seq_cls.__new__(_xer_seq_cls)
 ret = True
 >>

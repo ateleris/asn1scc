@@ -217,7 +217,14 @@ class XERDecoder:
         return child
 
     def decode_boolean(self, tag: str) -> bool:
-        return self._read_single_child_tag(tag) == "true"
+        if tag:
+            return self._read_single_child_tag(tag) == "true"
+        else:
+            # Empty tag: the boolean is encoded as a naked <true/> or <false/> element.
+            child = self.peek_start_tag()
+            self.expect_start(child)
+            self.expect_end(child)
+            return child == "true"
 
     def decode_enumerated(self, tag: str) -> str:
         return self._read_single_child_tag(tag)
