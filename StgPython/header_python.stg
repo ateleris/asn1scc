@@ -195,7 +195,7 @@ Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlph
 @dataclass
 class <td.typeName>(Asn1Base): # header_python.stg 137
     __all__.append("<td.typeName>")
-    arr: List[int]
+    arr: List[int] = field(default_factory=list)
 
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
@@ -308,12 +308,6 @@ class <td.typeName>(Asn1Base):
 
     <arrsSizeClassDefinition; separator="\n\n">
 
-    <if(arrsSizeObjDefinition)>
-# TODO is this required?
-# object <td.typeName>:
-    # <arrsSizeObjDefinition; separator="\n\n">
-    <endif>
-
     <Define_Generic_Encode_Decode(sTypeName=td.typeName, arr_Asn1Encoding=arr_Asn1Encoding)>
 >>
 
@@ -334,9 +328,9 @@ Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean # header_python.stg 2
 Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 # header_python.stg 234
 <if (bIsOptional)>
-<sName>: Optional[<sType>]
+<sName>: Optional[<sType>] = None
 <else>
-<sName>: <sType>
+<sName>: <sType> = None
 <endif>
 >>
 
