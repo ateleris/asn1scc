@@ -6,7 +6,7 @@ that match the behavior of the C and Scala runtime libraries.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from typing import Self
 
 from .asn1_exceptions import *
@@ -41,6 +41,22 @@ class Asn1Base(ABC):
     @abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         pass
+
+    @property
+    def __FIELDS__(self) -> list[str]:
+        """Names of this type's dataclass fields (its ASN.1 children).
+
+        Empty for the runtime primitive wrappers (Asn1Boolean, NullType, ...),
+        which subclass Asn1Base but are not dataclasses."""
+        return [f.name for f in fields(self)] if is_dataclass(self) else []
+    
+    @property
+    def __TYPES__(self) -> list[str]:
+        """Types of this type's dataclass fields (its ASN.1 children).
+
+        Empty for the runtime primitive wrappers (Asn1Boolean, NullType, ...),
+        which subclass Asn1Base but are not dataclasses."""
+        return [f.type for f in fields(self)] if is_dataclass(self) else []
 
 
 # Integer types using ctypes for automatic range validation and conversion
