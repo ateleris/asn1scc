@@ -141,10 +141,10 @@ def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
 
 def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     _xer_gen_encoder = XEREncoder.of_size(0)
-    <sTasName>._XERencode(<sVal>, _xer_gen_encoder, True)
+    <sTasName>.encode_xer(<sVal>, _xer_gen_encoder, True)
     encoded = _xer_gen_encoder.get_bitstream_buffer()
     try:
-        decodedPDU = <sTasName>._XERdecode(XERDecoder.from_buffer(encoded))
+        decodedPDU = <sTasName>.decode_xer(XERDecoder.from_buffer(encoded))
     except Exception as e:
         raise Asn1TestcaseDecodeFailedError(e)
     res = decodedPDU.is_constraint_valid()

@@ -123,7 +123,7 @@ def encode(self, encoding: Encoding) -> bytearray:
     return encoder.get_bitstream_buffer()
     <endif><if(enc.IsXER)>if encoding == Encoding.XER:
     encoder = XEREncoder.of_size(0)
-    self._XERencode(encoder)
+    self.encode_xer(encoder)
     return encoder.get_bitstream_buffer()
     <endif>}; separator="\nel">
 
@@ -140,7 +140,7 @@ def decode(cls, encoding: Encoding, data: bytearray) -> '<sTypeName>':
     return cls.decode_acn(decoder)
     <endif><if(enc.IsXER)>if encoding == Encoding.XER:
     decoder = XERDecoder.from_buffer(data)
-    return cls._XERdecode(decoder)
+    return cls.decode_xer(decoder)
     <endif>}; separator="\nel">
 
     else:

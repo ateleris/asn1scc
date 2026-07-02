@@ -365,6 +365,9 @@ type LangGeneric_python() =
         | CommonTypes.Encode -> Some "encode_uper"
         | CommonTypes.Decode -> Some "decode_uper"
 
+    override this.getXerFuncName (codec:CommonTypes.Codec) (typeDefinition:TypeDefinitionOrReference): option<string> =
+        this.getFuncNameGeneric typeDefinition (codec.suffix + "_xer")
+
     override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option =
         match codec with
         | CommonTypes.Encode -> Some "encode_acn"

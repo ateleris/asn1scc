@@ -136,6 +136,13 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
     let xerEncFunc = match encDecCls.xerEncFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
     let xerDecFunc = match encDecCls.xerDecFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
 
+    // XER error codes (funcDef) and function bodies (func) kept separate so that,
+    // like uPER and ACN, the XER codes are merged into the shared EncodeConstants/DecodeConstants classes.
+    let xerEncFuncDef  = match encDecCls.xerEncFunction with XerFunction z -> [z.funcDef] |> List.choose id | XerFunctionDummy -> []
+    let xerDecFuncDef  = match encDecCls.xerDecFunction with XerFunction z -> [z.funcDef] |> List.choose id | XerFunctionDummy -> []
+    let xerEncFuncOnly = match encDecCls.xerEncFunction with XerFunction z -> [defaultArg z.func ""] | XerFunctionDummy -> []
+    let xerDecFuncOnly = match encDecCls.xerDecFunction with XerFunction z -> [defaultArg z.func ""] | XerFunctionDummy -> []
+
     let acnEncFunc, sEncodingSizeConstant =
         match printAcn, encDecCls.acnEncFunction with
         | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries, [x.encodingSizeConstant]
@@ -149,13 +156,13 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
 
     // Separated constants and funcs-only for Python's assembleAllProcs (merged EncodeConstants class)
     let allEncConstBodies =
-        [ (if printUper then encDecCls.uperEncFunction.funcDef else None)
-          (if printAcn then encDecCls.acnEncFunction |> Option.bind (fun x -> x.funcDef) else None) ]
-        |> List.choose id
+        ([ (if printUper then encDecCls.uperEncFunction.funcDef else None)
+           (if printAcn then encDecCls.acnEncFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+         |> List.choose id) @ xerEncFuncDef
     let allDecConstBodies =
-        [ (if printUper then encDecCls.uperDecFunction.funcDef else None)
-          (if printAcn then encDecCls.acnDecFunction |> Option.bind (fun x -> x.funcDef) else None) ]
-        |> List.choose id
+        ([ (if printUper then encDecCls.uperDecFunction.funcDef else None)
+           (if printAcn then encDecCls.acnDecFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+         |> List.choose id) @ xerDecFuncDef
     let uPerFuncsOnly =
         match printUper with
         | true ->
@@ -173,7 +180,7 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
         | true, Some x -> [defaultArg x.func ""] @ x.auxiliaries
         | _ -> []
     let allFuncsAndOtherProcs =
-        [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerFuncsOnly @sEncodingSizeConstant @acnEncFuncOnly @acnDecFuncOnly @xerEncFunc @xerDecFunc
+        [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerFuncsOnly @sEncodingSizeConstant @acnEncFuncOnly @acnDecFuncOnly @xerEncFuncOnly @xerDecFuncOnly
 
     let finalProcs = lm.lg.assembleAllProcs allEncConstBodies allDecConstBodies allFuncsAndOtherProcs allProcs
     let generatedCode = lm.typeDef.Define_TAS type_definition finalProcs

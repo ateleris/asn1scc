@@ -274,6 +274,7 @@ type ILangGeneric () =
     abstract member getFuncNameGeneric          : TypeDefinitionOrReference -> string -> string option
     abstract member getFuncNameGeneric2         : TypeDefinitionOrReference -> string option
     abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    abstract member getXerFuncName              : CommonTypes.Codec -> TypeDefinitionOrReference -> string option
     abstract member getACNFuncName              : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
     
     abstract member RtlFuncNames : string list
@@ -611,6 +612,9 @@ type ILangGeneric () =
         match t.id.tasInfo with
         | None -> None
         | Some _ -> Some (td.typeName + codec.suffix)
+
+    default this.getXerFuncName (codec: CommonTypes.Codec) (typeDefinition: TypeDefinitionOrReference): string option =
+        this.getFuncNameGeneric typeDefinition ("_XER" + codec.suffix)
 
     default this.getACNFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option = 
         match t.acnParameters with
