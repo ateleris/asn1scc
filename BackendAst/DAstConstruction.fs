@@ -977,6 +977,12 @@ let private mapTypeId (r:Asn1AcnAst.AstRoot)  (deps:Asn1AcnAst.AcnInsertedFieldD
 
 
 let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
+    // For languages that emit error codes into a per-type namespace (e.g. Python's nested
+    // Encode/DecodeConstants classes), reset the error-code NAME uniqueness set at each type
+    // assignment boundary. This keeps names unique within the type (and thus within each emitted
+    // class) while avoiding the pathological "_2_2_2..." chains that a single flat global set
+    // produces across type assignments. Error-code VALUES (currErrorCode) stay globally monotonic.
+    let us = if lm.lg.scopeErrorCodeNamesPerTypeAssignment then {us with curErrCodeNames = Set.empty} else us
     let newType, ns = TL "mapType" (fun () -> mapType r icdStgFileName deps lm m (tas.Type, us))
     {
         TypeAssignment.Name = tas.Name

@@ -823,6 +823,7 @@ type LangGeneric_python() =
     override this.charToNumericValueExpression charValue = sprintf "ord(%s)" charValue
     override this.validationStringPrefix = "self.arr"
     override this.shouldRemoveModulePrefixFromTypedef = true
+    override this.scopeErrorCodeNamesPerTypeAssignment = true
     override this.getEnumSelectionJoin path =
         // For standalone enum encode, getParamType sets rootId = "self.val", so getValue already gives "self.val".
         // For a SEQUENCE child enum encode, rootId = "self", steps has the child name → getValue gives "self.childName".
