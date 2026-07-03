@@ -54,7 +54,6 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 @classmethod
 def <sFuncName>(cls, codec: UPERDecoder, check_constraints: bool = True) -> '<sTypeDefName>':
-    # uper:58
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <arrsPostcond:{post|<post>}; separator="\n">
@@ -123,7 +122,7 @@ res = codec.encode_constrained_whole_number(<p>.arr[<i>], 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-decoded_result = codec.decode_constrained_whole_number(0, 127) # uper:109
+decoded_result = codec.decode_constrained_whole_number(0, 127)
 if not decoded_result.success or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding Exception {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}")

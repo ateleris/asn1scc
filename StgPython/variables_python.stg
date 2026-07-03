@@ -152,7 +152,7 @@ PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheck
 
 
 PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
-<sName>: <sTypeDecl> = <sValue> # variables:172
+<sName>: <sTypeDecl> = <sValue>
 >>
 
 PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
