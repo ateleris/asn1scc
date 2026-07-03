@@ -330,7 +330,7 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <if (bIsOptional)>
 <sName>: Optional[<sType>] = None
 <else>
-<sName>: <sType> = None
+<sName>: <sType> = field(default_factory=<sType>)
 <endif>
 >>
 
