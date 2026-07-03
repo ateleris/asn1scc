@@ -49,7 +49,7 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced, bInherit) ::= <<
 <if(bInherit)>
-# equal inherited
+<! equal inherited !>
 <else>
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):

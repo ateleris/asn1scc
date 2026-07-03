@@ -6,7 +6,6 @@ methodNameSuffix() ::= ""
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
-# python init is done by the dataclass
 >>
 
 initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
