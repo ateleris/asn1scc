@@ -1,7 +1,6 @@
 group equal_python;
 
 JoinItems(sPart, soNestedPart) ::= <<
-# equal_python.stg 4
 <sPart>
 <if(soNestedPart)>
 if ret:
@@ -10,14 +9,12 @@ if ret:
 >>
 
 JoinItems2_ret(sPart, sNestedPart) ::= <<
-# equal_python.stg 13
 <sPart>
 if ret:
     <sNestedPart>
 >>
 
 JoinItems2_ret_result(sPart, sNestedPart) ::= <<
-# equal_python.stg 20
 <sPart>
 if ret:
     <sNestedPart>
@@ -31,26 +28,20 @@ if ret:
 *****************************************************************************************
 */
 PrintEqualDefinitionPrimitive(sFuncName, sTypeDefName) ::= <<
-# equal_python.stg 34
 >>
 
 PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
-# equal_python.stg 38
 >>
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
-# equal_python.stg 42
 def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
-    # equal_python.stg 44
     return <sContent>
 >>
 
 
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
-# equal_python.stg 51
 def __eq__(self, other: object) -> bool:
-    # equal_python.stg 57
     return super().__eq__(other)
 >>
 
@@ -60,19 +51,16 @@ equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sConte
 <if(bInherit)>
 # equal inherited
 <else>
-# equal_python.stg 64
 def __eq__(self, other: object) -> bool:
     if not isinstance(other, <sTypeDefName>):
         return False
     <if(bExpression)>
-    # equal_python.stg 67
     return <sContent>
 
     <else>
     ret: bool = True
 
     <sContent>
-    # equal_python.stg 75
     return ret
 
     <endif>
@@ -164,12 +152,10 @@ call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
 >>
 
 makeExpressionToStatement(sIsValidExp) ::= <<
-# equal_python.stg 199
 ret = ret and <sIsValidExp>
 >>
 
 
 callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
-# equal_python.stg 205
 ret = <p1> == <p2>
 >>
