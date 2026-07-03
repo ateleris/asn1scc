@@ -112,7 +112,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass, sEncodingEnumValue) ::= <<
 # test_cases_python.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    encoder = <sCodecClass>Encoder.of_size(<sTasName>.EncodeConstants.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
+    encoder = <sCodecClass>Encoder.of_size(<sTasName>.EncodeConstants.REQUIRED_BYTES_FOR_<sEnc>ENCODING)
     <sNestedStatements>
     # test_cases_python.stg 108
     return True
@@ -140,11 +140,9 @@ def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     return True
 
 def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
-    _xer_gen_encoder = XEREncoder.of_size(0)
-    <sTasName>.encode_xer(<sVal>, _xer_gen_encoder, True)
-    encoded = _xer_gen_encoder.get_bitstream_buffer()
+    encoded = <sVal>.encode(Encoding.XER)
     try:
-        decodedPDU = <sTasName>.decode_xer(XERDecoder.from_buffer(encoded))
+        decodedPDU = <sTasName>.decode(Encoding.XER, encoded)
     except Exception as e:
         raise Asn1TestcaseDecodeFailedError(e)
     res = decodedPDU.is_constraint_valid()

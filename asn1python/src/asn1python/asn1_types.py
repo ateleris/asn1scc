@@ -5,7 +5,7 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Self
 
@@ -30,17 +30,56 @@ class Asn1ConstraintValidResult:
             raise Exception("No error code must be set if the constraint is valid.")
 
 class Asn1Base(ABC):
-    
-    # def encode(encoding: Encoding) -> bytearray:
-    #     pass
-    
-    # @classmethod
-    # def decode(cls, encoding: Encoding, data: bytearray) -> Self:
-    #     Decoder.from
-    
-    @abstractmethod
+
+    # Generic encode/decode dispatch. These live on the base class rather than
+    # being duplicated into every generated type: the only per-type input is
+    # the size constant, which every type exposes under the same names on its
+    # nested EncodeConstants class. Imports are function-local to avoid the
+    # import cycle between this module and the codec modules.
+    def encode(self, encoding: "Encoding") -> bytearray:
+        from .codec import Encoding
+        if encoding == Encoding.uPER:
+            from .codec_uper import UPEREncoder
+            encoder = UPEREncoder.of_size(type(self).EncodeConstants.REQUIRED_BYTES_FOR_ENCODING)
+            self.encode_uper(encoder)
+            return encoder.get_bitstream_buffer()
+        elif encoding == Encoding.ACN:
+            from .acn_encoder import ACNEncoder
+            encoder = ACNEncoder.of_size(type(self).EncodeConstants.REQUIRED_BYTES_FOR_ACN_ENCODING)
+            self.encode_acn(encoder)
+            return encoder.get_bitstream_buffer()
+        elif encoding == Encoding.XER:
+            from .xer_encoder import XEREncoder
+            encoder = XEREncoder.of_size(0)
+            self.encode_xer(encoder)
+            return encoder.get_bitstream_buffer()
+        else:
+            raise Asn1Exception(f"Invalid encoding type {encoding}")
+
+    @classmethod
+    def decode(cls, encoding: "Encoding", data: bytearray) -> Self:
+        from .codec import Encoding
+        if encoding == Encoding.uPER:
+            from .codec_uper import UPERDecoder
+            decoder = UPERDecoder.from_buffer(data)
+            return cls.decode_uper(decoder)
+        elif encoding == Encoding.ACN:
+            from .acn_decoder import ACNDecoder
+            decoder = ACNDecoder.from_buffer(data)
+            return cls.decode_acn(decoder)
+        elif encoding == Encoding.XER:
+            from .xer_decoder import XERDecoder
+            decoder = XERDecoder.from_buffer(data)
+            return cls.decode_xer(decoder)
+        else:
+            raise Asn1Exception(f"Invalid encoding type {encoding}")
+
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-        pass
+        # Default for a type with no constraints: valid. Concrete (not abstract)
+        # so that generated primitive subtypes — which mix in Asn1Base and seed
+        # their validation with `super().is_constraint_valid()` — get a valid
+        # result to chain from instead of None. Types with constraints override.
+        return Asn1ConstraintValidResult(is_valid=True)
 
     @property
     def __FIELDS__(self) -> list[str]:

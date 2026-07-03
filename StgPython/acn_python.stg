@@ -14,8 +14,8 @@ EmitAcnParameter(sName, sType, sDefaultValue) ::= "<sName>: <sType> = <sDefaultV
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
-<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
+REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
+REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<

@@ -32,8 +32,8 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes:{x|<x>}; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
-<sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
+REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
+REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
