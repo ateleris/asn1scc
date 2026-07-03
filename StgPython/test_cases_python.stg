@@ -87,8 +87,6 @@ JoinItems(sPart, soNestedPart) ::= <<
 >>
 
 Codec_declare_EncInDecOut_variable(sPrmName, sType, sPrmValue) ::= <<
-<sType> enc_<sPrmName> = <sPrmValue>;
-<sType> dec_<sPrmName>;
 >>
 
 Codec_declare_DecIn_variable(sPrmName, sType) ::= "<sType> dec_<sPrmName>;"

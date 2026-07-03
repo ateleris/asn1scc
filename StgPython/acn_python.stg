@@ -827,20 +827,12 @@ if not decoded_result.success or decoded_result.decoded_value is None:
 <if(bFixedSize)><p> = <sTypeDefName>(arr=<p>_arr)<else><p> = <sTypeDefName>(nCount=decoded_result.bits_consumed, arr=<p>_arr)<endif>
 >>
 
-RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"
+RefTypeParam_tmpVar(sName, sTypeDecl) ::= ""
 
 ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= <<
-<arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>;// 3031<endif>}; separator="\n">
-res = <sName>_ACN_Encode(<p>, codec, pErrCode, FALSE<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if not res:
-    return res
 >>
 
 ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= <<
-<arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>; // 3030<endif>}; separator="\n">
-res = <sName>_ACN_Decode(<p>, codec, pErrCode<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>)
-if not res:
-    return res
 >>
 
 
@@ -1315,20 +1307,7 @@ codec.append_bits(arr, int(<sExtField>))
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-# TODO: open new scope to declare some variables
-
-# decode to a temporary bitstream
-bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
-if int(<sExtField>) \<= <sReqBitsForUperEncoding>:
-    match codec.read_bits((int)<sExtField>):
-        case NoneMut():
-            return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
-        case SomeMut(arr):
-            bitStrm.buf = arr
-
-    res = <sFuncName>(<p>, bitStrm)
-    if not res:
-        return res
+#INVALID FOR PYTHON
 >>
 
 rtlModuleName() ::= ""

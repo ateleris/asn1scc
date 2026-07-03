@@ -232,8 +232,6 @@ alphaFuncNameWithIndex(p, nIdx) ::= "chars_are_valid_<nIdx>"
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 
 Emit_type(arrsConstraints, sErrCodeName) ::= <<
-ret = <arrsConstraints; separator=" and ">;
-ret = <sErrCodeName>;
 >>
 
 call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>() if hasattr(super(), '<sFuncName>') else Asn1ConstraintValidResult(is_valid=True)"

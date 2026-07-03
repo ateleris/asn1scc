@@ -53,8 +53,8 @@ Python TYPES
 
 Declare_Integer() ::="int"
 Declare_PosInteger() ::="int"
-Declare_IntegerNoRTL() ::="LongNoRTL" // TODO
-Declare_PosIntegerNoRTL() ::="ULongNoRTL" // TODO
+Declare_IntegerNoRTL() ::="int"
+Declare_PosIntegerNoRTL() ::="int"
 
 Declare_Boolean() ::= "Asn1Boolean"
 Declare_Real() ::= "float"
@@ -253,7 +253,7 @@ class <td.typeName>(<prTd.typeName>):
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean"
+Define_new_sequence_child_bit(sName) ::= "#INVALID FOR PYTHON"
 
 Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <if (bIsOptional)>
@@ -263,7 +263,7 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <endif>
 >>
 
-Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>"
+Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "#INVALID FOR PYTHON"
 
 Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants, arr_Asn1Encoding) ::= <<
 # -- <td.typeName> --------------------------------------------
