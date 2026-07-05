@@ -451,6 +451,7 @@ let getRealEncodingClass (bSlim:bool) (acnEncodingClass:RealEncodingClass) =
         | Real_IEEE754_64_big_endian        -> ASN1SCC_FP64
         | Real_IEEE754_32_little_endian     -> ASN1SCC_FP32
         | Real_IEEE754_64_little_endian     -> ASN1SCC_FP64
+        | Real_ScaledInt _                  -> ASN1SCC_REAL
     | false -> ASN1SCC_REAL
 
 type Real             with

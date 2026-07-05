@@ -344,6 +344,7 @@ type RealEncodingClass =
     | Real_IEEE754_64_big_endian
     | Real_IEEE754_32_little_endian
     | Real_IEEE754_64_little_endian
+    | Real_ScaledInt of IntEncodingClass    //REAL encoded as scaled integer; the payload can only be a PositiveInteger_ConstSize* or TwosComplement_ConstSize* variant
 
 type StringAcnEncodingClass =
     | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper

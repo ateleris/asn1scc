@@ -146,25 +146,39 @@ let GetEnumeratedEncodingClass (integerSizeInBytes:BigInteger) (items:NamedItem 
 
 *)
 
-let GetRealEncodingClass (alignment: AcnAlignment option) errLoc (p  : RealAcnProperties) uperMinSizeInBits uperMaxSizeInBits =
-    let encClass, minSizeInBits, maxSizeInBits =
-        match p.encodingProp.IsNone && p.endiannessProp.IsNone with
-        | true     -> Real_uPER, uperMinSizeInBits, uperMaxSizeInBits
-        | false    ->
-            let endianness =
-                match p.endiannessProp with
-                | Some e -> e
-                | None   -> BigEndianness
-            let encProp =
-                match p.encodingProp with
-                | Some e -> e
-                | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'encoding' is missing"))
-            match encProp, endianness with
-            | IEEE754_32, BigEndianness     -> Real_IEEE754_32_big_endian, 32I, 32I
-            | IEEE754_64, BigEndianness     -> Real_IEEE754_64_big_endian, 64I, 64I
-            | IEEE754_32, LittleEndianness  -> Real_IEEE754_32_little_endian, 32I, 32I
-            | IEEE754_64, LittleEndianness  -> Real_IEEE754_64_little_endian, 64I, 64I
-    encClass, minSizeInBits, maxSizeInBits + getAlignmentSize alignment
+let GetRealEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment option) errLoc (p  : RealAcnProperties) uperMinSizeInBits uperMaxSizeInBits =
+    match p.encodingProp.IsNone && p.endiannessProp.IsNone && p.sizeProp.IsNone with
+    | true     -> Real_uPER, uperMinSizeInBits, uperMaxSizeInBits + getAlignmentSize alignment
+    | false    ->
+        let endianness =
+            match p.endiannessProp with
+            | Some e -> e
+            | None   -> BigEndianness
+        let encProp =
+            match p.encodingProp with
+            | Some e -> e
+            | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'encoding' is missing"))
+        let ieee754 encClass (nBits:BigInteger) =
+            match p.sizeProp with
+            | Some _ -> raise(SemanticError(errLoc, "Acn property 'size' cannot be applied to REAL types encoded as IEEE754-1985-32 or IEEE754-1985-64"))
+            | None   -> encClass, nBits, nBits + getAlignmentSize alignment
+        let scaledInt intEncProp isUnsigned =
+            //REAL encoded as scaled integer: delegate size/endianness validation and class
+            //selection to the INTEGER machinery, then wrap the resulting class.
+            let intProps = {IntegerAcnProperties.encodingProp = Some intEncProp; sizeProp = p.sizeProp; endiannessProp = p.endiannessProp; mappingFunction = None}
+            let intEncClass, minSizeInBits, maxSizeInBits = GetIntEncodingClass integerSizeInBytes alignment errLoc intProps uperMinSizeInBits uperMaxSizeInBits isUnsigned
+            (if minSizeInBits > 52I then
+                let errMsg = "The scaled-integer encoding uses more than 52 bits: the quantization step is below the resolution of double precision arithmetic over most of the REAL range\n"
+                Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg))
+            //alignment size is already included by GetIntEncodingClass
+            Real_ScaledInt intEncClass, minSizeInBits, maxSizeInBits
+        match encProp, endianness with
+        | IEEE754_32, BigEndianness     -> ieee754 Real_IEEE754_32_big_endian 32I
+        | IEEE754_64, BigEndianness     -> ieee754 Real_IEEE754_64_big_endian 64I
+        | IEEE754_32, LittleEndianness  -> ieee754 Real_IEEE754_32_little_endian 32I
+        | IEEE754_64, LittleEndianness  -> ieee754 Real_IEEE754_64_little_endian 64I
+        | AcnGenericTypes.Real_PosInt, _         -> scaledInt PosInt true
+        | AcnGenericTypes.Real_TwosComplement, _ -> scaledInt TwosComplement false
 
 
 (*

@@ -130,10 +130,10 @@ let private getPreDecodingFunction  (props:GenericAcnProperty list) =
 let private getRealEncodingProperty errLoc (props:GenericAcnProperty list) =
     match tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
     | None  -> None
-    | Some (GP_PosInt         )
-    | Some (GP_TwosComplement )
     | Some (GP_Ascii          )
-    | Some (GP_BCD            ) ->  raise(SemanticError(errLoc ,"Invalid encoding property value. Expecting 'IEEE754-1985-32' or 'IEEE754-1985-64'"))
+    | Some (GP_BCD            ) ->  raise(SemanticError(errLoc ,"Invalid encoding property value. Expecting 'IEEE754-1985-32', 'IEEE754-1985-64', 'pos-int' or 'twos-complement'"))
+    | Some (GP_PosInt         ) ->  Some (AcnGenericTypes.Real_PosInt)
+    | Some (GP_TwosComplement ) ->  Some (AcnGenericTypes.Real_TwosComplement)
     | Some (GP_IEEE754_32     ) ->  Some (AcnGenericTypes.IEEE754_32)
     | Some (GP_IEEE754_64     ) ->  Some (AcnGenericTypes.IEEE754_64)
 
@@ -317,7 +317,7 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Language
     props |>
     Seq.iter(fun pr ->
         match pr with
-        | SIZE  _   -> raise(SemanticError(acnErrLoc0, "Acn property 'size' cannot be applied to REAL types"))
+        | MAPPING_FUNCTION _   -> raise(SemanticError(acnErrLoc0, "Acn property 'mapping-function' cannot be applied to REAL types"))
         | _         -> ())
 
     let acnProperties =
@@ -326,17 +326,29 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Language
             {
                 RealAcnProperties.encodingProp    = getRealEncodingProperty acnErrLoc props
                 endiannessProp                    = getEndiannessProperty props
+                sizeProp                          = getIntSizeProperty acnErrLoc props
             }
-        | None  -> {RealAcnProperties.encodingProp = None; endiannessProp = None }
+        | None  -> {RealAcnProperties.encodingProp = None; endiannessProp = None; sizeProp = None }
     let uperRange    = uPER.getRealTypeConstraintUperRange cons loc
     let uperMaxSizeInBits=(5I+asn1.args.integerSizeInBytes)*8I
     let uperMinSizeInBits=8I
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetRealEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetRealEncodingClass asn1.args.integerSizeInBytes alignment acnErrLoc0 acnProperties uperMinSizeInBits uperMaxSizeInBits
     match acnEncodingClass with
     | Real_IEEE754_64_big_endian        when asn1.args.floatingPointSizeInBytes = 4I -> raise(SemanticError(acnErrLoc0, "Acn property 'IEEE754-1985-64' cannot be applied when -fpWordSize  4"))
     | Real_IEEE754_64_little_endian     when asn1.args.floatingPointSizeInBytes = 4I -> raise(SemanticError(acnErrLoc0, "Acn property 'IEEE754-1985-64' cannot be applied when -fpWordSize  4"))
-    | _                                                                              -> ()
+    | Real_ScaledInt _ ->
+        //the scaled-integer encoding maps the REAL range [a,b] linearly onto the integer range,
+        //so a closed, non-degenerate range constraint is mandatory
+        (match uperRange with
+         | Concrete (a, b) when a < b -> ()
+         | Concrete _                 -> raise(SemanticError(acnErrLoc0, "REAL types encoded as 'pos-int' or 'twos-complement' must have a range constraint (a..b) with a < b"))
+         | NegInf _ | PosInf _ | Full -> raise(SemanticError(acnErrLoc0, "REAL types encoded as 'pos-int' or 'twos-complement' must have a closed range constraint (a..b)")))
+        (match lms |> List.exists(fun (l,_) -> l = Scala) with
+         | true  -> raise(SemanticError(acnErrLoc0, "The 'pos-int' and 'twos-complement' encodings of REAL types are not supported for Scala"))
+         | false -> ())
+    | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
+    | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian                     -> ()
     let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
     let definitionOrRef = 
         lms |> List.map(fun (l,lm) ->

@@ -133,7 +133,8 @@ let private acnEncPropsPerType =
         (asn1Parser.INTEGER_TYPE,   (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
         (asn1Parser.INTEGER_TYPE,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
 
-        (asn1Parser.REAL,           (acnParser.ENCODING, ["encoding IEEE754-1985-32"; "encoding IEEE754-1985-32"]))
+        (asn1Parser.REAL,           (acnParser.ENCODING, ["encoding IEEE754-1985-32"; "encoding IEEE754-1985-64"; "encoding pos-int"; "encoding twos-complement"]))
+        (asn1Parser.REAL,           (acnParser.SIZE, ["size"]))
         (asn1Parser.REAL,           (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
 
         (asn1Parser.IA5String, (acnParser.ENCODING, ["encoding ASCII"]))

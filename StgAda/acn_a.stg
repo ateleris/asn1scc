@@ -599,6 +599,36 @@ adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_little_endian(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
+/* REAL encoded as scaled integer (issue #339): the real value is mapped linearly onto
+   the integer range and the bitstream work is delegated to the integer encoding (sIntBody) */
+Real_ScaledInt_uint_encode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sTmpVar> := adaasn1rtl.encoding.acn.Acn_Real2ScaledUInt(<p>, <sLow>, <sScale>, <sUintMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_uint_decode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sIntBody>
+if result.Success then
+    <p> := adaasn1rtl.encoding.acn.Acn_ScaledUInt2Real(<sTmpVar>, <sLow>, <sScale>);
+else
+    <p> := <sLow>;																				-- COVERAGE_IGNORE
+end if;
+>>
+
+Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sTmpVar> := adaasn1rtl.encoding.acn.Acn_Real2ScaledSInt(<p>, <sLow>, <sScale>, <sIntMin>, <sIntMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_sint_decode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sIntBody>
+if result.Success then
+    <p> := adaasn1rtl.encoding.acn.Acn_ScaledSInt2Real(<sTmpVar>, <sLow>, <sScale>, <sIntMin>);
+else
+    <p> := <sLow>;																				-- COVERAGE_IGNORE
+end if;
+>>
+
 
 
 

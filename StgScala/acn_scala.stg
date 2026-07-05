@@ -338,6 +338,25 @@ Real_64_little_endian_decode(p, sErrCode) ::= <<
 val <p> = codec.dec_Real_IEEE754_64_little_endian()
 >>
 
+// REAL encoded as scaled integer (issue #339): not supported for Scala.
+// The front end rejects the combination (see AcnCreateFromAntlr.mergeReal), so these
+// stubs exist only because AbstractMacros.fs is generated from the Scala backend.
+Real_ScaledInt_uint_encode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+// TODO: Scala does not support the scaled-integer encoding of REAL types
+>>
+
+Real_ScaledInt_uint_decode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+// TODO: Scala does not support the scaled-integer encoding of REAL types
+>>
+
+Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+// TODO: Scala does not support the scaled-integer encoding of REAL types
+>>
+
+Real_ScaledInt_sint_decode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+// TODO: Scala does not support the scaled-integer encoding of REAL types
+>>
+
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 locally {

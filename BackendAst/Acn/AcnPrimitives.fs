@@ -207,11 +207,52 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
 
 
+//the integer range of a scaled-integer encoding class: (intMin, intMax, isUnsigned)
+let getScaledIntRange (c: Asn1AcnAst.IntEncodingClass) : BigInteger * BigInteger * bool =
+    let unsignedRange (nBits:int) = 0I, BigInteger.Pow(2I, nBits) - 1I, true
+    let signedRange (nBits:int) = -BigInteger.Pow(2I, nBits-1), BigInteger.Pow(2I, nBits-1) - 1I, false
+    match c with
+    | Asn1AcnAst.PositiveInteger_ConstSize_8                   -> unsignedRange 8
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16       -> unsignedRange 16
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16    -> unsignedRange 16
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32       -> unsignedRange 32
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32    -> unsignedRange 32
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64       -> unsignedRange 64
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64    -> unsignedRange 64
+    | Asn1AcnAst.PositiveInteger_ConstSize bitSize             -> unsignedRange (int bitSize)
+    | Asn1AcnAst.TwosComplement_ConstSize_8                    -> signedRange 8
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_16        -> signedRange 16
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_16     -> signedRange 16
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_32        -> signedRange 32
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_32     -> signedRange 32
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_64        -> signedRange 64
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_64     -> signedRange 64
+    | Asn1AcnAst.TwosComplement_ConstSize bitSize              -> signedRange (int bitSize)
+    | Asn1AcnAst.Integer_uPER
+    | Asn1AcnAst.ASCII_ConstSize _
+    | Asn1AcnAst.ASCII_VarSize_NullTerminated _
+    | Asn1AcnAst.ASCII_UINT_ConstSize _
+    | Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated _
+    | Asn1AcnAst.BCD_ConstSize _
+    | Asn1AcnAst.BCD_VarSize_NullTerminated _                  -> raise(BugErrorException "getScaledIntRange: Real_ScaledInt can only contain a PositiveInteger_ConstSize* or TwosComplement_ConstSize* class")
+
+//the linear mapping parameters of a scaled-integer encoding: (low, scale, intMin, intMax, isUnsigned)
+let getScaledIntMapping (o:Asn1AcnAst.Real) (intEncClass: Asn1AcnAst.IntEncodingClass) =
+    let a, b =
+        match o.uperRange with
+        | Concrete (a, b) -> a, b
+        | NegInf _ | PosInf _ | Full -> raise(BugErrorException "Real_ScaledInt requires a REAL type with a closed range constraint (a..b)")
+    let intMin, intMax, isUnsigned = getScaledIntRange intEncClass
+    let scale = (b - a) / (double (intMax - intMin))
+    a, scale, intMin, intMax, isUnsigned
+
 let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let Real_32_big_endian                  = lm.acn.Real_32_big_endian
     let Real_64_big_endian                  = lm.acn.Real_64_big_endian
     let Real_32_little_endian               = lm.acn.Real_32_little_endian
     let Real_64_little_endian               = lm.acn.Real_64_little_endian
+    let Real_ScaledInt_uint                 = lm.acn.Real_ScaledInt_uint
+    let Real_ScaledInt_sint                 = lm.acn.Real_ScaledInt_sint
 
     let sSuffix =
         match o.getClass r.args with
@@ -225,25 +266,69 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
         | "" -> None
         | _  -> Some sTmpCons
 
+    let typeName = typeDefinition.longTypedefName2 lm.lg.hasModules
+
+    //scaled-integer encoding: convert the REAL to a temporary integer via the linear
+    //mapping helpers of the RTL and delegate the bitstream work to the integer codegen,
+    //mirroring the ENUMERATED pattern (AcnEnum.createEnumCommon)
+    let scaledIntFuncBody (intEncClass: Asn1AcnAst.IntEncodingClass) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
+        let low, scale, intMin, intMax, isUnsigned = getScaledIntMapping o intEncClass
+        let intTypeClass =
+            match isUnsigned with
+            | true  -> Asn1AcnAst.ASN1SCC_UInt (intMin, intMax)
+            | false -> Asn1AcnAst.ASN1SCC_Int (intMin, intMax)
+        let rtlIntType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
+        let intVal = $"intVal_{ToC p.accessPath.asIdentifier}"
+        let localVars =
+            match lm.lg.decodingKind with
+            | Copy    -> []
+            | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = intVal; varType = rtlIntType; arrSize = None; isStatic = false; initExp = None}]
+        let pVal = {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath intVal}
+        let uperIntStub _ _ _ _ : UPERFuncBodyResult option = raise(BugErrorException "Real_ScaledInt: unexpected uPER integer encoding class")
+        let intFuncBody = createAcnIntegerFunctionInternal r lm codec (Concrete (intMin, intMax)) intTypeClass intEncClass uperIntStub None o.acnMinSizeInBits o.acnMaxSizeInBits None typeName (None, None)
+        match intFuncBody errCode acnArgs nestingScope pVal with
+        | None -> None
+        | Some intRes ->
+            let sRealVal = lm.lg.getValue p.accessPath
+            let sLow     = lm.lg.doubleValueToString low
+            let sScale   = lm.lg.doubleValueToString scale
+            let sIntMin  = lm.lg.intValueToString intMin intTypeClass
+            let sIntMax  = lm.lg.intValueToString intMax intTypeClass
+            let mainBody =
+                match isUnsigned with
+                | true  -> Real_ScaledInt_uint sRealVal intVal intRes.funcBody sLow sScale sIntMax errCode.errCodeName codec
+                | false -> Real_ScaledInt_sint sRealVal intVal intRes.funcBody sLow sScale sIntMin sIntMax errCode.errCodeName codec
+            Some (mainBody, intRes.errCodes, localVars @ intRes.localVariables, intRes.auxiliaries)
+
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = DAstUPer.castRPp lm codec (o.getClass r.args) pp
 
         let funcBodyContent =
             match o.acnEncodingClass with
-            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName codec, [errCode], [])
-            | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode], [])
-            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName codec, [errCode], [])
-            | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode], [])
-            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.auxiliaries)
+            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName codec, [errCode], [], [])
+            | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode], [], [])
+            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName codec, [errCode], [], [])
+            | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode], [], [])
+            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, [], x.auxiliaries)
+            | Real_ScaledInt intEncClass            -> scaledIntFuncBody intEncClass errCode acnArgs nestingScope p
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, auxiliaries) ->
+        | Some (funcBodyContent,errCodes, localVariables, auxiliaries) ->
+            let icdComments =
+                match o.acnEncodingClass with
+                | Real_ScaledInt intEncClass ->
+                    let low, scale, intMin, _, _ = getScaledIntMapping o intEncClass
+                    [sprintf "scaled integer encoding: real value = %s + (encoded integer - (%s)) * %s"
+                        (lm.lg.doubleValueToString low) (intMin.ToString()) (lm.lg.doubleValueToString scale)]
+                | Real_uPER
+                | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
+                | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian -> []
             let icdFnc fieldName sPresent comments =
-                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=sAsn1Constraints; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+                [{IcdRow.fieldName = fieldName; comments = comments@icdComments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=sAsn1Constraints; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
 
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let annots =
         match ProgrammingLanguage.ActiveLanguages.Head with

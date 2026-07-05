@@ -384,6 +384,9 @@ let RealAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) 
             | Real_IEEE754_64_big_endian          -> Double.MinValue, Double.MaxValue
             | Real_IEEE754_32_little_endian       -> (double Single.MinValue), (double Single.MaxValue)
             | Real_IEEE754_64_little_endian       -> Double.MinValue, Double.MaxValue
+            //scaled-integer encoding requires a closed range constraint, so the fold below
+            //always narrows these defaults to the constraint bounds (which round-trip exactly)
+            | Real_ScaledInt _                    -> Double.MinValue, Double.MaxValue
 
 
     match allCons with

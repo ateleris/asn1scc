@@ -354,6 +354,32 @@ ret = Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
+/* REAL encoded as scaled integer (issue #339): the real value is mapped linearly onto
+   the integer range and the bitstream work is delegated to the integer encoding (sIntBody) */
+Real_ScaledInt_uint_encode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sTmpVar> = Acn_Real2ScaledUInt(<p>, <sLow>, <sScale>, <sUintMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_uint_decode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sIntBody>
+if (ret) {
+    <p> = Acn_ScaledUInt2Real(<sTmpVar>, <sLow>, <sScale>);
+}
+>>
+
+Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sTmpVar> = Acn_Real2ScaledSInt(<p>, <sLow>, <sScale>, <sIntMin>, <sIntMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_sint_decode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sIntBody>
+if (ret) {
+    <p> = Acn_ScaledSInt2Real(<sTmpVar>, <sLow>, <sScale>, <sIntMin>);
+}
+>>
+
 
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
