@@ -138,16 +138,16 @@ let private acnEncPropsPerType =
         (asn1Parser.REAL,           (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
 
         (asn1Parser.IA5String, (acnParser.ENCODING, ["encoding ASCII"]))
-        (asn1Parser.IA5String, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.IA5String, (acnParser.SIZE, ["size other-fld"; "size null-terminated"; "size deduced"]))
         (asn1Parser.IA5String, (acnParser.TERMINATION_PATTERN, ["termination-pattern '00'H" ]))
 
-        (asn1Parser.OCTET_STRING, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.OCTET_STRING, (acnParser.SIZE, ["size other-fld"; "size null-terminated"; "size deduced"]))
         (asn1Parser.OCTET_STRING, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
 
         (asn1Parser.BIT_STRING_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
         (asn1Parser.BIT_STRING_TYPE, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
 
-        (asn1Parser.SEQUENCE_OF_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.SEQUENCE_OF_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"; "size deduced"]))
         (asn1Parser.SEQUENCE_OF_TYPE, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
 
 
