@@ -318,6 +318,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | None -> None
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
+            | Some SzDeduced            -> None
         sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (a.minSize, a.maxSize, a.acnProperties))
     | BitString      a      ->
         let rp =
@@ -325,6 +326,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | None -> None
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
+            | Some SzDeduced            -> None
         sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (a.minSize, a.maxSize, a.acnProperties))
     | SequenceOf   seqOf    ->
         let rp =
@@ -332,6 +334,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | None -> None
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
+            | Some SzDeduced            -> None
 
         let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (seqOf.minSize, seqOf.maxSize, seqOf.acnProperties))
         checkType r tasPositions (parents@[t]) (curentPath@[SQF]) seqOf.child ns
@@ -404,6 +407,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
                     | SZ_EC_LENGTH_EMBEDDED     _  -> None
                     | SZ_EC_ExternalField ef        -> Some ef
                     | SZ_EC_TerminationPattern _    -> None
+                    | SZ_EC_Deduced                 -> None
                 sizeReference r tasPositions curState parents t props.minSize.acn props.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant_bit_oct_str_contain ref)
 
         let checkArgument (curState:AcnInsertedFieldDependencies) ((RelativePath path : RelativePath), (prm:AcnParameter)) =

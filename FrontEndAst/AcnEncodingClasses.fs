@@ -212,9 +212,11 @@ let GetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : StringA
         | false, None                                  ->       Acn_Enc_String_uPER charSizeInBits, uperMinSizeInBits, uperMaxSizeInBits
         | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant (charSizeInBits, longField) , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
         | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
+        | false, Some StrDeduced                       ->       raise(SemanticError(errLoc, "'size deduced' on string types requires 'encoding ASCII'"))
         | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
         | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits
         | true, Some (StrNullTerminated nullChars)             ->       Acn_Enc_String_Ascii_Null_Terminated (charSizeInBits, nullChars), asn1Min*charSizeInBits + (BigInteger (nullChars.Length * 8)),  asn1Max*charSizeInBits + (BigInteger (nullChars.Length * 8))
+        | true, Some StrDeduced                        ->       Acn_Enc_String_Ascii_Deduced charSizeInBits, asn1Min*charSizeInBits, asn1Max*charSizeInBits
 
     encClass, minSizeInBits, maxSizeInBits + getAlignmentSize alignment
 
@@ -244,6 +246,10 @@ let GetOctetBitSeqofEncodingClass (alignment: AcnAlignment option) errLoc (p  : 
             match p with
             | SzExternalField p     -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
             | SzNullTerminated tp   -> SZ_EC_TerminationPattern tp,  (BigInteger tp.Value.Length) +  asn1Min*internalMinSize, (BigInteger tp.Value.Length) +  asn1Max*internalMaxSize
+            | SzDeduced             ->
+                match internalMinSize >= 8I with
+                | false -> raise(SemanticError(errLoc, sprintf "'size deduced' requires the SEQUENCE OF element to occupy at least 8 bits (its minimum ACN size is %A bits)" internalMinSize))
+                | true  -> SZ_EC_Deduced, asn1Min*internalMinSize, asn1Max*internalMaxSize
 
     encClass, minSizeInBits, maxSizeInBits + getAlignmentSize alignment
 
@@ -251,7 +257,9 @@ let GetOctetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : Si
     GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8I 8I true hasNCount
 
 let GetBitStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
-    GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I true hasNCount
+    match p.sizeProp with
+    | Some SzDeduced -> raise(SemanticError(errLoc, "'size deduced' is not applicable to BIT STRING (its element occupies a single bit, which is below the byte-padding resolution)"))
+    | _              -> GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I true hasNCount
 
 let GetSequenceOfEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize hasNCount =
     GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize false hasNCount

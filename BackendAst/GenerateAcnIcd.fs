@@ -430,6 +430,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                             characterSizeInBits             -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Terminated                  (characterSizeInBits, nullChars)  -> "ASCII CHARACTER"  , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (characterSizeInBits, rp)        -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Deduced                          characterSizeInBits              -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (characterSizeInBits, rp)        -> "NUMERIC CHARACTER" , characterSizeInBits.ToString()
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
             let sClass = if i % 2I = 0I then icd_acn.EvenRow stgFileName () else icd_acn.OddRow stgFileName ()
@@ -462,6 +463,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
             | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (nSizeInBits, rp)        ->
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Deduced                          nSizeInBits              ->
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
         let sCommentLine = match sCommentLine with
                            | null | ""  -> sExtraComment
                            | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
@@ -552,6 +555,10 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 (ChildRow 0I 1I)::[], sprintf "Length is determined by the external field: %s" relPath.AsString
             | Asn1AcnAst.SZ_EC_ExternalField relPath,true     ->
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (nMax))::[], sprintf "Length determined by external field %s" relPath.AsString
+            | Asn1AcnAst.SZ_EC_Deduced, false ->
+                (ChildRow 0I 1I)::[], "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
+            | Asn1AcnAst.SZ_EC_Deduced, true ->
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (nMax))::[], "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
             | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern, false ->
                 (ChildRow 0I 1I)::[], sprintf "Length is determined by the stop marker '%s'" bitPattern.Value
             | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern, true ->

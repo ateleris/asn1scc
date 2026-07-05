@@ -349,6 +349,7 @@ type RealAcnProperties = {
 type AcnStringSizeProperty =
     | StrExternalField   of RelativePath
     | StrNullTerminated  of byte list     //termination character when encoding is ASCII
+    | StrDeduced                          //size deduced from the enclosing decoding region (no length determinant)
 
 type AcnStringEncoding =
     | StrAscii
@@ -361,6 +362,7 @@ type StringAcnProperties = {
 type AcnSizeableSizeProperty =
     | SzExternalField   of RelativePath
     | SzNullTerminated  of StringLoc     //termination pattern
+    | SzDeduced                          //size deduced from the enclosing decoding region (no length determinant)
 
 
 type SizeableAcnProperties = {
@@ -471,6 +473,7 @@ type GenAcnEncodingProp =
 type GenSizeProperty =
     | GP_Fixed                 of IntLoc
     | GP_NullTerminated
+    | GP_Deduced
     | GP_SizeDeterminant       of RelativePath
 
 

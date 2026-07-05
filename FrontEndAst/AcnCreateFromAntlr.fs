@@ -53,6 +53,7 @@ let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) =
                     raise(SemanticError(bitPattern.Location, "termination-pattern cannot exceed 10 bytes"))
                 Some(AcnGenericTypes.IntNullTerminated ba)
         | None      -> Some(AcnGenericTypes.IntNullTerminated ([byte 0]))
+    | Some (GP_Deduced          )   -> raise(SemanticError(errLoc ,"'size deduced' is not applicable to this type"))
     | Some (GP_SizeDeterminant _)   -> raise(SemanticError(errLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
 
 let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) =
@@ -78,6 +79,13 @@ let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errL
                     raise(SemanticError(bitPattern.Location, "termination-pattern cannot exceed 10 bytes"))
                 Some(AcnGenericTypes.StrNullTerminated ba)
         | None      -> Some(AcnGenericTypes.StrNullTerminated ([byte 0]))
+    | Some (GP_Deduced          )   ->
+        match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
+        | Some b    -> raise(SemanticError(b.Location, "'termination-pattern' requires 'size null-terminated'"))
+        | None      ->
+            match minSize = maxSize with
+            | true  -> raise(SemanticError(errLoc, "'size deduced' is pointless for a fixed-size type; remove the size property"))
+            | false -> Some AcnGenericTypes.StrDeduced
     | Some (GP_SizeDeterminant fld)   -> (Some (AcnGenericTypes.StrExternalField fld))
 
 let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) =
@@ -97,6 +105,13 @@ let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) er
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some b    -> Some(AcnGenericTypes.SzNullTerminated b)
         | None      -> raise(SemanticError(errLoc , (sprintf "No 'termination-pattern' was provided")))
+    | Some (GP_Deduced          )   ->
+        match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
+        | Some b    -> raise(SemanticError(b.Location, "'termination-pattern' requires 'size null-terminated'"))
+        | None      ->
+            match minSize = maxSize with
+            | true  -> raise(SemanticError(errLoc, "'size deduced' is pointless for a fixed-size type; remove the size property"))
+            | false -> Some AcnGenericTypes.SzDeduced
 
 let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) =
     match tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
@@ -472,6 +487,7 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
         | None   -> ()
     | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
     | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
+    | Acn_Enc_String_Ascii_Deduced                           _                -> ()
 
     let typeDef, us1 =
         match tdarg with
@@ -528,6 +544,7 @@ let private mergeOctetStringType (asn1: Asn1Ast.AstRoot)
         match p with
         | SzExternalField f -> Some f
         | SzNullTerminated _ -> None
+        | SzDeduced          -> None
     )
     let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
@@ -580,6 +597,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
         match p with
         | SzExternalField f -> Some f
         | SzNullTerminated _ -> None
+        | SzDeduced          -> None
     )
     let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
@@ -1197,7 +1215,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let uperMinSizeInBits, _ = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMinSizeInBits
             let _, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMaxSizeInBits
 
-            let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits hasNCount
+            let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass alignment t.Location acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits hasNCount
             //   (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type) (childType: DAst.Asn1Type)
             let maxAlignment = maxAlignmentOf [alignment; newChType.maxAlignment]
 
@@ -1605,7 +1623,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                         | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
                         | None              -> {SizeableAcnProperties.sizeProp = None }
 
-                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment t.Location acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
                     uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInBitString; minSize = minSize; maxSize=maxSize})
                 | Some  ContainedInOctString  ->
@@ -1619,7 +1637,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                         | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
                         | None              -> {SizeableAcnProperties.sizeProp = None}
 
-                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass alignment t.Location acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
                     uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; minSize = minSize; maxSize=maxSize})
 

@@ -81,6 +81,8 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some (lm.lg.intValueToString 0I (ASN1SCC_Int8 (-128I, 127I))))]
                     | _            -> []
                 Some(fncBody, [errCode],lv::lv2)
+            | SZ_EC_Deduced ->
+                raise(SemanticError(t.Location, "'size deduced': backend code generation is not implemented yet"))
 
         match funcBodyContent with
         | None -> None
@@ -137,6 +139,9 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | SZ_EC_FIXED_SIZE       ->
                 let fncBody = bitString_FixSize td pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
+
+            | SZ_EC_Deduced ->
+                raise(BugErrorException "'size deduced' is not applicable to BIT STRING (should have been rejected by the front-end)")
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
                 let fncBody =

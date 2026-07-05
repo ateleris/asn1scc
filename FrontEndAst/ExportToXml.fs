@@ -292,12 +292,14 @@ let exportAcnStringSizeProperty (a:AcnStringSizeProperty option) =
     match a with
     | Some (StrExternalField  (RelativePath path)) -> [XAttribute(xname "size", (path |> Seq.StrJoin ".") )]
     | Some (StrNullTerminated  b)                  -> [XAttribute(xname "size", "null-terminated" ); XAttribute(xname "termination-pattern", b )]
+    | Some StrDeduced                              -> [XAttribute(xname "size", "deduced" )]
     | None                                         -> []
 
 let exportSizeableSizeProp (a:AcnSizeableSizeProperty option) =
     match a with
     | Some (SzExternalField (RelativePath path)) -> [XAttribute(xname "size", (path |> Seq.StrJoin ".") )]
     | Some (SzNullTerminated bitPattern)         -> [XAttribute(xname "size", ("null-terminated") ); XAttribute(xname "termination-pattern", (bitPattern.Value) )]
+    | Some SzDeduced                             -> [XAttribute(xname "size", "deduced" )]
     | None                     -> []
 
 let exportChoiceDeterminant (a:RelativePath option) =

@@ -27,7 +27,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         | SZ_EC_FIXED_SIZE
         | SZ_EC_LENGTH_EMBEDDED _ //-> lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
         | SZ_EC_ExternalField       _
-        | SZ_EC_TerminationPattern  _ -> [SequenceOfIndex (ii, None)]
+        | SZ_EC_TerminationPattern  _
+        | SZ_EC_Deduced               -> [SequenceOfIndex (ii, None)]
 
     let nAlignSize = 0I;
     let nIntItemMaxSize = child.acnMaxSizeInBits
@@ -40,7 +41,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
                 [{IcdRow.fieldName = "Length"; comments = [$"The number of items"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = Some 1}], []
             | SZ_EC_FIXED_SIZE
-            | SZ_EC_ExternalField       _ -> [], []
+            | SZ_EC_ExternalField       _
+            | SZ_EC_Deduced               -> [], []
             | SZ_EC_TerminationPattern  bitPattern ->
                 let nSizeInBits = bitPattern.Value.Length.AsBigInt
                 [], [{IcdRow.fieldName = "Length"; comments = [$"Termination pattern {bitPattern.Value}"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = Some (int (o.maxSize.acn+1I))}]
@@ -63,6 +65,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _             -> if o.maxSize.acn <2I then "The array contains a single element." else ""
         | Asn1AcnAst.SZ_EC_ExternalField relPath         ->  $"Length is determined by the external field: %s{relPath.AsString}"
         | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern ->  $"Length is determined by the stop marker '%s{bitPattern.Value}'"
+        | Asn1AcnAst.SZ_EC_Deduced                       ->  "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
     let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[sExtraComment]; scope="type"; name= None}
 
 
@@ -167,6 +170,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ -> []
 
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@(lv level)@localVariables; userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
+
+                | SZ_EC_Deduced ->
+                    raise(SemanticError(t.Location, "'size deduced': backend code generation is not implemented yet"))
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us
