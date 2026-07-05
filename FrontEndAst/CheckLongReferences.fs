@@ -477,3 +477,133 @@ let checkAst (r:AstRoot) =
             checkType r tasPositions [] [MD m.Name.Value; TA tas.Name.Value] tas.Type ns) emptyState
 
     result
+
+(*
+   'size deduced' placement validation — region rules R1-R3 of Docs/deduced-size-spec.md.
+
+   A type with the ACN property 'size deduced' derives its element count from the
+   size of the enclosing decoding region.  A region is established either by a
+   CONTAINING octet/bit string container or by the top-level PDU bitstream.  For
+   the decoding to be well defined, on every usage path from the deduced type up
+   to its region boundary:
+     R1  every intermediate node must be a SEQUENCE (no CHOICE / SEQUENCE OF)
+     R2  at each SEQUENCE level, every component that follows the on-path child
+         must be non-optional, of compile-time-constant ACN size, without
+         alignment properties, and must not itself consume the rest of the region
+     R3  the on-path components themselves must not be OPTIONAL
+*)
+module private DeducedSizePlacement =
+
+    let private isSelfDeduced (t:Asn1Type) =
+        match t.Kind with
+        | IA5String s
+        | NumericString s ->
+            match s.acnEncodingClass with
+            | Acn_Enc_String_Ascii_Deduced _ -> true
+            | _                              -> false
+        | OctetString o     -> o.acnEncodingClass = SZ_EC_Deduced
+        | BitString o       -> o.acnEncodingClass = SZ_EC_Deduced
+        | SequenceOf o      -> o.acnEncodingClass = SZ_EC_Deduced
+        | ReferenceType rf  ->
+            match rf.encodingOptions with
+            | Some eo -> eo.acnEncodingClass = SZ_EC_Deduced
+            | None    -> false
+        | _ -> false
+
+    //true when decoding the type consumes "the rest of the enclosing region",
+    //i.e. it is deduced itself or contains a deduced descendant that is not
+    //isolated behind a CONTAINING boundary
+    let rec private isLiveDeduced (t:Asn1Type) =
+        match isSelfDeduced t with
+        | true  -> true
+        | false ->
+            match t.Kind with
+            | Sequence sq       -> sq.children |> List.exists(fun c -> match c with Asn1Child a -> isLiveDeduced a.Type | AcnChild _ -> false)
+            | Choice ch         -> ch.children |> List.exists(fun c -> isLiveDeduced c.Type)
+            | SequenceOf sqf    -> isLiveDeduced sqf.child
+            | ReferenceType rf  ->
+                match rf.encodingOptions with
+                | Some _    -> false        //CONTAINING boundary: the container size delimits the region
+                | None      -> isLiveDeduced rf.resolvedType
+            | _ -> false
+
+    let private checkFollower (deducedName:string) (f:SeqChildInfo) : (SrcLoc*string) list =
+        let problem =
+            match f with
+            | Asn1Child a ->
+                match a.Optionality, isLiveDeduced a.Type with
+                | Some _, _     -> Some "it is OPTIONAL"
+                | _, true       -> Some "it also consumes the rest of the decoding region ('size deduced'); only one such component may exist per region"
+                | _ ->
+                    match a.Type.acnMinSizeInBits = a.Type.acnMaxSizeInBits, a.Type.maxAlignment with
+                    | false, _      -> Some (sprintf "its ACN encoding size is variable (%A..%A bits)" a.Type.acnMinSizeInBits a.Type.acnMaxSizeInBits)
+                    | _, Some _     -> Some "it uses 'align-to-next'"
+                    | _             -> None
+            | AcnChild a ->
+                match a.Type.acnMinSizeInBits = a.Type.acnMaxSizeInBits, a.Type.acnAlignment with
+                | false, _  -> Some (sprintf "its ACN encoding size is variable (%A..%A bits)" a.Type.acnMinSizeInBits a.Type.acnMaxSizeInBits)
+                | _, Some _ -> Some "it uses 'align-to-next'"
+                | _         -> None
+        let loc, name =
+            match f with
+            | Asn1Child a -> a.Name.Location, a.Name.Value
+            | AcnChild a  -> a.Name.Location, a.Name.Value
+        match problem with
+        | None -> []
+        | Some problem ->
+            [(loc, sprintf "component '%s' follows the 'size deduced' component '%s' and must be a non-optional, fixed-size component: %s" name deducedName problem)]
+
+    //walks the inline structure of a type assignment; ReferenceTypes are not
+    //descended into (their targets are separate type assignments, validated on
+    //their own), but isLiveDeduced looks through them
+    let rec private checkType (t:Asn1Type) : (SrcLoc*string) list =
+        match t.Kind with
+        | Sequence sq ->
+            let localErrs =
+                sq.children |> List.mapi(fun i c -> (i,c)) |> List.collect(fun (i,c) ->
+                    match c with
+                    | AcnChild _ -> []
+                    | Asn1Child ch ->
+                        match isLiveDeduced ch.Type with
+                        | false -> []
+                        | true  ->
+                            let optErr =
+                                match ch.Optionality with
+                                | Some _ -> [(ch.Name.Location, sprintf "the 'size deduced' component '%s' may not be OPTIONAL" ch.Name.Value)]
+                                | None   -> []
+                            let followerErrs = sq.children |> List.skip (i+1) |> List.collect (checkFollower ch.Name.Value)
+                            optErr@followerErrs)
+            let childErrs = sq.children |> List.collect(fun c -> match c with Asn1Child a -> checkType a.Type | AcnChild _ -> [])
+            localErrs@childErrs
+        | Choice ch ->
+            let localErrs =
+                ch.children |> List.collect(fun c ->
+                    match isLiveDeduced c.Type with
+                    | true  -> [(c.Name.Location, sprintf "a 'size deduced' type may only be nested inside SEQUENCEs up to the enclosing CONTAINING container or top-level PDU; alternative '%s' of this CHOICE consumes the rest of the decoding region" c.Name.Value)]
+                    | false -> [])
+            let childErrs = ch.children |> List.collect(fun c -> checkType c.Type)
+            localErrs@childErrs
+        | SequenceOf sqf ->
+            let localErrs =
+                match isLiveDeduced sqf.child, sqf.acnEncodingClass with
+                | true, SZ_EC_Deduced ->
+                    [(t.Location, "the element of a 'size deduced' SEQUENCE OF must have a self-delimiting encoding; it may not consume the rest of the decoding region itself")]
+                | true, _ ->
+                    [(t.Location, "a 'size deduced' type may only be nested inside SEQUENCEs up to the enclosing CONTAINING container or top-level PDU; here it is used as the element of a SEQUENCE OF")]
+                | false, _ -> []
+            localErrs @ checkType sqf.child
+        | ReferenceType _ -> []
+        | _ -> []
+
+    let check (r:AstRoot) =
+        let errs =
+            r.Files
+            |> List.collect(fun f -> f.Modules)
+            |> List.collect(fun m -> m.TypeAssignments)
+            |> List.collect(fun tas -> checkType tas.Type)
+            |> List.distinct
+        match errs with
+        | []            -> ()
+        | (loc,msg)::_  -> raise(SemanticError(loc, msg))
+
+let checkDeducedSizePlacement (r:AstRoot) = DeducedSizePlacement.check r
