@@ -452,11 +452,16 @@ type NestingScope = {
     // When a parent SEQUENCE has a post-encoding/pre-decoding function, this holds its
     // bitStreamPositions local variable name so nested SEQUENCEs can use it for save-position fields.
     parentSavePositionVar: string option
+    // 'size deduced' support: total ACN size in bits of all components that follow the
+    // current node up to the enclosing decoding-region boundary (CONTAINING container or
+    // top-level PDU).  Compile-time constant by the region rules of Docs/deduced-size-spec.md.
+    // The budget end of a deduced decode loop is <end of bitstream> - deducedTrailingBits.
+    deducedTrailingBits: bigint
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
-        parents = parents; parentSavePositionVar = None}
+        parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {

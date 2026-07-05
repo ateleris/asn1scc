@@ -95,6 +95,17 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
                 TL "ACN_REF_02" (fun () ->
+                //'size deduced': when fixed-size components follow this reference in its
+                //decoding region, the standalone function cannot be used on decode (its
+                //body assumes a zero trailing constant).  Emit the base type's body
+                //inline instead, so the usage-specific trailing constant flows in
+                //through the NestingScope (Docs/deduced-size-spec.md par.6.3).
+                match codec = Decode && nestingScope.deducedTrailingBits <> 0I && isLiveDeduced o.resolvedType with
+                | true ->
+                    match baseType.getAcnFunction codec with
+                    | Some baseFnc -> baseFnc.funcBody us acnArgs nestingScope p
+                    | None         -> None, us
+                | false ->
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.accessPath codec
                     match codec, lm.lg.decodingKind with
@@ -156,7 +167,9 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         match baseTypeAcnFunction with
                         | None  -> None, [], [], [], us
                         | Some baseTypeAcnFunction   ->
-                            let acnRes, ns = baseTypeAcnFunction.funcBody us acnArgs nestingScope p
+                            //CONTAINING boundary: the contained encoding is decoded against its own
+                            //region (the container's octets), so the trailing constant resets to 0
+                            let acnRes, ns = baseTypeAcnFunction.funcBody us acnArgs {nestingScope with deducedTrailingBits = 0I} p
                             match acnRes with
                             | None  -> None, [], [], [], ns
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables, r.userDefinedFunctions, ns

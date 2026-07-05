@@ -172,7 +172,18 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@(lv level)@localVariables; userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
 
                 | SZ_EC_Deduced ->
-                    raise(SemanticError(t.Location, "'size deduced': backend code generation is not implemented yet"))
+                    match internalItem with
+                    | None -> None
+                    | Some internalItem ->
+                        let childErrCodes = internalItem.errCodes
+                        let localVariables = internalItem.localVariables
+                        let trailingBits = nestingScope.deducedTrailingBits
+                        let noSizeMin = if o.minSize.acn=0I then None else Some o.minSize.acn
+                        let funcBodyContent =
+                            match o.child.acnMinSizeInBits = o.child.acnMaxSizeInBits with
+                            | true  -> lm.acn.sqf_deduced_fix_elem td pp access (i level) internalItem.funcBody noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
+                            | false -> lm.acn.sqf_deduced_var_elem td pp access (i level) internalItem.funcBody noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = (lv level)@localVariables; userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us

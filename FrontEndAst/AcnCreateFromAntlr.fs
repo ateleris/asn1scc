@@ -1559,13 +1559,29 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 match acnTypeAssign with
                 | None      -> None
                 | Some x    -> Some x.typeEncodingSpec
+            let acnTypeForMerge =
+                //'size deduced' + CONTAINING: the size/termination-pattern properties of the
+                //reference describe the octet/bit string CONTAINER, not the contained type.
+                //When the contained type is 'size deduced' they must not leak into the
+                //contained type's encoding spec (they would override 'size deduced' and turn
+                //the contained sizeable type into an external-field one, see
+                //Docs/deduced-size-spec.md).  For non-deduced contained types the legacy
+                //merging behaviour is preserved.
+                let baseIsDeduced =
+                    match baseTypeAcnEncSpec with
+                    | Some baseSpec -> baseSpec.acnProperties |> List.exists(fun p -> match p with SIZE GP_Deduced -> true | _ -> false)
+                    | None          -> false
+                match rf.refEnc, acnType with
+                | Some _, Some ts when baseIsDeduced ->
+                    Some {ts with acnProperties = ts.acnProperties |> List.filter(fun p -> match p with SIZE _ | TERMINATION_PATTERN _ -> false | _ -> true)}
+                | _ -> acnType
             let mergedAcnEncSpec =
                 //if a reference type has a component constraint (i.e. it is actually a SEQUENCE, CHOICE or SEQUENCE OF) then we should not merge the ACN spec
                 //We must take the the ACN specification only from this type and not the base type. The reason is that with the WITH COMPONENTS constraints you can
                 //change the definition of the type (i.e. make child as always absent).
                 match t.Constraints@refTypeCons |> Seq.exists(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> true | Asn1Ast.WithComponentsConstraint _ -> true | _ -> false) with
-                | true  -> acnType
-                | false -> mergeAcnEncodingSpecs acnType baseTypeAcnEncSpec
+                | true  -> acnTypeForMerge
+                | false -> mergeAcnEncodingSpecs acnTypeForMerge baseTypeAcnEncSpec
             let hasAdditionalConstraints = restCons.Length > 0 || withCompCons.Length > 0
             let inheritanceInfo = (Some {InheritanceInfo.modName = rf.modName.Value; tasName = rf.tasName.Value; hasAdditionalConstraints=hasAdditionalConstraints})
 

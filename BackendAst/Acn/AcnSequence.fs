@@ -67,7 +67,24 @@ type private SequenceChildCtx = {
 
 // Build the NestingScope for one child of a SEQUENCE.  Same recipe used
 // by both the Asn1Child and the AcnChild branches.
-let private mkChildNestingScope (ctx:SequenceChildCtx) (s:SequenceChildState) : NestingScope =
+// childName identifies the child within ctx.o.children so that the
+// 'size deduced' trailing constant (total ACN bits of all components that
+// follow this child, see Docs/deduced-size-spec.md) can be accumulated on
+// top of the parent's own trailing constant.
+let private mkChildNestingScope (ctx:SequenceChildCtx) (s:SequenceChildState) (childName:string) : NestingScope =
+    let trailingAfterChild =
+        let rec sumAfter found acc (cs:Asn1AcnAst.SeqChildInfo list) =
+            match cs with
+            | [] -> acc
+            | c::rest ->
+                let name, szBits =
+                    match c with
+                    | Asn1AcnAst.Asn1Child a -> a.Name.Value, a.Type.acnMaxSizeInBits
+                    | Asn1AcnAst.AcnChild  a -> a.Name.Value, a.Type.acnMaxSizeInBits
+                match found with
+                | true  -> sumAfter true (acc + szBits) rest
+                | false -> sumAfter (name = childName) acc rest
+        sumAfter false 0I ctx.o.children
     {ctx.nestingScope with
         nestingLevel = ctx.nestingScope.nestingLevel + 1I
         nestingIx = ctx.nestingScope.nestingIx + s.childIx
@@ -76,6 +93,7 @@ let private mkChildNestingScope (ctx:SequenceChildCtx) (s:SequenceChildState) : 
         acnRelativeOffset = s.acnAccBits
         acnOffset = ctx.nestingScope.acnOffset + s.acnAccBits
         parents = (ctx.p, ctx.t) :: ctx.nestingScope.parents
+        deducedTrailingBits = ctx.nestingScope.deducedTrailingBits + trailingAfterChild
         parentSavePositionVar =
             match ctx.hasOwnPostEncoding with
             | true  -> Some ctx.bitStreamPositionsLocalVar
@@ -97,7 +115,7 @@ let private handleAsn1Child
     let deps = ctx.deps
     let us = s.us
     let soSaveBitStrmPosStatement = None
-    let childNestingScope = mkChildNestingScope ctx s
+    let childNestingScope = mkChildNestingScope ctx s child.Name.Value
 
     let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
     let childName = lm.lg.getAsn1ChildBackendName child
@@ -219,7 +237,7 @@ let private handleAcnChild
     let p = ctx.p
     let us = s.us
     let soSaveBitStrmPosStatement = None
-    let childNestingScope = mkChildNestingScope ctx s
+    let childNestingScope = mkChildNestingScope ctx s acnChild.Name.Value
 
     //handle updates
     let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}

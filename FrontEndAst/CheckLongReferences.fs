@@ -494,38 +494,7 @@ let checkAst (r:AstRoot) =
 *)
 module private DeducedSizePlacement =
 
-    let private isSelfDeduced (t:Asn1Type) =
-        match t.Kind with
-        | IA5String s
-        | NumericString s ->
-            match s.acnEncodingClass with
-            | Acn_Enc_String_Ascii_Deduced _ -> true
-            | _                              -> false
-        | OctetString o     -> o.acnEncodingClass = SZ_EC_Deduced
-        | BitString o       -> o.acnEncodingClass = SZ_EC_Deduced
-        | SequenceOf o      -> o.acnEncodingClass = SZ_EC_Deduced
-        | ReferenceType rf  ->
-            match rf.encodingOptions with
-            | Some eo -> eo.acnEncodingClass = SZ_EC_Deduced
-            | None    -> false
-        | _ -> false
-
-    //true when decoding the type consumes "the rest of the enclosing region",
-    //i.e. it is deduced itself or contains a deduced descendant that is not
-    //isolated behind a CONTAINING boundary
-    let rec private isLiveDeduced (t:Asn1Type) =
-        match isSelfDeduced t with
-        | true  -> true
-        | false ->
-            match t.Kind with
-            | Sequence sq       -> sq.children |> List.exists(fun c -> match c with Asn1Child a -> isLiveDeduced a.Type | AcnChild _ -> false)
-            | Choice ch         -> ch.children |> List.exists(fun c -> isLiveDeduced c.Type)
-            | SequenceOf sqf    -> isLiveDeduced sqf.child
-            | ReferenceType rf  ->
-                match rf.encodingOptions with
-                | Some _    -> false        //CONTAINING boundary: the container size delimits the region
-                | None      -> isLiveDeduced rf.resolvedType
-            | _ -> false
+    //isSelfDeduced / isLiveDeduced are shared with the backend, see Asn1AcnAstUtilFunctions.fs
 
     let private checkFollower (deducedName:string) (f:SeqChildInfo) : (SrcLoc*string) list =
         let problem =

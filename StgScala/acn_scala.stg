@@ -1462,3 +1462,17 @@ acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "// TODO"
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "// TODO"
 acn_deferred_det_type_name() ::= "// TODO"
 acn_deferred_det_init_expr() ::= "// TODO"
+
+
+// 'size deduced' is not supported for Scala (empty stubs for interface parity)
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= ""
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= ""
+
+oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""
+oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""
+
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= ""
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= ""
+
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= ""
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= ""

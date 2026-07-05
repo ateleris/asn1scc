@@ -102,6 +102,13 @@ stream.Current_Bit_Pos :=0;
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
 >>
 
+Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+--  Decode value ('size deduced': Ada support comes in Phase 3)
+stream.Current_Bit_Pos :=0;
+<sModName>.<sFuncName>(decodedPDU, stream, result);
+ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
+>>
+
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 --  Decode value
 --  at this point stream contains the <sEnc> data

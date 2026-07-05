@@ -2059,3 +2059,17 @@ acn_deferred_det_type_name() ::= "adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
    components auto-zero without an explicit aggregate, but the LocalVariable template
    always emits ":= <init>;", so we supply an aggregate that picks up every default). */
 acn_deferred_det_init_expr() ::= "(others =\> \<\>)"
+
+
+--  'size deduced': Ada implementation comes in Phase 3 (Docs/deduced-size-spec.md)
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+
+oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= "raise Program_Error;  --  'size deduced' is not yet implemented for Ada"

@@ -82,7 +82,9 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | _            -> []
                 Some(fncBody, [errCode],lv::lv2)
             | SZ_EC_Deduced ->
-                raise(SemanticError(t.Location, "'size deduced': backend code generation is not implemented yet"))
+                let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
+                let fncBody = lm.acn.oct_deduced td pp access noSizeMin o.maxSize.acn nestingScope.deducedTrailingBits errCode.errCodeName codec
+                Some(fncBody, [errCode], [])
 
         match funcBodyContent with
         | None -> None
