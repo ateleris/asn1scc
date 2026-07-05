@@ -1,3 +1,4 @@
+-- NOCOVERAGE (Ada): gnatcov/gcov reports the 'declare' line of blocks that create a Bitstream object as uncovered (same pre-existing artifact as 23-CONTAINING/003 and /009, which hit it through the uPER CONTAINING temp streams)
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
     MyInt12 ::= INTEGER (0..4000)

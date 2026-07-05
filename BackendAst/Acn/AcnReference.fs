@@ -103,7 +103,21 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                 match codec = Decode && nestingScope.deducedTrailingBits <> 0I && isLiveDeduced o.resolvedType with
                 | true ->
                     match baseType.getAcnFunction codec with
-                    | Some baseFnc -> baseFnc.funcBody us acnArgs nestingScope p
+                    | Some baseFnc ->
+                        let res, ns = baseFnc.funcBody us acnArgs nestingScope p
+                        //The inlined body references the base TAS's own error-code constants
+                        //(they carry the base type's names, not usage-path names).  When the
+                        //base TAS lives in the same module those constants are already declared
+                        //next to the base TAS's own function: re-declaring them here would be a
+                        //benign duplicate #define in C but an illegal duplicate declaration in
+                        //Ada.  Cross-module usages keep the re-declaration (the generated Ada
+                        //bodies only 'with' sibling modules, so the local copy is what makes
+                        //the unqualified name visible -- same as the C duplicate #define).
+                        let res =
+                            match o.modName.Value = t.id.ModName with
+                            | true  -> res |> Option.map (fun rr -> {rr with errCodes = []})
+                            | false -> res
+                        res, ns
                     | None         -> None, us
                 | false ->
                 let pp, resultExpr =
