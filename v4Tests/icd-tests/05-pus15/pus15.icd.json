@@ -18,6 +18,7 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -50,6 +51,22 @@
       "maxLengthInBytes": 19,
       "comments": [
         "Active alternative is determined by ACN using the fields: 'type2','type1'"
+      ],
+      "acnParameters": [
+        {
+          "name": "type1",
+          "type": {
+            "kind": "reference",
+            "id": "COLOR-TYPE@TEST-CASE.COLOR-TYPE"
+          }
+        },
+        {
+          "name": "type2",
+          "type": {
+            "kind": "reference",
+            "id": "COLOR-TYPE@TEST-CASE.COLOR-TYPE"
+          }
+        }
       ],
       "rows": [
         {
@@ -131,6 +148,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,

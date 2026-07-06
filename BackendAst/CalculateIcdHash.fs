@@ -49,6 +49,17 @@ let writeIcdRowType (writer: BinaryWriter) (icdRowType: IcdRowType) =
         | ThreeDOTs -> 4uy
     writer.Write(tag)
 
+let writeIcdAcnParameter (w: BinaryWriter) (p: IcdAcnParameter) =
+    writeString w p.name
+    match p.prmType with
+    | IcdPrmBasic label ->
+        w.Write(0uy) // Tag for IcdPrmBasic
+        writeString w label
+    | IcdPrmRefTas (modName, tasName) ->
+        w.Write(1uy) // Tag for IcdPrmRefTas
+        writeString w modName
+        writeString w tasName
+
 let writeIcdRow (w: BinaryWriter) (icdRow: IcdRow) =
     writeOption w (writeInt w) icdRow.idxOffset
     writeString w icdRow.fieldName
@@ -71,6 +82,11 @@ let calcIcdTypeAssHash (t1: IcdTypeAss) =
     writeString w t1.name
     writeString w t1.kind
     writeList w (writeString w) t1.comments
+    // ACN parameters are rendered table content (the "ACN Parameters" rows
+    // above the field rows), so they take part in the table identity: a
+    // parameterized table must not dedup-merge with an otherwise identical
+    // table of a non-parameterized type.
+    writeList w (writeIcdAcnParameter w) t1.acnParameters
     writeBigInteger w t1.minLengthInBytes
     writeBigInteger w t1.maxLengthInBytes
     writeList w (writeIcdRow w) t1.rows

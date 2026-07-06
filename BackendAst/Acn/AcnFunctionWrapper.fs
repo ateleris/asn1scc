@@ -187,7 +187,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 // "OCTET STRING (Checksum)" (roadmap A4).
                 let icdAux = AcnHelpers.icdAuxAddNamedTypeSuffix (t.inheritInfo |> Option.map (fun ii -> ii.tasName)) icdAux
                 let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
-                let icdTas = AcnIcd.createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
+                let icdTas = AcnIcd.createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition t.acnParameters
                 let ns3 =
                     match ns2.icdHashes.TryFind icdTas.hash with
                     | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}

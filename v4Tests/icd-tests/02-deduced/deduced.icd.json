@@ -18,6 +18,7 @@
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -51,6 +52,7 @@
       "comments": [
         "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
       ],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -112,6 +114,7 @@
       "minLengthInBytes": 5,
       "maxLengthInBytes": 205,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,

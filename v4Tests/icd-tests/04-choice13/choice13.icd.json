@@ -33,6 +33,7 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -64,6 +65,7 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -95,6 +97,7 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -126,6 +129,7 @@
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -157,6 +161,7 @@
       "minLengthInBytes": 0,
       "maxLengthInBytes": 0,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -190,6 +195,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -237,6 +243,7 @@
       "comments": [
         "Length is determined by the external field: n"
       ],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -298,6 +305,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -345,6 +353,7 @@
       "comments": [
         "Length is determined by the external field: n"
       ],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -408,6 +417,22 @@
       "comments": [
         "Active alternative is determined by ACN using the fields: 'service','message'"
       ],
+      "acnParameters": [
+        {
+          "name": "service",
+          "type": {
+            "kind": "reference",
+            "id": "ServiceType-ID@TEST-CASE.ServiceType-ID"
+          }
+        },
+        {
+          "name": "message",
+          "type": {
+            "kind": "reference",
+            "id": "MessageSubtype-ID@TEST-CASE.MessageSubtype-ID"
+          }
+        }
+      ],
       "rows": [
         {
           "idxOffset": 1,
@@ -468,6 +493,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -513,6 +539,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -561,6 +588,7 @@
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -609,6 +637,7 @@
       "minLengthInBytes": 5,
       "maxLengthInBytes": 26,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -667,6 +696,7 @@
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -748,6 +778,22 @@
       "comments": [
         "Active alternative is determined by ACN using the fields: 'service','message'"
       ],
+      "acnParameters": [
+        {
+          "name": "service",
+          "type": {
+            "kind": "reference",
+            "id": "ServiceType-ID@TEST-CASE.ServiceType-ID"
+          }
+        },
+        {
+          "name": "message",
+          "type": {
+            "kind": "reference",
+            "id": "MessageSubtype-ID@TEST-CASE.MessageSubtype-ID"
+          }
+        }
+      ],
       "rows": [
         {
           "idxOffset": 1,
@@ -808,6 +854,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -853,6 +900,7 @@
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,

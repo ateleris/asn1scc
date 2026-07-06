@@ -626,6 +626,37 @@ let emitTypeCol stgFileName (r:AstRoot) (sType : IcdTypeCol) =
         let label = (selectTypeWithSameHash (r.icdHashes[hash])).name
         icd_acn.EmitSeqChild_RefType stgFileName label hash
 
+// Hash of the table emitted for the type assignment (modName, tasName) — the
+// link target for an ACN parameter whose type is a TAS. None when that TAS has
+// no table in the selected set (e.g. filtered out by -icdPdus); the caller then
+// falls back to plain text instead of emitting a dead link.
+let tryFindTasTableHash (r:AstRoot) (selectedHashes:Set<string>) (modName:string) (tasName:string) : string option =
+    r.icdHashes |>
+    Map.toSeq |>
+    Seq.collect snd |>
+    Seq.choose(fun z ->
+        match z.tasInfo with
+        | Some ti when ti.modName = modName && ti.tasName = tasName -> Some z.hash
+        | Some _ -> None
+        | None -> None) |>
+    Seq.filter selectedHashes.Contains |>
+    Seq.sort |>
+    Seq.tryHead
+
+// One PrintParam row per ACN parameter of a parameterized type — restores the
+// old pipeline's "ACN Parameters" section above the field rows (roadmap B2).
+let emitTasParams stgFileName (r:AstRoot) (selectedHashes:Set<string>) (icdTas:IcdTypeAss) (colSpan:BigInteger) =
+    icdTas.acnParameters |>
+    List.mapi(fun i p ->
+        let sType =
+            match p.prmType with
+            | IcdPrmBasic label -> label
+            | IcdPrmRefTas (modName, tasName) ->
+                match tryFindTasTableHash r selectedHashes modName tasName with
+                | Some hash -> icd_acn.EmitSeqChild_RefType stgFileName tasName hash
+                | None      -> tasName
+        icd_acn.PrintParam stgFileName (i+1).AsBigInt p.name sType colSpan)
+
 
 let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     let i = match rw.idxOffset with Some z -> z | None -> 1
@@ -637,13 +668,13 @@ let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName ()
     | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits
 
-let emitTas2 stgFileName (r:AstRoot) myParams (icdTas:IcdTypeAss)  =
+let emitTas2 stgFileName (r:AstRoot) (selectedHashes:Set<string>) (icdTas:IcdTypeAss)  =
     let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows =
         icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName r (i+1) rw)
     let bHasAcnDef = icdTas.hasAcnDefinition
     let sMaxBitsExplained = ""
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|])
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (emitTasParams stgFileName r selectedHashes icdTas 4I) (sCommentLine.Split [|'\n'|])
 
 (*
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
@@ -728,6 +759,7 @@ let selectIcdHashesToPrint (r:DAst.AstRoot) : string list =
 
 let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
     let icdHashesToPrint = selectIcdHashesToPrint r
+    let selectedHashes = icdHashesToPrint |> Set.ofList
     let files, navLinks =
         icdHashesToPrint
         |> Seq.choose(fun hash ->
@@ -735,7 +767,7 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(Icd
             | Some chIcdTas ->
                 //let PrintNavLink stgFileName sTitle sTarget   =
                 let tas = selectTypeWithSameHash chIcdTas
-                let tasContent = emitTas2 stgFileName r (fun _ -> []) tas
+                let tasContent = emitTas2 stgFileName r selectedHashes tas
                 //let tasLink = icd_acn.EmitNavLink stgFileName tas.name tas.hash
                 Some (tasContent, tas)
             | None -> None) |> Seq.toList |> List.unzip
@@ -854,7 +886,23 @@ let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (rw:IcdRow) 
         ("rowType", JString (icdRowTypeName rw.rowType))
     ]
 
-let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (stableId:string) (tas:IcdTypeAss) =
+// ACN parameter of a parameterized type. Mirrors the HTML rendering: the
+// parameter's type is a reference to the TAS's table when that table is part
+// of the emitted set, otherwise the plain TAS name.
+let private jsonOfIcdAcnParameter (r:AstRoot) (stableIds:Map<string,string>) (selectedHashes:Set<string>) (p:IcdAcnParameter) =
+    let typeJson =
+        match p.prmType with
+        | IcdPrmBasic label -> JObject [ ("kind", JString "plain"); ("value", JString label) ]
+        | IcdPrmRefTas (modName, tasName) ->
+            let referencedId =
+                tryFindTasTableHash r selectedHashes modName tasName
+                |> Option.bind stableIds.TryFind
+            match referencedId with
+            | Some sid -> JObject [ ("kind", JString "reference"); ("id", JString sid) ]
+            | None     -> JObject [ ("kind", JString "plain"); ("value", JString tasName) ]
+    JObject [ ("name", JString p.name); ("type", typeJson) ]
+
+let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (selectedHashes:Set<string>) (stableId:string) (tas:IcdTypeAss) =
     JObject [
         ("id", JString stableId)
         ("name", JString tas.name)
@@ -868,11 +916,13 @@ let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (stableId:st
         ("minLengthInBytes", JNumber tas.minLengthInBytes)
         ("maxLengthInBytes", JNumber tas.maxLengthInBytes)
         ("comments", JArray (tas.comments |> List.map JString))
+        ("acnParameters", JArray (tas.acnParameters |> List.map (jsonOfIcdAcnParameter r stableIds selectedHashes)))
         ("rows", JArray (tas.rows |> List.map (jsonOfIcdRow r stableIds)))
     ]
 
 let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =
     let icdHashesToPrint = selectIcdHashesToPrint r
+    let selectedHashes = icdHashesToPrint |> Set.ofList
     let stableIds = buildStableIdMap r icdHashesToPrint
     let tables =
         icdHashesToPrint |>
@@ -880,7 +930,7 @@ let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =
             match r.icdHashes.TryFind hash with
             | Some lst ->
                 let tas = selectTypeWithSameHash lst
-                Some (jsonOfIcdTas r stableIds stableIds.[hash] tas)
+                Some (jsonOfIcdTas r stableIds selectedHashes stableIds.[hash] tas)
             | None -> None)
     let navOrder = icdHashesToPrint |> List.choose stableIds.TryFind |> List.map JString
     let root = JObject [ ("navOrder", JArray navOrder); ("tables", JArray tables) ]

@@ -22,6 +22,7 @@
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -53,6 +54,7 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": null,
@@ -84,6 +86,7 @@
       "minLengthInBytes": 8,
       "maxLengthInBytes": 208,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -127,6 +130,7 @@
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
       "comments": [],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -192,6 +196,7 @@
         "OCTET STRING containing the encoding of PayloadData",
         "Size in bytes is given by the external field hdr.pdu-length"
       ],
+      "acnParameters": [],
       "rows": [
         {
           "idxOffset": 1,
@@ -259,6 +264,7 @@
       "comments": [
         "empty SEQUENCE (no fields): occupies no bits on the wire"
       ],
+      "acnParameters": [],
       "rows": []
     },
     {
@@ -274,6 +280,15 @@
       "minLengthInBytes": 4,
       "maxLengthInBytes": 204,
       "comments": [],
+      "acnParameters": [
+        {
+          "name": "buffer-len",
+          "type": {
+            "kind": "reference",
+            "id": "BUFFER-LENGTH-TYPE@MyModule.BUFFER-LENGTH-TYPE"
+          }
+        }
+      ],
       "rows": [
         {
           "idxOffset": 1,
