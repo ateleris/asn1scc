@@ -1,0 +1,303 @@
+{
+  "navOrder": [
+    "PDU-LENGTH-TYPE@MyModule.PDU-LENGTH-TYPE",
+    "BUFFER-LENGTH-TYPE@MyModule.BUFFER-LENGTH-TYPE",
+    "PDU@MyModule.PDU",
+    "Header@MyModule.PDU.hdr",
+    "MyModule-PDU-payload_OCT_STR@MyModule.PDU.payload",
+    "PayloadData@MyModule.PayloadData"
+  ],
+  "tables": [
+    {
+      "id": "PDU-LENGTH-TYPE@MyModule.PDU-LENGTH-TYPE",
+      "name": "PDU-LENGTH-TYPE",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "MyModule",
+        "tasName": "PDU-LENGTH-TYPE"
+      },
+      "usagePath": "MyModule.PDU-LENGTH-TYPE",
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 65535)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "BUFFER-LENGTH-TYPE@MyModule.BUFFER-LENGTH-TYPE",
+      "name": "BUFFER-LENGTH-TYPE",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "MyModule",
+        "tasName": "BUFFER-LENGTH-TYPE"
+      },
+      "usagePath": "MyModule.BUFFER-LENGTH-TYPE",
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 1,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "PDU@MyModule.PDU",
+      "name": "PDU",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "MyModule",
+        "tasName": "PDU"
+      },
+      "usagePath": "MyModule.PDU",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 8,
+      "maxLengthInBytes": 208,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "hdr",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "Header@MyModule.PDU.hdr"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "payload",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "MyModule-PDU-payload_OCT_STR@MyModule.PDU.payload"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 32,
+          "maxLengthInBits": 1632,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        }
+      ]
+    },
+    {
+      "id": "Header@MyModule.PDU.hdr",
+      "name": "Header",
+      "kind": "SEQUENCE",
+      "tasInfo": null,
+      "usagePath": "MyModule.PDU.hdr",
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 4,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "version",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "fixed pattern:  '01'H"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "pdu-length",
+          "comments": [
+            "size determinant for MyModule.PDU.payload "
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "buffers-length",
+          "comments": [
+            "reference determinant for MyModule.PDU.payload.buffer-len "
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "MyModule-PDU-payload_OCT_STR@MyModule.PDU.payload",
+      "name": "MyModule-PDU-payload_OCT_STR",
+      "kind": "SEQUENCE",
+      "tasInfo": null,
+      "usagePath": "MyModule.PDU.payload",
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 204,
+      "comments": [
+        "OCTET STING CONTAINING BY"
+      ],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "int-field",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(-2147483648 .. 2147483647)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "buffer1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 800,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "buffer2",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 800,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "PayloadData@MyModule.PayloadData",
+      "name": "PayloadData",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "MyModule",
+        "tasName": "PayloadData"
+      },
+      "usagePath": "MyModule.PayloadData",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 204,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "int-field",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(-2147483648 .. 2147483647)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "buffer1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 800,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "buffer2",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 800,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    }
+  ]
+}

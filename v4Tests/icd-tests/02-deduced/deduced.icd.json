@@ -1,0 +1,164 @@
+{
+  "navOrder": [
+    "MyInt@DEDUCED-TEST.MyInt",
+    "TLVList@DEDUCED-TEST.TLVList",
+    "MyPDU@DEDUCED-TEST.MyPDU"
+  ],
+  "tables": [
+    {
+      "id": "MyInt@DEDUCED-TEST.MyInt",
+      "name": "MyInt",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "DEDUCED-TEST",
+        "tasName": "MyInt"
+      },
+      "usagePath": "DEDUCED-TEST.MyInt",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 16383)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "TLVList@DEDUCED-TEST.TLVList",
+      "name": "TLVList",
+      "kind": "SEQUENCE OF",
+      "tasInfo": {
+        "modName": "DEDUCED-TEST",
+        "tasName": "TLVList"
+      },
+      "usagePath": "DEDUCED-TEST.TLVList",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 0,
+      "maxLengthInBytes": 200,
+      "comments": [
+        "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
+      ],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "Item #1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 16383)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs"
+        },
+        {
+          "idxOffset": 100,
+          "fieldName": "Item #100",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 16383)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "MyPDU@DEDUCED-TEST.MyPDU",
+      "name": "MyPDU",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "DEDUCED-TEST",
+        "tasName": "MyPDU"
+      },
+      "usagePath": "DEDUCED-TEST.MyPDU",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 5,
+      "maxLengthInBytes": 205,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "hdr",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 255)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "items",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "TLVList@DEDUCED-TEST.TLVList"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 1600,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "crc",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 4294967295)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    }
+  ]
+}

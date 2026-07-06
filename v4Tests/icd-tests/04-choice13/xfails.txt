@@ -1,0 +1,7 @@
+# Expected failures due to documented bugs (q/details-docs/icd-analysis.md par.2).
+# Format: <check-name> <roadmap-id> [reason]
+# Remove a line once the corresponding fix lands, and update the golden.
+nav-labels R7 in-context tables reuse the bare TAS name (MyHeader/MyPayload x2, Payload-20-1/-20-3 x3; roadmap B4)
+choice-alts R1 pattern-less NULL alternative 'alt-17-1' dropped from both MyPayload tables (roadmap A1)
+tas-coverage R1 NULL TAS Payload-17-1 (0-bit) has no ICD table at all (roadmap A1)
+html-anchors R6 colorizer emits no ASN1_<hash> anchor when a TAS name maps to multiple hashes (12 dead links; roadmap B5)
