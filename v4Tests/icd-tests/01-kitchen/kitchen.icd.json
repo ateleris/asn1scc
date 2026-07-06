@@ -264,19 +264,38 @@
       ],
       "rows": [
         {
-          "idxOffset": null,
+          "idxOffset": 1,
           "fieldName": "",
-          "comments": [],
+          "comments": [
+            "Each character is encoded as 8-bit ASCII."
+          ],
           "sPresent": "",
           "sType": {
             "kind": "plain",
             "value": "IA5String"
           },
           "sConstraint": "(1 .. 16)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 136,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 128,
           "sUnits": null,
           "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "Terminator",
+          "comments": [
+            "Null terminator '00'H marking the end of the string"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "bit pattern"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
         }
       ]
     },
@@ -297,9 +316,11 @@
       ],
       "rows": [
         {
-          "idxOffset": null,
+          "idxOffset": 1,
           "fieldName": "",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 4 bytes (no length determinant is needed)."
+          ],
           "sPresent": "",
           "sType": {
             "kind": "plain",
@@ -328,9 +349,11 @@
       "comments": [],
       "rows": [
         {
-          "idxOffset": null,
+          "idxOffset": 1,
           "fieldName": "",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 12 bits (no length determinant is needed)."
+          ],
           "sPresent": "",
           "sType": {
             "kind": "plain",
@@ -359,7 +382,24 @@
       "comments": [],
       "rows": [
         {
-          "idxOffset": null,
+          "idxOffset": 1,
+          "fieldName": "Length",
+          "comments": [
+            "The number of bytes"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 64)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 2,
           "fieldName": "",
           "comments": [],
           "sPresent": "",
@@ -368,8 +408,8 @@
             "value": "OCTET STRING"
           },
           "sConstraint": "(0 .. 64)",
-          "minLengthInBits": 7,
-          "maxLengthInBits": 519,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 512,
           "sUnits": null,
           "rowType": "FieldRow"
         }
@@ -555,6 +595,23 @@
         },
         {
           "idxOffset": 2,
+          "fieldName": "Length",
+          "comments": [
+            "The number of bytes"
+          ],
+          "sPresent": "payloadType=1",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 64)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 3,
           "fieldName": "data",
           "comments": [],
           "sPresent": "payloadType=1",
@@ -563,13 +620,13 @@
             "value": "OCTET STRING (VarData)"
           },
           "sConstraint": "(0 .. 64)",
-          "minLengthInBits": 7,
-          "maxLengthInBits": 519,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 512,
           "sUnits": null,
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 3,
+          "idxOffset": 4,
           "fieldName": "pos",
           "comments": [],
           "sPresent": "payloadType=2",
@@ -790,20 +847,39 @@
         {
           "idxOffset": 9,
           "fieldName": "name",
-          "comments": [],
+          "comments": [
+            "Each character is encoded as 8-bit ASCII."
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
             "value": "IA5String (DeviceName)"
           },
           "sConstraint": "(1 .. 16)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 136,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 128,
           "sUnits": null,
           "rowType": "FieldRow"
         },
         {
           "idxOffset": 10,
+          "fieldName": "Terminator",
+          "comments": [
+            "Null terminator '00'H marking the end of the string"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "bit pattern"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 11,
           "fieldName": "safe",
           "comments": [],
           "sPresent": "always",
@@ -818,9 +894,11 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 11,
+          "idxOffset": 12,
           "fieldName": "mask",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 12 bits (no length determinant is needed)."
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -833,7 +911,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 12,
+          "idxOffset": 13,
           "fieldName": "smpl",
           "comments": [],
           "sPresent": "always",
@@ -848,7 +926,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 13,
+          "idxOffset": 14,
           "fieldName": "opt-pos",
           "comments": [],
           "sPresent": "when pos-present is true",
@@ -863,7 +941,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 14,
+          "idxOffset": 15,
           "fieldName": "uper-opt",
           "comments": [],
           "sPresent": "when bit 1 of the Presence Mask is set",
@@ -878,7 +956,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 15,
+          "idxOffset": 16,
           "fieldName": "pld",
           "comments": [],
           "sPresent": "always",
@@ -893,9 +971,11 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 16,
+          "idxOffset": 17,
           "fieldName": "crc",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 4 bytes (no length determinant is needed)."
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -1001,6 +1081,23 @@
         },
         {
           "idxOffset": 2,
+          "fieldName": "Length",
+          "comments": [
+            "The number of bytes"
+          ],
+          "sPresent": "payloadType=1",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 64)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 3,
           "fieldName": "data",
           "comments": [],
           "sPresent": "payloadType=1",
@@ -1009,13 +1106,13 @@
             "value": "OCTET STRING (VarData)"
           },
           "sConstraint": "(0 .. 64)",
-          "minLengthInBits": 7,
-          "maxLengthInBits": 519,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 512,
           "sUnits": null,
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 3,
+          "idxOffset": 4,
           "fieldName": "pos",
           "comments": [],
           "sPresent": "payloadType=2",

@@ -175,6 +175,13 @@ def check_nav_labels(icd):
 
 PRESENCE_MASK_FIELD = "Presence Mask"
 
+# Rows synthesized by the ACN encoders in addition to the ASN.1 fields
+# (choice determinant, embedded length determinants and termination patterns
+# of sizeable alternatives, uPER presence mask).  Their capitalized names can
+# never collide with ASN.1 alternative names, which start with a lowercase
+# letter.
+SYNTHETIC_ROW_FIELDS = {"ChoiceIndex", "Length", "Terminator", PRESENCE_MASK_FIELD}
+
 
 def check_presence_mask(icd, ast_root):
     errors = []
@@ -205,7 +212,9 @@ def check_choice_alts(icd, ast_root):
                           f"'{table['usagePath']}' to a CHOICE in the AST xml")
             continue
         expected = set(choice_alternatives(choice_nodes[0]))
-        actual = {r["fieldName"] for r in table["rows"] if r["rowType"] != "ThreeDOTs"}
+        actual = {r["fieldName"] for r in table["rows"]
+                  if r["rowType"] != "ThreeDOTs"
+                  and r["fieldName"] not in SYNTHETIC_ROW_FIELDS}
         missing = expected - actual
         unexpected = actual - expected
         if missing:

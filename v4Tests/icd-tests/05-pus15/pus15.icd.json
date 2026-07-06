@@ -84,16 +84,35 @@
         },
         {
           "idxOffset": 3,
+          "fieldName": "Length",
+          "comments": [
+            "The number of characters"
+          ],
+          "sPresent": "type1=50 AND type2=20",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(1 .. 20)",
+          "minLengthInBits": 5,
+          "maxLengthInBits": 5,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow"
+        },
+        {
+          "idxOffset": 4,
           "fieldName": "blue",
-          "comments": [],
+          "comments": [
+            "Each character occupies 7 bits."
+          ],
           "sPresent": "type1=50 AND type2=20",
           "sType": {
             "kind": "plain",
             "value": "IA5String"
           },
           "sConstraint": "(1 .. 20)",
-          "minLengthInBits": 12,
-          "maxLengthInBits": 145,
+          "minLengthInBits": 7,
+          "maxLengthInBits": 140,
           "sUnits": null,
           "rowType": "FieldRow"
         }

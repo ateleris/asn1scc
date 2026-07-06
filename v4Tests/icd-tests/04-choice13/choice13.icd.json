@@ -565,7 +565,9 @@
         {
           "idxOffset": 1,
           "fieldName": "flags",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 4 bits (no length determinant is needed)."
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -669,7 +671,9 @@
         {
           "idxOffset": 1,
           "fieldName": "flags",
-          "comments": [],
+          "comments": [
+            "Length is fixed to 4 bits (no length determinant is needed)."
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",

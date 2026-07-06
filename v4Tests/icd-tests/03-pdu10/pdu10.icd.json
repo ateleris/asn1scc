@@ -211,7 +211,9 @@
         {
           "idxOffset": 2,
           "fieldName": "buffer1",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: buffer-len"
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -226,7 +228,9 @@
         {
           "idxOffset": 3,
           "fieldName": "buffer2",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: buffer-len"
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -289,7 +293,9 @@
         {
           "idxOffset": 2,
           "fieldName": "buffer1",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: buffer-len"
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
@@ -304,7 +310,9 @@
         {
           "idxOffset": 3,
           "fieldName": "buffer2",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: buffer-len"
+          ],
           "sPresent": "always",
           "sType": {
             "kind": "plain",
