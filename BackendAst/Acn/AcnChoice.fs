@@ -105,7 +105,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         | true -> childIcdTas.createRowsFunc c.Name.Value optionality childComments
                         | false ->
                             let sType = TypeHash childIcdTas.hash
-                            let icdRow = [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.chType.acnMinSizeInBits; maxLengthInBits=c.chType.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                            let icdRow = [{IcdRow.fieldName = c.Name.Value; comments = childComments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.chType.acnMinSizeInBits; maxLengthInBits=c.chType.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
                             let compChild = [childIcdTas]
                             icdRow, compChild
                     |None -> [],[]) |> List.unzip

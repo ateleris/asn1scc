@@ -727,10 +727,6 @@ let selectIcdHashesToPrint (r:DAst.AstRoot) : string list =
 
 let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
     let icdHashesToPrint = selectIcdHashesToPrint r
-    //print in a file the icds that are going to be printed
-    let content = icdHashesToPrint |> Seq.StrJoin "\n"
-    let fileName = sprintf "%s_icdHashesToPrint.txt" stgFileName
-    File.WriteAllText(fileName, content)
     let files, navLinks =
         icdHashesToPrint
         |> Seq.choose(fun hash ->

@@ -345,16 +345,28 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
 
     let acnChildren = children |>  List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None)
     let asn1Children = children |>  List.choose(fun x -> match x with Asn1Child z -> Some z | AcnChild _ -> None)
-    let sPresenceBitIndexMap  =
+    // Children covered by the uPER presence bit mask: only optionals whose
+    // presence is NOT governed by an ACN present-when clause (same predicate
+    // as nbPresenceBits in funcBody below). Bit numbers are 1-based, in wire order.
+    let uperMaskChildren =
         asn1Children |>
-        List.filter(fun c -> match c.Optionality with Some(Optional _) -> true | _ -> false) |>
-        List.mapi (fun i c -> (c.Name.Value, i)) |>
+        List.filter(fun c ->
+            match c.Optionality with
+            | Some(Optional opt) ->
+                match opt.acnPresentWhen with
+                | None   -> true
+                | Some _ -> false
+            | _ -> false)
+    let sPresenceBitIndexMap  =
+        uperMaskChildren |>
+        List.mapi (fun i c -> (c.Name.Value, i + 1)) |>
         Map.ofList
     let uperPresenceMask =
-        match sPresenceBitIndexMap.IsEmpty with
-        | true -> []
-        | false ->
-            [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengthInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+        match uperMaskChildren with
+        | [] -> []
+        | _  ->
+            let sBitToFieldMap = uperMaskChildren |> List.mapi (fun i c -> $"bit %d{i + 1} -> %s{c.Name.Value}") |> Seq.StrJoin ", "
+            [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask (a set bit means the corresponding field is present): %s{sBitToFieldMap}"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = uperMaskChildren.Length.AsBigInt ;maxLengthInBits=uperMaskChildren.Length.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
 
     let icd_asn1_child (c:Asn1Child) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list)) =
         let optionality =
@@ -364,12 +376,13 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             | Some(AlwaysPresent) -> "always"
             | Some(Optional  opt) ->
                 match opt.acnPresentWhen with
-                | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
+                | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} of the Presence Mask is set"
                 | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
                 | Some(PresenceWhenBoolExpression acnExp)   ->
-                    let dummyScope = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-                    let retExp = AcnExpression.acnExpressionToBackendExpression lm o dummyScope acnExp
-                    $"when %s{retExp}"
+                    // Render the condition in ACN syntax (as the user wrote it),
+                    // not in target-language syntax.
+                    let _, sAcnExp = AcnGenericCreateFromAntlr.printDebug acnExp
+                    $"when %s{sAcnExp}"
         let comments = (c.Comments |> Seq.toList)@extra_comments
         let childIcdTas = c.Type.icdTas
         //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false

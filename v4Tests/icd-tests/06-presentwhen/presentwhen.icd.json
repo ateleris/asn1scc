@@ -1,0 +1,58 @@
+{
+  "navOrder": [
+    "MyPDU@TEST-CASE.MyPDU"
+  ],
+  "tables": [
+    {
+      "id": "MyPDU@TEST-CASE.MyPDU",
+      "name": "MyPDU",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "TEST-CASE",
+        "tasName": "MyPDU"
+      },
+      "usagePath": "TEST-CASE.MyPDU",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 2,
+      "comments": [
+        "/*\r\nTest case demonstrating the present when expression functionality (see also the 001.acn file)\r\nBusiness requirement: field enm is present when int1 is less than 10 and even number or when it is within range 10..14.\r\n\r\nThe above requirement must be expressed as ASN.1 constraint. Usually, this is done with the usage of WITH COMPONENTS constraints.\r\n\r\n\r\n*/",
+        "/*\r\nthe present-when attribyte can be followed by a boolean expression which can contain one or more non optional ASN.1 fields (not ACN inserted fields).\r\nThe ACN expression can use int and real constants, non optional ASN.1 fields as well as the following operattos\r\n + - * / % <= < >= > and or\r\n \r\n*/"
+      ],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "int1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(1 .. 20)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "enm",
+          "comments": [
+            "Possible values:<br/>\n<ul class=\"enumeration\">\n<li><font class=\"enumeration_name\">one</font> (1)</li>\n<li><font class=\"enumeration_name\">two</font> (2)</li>\n<li><font class=\"enumeration_name\">three</font> (3)</li>\n<li><font class=\"enumeration_name\">four</font> (4)</li>\n<li><font class=\"enumeration_name\">thousand</font> (1000)</li>\n</ul>"
+          ],
+          "sPresent": "when (int1 < 10 and int1 % 2 == 0) or (int1 >= 10 and int1 <= 14)",
+          "sType": {
+            "kind": "plain",
+            "value": "ENUMERATED"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 3,
+          "maxLengthInBits": 3,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    }
+  ]
+}

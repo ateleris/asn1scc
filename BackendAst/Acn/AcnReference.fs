@@ -46,19 +46,30 @@ let buildReferenceIcdArgAux
                     icdFnc, baseTypeIcdTas.comments, name
                 | None -> emptyIcdFnc, [], name
             | Some encOptions ->
+                let sContainerKind, sSizeUnit =
+                    match encOptions.octOrBitStr with
+                    | ContainedInOctString -> "OCTET STRING", "bytes"
+                    | ContainedInBitString -> "BIT STRING", "bits"
                 let lengthDetRow =
                     match encOptions.acnEncodingClass with
                     | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
-                        let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
-                        [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                        [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sSizeUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
                     | _ -> []
+                let containingComments =
+                    let sCaption = $"%s{sContainerKind} containing the encoding of %s{o.tasName.Value}"
+                    match encOptions.acnEncodingClass with
+                    | SZ_EC_ExternalField relPath  -> [sCaption; $"Size in %s{sSizeUnit} is given by the external field %s{relPath.AsString}"]
+                    | SZ_EC_LENGTH_EMBEDDED _      -> [sCaption]    // the size source is documented by the Length row
+                    | SZ_EC_FIXED_SIZE             -> [sCaption]
+                    | SZ_EC_TerminationPattern _   -> [sCaption]
+                    | SZ_EC_Deduced                -> [sCaption]
                 match baseType.icdTas with
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =
                         let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
                         let rows = rows0 |> List.map getNewSType
                         lengthDetRow@rows |> List.mapi(fun i rw -> {rw with idxOffset = Some (i+1)}), compChildren
-                    icdFnc, ("OCTET STING CONTAINING BY"::baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR")
+                    icdFnc, (containingComments@baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR")
                 | None -> emptyIcdFnc, [], None
         | false -> emptyIcdFnc, [], None
     match baseType.icdTas with

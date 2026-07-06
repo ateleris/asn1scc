@@ -330,7 +330,7 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp):
 
     # Output paths are relative and the compiler runs with cwd=temp_dir: the
     # -x export prepends 'backend_' to the given path (breaks with absolute
-    # paths) and the icd renderer drops a *_icdHashesToPrint.txt into the CWD.
+    # paths).
     cmd = [str(compiler), "-c", "-ACN",
            "-icdAcn", html_path.name,
            "-icdRaw", json_path.name,

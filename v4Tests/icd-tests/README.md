@@ -18,13 +18,17 @@ icd-tests/
   03-pdu10/
   04-choice13/
   05-pus15/
+  06-presentwhen/
 ```
 
 The initial five cases are the sample grammars used by the ICD analysis
 (roadmap document): a kitchen-sink grammar covering ~15 ACN features, a
 `size deduced` PDU, the `acnv2/10` CONTAINING PDU with an empty header
 SEQUENCE, the issue-#379 nested CHOICE with present-when determinants, and a
-PUS parameter-passing CHOICE with parameterized types.
+PUS parameter-passing CHOICE with parameterized types. `06-presentwhen`
+(from `test-cases/acn/21-PresentWhenExpression/001`) covers an optional
+field governed by a `present-when` boolean *expression*, whose condition
+must render in ACN syntax in the Present column.
 
 ## Running
 
@@ -66,10 +70,6 @@ they hold for any grammar, so new test cases get them for free.
 Some invariants fail today because of documented generator bugs (see the
 ICD analysis roadmap, correctness findings R1-R8):
 
-- **R1** — zero-bit encodings (pattern-less NULL, empty SEQUENCE) vanish
-  from the ICD (missing CHOICE rows, missing TAS tables)
-- **R2** — the uPER presence-mask width also counts optionals that have an
-  ACN `present-when`
 - **R6** — the ASN.1 colorizer emits no anchor for a type name that maps to
   more than one table, leaving dead links
 - **R7** — in-context tables reuse the bare TAS name, producing duplicate

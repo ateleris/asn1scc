@@ -189,7 +189,8 @@
       "minLengthInBytes": 4,
       "maxLengthInBytes": 204,
       "comments": [
-        "OCTET STING CONTAINING BY"
+        "OCTET STRING containing the encoding of PayloadData",
+        "Size in bytes is given by the external field hdr.pdu-length"
       ],
       "rows": [
         {
