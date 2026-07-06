@@ -4,6 +4,7 @@
     "ServiceType-ID@TEST-CASE.ServiceType-ID",
     "MessageSubtype-ID@TEST-CASE.MessageSubtype-ID",
     "Parameter-ID@TEST-CASE.Parameter-ID",
+    "Payload-17-1@TEST-CASE.Payload-17-1",
     "Payload-20-1@TEST-CASE.Payload-20-1",
     "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds",
     "Payload-20-3@TEST-CASE.Payload-20-3",
@@ -138,6 +139,39 @@
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        }
+      ]
+    },
+    {
+      "id": "Payload-17-1@TEST-CASE.Payload-17-1",
+      "name": "Payload-17-1",
+      "kind": "NULL",
+      "tasInfo": {
+        "modName": "TEST-CASE",
+        "tasName": "Payload-17-1"
+      },
+      "usagePath": "TEST-CASE.Payload-17-1",
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 0,
+      "maxLengthInBytes": 0,
+      "comments": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "NULL"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
           "sUnits": null,
           "rowType": "FieldRow"
         }
@@ -377,6 +411,23 @@
       "rows": [
         {
           "idxOffset": 1,
+          "fieldName": "alt-17-1",
+          "comments": [
+            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
+          ],
+          "sPresent": "service=17 AND message=1",
+          "sType": {
+            "kind": "plain",
+            "value": "NULL"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
           "fieldName": "alt-20-1",
           "comments": [],
           "sPresent": "service=20 AND message=1",
@@ -391,7 +442,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 2,
+          "idxOffset": 3,
           "fieldName": "alt-20-3",
           "comments": [],
           "sPresent": "service=20 AND message=3",
@@ -696,6 +747,23 @@
       "rows": [
         {
           "idxOffset": 1,
+          "fieldName": "alt-17-1",
+          "comments": [
+            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
+          ],
+          "sPresent": "service=17 AND message=1",
+          "sType": {
+            "kind": "plain",
+            "value": "NULL"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
           "fieldName": "alt-20-1",
           "comments": [],
           "sPresent": "service=20 AND message=1",
@@ -710,7 +778,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 2,
+          "idxOffset": 3,
           "fieldName": "alt-20-3",
           "comments": [],
           "sPresent": "service=20 AND message=3",

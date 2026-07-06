@@ -78,6 +78,35 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sInitialExp = ""
+    // Zero-bit encodings — a NULL without an ACN encoding pattern and an empty
+    // SEQUENCE — have no funcBody on Encode (content = None below), so the
+    // encoders never produce an icdResult and the type would silently vanish
+    // from the ICD (roadmap A1 / root cause R1): the parent CHOICE/SEQUENCE
+    // drops the row and printTasses3 never emits the standalone TAS table.
+    // Synthesize a 0-bit IcdArgAux for exactly those kinds; the funcBody
+    // results are used unchanged, so generated code is not affected.
+    let zeroBitIcdResult () : IcdArgAux option =
+        match t.Kind with
+        | Asn1AcnAst.NullType _ ->
+            let rowsFunc fieldName sPresent comments =
+                [{IcdRow.fieldName = fieldName; comments = comments@["NULL type without an ACN encoding pattern: occupies no bits on the wire"]; sPresent = sPresent; sType = IcdPlainType "NULL"; sConstraint = None; minLengthInBits = 0I; maxLengthInBits = 0I; sUnits = t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+            Some {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = getASN1Name t; rowsFunc = rowsFunc; commentsForTas = []; scope = "type"; name = None}
+        | Asn1AcnAst.Sequence _ ->
+            let rowsFunc _ _ _ = [], []
+            Some {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = getASN1Name t; rowsFunc = rowsFunc; commentsForTas = ["empty SEQUENCE (no fields): occupies no bits on the wire"]; scope = "type"; name = None}
+        | Asn1AcnAst.Integer _
+        | Asn1AcnAst.Real _
+        | Asn1AcnAst.IA5String _
+        | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _
+        | Asn1AcnAst.TimeType _
+        | Asn1AcnAst.BitString _
+        | Asn1AcnAst.Boolean _
+        | Asn1AcnAst.Enumerated _
+        | Asn1AcnAst.SequenceOf _
+        | Asn1AcnAst.Choice _
+        | Asn1AcnAst.ObjectIdentifier _
+        | Asn1AcnAst.ReferenceType _ -> None
     let func, funcDef, userDefinedFunctions, auxiliaries, icdResult, ns2  =
             match funcNameAndtasInfo  with
             | None ->
@@ -95,7 +124,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
                         let icdResult, udfcs =
                             match content with
-                            | None -> None, []
+                            | None -> zeroBitIcdResult (), []
                             | Some bodyResult -> bodyResult.icdResult, bodyResult.userDefinedFunctions
                         None, None, udfcs, [], icdResult, ns1a
             | Some funcName ->
@@ -106,7 +135,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match content with
                     | None ->
                         let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], None
+                        emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], zeroBitIcdResult ()
                     | Some bodyResult ->
                         bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, bodyResult.icdResult
 

@@ -5,6 +5,7 @@
     "PDU@MyModule.PDU",
     "Header@MyModule.PDU.hdr",
     "MyModule-PDU-payload_OCT_STR@MyModule.PDU.payload",
+    "Header@MyModule.Header",
     "PayloadData@MyModule.PayloadData"
   ],
   "tables": [
@@ -237,6 +238,23 @@
           "rowType": "FieldRow"
         }
       ]
+    },
+    {
+      "id": "Header@MyModule.Header",
+      "name": "Header",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "MyModule",
+        "tasName": "Header"
+      },
+      "usagePath": "MyModule.Header",
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 0,
+      "maxLengthInBytes": 0,
+      "comments": [
+        "empty SEQUENCE (no fields): occupies no bits on the wire"
+      ],
+      "rows": []
     },
     {
       "id": "PayloadData@MyModule.PayloadData",

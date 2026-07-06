@@ -3,5 +3,4 @@
 # Remove a line once the corresponding fix lands, and update the golden.
 nav-labels R7 in-context tables reuse the bare TAS name (Samples/Position/Payload duplicated; roadmap B4)
 presence-mask R2 mask counts optionals WITH present-when too (says 2 bits, C encodes 1; roadmap A2)
-choice-alts R1 pattern-less NULL alternative 'ping' dropped from both Payload tables (roadmap A1)
 html-anchors R6 colorizer emits no ASN1_<hash> anchor when a TAS name maps to multiple hashes (roadmap B5)

@@ -1,5 +1,5 @@
 # Expected failures due to documented bugs (q/details-docs/icd-analysis.md par.2).
 # Format: <check-name> <roadmap-id> [reason]
 # Remove a line once the corresponding fix lands, and update the golden.
-tas-coverage R1 empty SEQUENCE Header (0-bit) has no standalone TAS table, only the in-context 4-byte variant (roadmap A1)
+nav-labels R7 in-context table reuses the bare TAS name: standalone 0-byte Header (added by A1/R1 fix) now collides with the in-context 4-byte PDU.hdr table (roadmap B4)
 html-anchors R6 a table's 'ASN.1' header link targets an anchor the colorizer never emits for multi-hash names (roadmap B5)

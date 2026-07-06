@@ -538,6 +538,23 @@
       "rows": [
         {
           "idxOffset": 1,
+          "fieldName": "ping",
+          "comments": [
+            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
+          ],
+          "sPresent": "payloadType=0",
+          "sType": {
+            "kind": "plain",
+            "value": "NULL"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
           "fieldName": "data",
           "comments": [],
           "sPresent": "payloadType=1",
@@ -552,7 +569,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 2,
+          "idxOffset": 3,
           "fieldName": "pos",
           "comments": [],
           "sPresent": "payloadType=2",
@@ -967,6 +984,23 @@
       "rows": [
         {
           "idxOffset": 1,
+          "fieldName": "ping",
+          "comments": [
+            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
+          ],
+          "sPresent": "payloadType=0",
+          "sType": {
+            "kind": "plain",
+            "value": "NULL"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "FieldRow"
+        },
+        {
+          "idxOffset": 2,
           "fieldName": "data",
           "comments": [],
           "sPresent": "payloadType=1",
@@ -981,7 +1015,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 2,
+          "idxOffset": 3,
           "fieldName": "pos",
           "comments": [],
           "sPresent": "payloadType=2",
