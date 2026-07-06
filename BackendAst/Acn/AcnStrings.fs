@@ -56,7 +56,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         match funcBodyContent with
         | None -> None, ns
         | Some (funcBodyContent,errCodes, localVars, auxiliaries) ->
-            let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux (getASN1Name t) (getASN1Name t) None o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
+            let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux (getASN1Name t) (getASN1Name t) (constraintsToIcdStr (DAstAsn1.createStringFunction r t o)) o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd} ), ns
     AcnPrimitiveFactory.createAsn1PrimitiveStateful r deps lm codec t typeDefinition isValidFunc [] us
         (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us)
@@ -173,5 +173,9 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match funcBodyContent with
             | None -> None
             | Some (funcBodyContent,errCodes, lvs, auxiliaries) ->
-                let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux "IA5String" "IA5String" None o.acnMinSizeInBits o.acnMaxSizeInBits None
+                // ACN-inserted children referencing an IA5String TAS keep that
+                // name on the ICD row ("IA5String (DeviceName)", roadmap A4).
+                let icd =
+                    AcnPrimitiveFactory.buildPrimitiveIcdAux "IA5String" "IA5String" (constraintsToIcdStr (o.AllCons |> List.map DAstAsn1.foldStringCon)) o.acnMinSizeInBits o.acnMaxSizeInBits None
+                    |> icdAuxAddNamedTypeSuffix (Some t.tasName.Value)
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd}))

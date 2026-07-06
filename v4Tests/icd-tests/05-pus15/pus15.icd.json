@@ -91,7 +91,7 @@
             "kind": "plain",
             "value": "IA5String"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 20)",
           "minLengthInBits": 12,
           "maxLengthInBits": 145,
           "sUnits": null,
@@ -122,9 +122,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (COLOR-TYPE)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -139,9 +139,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (COLOR-TYPE)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,

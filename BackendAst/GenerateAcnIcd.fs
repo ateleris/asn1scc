@@ -630,7 +630,8 @@ let emitTypeCol stgFileName (r:AstRoot) (sType : IcdTypeCol) =
 let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     let i = match rw.idxOffset with Some z -> z | None -> 1
     let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
-    let sConstraint = match rw.sConstraint with None -> "N.A." | Some x -> x
+    // No constraint -> empty cell.  "N.A." is manufactured noise (roadmap A4).
+    let sConstraint = match rw.sConstraint with None -> "" | Some x -> x
     let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
     match rw.rowType with
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName ()

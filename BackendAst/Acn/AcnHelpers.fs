@@ -20,6 +20,41 @@ let THREE_DOTS = {IcdRow.fieldName = ""; comments = []; sPresent="";sType= IcdPl
 
 let getAcnDeterminantName = AcnCreateFromAntlr.getAcnDeterminantName
 
+/// Join the per-constraint ASN.1 strings of a type into the optional text
+/// shown in the ICD "Constraint" column (None when the type is unconstrained).
+let constraintsToIcdStr (constraintsAsn1Str: string list) : string option =
+    match (constraintsAsn1Str |> Seq.StrJoin "").Trim() with
+    | ""  -> None
+    | s   -> Some s
+
+/// Named-type identity of embedded reference children (roadmap A4): when a
+/// type resolves a reference to a named TAS, its ICD field row shows the
+/// referenced type's name in the type column, e.g. "INTEGER (I32)" or
+/// "OCTET STRING (Checksum)".  Only FieldRows of embeddable types are
+/// suffixed - determinant/padding rows keep their labels and composites keep
+/// their identity through their own linked table.
+let icdAuxAddNamedTypeSuffix (soTasName: string option) (icdAux: IcdArgAux) : IcdArgAux =
+    match soTasName with
+    | None -> icdAux
+    | Some tasName ->
+        match icdAux.canBeEmbedded with
+        | false -> icdAux
+        | true  ->
+            let patchRow (rw:IcdRow) =
+                match rw.rowType with
+                | IcdRowType.FieldRow ->
+                    match rw.sType with
+                    | IcdPlainType label -> {rw with sType = IcdPlainType $"%s{label} (%s{tasName})"}
+                    | TypeHash _         -> rw
+                | IcdRowType.ReferenceToCompositeTypeRow
+                | IcdRowType.LengthDeterminantRow
+                | IcdRowType.PresentDeterminantRow
+                | IcdRowType.ThreeDOTs -> rw
+            let rowsFunc fieldName sPresent comments =
+                let rows, comp = icdAux.rowsFunc fieldName sPresent comments
+                rows |> List.map patchRow, comp
+            {icdAux with rowsFunc = rowsFunc}
+
 let adaptArgument = DAstUPer.adaptArgument
 let adaptArgumentValue = DAstUPer.adaptArgumentValue
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier

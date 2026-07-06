@@ -181,6 +181,11 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         match icdResult with
         | Some icdAux ->
             let foo () =
+                // Types that resolve a reference (t.inheritInfo is set on the
+                // resolved instance, never on a TAS's own type) keep the
+                // referenced TAS's name in their field rows, e.g.
+                // "OCTET STRING (Checksum)" (roadmap A4).
+                let icdAux = AcnHelpers.icdAuxAddNamedTypeSuffix (t.inheritInfo |> Option.map (fun ii -> ii.tasName)) icdAux
                 let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
                 let icdTas = AcnIcd.createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
                 let ns3 =

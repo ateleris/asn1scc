@@ -72,7 +72,7 @@
           "sPresent": "",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -103,7 +103,7 @@
           "sPresent": "",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -200,9 +200,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -217,7 +217,7 @@
             "kind": "reference",
             "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -245,7 +245,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (Parameter-ID)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -275,7 +275,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (Parameter-ID)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -308,9 +308,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -325,7 +325,7 @@
             "kind": "reference",
             "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -353,7 +353,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (Parameter-ID)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -383,7 +383,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (Parameter-ID)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -418,7 +418,7 @@
           "sPresent": "service=17 AND message=1",
           "sType": {
             "kind": "plain",
-            "value": "NULL"
+            "value": "NULL (Payload-17-1)"
           },
           "sConstraint": null,
           "minLengthInBits": 0,
@@ -478,9 +478,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -495,7 +495,7 @@
             "kind": "reference",
             "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -523,9 +523,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -540,7 +540,7 @@
             "kind": "reference",
             "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -571,7 +571,7 @@
             "kind": "plain",
             "value": "BIT STRING"
           },
-          "sConstraint": null,
+          "sConstraint": "(4)",
           "minLengthInBits": 4,
           "maxLengthInBits": 4,
           "sUnits": null,
@@ -584,7 +584,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -645,7 +645,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -675,7 +675,7 @@
             "kind": "plain",
             "value": "BIT STRING"
           },
-          "sConstraint": null,
+          "sConstraint": "(4)",
           "minLengthInBits": 4,
           "maxLengthInBits": 4,
           "sUnits": null,
@@ -690,9 +690,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -707,9 +707,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -722,7 +722,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -754,7 +754,7 @@
           "sPresent": "service=17 AND message=1",
           "sType": {
             "kind": "plain",
-            "value": "NULL"
+            "value": "NULL (Payload-17-1)"
           },
           "sConstraint": null,
           "minLengthInBits": 0,
@@ -814,9 +814,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -831,7 +831,7 @@
             "kind": "reference",
             "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -859,9 +859,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyUInt8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -876,7 +876,7 @@
             "kind": "reference",
             "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,

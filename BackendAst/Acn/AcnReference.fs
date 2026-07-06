@@ -28,7 +28,10 @@ let buildReferenceIcdArgAux
         (t: Asn1AcnAst.Asn1Type)
         (o: Asn1AcnAst.ReferenceType)
         (baseType: Asn1Type) : IcdArgAux option =
-    let getNewSType (rw:IcdRow) = rw
+    // Named-type identity of the referenced TAS ("INTEGER (I32)", roadmap A4)
+    // is added centrally by AcnFunctionWrapper.createAcnFunction from the
+    // resolved instance's inheritInfo - the delegation below must therefore
+    // NOT suffix the rows again.
     let icdFnc, extraComment, name =
         match r.args.generateAcnIcd with
         | true  ->
@@ -41,8 +44,7 @@ let buildReferenceIcdArgAux
                 match baseType.icdTas with
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =
-                        let rows, comp = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                        rows |> List.map getNewSType, comp
+                        baseTypeIcdTas.createRowsFunc fieldName sPresent comments
                     icdFnc, baseTypeIcdTas.comments, name
                 | None -> emptyIcdFnc, [], name
             | Some encOptions ->
@@ -66,8 +68,7 @@ let buildReferenceIcdArgAux
                 match baseType.icdTas with
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =
-                        let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                        let rows = rows0 |> List.map getNewSType
+                        let rows, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
                         lengthDetRow@rows |> List.mapi(fun i rw -> {rw with idxOffset = Some (i+1)}), compChildren
                     icdFnc, (containingComments@baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR")
                 | None -> emptyIcdFnc, [], None

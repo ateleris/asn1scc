@@ -272,7 +272,7 @@
             "kind": "plain",
             "value": "IA5String"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 16)",
           "minLengthInBits": 16,
           "maxLengthInBits": 136,
           "sUnits": null,
@@ -305,7 +305,7 @@
             "kind": "plain",
             "value": "OCTET STRING"
           },
-          "sConstraint": null,
+          "sConstraint": "(4)",
           "minLengthInBits": 32,
           "maxLengthInBits": 32,
           "sUnits": null,
@@ -336,7 +336,7 @@
             "kind": "plain",
             "value": "BIT STRING"
           },
-          "sConstraint": null,
+          "sConstraint": "(12)",
           "minLengthInBits": 12,
           "maxLengthInBits": 12,
           "sUnits": null,
@@ -367,7 +367,7 @@
             "kind": "plain",
             "value": "OCTET STRING"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 64)",
           "minLengthInBits": 7,
           "maxLengthInBits": 519,
           "sUnits": null,
@@ -416,7 +416,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U16)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -446,7 +446,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U16)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -479,7 +479,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -494,7 +494,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -509,7 +509,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -560,9 +560,9 @@
           "sPresent": "payloadType=1",
           "sType": {
             "kind": "plain",
-            "value": "OCTET STRING"
+            "value": "OCTET STRING (VarData)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 64)",
           "minLengthInBits": 7,
           "maxLengthInBits": 519,
           "sUnits": null,
@@ -603,7 +603,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -618,7 +618,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -633,7 +633,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (I32)"
           },
           "sConstraint": "(-2147483648 .. 2147483647)",
           "minLengthInBits": 32,
@@ -698,9 +698,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -715,9 +715,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U8)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
@@ -749,7 +749,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "ENUMERATED"
+            "value": "ENUMERATED (DeviceMode)"
           },
           "sConstraint": null,
           "minLengthInBits": 8,
@@ -764,7 +764,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (Temperature)"
           },
           "sConstraint": "(-50 .. 150)",
           "minLengthInBits": 16,
@@ -779,7 +779,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "REAL"
+            "value": "REAL (Voltage)"
           },
           "sConstraint": "(0 .. 15.5)",
           "minLengthInBits": 32,
@@ -794,9 +794,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "IA5String"
+            "value": "IA5String (DeviceName)"
           },
-          "sConstraint": null,
+          "sConstraint": "(1 .. 16)",
           "minLengthInBits": 16,
           "maxLengthInBits": 136,
           "sUnits": null,
@@ -809,7 +809,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "BOOLEAN"
+            "value": "BOOLEAN (SafeFlag)"
           },
           "sConstraint": null,
           "minLengthInBits": 8,
@@ -824,9 +824,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "BIT STRING"
+            "value": "BIT STRING (EventMask)"
           },
-          "sConstraint": null,
+          "sConstraint": "(12)",
           "minLengthInBits": 12,
           "maxLengthInBits": 12,
           "sUnits": null,
@@ -841,7 +841,7 @@
             "kind": "reference",
             "id": "Samples@KITCHEN-SINK.Telemetry.smpl"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 10)",
           "minLengthInBits": 0,
           "maxLengthInBits": 160,
           "sUnits": null,
@@ -869,7 +869,7 @@
           "sPresent": "when bit 1 of the Presence Mask is set",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U8)"
           },
           "sConstraint": "(0 .. 255)",
           "minLengthInBits": 8,
@@ -899,9 +899,9 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "OCTET STRING"
+            "value": "OCTET STRING (Checksum)"
           },
-          "sConstraint": null,
+          "sConstraint": "(4)",
           "minLengthInBits": 32,
           "maxLengthInBits": 32,
           "sUnits": null,
@@ -929,7 +929,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U16)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -959,7 +959,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (U16)"
           },
           "sConstraint": "(0 .. 65535)",
           "minLengthInBits": 16,
@@ -1006,9 +1006,9 @@
           "sPresent": "payloadType=1",
           "sType": {
             "kind": "plain",
-            "value": "OCTET STRING"
+            "value": "OCTET STRING (VarData)"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 64)",
           "minLengthInBits": 7,
           "maxLengthInBits": 519,
           "sUnits": null,

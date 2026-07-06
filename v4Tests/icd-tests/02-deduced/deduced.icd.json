@@ -59,7 +59,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyInt)"
           },
           "sConstraint": "(0 .. 16383)",
           "minLengthInBits": 16,
@@ -89,7 +89,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "plain",
-            "value": "INTEGER"
+            "value": "INTEGER (MyInt)"
           },
           "sConstraint": "(0 .. 16383)",
           "minLengthInBits": 16,
@@ -137,7 +137,7 @@
             "kind": "reference",
             "id": "TLVList@DEDUCED-TEST.TLVList"
           },
-          "sConstraint": null,
+          "sConstraint": "(0 .. 100)",
           "minLengthInBits": 0,
           "maxLengthInBits": 1600,
           "sUnits": null,
