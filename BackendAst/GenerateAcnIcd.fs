@@ -705,22 +705,28 @@ let PrintTasses2 stgFileName (r:AstRoot) : string list =
         | None -> None) |>
     Seq.toList
 *)
-let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
+// Returns the hashes of the ICD type assignments that are reachable from the
+// requested PDU roots (all type assignments when -icdPdus is not given), in
+// document order. This is the set of tables printed in the new-pipeline ICD
+// and dumped by -icdRaw.
+let selectIcdHashesToPrint (r:DAst.AstRoot) : string list =
     let pdus = r.args.icdPdus |> Option.map Set.ofList
-    let icdHashesToPrint =
-        seq {
-            for f in r.Files do
-                for m in f.Modules do
-                    for tas in m.TypeAssignments do
-                        match pdus.IsNone || pdus.Value.Contains tas.Name.Value with
-                        | true  -> 
-                            match tas.Type.icdTas with
-                            | Some icdTas -> 
-                                let icdTassesHash = getMySelfAndChildren r icdTas
-                                yield! icdTassesHash
-                            | None -> ()
-                        | false -> ()
-        } |> Seq.distinct |> Seq.toList
+    seq {
+        for f in r.Files do
+            for m in f.Modules do
+                for tas in m.TypeAssignments do
+                    match pdus.IsNone || pdus.Value.Contains tas.Name.Value with
+                    | true  ->
+                        match tas.Type.icdTas with
+                        | Some icdTas ->
+                            let icdTassesHash = getMySelfAndChildren r icdTas
+                            yield! icdTassesHash
+                        | None -> ()
+                    | false -> ()
+    } |> Seq.distinct |> Seq.toList
+
+let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
+    let icdHashesToPrint = selectIcdHashesToPrint r
     //print in a file the icds that are going to be printed
     let content = icdHashesToPrint |> Seq.StrJoin "\n"
     let fileName = sprintf "%s_icdHashesToPrint.txt" stgFileName
@@ -729,7 +735,7 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(Icd
         icdHashesToPrint
         |> Seq.choose(fun hash ->
             match r.icdHashes.TryFind hash with
-            | Some chIcdTas -> 
+            | Some chIcdTas ->
                 //let PrintNavLink stgFileName sTitle sTarget   =
                 let tas = selectTypeWithSameHash chIcdTas
                 let tasContent = emitTas2 stgFileName r (fun _ -> []) tas
@@ -737,6 +743,151 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(Icd
                 Some (tasContent, tas)
             | None -> None) |> Seq.toList |> List.unzip
     (files, icdHashesToPrint, navLinks)
+
+// ============================================================================
+// -icdRaw : deterministic, machine-readable JSON dump of the new-pipeline ICD
+// model (the same reachable IcdTypeAss set that printTasses3 renders as HTML).
+// Tables are identified by a stable id (display name + typeId usage path)
+// instead of the MD5 content hash, so the dump stays diffable across compiler
+// changes that only affect rendered details. No timestamps, stable ordering,
+// invariant to machine/locale (ASCII-only output, invariant-culture numbers).
+// ============================================================================
+
+type private JsonValue =
+    | JString of string
+    | JNumber of BigInteger
+    | JBool of bool
+    | JNull
+    | JArray of JsonValue list
+    | JObject of (string*JsonValue) list
+
+let private jsonEscapeString (s:string) =
+    let sb = System.Text.StringBuilder()
+    sb.Append('"') |> ignore
+    s |> Seq.iter(fun c ->
+        match c with
+        | '"'  -> sb.Append("\\\"") |> ignore
+        | '\\' -> sb.Append("\\\\") |> ignore
+        | '\b' -> sb.Append("\\b")  |> ignore
+        | '\f' -> sb.Append("\\f")  |> ignore
+        | '\n' -> sb.Append("\\n")  |> ignore
+        | '\r' -> sb.Append("\\r")  |> ignore
+        | '\t' -> sb.Append("\\t")  |> ignore
+        | c when c < ' ' || c > '~' -> sb.AppendFormat(CultureInfo.InvariantCulture, "\\u{0:x4}", int c) |> ignore
+        | c    -> sb.Append(c) |> ignore)
+    sb.Append('"') |> ignore
+    sb.ToString()
+
+let rec private formatJson (indentLevel:int) (jv:JsonValue) : string =
+    let pad    = String.replicate indentLevel "  "
+    let padIn  = String.replicate (indentLevel+1) "  "
+    match jv with
+    | JNull         -> "null"
+    | JBool true    -> "true"
+    | JBool false   -> "false"
+    | JNumber bi    -> bi.ToString(CultureInfo.InvariantCulture)
+    | JString s     -> jsonEscapeString s
+    | JArray []     -> "[]"
+    | JArray items  ->
+        let inner = items |> List.map (fun it -> padIn + formatJson (indentLevel+1) it) |> String.concat ",\n"
+        "[\n" + inner + "\n" + pad + "]"
+    | JObject []     -> "{}"
+    | JObject fields ->
+        let inner = fields |> List.map (fun (k,v) -> padIn + jsonEscapeString k + ": " + formatJson (indentLevel+1) v) |> String.concat ",\n"
+        "{\n" + inner + "\n" + pad + "}"
+
+// Stable identifier of an ICD table: display name + typeId usage path.
+let private icdTasStableId (tas:IcdTypeAss) =
+    sprintf "%s@%s" tas.name tas.typeId.AsString
+
+// Maps each selected hash to a unique stable id. Two distinct tables normally
+// differ in name or usage path; should they ever coincide, a deterministic
+// #2/#3... suffix (in nav order) keeps the ids unique.
+let private buildStableIdMap (r:AstRoot) (icdHashesToPrint:string list) : Map<string,string> =
+    let addHash (used:Set<string>, acc:Map<string,string>) (hash:string) =
+        match r.icdHashes.TryFind hash with
+        | None -> (used, acc)
+        | Some lst ->
+            let baseId = icdTasStableId (selectTypeWithSameHash lst)
+            let rec unique candidate n =
+                match used.Contains candidate with
+                | false -> candidate
+                | true  -> unique (sprintf "%s#%d" baseId n) (n+1)
+            let finalId = unique baseId 2
+            (used.Add finalId, acc.Add(hash, finalId))
+    icdHashesToPrint |> List.fold addHash (Set.empty, Map.empty) |> snd
+
+let private jsonOfIcdTypeCol (r:AstRoot) (stableIds:Map<string,string>) (col:IcdTypeCol) =
+    match col with
+    | IcdPlainType label -> JObject [ ("kind", JString "plain"); ("value", JString label) ]
+    | TypeHash hash ->
+        // A reference row normally targets a table in the selected set; a
+        // dangling reference (hash unknown) is dumped as null so that the ICD
+        // test invariants can detect it rather than crash the compiler.
+        let referencedId =
+            match stableIds.TryFind hash with
+            | Some sid -> Some sid
+            | None ->
+                match r.icdHashes.TryFind hash with
+                | Some lst -> Some (icdTasStableId (selectTypeWithSameHash lst))
+                | None -> None
+        match referencedId with
+        | Some sid -> JObject [ ("kind", JString "reference"); ("id", JString sid) ]
+        | None     -> JObject [ ("kind", JString "reference"); ("id", JNull) ]
+
+let private icdRowTypeName (rowType:IcdRowType) =
+    match rowType with
+    | FieldRow                    -> "FieldRow"
+    | ReferenceToCompositeTypeRow -> "ReferenceToCompositeTypeRow"
+    | LengthDeterminantRow        -> "LengthDeterminantRow"
+    | PresentDeterminantRow       -> "PresentDeterminantRow"
+    | ThreeDOTs                   -> "ThreeDOTs"
+
+let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (rw:IcdRow) =
+    JObject [
+        ("idxOffset", match rw.idxOffset with Some i -> JNumber (BigInteger i) | None -> JNull)
+        ("fieldName", JString rw.fieldName)
+        ("comments", JArray (rw.comments |> List.map JString))
+        ("sPresent", JString rw.sPresent)
+        ("sType", jsonOfIcdTypeCol r stableIds rw.sType)
+        ("sConstraint", match rw.sConstraint with Some c -> JString c | None -> JNull)
+        ("minLengthInBits", JNumber rw.minLengthInBits)
+        ("maxLengthInBits", JNumber rw.maxLengthInBits)
+        ("sUnits", match rw.sUnits with Some u -> JString u | None -> JNull)
+        ("rowType", JString (icdRowTypeName rw.rowType))
+    ]
+
+let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (stableId:string) (tas:IcdTypeAss) =
+    JObject [
+        ("id", JString stableId)
+        ("name", JString tas.name)
+        ("kind", JString tas.kind)
+        ("tasInfo",
+            match tas.tasInfo with
+            | Some ti -> JObject [ ("modName", JString ti.modName); ("tasName", JString ti.tasName) ]
+            | None    -> JNull)
+        ("usagePath", JString tas.typeId.AsString)
+        ("hasAcnDefinition", JBool tas.hasAcnDefinition)
+        ("minLengthInBytes", JNumber tas.minLengthInBytes)
+        ("maxLengthInBytes", JNumber tas.maxLengthInBytes)
+        ("comments", JArray (tas.comments |> List.map JString))
+        ("rows", JArray (tas.rows |> List.map (jsonOfIcdRow r stableIds)))
+    ]
+
+let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =
+    let icdHashesToPrint = selectIcdHashesToPrint r
+    let stableIds = buildStableIdMap r icdHashesToPrint
+    let tables =
+        icdHashesToPrint |>
+        List.choose(fun hash ->
+            match r.icdHashes.TryFind hash with
+            | Some lst ->
+                let tas = selectTypeWithSameHash lst
+                Some (jsonOfIcdTas r stableIds stableIds.[hash] tas)
+            | None -> None)
+    let navOrder = icdHashesToPrint |> List.choose stableIds.TryFind |> List.map JString
+    let root = JObject [ ("navOrder", JArray navOrder); ("tables", JArray tables) ]
+    File.WriteAllText(outFileName, formatJson 0 root + "\n")
 
 let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPrint:string list) (f:Asn1File) =
     let debug (tsName:string) =
