@@ -72,8 +72,10 @@ ICD analysis roadmap, correctness findings R1-R8):
 
 - **R6** — the ASN.1 colorizer emits no anchor for a type name that maps to
   more than one table, leaving dead links
-- **R7** — in-context tables reuse the bare TAS name, producing duplicate
-  nav labels
+
+(R7 — duplicate nav labels from in-context tables reusing the bare TAS name —
+was fixed by roadmap B4: byte-identical specializations merge into one table
+and remaining duplicates are disambiguated with their usage context.)
 
 So that the suite is green while those bugs exist, a test dir may contain an
 `xfails.txt` with one marker per line:

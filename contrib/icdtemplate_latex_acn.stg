@@ -58,6 +58,16 @@ EmitNavLink(sTitle, sTarget) ::= <<
 \protect\detokenize{$sTitle$}~\ref{secICD$sTarget$}
 >>
 
+/* Nav module header: the target is the module label emitted by EmitModule (roadmap B4) */
+EmitNavModule(sModName) ::= <<
+\textbf{Module \protect\detokenize{$sModName$}}~\ref{secICD$sModName$}
+>>
+
+/* Nav entry of a -icdPdus root: listed first within its module, visually distinct (roadmap B4) */
+EmitNavLinkRootPdu(sTitle, sTarget) ::= <<
+\textbf{\protect\detokenize{$sTitle$}}~\ref{secICD$sTarget$}
+>>
+
 EmitTass(sTypeContent) ::= <<
 \begin{lstlisting}[style=asn1style]
 $sTypeContent$

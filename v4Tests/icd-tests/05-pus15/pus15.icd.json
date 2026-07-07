@@ -13,7 +13,11 @@
         "modName": "TEST-CASE",
         "tasName": "COLOR-TYPE"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.COLOR-TYPE",
+      "usageSites": [
+        "TEST-CASE.COLOR-TYPE"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -45,7 +49,12 @@
         "modName": "TEST-CASE",
         "tasName": "COLOR-DATA"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.COLOR-DATA",
+      "usageSites": [
+        "TEST-CASE.COLOR-DATA",
+        "TEST-CASE.MySeq.colorData"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 19,
@@ -143,7 +152,11 @@
         "modName": "TEST-CASE",
         "tasName": "MySeq"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MySeq",
+      "usageSites": [
+        "TEST-CASE.MySeq"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,

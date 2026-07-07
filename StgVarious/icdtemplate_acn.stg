@@ -76,6 +76,16 @@ EmitNavLink(sTitle, sTarget) ::= <<
 <a href="#ICD_$sTarget$">$sTitle$</a>
 >>
 
+/* Nav-pane module header: the target is the module anchor emitted by EmitModule (roadmap B4) */
+EmitNavModule(sModName) ::= <<
+<a href="#ICD_$sModName$" style="font-weight:bold; background-color:#e4e4e4; margin-top:8px">$sModName$</a>
+>>
+
+/* Nav-pane entry of a -icdPdus root: listed first within its module, visually distinct (roadmap B4) */
+EmitNavLinkRootPdu(sTitle, sTarget) ::= <<
+<a href="#ICD_$sTarget$"><b>&#9656; $sTitle$</b></a>
+>>
+
 
 EmitTass(sTypeContent) ::= <<
 $sTypeContent$

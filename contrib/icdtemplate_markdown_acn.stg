@@ -58,6 +58,16 @@ EmitNavLink(sTitle, sTarget) ::= <<
 - [$sTitle$](#ICD_$sTarget$)
 >>
 
+/* Nav module header: the target is the module anchor emitted by EmitModule (roadmap B4) */
+EmitNavModule(sModName) ::= <<
+- **[Module $sModName$](#ICD_$sModName$)**
+>>
+
+/* Nav entry of a -icdPdus root: listed first within its module, visually distinct (roadmap B4) */
+EmitNavLinkRootPdu(sTitle, sTarget) ::= <<
+- **[$sTitle$](#ICD_$sTarget$)**
+>>
+
 EmitTass(sTypeContent) ::= <<
 $sTypeContent$
 >>

@@ -579,20 +579,28 @@ let PrintTas stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (m:Asn1Module) 
     tasses |> List.map (icd_acn.EmitTass stgFileName ) |> Seq.StrJoin "\n"
 
 
+// Name of the .acn file that defines the given module (the file whose token
+// stream contains the module name), if any.
+let moduleAcnFileName (r:AstRoot) (moduleName:string) =
+    match r.acnParseResults |> Seq.tryFind(fun (rp) -> rp.tokens |> Seq.exists (fun (token:IToken) -> token.Text = moduleName)) with
+    | Some (rp) -> (Some (Path.GetFileName(rp.fileName)))
+    | None                  -> None
+
+// Module comments with the ASN.1 comment markers stripped.
+let moduleCleanedComments (m:Asn1Module) =
+    m.Comments |> Array.map (fun x -> x.Trim().Replace("--", "").Replace("/*", "").Replace("*/",""))
+
 let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
     //let blueTasses = GenerateUperIcd.getModuleBlueTasses m |> Seq.map snd
     //let sortedTas = m.TypeAssignments //spark_spec.SortTypeAssignments m r acn |> List.rev
     let icdTasses = GenerateUperIcd.getModuleIcdTasses m
 
     let tases = icdTasses |> Seq.map (fun x -> PrintTas stgFileName x m r )
-    let comments = m.Comments |> Array.map (fun x -> x.Trim().Replace("--", "").Replace("/*", "").Replace("*/",""))
+    let comments = moduleCleanedComments m
     let moduleName = m.Name.Value
     let title = if comments.Length > 0 then moduleName + " - " + comments.[0] else moduleName
     let commentsTail = if comments.Length > 1 then comments.[1..] else [||]
-    let acnFileName =
-        match r.acnParseResults |> Seq.tryFind(fun (rp) -> rp.tokens |> Seq.exists (fun (token:IToken) -> token.Text = moduleName)) with
-        | Some (rp) -> (Some (Path.GetFileName(rp.fileName)))
-        | None                  -> None
+    let acnFileName = moduleAcnFileName r moduleName
 
     icd_acn.EmitModule stgFileName title (Path.GetFileName(f.FileName)) acnFileName commentsTail tases
 
@@ -668,13 +676,29 @@ let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName ()
     | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits
 
-let emitTas2 stgFileName (r:AstRoot) (selectedHashes:Set<string>) (icdTas:IcdTypeAss)  =
-    let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
+// All usage paths that share this table.  More than one element means that
+// byte-identical specializations were merged into a single table by the
+// normalized content hash (roadmap B4).  Deterministic order.
+let usageSitesOfHash (r:AstRoot) (hash:string) : string list =
+    match r.icdHashes.TryFind hash with
+    | Some lst -> lst |> List.map(fun z -> z.typeId.AsString) |> List.distinct |> List.sort
+    | None -> []
+
+let emitTas2 stgFileName (r:AstRoot) (selectedHashes:Set<string>) (displayName:string) (icdTas:IcdTypeAss)  =
+    // The table itself is identified by its own usage path (title/nav); the
+    // remaining sites of a merged table are listed as a table comment.
+    let otherUsageSites =
+        usageSitesOfHash r icdTas.hash |> List.filter(fun site -> site <> icdTas.typeId.AsString)
+    let comments =
+        match otherUsageSites with
+        | [] -> icdTas.comments
+        | _  -> icdTas.comments @ [sprintf "Used by: %s" (otherUsageSites |> String.concat ", ")]
+    let sCommentLine = comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows =
         icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName r (i+1) rw)
     let bHasAcnDef = icdTas.hasAcnDefinition
     let sMaxBitsExplained = ""
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (emitTasParams stgFileName r selectedHashes icdTas 4I) (sCommentLine.Split [|'\n'|])
+    icd_acn.EmitSequenceOrChoice stgFileName false displayName icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (emitTasParams stgFileName r selectedHashes icdTas 4I) (sCommentLine.Split [|'\n'|])
 
 (*
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
@@ -757,21 +781,134 @@ let selectIcdHashesToPrint (r:DAst.AstRoot) : string list =
                     | false -> ()
     } |> Seq.distinct |> Seq.toList
 
-let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
+// The representative IcdTypeAss of every selected hash, in the given order.
+let private representativesOf (r:AstRoot) (icdHashesToPrint:string list) : (string*IcdTypeAss) list =
+    icdHashesToPrint |>
+    List.choose(fun h -> r.icdHashes.TryFind h |> Option.map(fun lst -> h, selectTypeWithSameHash lst))
+
+// Display names of the selected tables, keyed by hash.  A display name shared
+// by several tables (an in-context specialization reusing the bare TAS name,
+// R7) is disambiguated with the usage context - "Samples (as Telemetry.smpl)"
+// - while the TAS definition itself keeps the bare name.  Used for the nav
+// pane, the table titles and the -icdRaw name field (roadmap B4).
+let buildDisplayNameMap (r:AstRoot) (icdHashesToPrint:string list) : Map<string,string> =
+    let contextOf (tas:IcdTypeAss) (withModule:bool) =
+        let (ReferenceToType nodes) = tas.typeId
+        let nodes =
+            match withModule, nodes with
+            | false, (MD _)::rest -> rest
+            | _ -> nodes
+        nodes |> List.map(fun n -> n.AsString) |> String.concat "."
+    let proposed =
+        representativesOf r icdHashesToPrint |>
+        List.groupBy(fun (_, tas) -> tas.name) |>
+        List.collect(fun (name, members) ->
+            match members with
+            | [(h, _)] -> [(h, name)]
+            | _ ->
+                let tasBearing = members |> List.filter(fun (_, tas) -> tas.tasInfo.IsSome)
+                match tasBearing with
+                | _::_::_ ->
+                    // the same TAS name exists in more than one module: qualify everything with the full path
+                    members |> List.map(fun (h, tas) -> (h, sprintf "%s (as %s)" name (contextOf tas true)))
+                | _ ->
+                    members |> List.map(fun (h, tas) ->
+                        match tas.tasInfo with
+                        | Some _ -> (h, name)  // the TAS definition keeps the bare name
+                        | None   -> (h, sprintf "%s (as %s)" name (contextOf tas false)))) |>
+        Map.ofList
+    // Deterministic last-resort uniquification, in document order (two
+    // distinct tables normally differ in name or usage context by now).
+    let addHash (used:Set<string>, acc:Map<string,string>) (hash:string) =
+        match proposed.TryFind hash with
+        | None -> (used, acc)
+        | Some name ->
+            let rec unique candidate n =
+                match used.Contains candidate with
+                | false -> candidate
+                | true  -> unique (sprintf "%s #%d" name n) (n+1)
+            let finalName = unique name 2
+            (used.Add finalName, acc.Add(hash, finalName))
+    icdHashesToPrint |> List.fold addHash (Set.empty, Map.empty) |> snd
+
+// True when -icdPdus was given and this table is one of the requested PDU
+// roots; the nav pane lists those first and renders them visually distinct.
+let isIcdPduRoot (r:AstRoot) (tas:IcdTypeAss) =
+    match r.args.icdPdus, tas.tasInfo with
+    | Some roots, Some ti -> roots |> List.contains ti.tasName
+    | _, _ -> false
+
+// Groups the selected hashes by their owning ASN.1 module, in file/module
+// declaration order; inside a module the tables keep their first-reference
+// order, except that the -icdPdus roots come first (roadmap B4).  The final
+// group without file/module collects tables whose module is not among the
+// compiled files (defensive; should not happen).
+let orderTablesByModule (r:AstRoot) (icdHashesToPrint:string list) : (Asn1File option * Asn1Module option * string list) list =
+    let reps = representativesOf r icdHashesToPrint
+    let groups =
+        [ for f in r.Files do
+            for m in f.Modules do
+                let mine = reps |> List.filter(fun (_, tas) -> tas.typeId.ModName = m.Name.Value)
+                let ordered =
+                    match r.args.icdPdus with
+                    | None   -> mine
+                    | Some _ ->
+                        let roots, others = mine |> List.partition(fun (_, tas) -> isIcdPduRoot r tas)
+                        roots@others
+                match ordered with
+                | [] -> ()
+                | _  -> yield (Some f, Some m, ordered |> List.map fst) ]
+    let claimed = groups |> List.collect(fun (_, _, hs) -> hs) |> Set.ofList
+    let leftover = icdHashesToPrint |> List.filter(fun h -> not (claimed.Contains h))
+    match leftover with
+    | [] -> groups
+    | _  -> groups@[(None, None, leftover)]
+
+// One nav-pane entry of the new-pipeline document.
+type IcdNavEntry = {
+    navDisplayName : string
+    navHash        : string
+    navIsPduRoot   : bool
+}
+
+// One rendered module of the new-pipeline document body plus what the nav
+// pane needs for it (body and nav are grouped by module, roadmap B4).
+type IcdDocModule = {
+    docModName    : string option  // None: fallback group without a module header
+    docContent    : string
+    docNavEntries : IcdNavEntry list
+}
+
+let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(IcdDocModule list) =
     let icdHashesToPrint = selectIcdHashesToPrint r
     let selectedHashes = icdHashesToPrint |> Set.ofList
-    let files, navLinks =
-        icdHashesToPrint
-        |> Seq.choose(fun hash ->
-            match r.icdHashes.TryFind hash with
-            | Some chIcdTas ->
-                //let PrintNavLink stgFileName sTitle sTarget   =
-                let tas = selectTypeWithSameHash chIcdTas
-                let tasContent = emitTas2 stgFileName r selectedHashes tas
-                //let tasLink = icd_acn.EmitNavLink stgFileName tas.name tas.hash
-                Some (tasContent, tas)
-            | None -> None) |> Seq.toList |> List.unzip
-    (files, icdHashesToPrint, navLinks)
+    let displayNames = buildDisplayNameMap r icdHashesToPrint
+    let displayNameOf (tas:IcdTypeAss) =
+        match displayNames.TryFind tas.hash with
+        | Some dn -> dn
+        | None    -> tas.name
+    let moduleGroups = orderTablesByModule r icdHashesToPrint
+    let docModules =
+        moduleGroups |>
+        List.map(fun (soFile, soModule, hashes) ->
+            let tables =
+                representativesOf r hashes |>
+                List.map(fun (_, tas) -> (tas, emitTas2 stgFileName r selectedHashes (displayNameOf tas) tas))
+            let navEntries =
+                tables |> List.map(fun (tas, _) ->
+                    {navDisplayName = displayNameOf tas; navHash = tas.hash; navIsPduRoot = isIcdPduRoot r tas})
+            let wrappedTables = tables |> List.map (fun (_, tasContent) -> icd_acn.EmitTass stgFileName tasContent)
+            let content =
+                match soFile, soModule with
+                | Some f, Some m ->
+                    // Unlike the old pipeline, sModName is the bare module name: the
+                    // EmitModule anchor (ICD_<module>) must match the nav module link.
+                    icd_acn.EmitModule stgFileName m.Name.Value (Path.GetFileName(f.FileName)) (moduleAcnFileName r m.Name.Value) (moduleCleanedComments m) wrappedTables
+                | _, _ ->
+                    wrappedTables |> String.concat "\n"
+            {docModName = soModule |> Option.map(fun m -> m.Name.Value); docContent = content; docNavEntries = navEntries})
+    let orderedHashes = moduleGroups |> List.collect(fun (_, _, hs) -> hs)
+    (orderedHashes, docModules)
 
 // ============================================================================
 // -icdRaw : deterministic, machine-readable JSON dump of the new-pipeline ICD
@@ -903,16 +1040,22 @@ let private jsonOfIcdAcnParameter (r:AstRoot) (stableIds:Map<string,string>) (se
             | None     -> JObject [ ("kind", JString "plain"); ("value", JString tasName) ]
     JObject [ ("name", JString p.name); ("type", typeJson) ]
 
-let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (selectedHashes:Set<string>) (stableId:string) (tas:IcdTypeAss) =
+let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (selectedHashes:Set<string>) (stableId:string) (displayName:string) (tas:IcdTypeAss) =
     JObject [
         ("id", JString stableId)
-        ("name", JString tas.name)
+        // The rendered label of the table/nav entry: the bare type name,
+        // disambiguated with the usage context when several tables share it.
+        ("name", JString displayName)
         ("kind", JString tas.kind)
         ("tasInfo",
             match tas.tasInfo with
             | Some ti -> JObject [ ("modName", JString ti.modName); ("tasName", JString ti.tasName) ]
             | None    -> JNull)
+        ("module", JString tas.typeId.ModName)
         ("usagePath", JString tas.typeId.AsString)
+        // Every usage path that shares this table; more than one element means
+        // byte-identical specializations were merged by the normalized hash.
+        ("usageSites", JArray (usageSitesOfHash r tas.hash |> List.map JString))
         ("hasAcnDefinition", JBool tas.hasAcnDefinition)
         ("minLengthInBytes", JNumber tas.minLengthInBytes)
         ("maxLengthInBytes", JNumber tas.maxLengthInBytes)
@@ -924,16 +1067,24 @@ let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (selectedHas
 let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =
     let icdHashesToPrint = selectIcdHashesToPrint r
     let selectedHashes = icdHashesToPrint |> Set.ofList
-    let stableIds = buildStableIdMap r icdHashesToPrint
+    let displayNames = buildDisplayNameMap r icdHashesToPrint
+    // The dump follows the rendered document order: grouped by module, PDU
+    // roots first when -icdPdus is given (roadmap B4).
+    let orderedHashes = orderTablesByModule r icdHashesToPrint |> List.collect(fun (_, _, hs) -> hs)
+    let stableIds = buildStableIdMap r orderedHashes
     let tables =
-        icdHashesToPrint |>
+        orderedHashes |>
         List.choose(fun hash ->
             match r.icdHashes.TryFind hash with
             | Some lst ->
                 let tas = selectTypeWithSameHash lst
-                Some (jsonOfIcdTas r stableIds selectedHashes stableIds.[hash] tas)
+                let displayName =
+                    match displayNames.TryFind hash with
+                    | Some dn -> dn
+                    | None    -> tas.name
+                Some (jsonOfIcdTas r stableIds selectedHashes stableIds.[hash] displayName tas)
             | None -> None)
-    let navOrder = icdHashesToPrint |> List.choose stableIds.TryFind |> List.map JString
+    let navOrder = orderedHashes |> List.choose stableIds.TryFind |> List.map JString
     let root = JObject [ ("navOrder", JArray navOrder); ("tables", JArray tables) ]
     File.WriteAllText(outFileName, formatJson 0 root + "\n")
 
@@ -1056,7 +1207,8 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 =  TL "GenerateAcnIcd_PrintTasses" (fun () -> r.Files |> List.map (fun f -> PrintTasses stgFileName f r ))
-    let (files1b, icdHashesToPrint, icdTasList ) = TL "GenerateAcnIcd_printTasses3" (fun () -> printTasses3 stgFileName r)
+    let (icdHashesToPrint, docModules) = TL "GenerateAcnIcd_printTasses3" (fun () -> printTasses3 stgFileName r)
+    let files1b = docModules |> List.map(fun dm -> dm.docContent)
     let bAcnParamsMustBeExplained = true
     let asn1HtmlMacros =
         match asn1HtmlStgFileMacros with
@@ -1065,26 +1217,23 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
     let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint))
     let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
 
-    let navLinks = 
-        icdTasList |> List.map(fun tas -> PrintNavLink stgFileName tas.name tas.hash) |> String.concat "\n"
-     (*
-        seq {
-            for f in r.Files do
-                for m in f.Modules do
-                    let moduleLink = PrintNavLink stgFileName m.Name.Value m.Name.Value
-                    yield moduleLink
-                    let thisModuleTasses = 
-                        icdTasList |>
-                        List.choose(fun tas ->
-                            match tas.tasInfo with
-                            | None -> None
-                            | Some tsInfo when tsInfo.modName = m.Name.Value -> Some tas
-                            | Some _ -> None) |>
-                        List.sortBy (fun tas -> tas.name)
-                    for tas in thisModuleTasses do
-                        let tasLink = PrintNavLink stgFileName tas.name tas.hash
-                        yield tasLink
-        } |> Seq.distinct |> Seq.toList |> String.concat "\n"*)
+    // Nav pane grouped by module, mirroring the document body; the -icdPdus
+    // roots come first within their module and render visually distinct.
+    let navLinks =
+        docModules |>
+        List.collect(fun dm ->
+            let headerLink =
+                match dm.docModName with
+                | Some mn -> [icd_acn.EmitNavModule stgFileName mn]
+                | None    -> []
+            let entryLinks =
+                dm.docNavEntries |>
+                List.map(fun e ->
+                    match e.navIsPduRoot with
+                    | true  -> icd_acn.EmitNavLinkRootPdu stgFileName e.navDisplayName e.navHash
+                    | false -> icd_acn.EmitNavLink stgFileName e.navDisplayName e.navHash)
+            headerLink @ entryLinks) |>
+        String.concat "\n"
 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)

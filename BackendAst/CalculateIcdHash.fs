@@ -75,7 +75,24 @@ let writeIcdRow (w: BinaryWriter) (icdRow: IcdRow) =
     writeOption w (writeString w) icdRow.sUnits
     writeIcdRowType w icdRow.rowType
 
-let calcIcdTypeAssHash (t1: IcdTypeAss) =
+// The hash is the table's identity: records with equal hashes are merged into
+// a single ICD table.  Auto-generated determinant comments name their target
+// by the *usage path* ("size determinant for TEST-CASE.MyPDU.payload.alt-20-1.
+// parameterIds" vs "... for TEST-CASE.Payload-20-1.parameterIds"), which made
+// byte-identical encodings hash differently at every use site (roadmap B4).
+// The hash is therefore computed on a normalized copy in which any comment
+// path below the record's own typeId is relativized to a fixed marker.  Paths
+// that point outside the type (cross-table determinant references) stay
+// absolute on purpose: they describe genuinely different wire relations.
+let private normalizeForHash (t1: IcdTypeAss) =
+    let selfPathDot = t1.typeId.AsString + "."
+    let normalizeComment (c: string) = c.Replace(selfPathDot, "$SELF$.")
+    { t1 with
+        comments = t1.comments |> List.map normalizeComment
+        rows = t1.rows |> List.map (fun rw -> { rw with comments = rw.comments |> List.map normalizeComment }) }
+
+let calcIcdTypeAssHash (t0: IcdTypeAss) =
+    let t1 = normalizeForHash t0
     use ms = new MemoryStream()
     use w = new BinaryWriter(ms)
 

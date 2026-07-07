@@ -28,7 +28,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "U8"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.U8",
+      "usageSites": [
+        "KITCHEN-SINK.U8"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -62,7 +66,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "U16"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.U16",
+      "usageSites": [
+        "KITCHEN-SINK.U16"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -94,7 +102,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "I32"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.I32",
+      "usageSites": [
+        "KITCHEN-SINK.I32"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
@@ -126,7 +138,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Temperature"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Temperature",
+      "usageSites": [
+        "KITCHEN-SINK.Temperature"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -158,7 +174,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Voltage"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Voltage",
+      "usageSites": [
+        "KITCHEN-SINK.Voltage"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
@@ -192,7 +212,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "DeviceMode"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.DeviceMode",
+      "usageSites": [
+        "KITCHEN-SINK.DeviceMode"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -228,7 +252,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "SafeFlag"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.SafeFlag",
+      "usageSites": [
+        "KITCHEN-SINK.SafeFlag"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -262,7 +290,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "DeviceName"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.DeviceName",
+      "usageSites": [
+        "KITCHEN-SINK.DeviceName"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 17,
@@ -315,7 +347,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Checksum"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Checksum",
+      "usageSites": [
+        "KITCHEN-SINK.Checksum"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
@@ -351,7 +387,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "EventMask"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.EventMask",
+      "usageSites": [
+        "KITCHEN-SINK.EventMask"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -385,7 +425,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "VarData"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.VarData",
+      "usageSites": [
+        "KITCHEN-SINK.VarData"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 65,
@@ -434,7 +478,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Samples"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Samples",
+      "usageSites": [
+        "KITCHEN-SINK.Samples"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 21,
@@ -516,7 +564,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Position"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Position",
+      "usageSites": [
+        "KITCHEN-SINK.Position"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 12,
       "maxLengthInBytes": 12,
@@ -580,7 +632,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Payload"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Payload",
+      "usageSites": [
+        "KITCHEN-SINK.Payload"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 65,
@@ -666,10 +722,16 @@
     },
     {
       "id": "Position@KITCHEN-SINK.Telemetry.opt-pos",
-      "name": "Position",
+      "name": "Position (as Telemetry.opt-pos)",
       "kind": "SEQUENCE",
       "tasInfo": null,
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Telemetry.opt-pos",
+      "usageSites": [
+        "KITCHEN-SINK.Payload.pos",
+        "KITCHEN-SINK.Telemetry.opt-pos",
+        "KITCHEN-SINK.Telemetry.pld.pos"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 12,
       "maxLengthInBytes": 12,
@@ -731,7 +793,11 @@
         "modName": "KITCHEN-SINK",
         "tasName": "Telemetry"
       },
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Telemetry",
+      "usageSites": [
+        "KITCHEN-SINK.Telemetry"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 19,
       "maxLengthInBytes": 132,
@@ -1032,10 +1098,14 @@
     },
     {
       "id": "Samples@KITCHEN-SINK.Telemetry.smpl",
-      "name": "Samples",
+      "name": "Samples (as Telemetry.smpl)",
       "kind": "SEQUENCE OF",
       "tasInfo": null,
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Telemetry.smpl",
+      "usageSites": [
+        "KITCHEN-SINK.Telemetry.smpl"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 20,
@@ -1093,10 +1163,14 @@
     },
     {
       "id": "Payload@KITCHEN-SINK.Telemetry.pld",
-      "name": "Payload",
+      "name": "Payload (as Telemetry.pld)",
       "kind": "CHOICE",
       "tasInfo": null,
+      "module": "KITCHEN-SINK",
       "usagePath": "KITCHEN-SINK.Telemetry.pld",
+      "usageSites": [
+        "KITCHEN-SINK.Telemetry.pld"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 65,

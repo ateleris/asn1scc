@@ -11,7 +11,11 @@
         "modName": "TEST-CASE",
         "tasName": "MyPDU"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyPDU",
+      "usageSites": [
+        "TEST-CASE.MyPDU"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 2,

@@ -17,7 +17,11 @@
         "modName": "MyModule",
         "tasName": "PDU-LENGTH-TYPE"
       },
+      "module": "MyModule",
       "usagePath": "MyModule.PDU-LENGTH-TYPE",
+      "usageSites": [
+        "MyModule.PDU-LENGTH-TYPE"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -49,7 +53,11 @@
         "modName": "MyModule",
         "tasName": "BUFFER-LENGTH-TYPE"
       },
+      "module": "MyModule",
       "usagePath": "MyModule.BUFFER-LENGTH-TYPE",
+      "usageSites": [
+        "MyModule.BUFFER-LENGTH-TYPE"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -81,7 +89,11 @@
         "modName": "MyModule",
         "tasName": "PDU"
       },
+      "module": "MyModule",
       "usagePath": "MyModule.PDU",
+      "usageSites": [
+        "MyModule.PDU"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 8,
       "maxLengthInBytes": 208,
@@ -122,10 +134,14 @@
     },
     {
       "id": "Header@MyModule.PDU.hdr",
-      "name": "Header",
+      "name": "Header (as PDU.hdr)",
       "kind": "SEQUENCE",
       "tasInfo": null,
+      "module": "MyModule",
       "usagePath": "MyModule.PDU.hdr",
+      "usageSites": [
+        "MyModule.PDU.hdr"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
@@ -188,7 +204,11 @@
       "name": "MyModule-PDU-payload_OCT_STR",
       "kind": "SEQUENCE",
       "tasInfo": null,
+      "module": "MyModule",
       "usagePath": "MyModule.PDU.payload",
+      "usageSites": [
+        "MyModule.PDU.payload"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 204,
@@ -257,7 +277,11 @@
         "modName": "MyModule",
         "tasName": "Header"
       },
+      "module": "MyModule",
       "usagePath": "MyModule.Header",
+      "usageSites": [
+        "MyModule.Header"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 0,
@@ -275,7 +299,12 @@
         "modName": "MyModule",
         "tasName": "PayloadData"
       },
+      "module": "MyModule",
       "usagePath": "MyModule.PayloadData",
+      "usageSites": [
+        "MyModule.PDU.payload",
+        "MyModule.PayloadData"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 204,

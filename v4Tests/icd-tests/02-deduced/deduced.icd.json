@@ -13,7 +13,11 @@
         "modName": "DEDUCED-TEST",
         "tasName": "MyInt"
       },
+      "module": "DEDUCED-TEST",
       "usagePath": "DEDUCED-TEST.MyInt",
+      "usageSites": [
+        "DEDUCED-TEST.MyInt"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -45,7 +49,12 @@
         "modName": "DEDUCED-TEST",
         "tasName": "TLVList"
       },
+      "module": "DEDUCED-TEST",
       "usagePath": "DEDUCED-TEST.TLVList",
+      "usageSites": [
+        "DEDUCED-TEST.MyPDU.items",
+        "DEDUCED-TEST.TLVList"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 200,
@@ -109,7 +118,11 @@
         "modName": "DEDUCED-TEST",
         "tasName": "MyPDU"
       },
+      "module": "DEDUCED-TEST",
       "usagePath": "DEDUCED-TEST.MyPDU",
+      "usageSites": [
+        "DEDUCED-TEST.MyPDU"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 5,
       "maxLengthInBytes": 205,

@@ -10,14 +10,9 @@
     "Payload-20-3@TEST-CASE.Payload-20-3",
     "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds",
     "MyPayload@TEST-CASE.MyPayload",
-    "Payload-20-1@TEST-CASE.MyPayload.alt-20-1",
-    "Payload-20-3@TEST-CASE.MyPayload.alt-20-3",
     "MyHeader@TEST-CASE.MyHeader",
     "MyPDU@TEST-CASE.MyPDU",
-    "MyHeader@TEST-CASE.MyPDU.header",
-    "MyPayload@TEST-CASE.MyPDU.payload",
-    "Payload-20-1@TEST-CASE.MyPDU.payload.alt-20-1",
-    "Payload-20-3@TEST-CASE.MyPDU.payload.alt-20-3"
+    "MyHeader@TEST-CASE.MyPDU.header"
   ],
   "tables": [
     {
@@ -28,7 +23,11 @@
         "modName": "TEST-CASE",
         "tasName": "MyUInt8"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyUInt8",
+      "usageSites": [
+        "TEST-CASE.MyUInt8"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -60,7 +59,11 @@
         "modName": "TEST-CASE",
         "tasName": "ServiceType-ID"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.ServiceType-ID",
+      "usageSites": [
+        "TEST-CASE.ServiceType-ID"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -92,7 +95,11 @@
         "modName": "TEST-CASE",
         "tasName": "MessageSubtype-ID"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MessageSubtype-ID",
+      "usageSites": [
+        "TEST-CASE.MessageSubtype-ID"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 1,
       "maxLengthInBytes": 1,
@@ -124,7 +131,11 @@
         "modName": "TEST-CASE",
         "tasName": "Parameter-ID"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Parameter-ID",
+      "usageSites": [
+        "TEST-CASE.Parameter-ID"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -156,7 +167,11 @@
         "modName": "TEST-CASE",
         "tasName": "Payload-17-1"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Payload-17-1",
+      "usageSites": [
+        "TEST-CASE.Payload-17-1"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 0,
@@ -190,7 +205,13 @@
         "modName": "TEST-CASE",
         "tasName": "Payload-20-1"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Payload-20-1",
+      "usageSites": [
+        "TEST-CASE.MyPDU.payload.alt-20-1",
+        "TEST-CASE.MyPayload.alt-20-1",
+        "TEST-CASE.Payload-20-1"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
@@ -236,7 +257,13 @@
       "name": "Payload-20-1-parameterIds",
       "kind": "SEQUENCE OF",
       "tasInfo": null,
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Payload-20-1.parameterIds",
+      "usageSites": [
+        "TEST-CASE.MyPDU.payload.alt-20-1.parameterIds",
+        "TEST-CASE.MyPayload.alt-20-1.parameterIds",
+        "TEST-CASE.Payload-20-1.parameterIds"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 20,
@@ -300,7 +327,13 @@
         "modName": "TEST-CASE",
         "tasName": "Payload-20-3"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Payload-20-3",
+      "usageSites": [
+        "TEST-CASE.MyPDU.payload.alt-20-3",
+        "TEST-CASE.MyPayload.alt-20-3",
+        "TEST-CASE.Payload-20-3"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 3,
       "maxLengthInBytes": 21,
@@ -346,7 +379,13 @@
       "name": "Payload-20-3-parameterIds",
       "kind": "SEQUENCE OF",
       "tasInfo": null,
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.Payload-20-3.parameterIds",
+      "usageSites": [
+        "TEST-CASE.MyPDU.payload.alt-20-3.parameterIds",
+        "TEST-CASE.MyPayload.alt-20-3.parameterIds",
+        "TEST-CASE.Payload-20-3.parameterIds"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 20,
@@ -410,7 +449,12 @@
         "modName": "TEST-CASE",
         "tasName": "MyPayload"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyPayload",
+      "usageSites": [
+        "TEST-CASE.MyPDU.payload",
+        "TEST-CASE.MyPayload"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 0,
       "maxLengthInBytes": 21,
@@ -458,7 +502,7 @@
           "sPresent": "service=20 AND message=1",
           "sType": {
             "kind": "reference",
-            "id": "Payload-20-1@TEST-CASE.MyPayload.alt-20-1"
+            "id": "Payload-20-1@TEST-CASE.Payload-20-1"
           },
           "sConstraint": null,
           "minLengthInBits": 24,
@@ -473,103 +517,11 @@
           "sPresent": "service=20 AND message=3",
           "sType": {
             "kind": "reference",
-            "id": "Payload-20-3@TEST-CASE.MyPayload.alt-20-3"
+            "id": "Payload-20-3@TEST-CASE.Payload-20-3"
           },
           "sConstraint": null,
           "minLengthInBits": 24,
           "maxLengthInBits": 168,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-1@TEST-CASE.MyPayload.alt-20-1",
-      "name": "Payload-20-1",
-      "kind": "SEQUENCE",
-      "tasInfo": null,
-      "usagePath": "TEST-CASE.MyPayload.alt-20-1",
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 3,
-      "maxLengthInBytes": 21,
-      "comments": [],
-      "acnParameters": [],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "n",
-          "comments": [
-            "size determinant for TEST-CASE.MyPayload.alt-20-1.parameterIds "
-          ],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (MyUInt8)"
-          },
-          "sConstraint": "(0 .. 255)",
-          "minLengthInBits": 8,
-          "maxLengthInBits": 8,
-          "sUnits": null,
-          "rowType": "FieldRow"
-        },
-        {
-          "idxOffset": 2,
-          "fieldName": "parameterIds",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
-          },
-          "sConstraint": "(1 .. 10)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 160,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-3@TEST-CASE.MyPayload.alt-20-3",
-      "name": "Payload-20-3",
-      "kind": "SEQUENCE",
-      "tasInfo": null,
-      "usagePath": "TEST-CASE.MyPayload.alt-20-3",
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 3,
-      "maxLengthInBytes": 21,
-      "comments": [],
-      "acnParameters": [],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "n",
-          "comments": [
-            "size determinant for TEST-CASE.MyPayload.alt-20-3.parameterIds "
-          ],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (MyUInt8)"
-          },
-          "sConstraint": "(0 .. 255)",
-          "minLengthInBits": 8,
-          "maxLengthInBits": 8,
-          "sUnits": null,
-          "rowType": "FieldRow"
-        },
-        {
-          "idxOffset": 2,
-          "fieldName": "parameterIds",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
-          },
-          "sConstraint": "(1 .. 10)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 160,
           "sUnits": null,
           "rowType": "LengthDeterminantRow"
         }
@@ -583,7 +535,11 @@
         "modName": "TEST-CASE",
         "tasName": "MyHeader"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyHeader",
+      "usageSites": [
+        "TEST-CASE.MyHeader"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 2,
       "maxLengthInBytes": 2,
@@ -632,7 +588,11 @@
         "modName": "TEST-CASE",
         "tasName": "MyPDU"
       },
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyPDU",
+      "usageSites": [
+        "TEST-CASE.MyPDU"
+      ],
       "hasAcnDefinition": true,
       "minLengthInBytes": 5,
       "maxLengthInBytes": 26,
@@ -661,7 +621,7 @@
           "sPresent": "always",
           "sType": {
             "kind": "reference",
-            "id": "MyPayload@TEST-CASE.MyPDU.payload"
+            "id": "MyPayload@TEST-CASE.MyPayload"
           },
           "sConstraint": null,
           "minLengthInBits": 0,
@@ -688,10 +648,14 @@
     },
     {
       "id": "MyHeader@TEST-CASE.MyPDU.header",
-      "name": "MyHeader",
+      "name": "MyHeader (as MyPDU.header)",
       "kind": "SEQUENCE",
       "tasInfo": null,
+      "module": "TEST-CASE",
       "usagePath": "TEST-CASE.MyPDU.header",
+      "usageSites": [
+        "TEST-CASE.MyPDU.header"
+      ],
       "hasAcnDefinition": false,
       "minLengthInBytes": 4,
       "maxLengthInBytes": 4,
@@ -763,176 +727,6 @@
           "maxLengthInBits": 8,
           "sUnits": null,
           "rowType": "FieldRow"
-        }
-      ]
-    },
-    {
-      "id": "MyPayload@TEST-CASE.MyPDU.payload",
-      "name": "MyPayload",
-      "kind": "CHOICE",
-      "tasInfo": null,
-      "usagePath": "TEST-CASE.MyPDU.payload",
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 0,
-      "maxLengthInBytes": 21,
-      "comments": [
-        "Active alternative is determined by ACN using the fields: 'service','message'"
-      ],
-      "acnParameters": [
-        {
-          "name": "service",
-          "type": {
-            "kind": "reference",
-            "id": "ServiceType-ID@TEST-CASE.ServiceType-ID"
-          }
-        },
-        {
-          "name": "message",
-          "type": {
-            "kind": "reference",
-            "id": "MessageSubtype-ID@TEST-CASE.MessageSubtype-ID"
-          }
-        }
-      ],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "alt-17-1",
-          "comments": [
-            "NULL type without an ACN encoding pattern: occupies no bits on the wire"
-          ],
-          "sPresent": "service=17 AND message=1",
-          "sType": {
-            "kind": "plain",
-            "value": "NULL (Payload-17-1)"
-          },
-          "sConstraint": null,
-          "minLengthInBits": 0,
-          "maxLengthInBits": 0,
-          "sUnits": null,
-          "rowType": "FieldRow"
-        },
-        {
-          "idxOffset": 2,
-          "fieldName": "alt-20-1",
-          "comments": [],
-          "sPresent": "service=20 AND message=1",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-1@TEST-CASE.MyPDU.payload.alt-20-1"
-          },
-          "sConstraint": null,
-          "minLengthInBits": 24,
-          "maxLengthInBits": 168,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
-        },
-        {
-          "idxOffset": 3,
-          "fieldName": "alt-20-3",
-          "comments": [],
-          "sPresent": "service=20 AND message=3",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-3@TEST-CASE.MyPDU.payload.alt-20-3"
-          },
-          "sConstraint": null,
-          "minLengthInBits": 24,
-          "maxLengthInBits": 168,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-1@TEST-CASE.MyPDU.payload.alt-20-1",
-      "name": "Payload-20-1",
-      "kind": "SEQUENCE",
-      "tasInfo": null,
-      "usagePath": "TEST-CASE.MyPDU.payload.alt-20-1",
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 3,
-      "maxLengthInBytes": 21,
-      "comments": [],
-      "acnParameters": [],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "n",
-          "comments": [
-            "size determinant for TEST-CASE.MyPDU.payload.alt-20-1.parameterIds "
-          ],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (MyUInt8)"
-          },
-          "sConstraint": "(0 .. 255)",
-          "minLengthInBits": 8,
-          "maxLengthInBits": 8,
-          "sUnits": null,
-          "rowType": "FieldRow"
-        },
-        {
-          "idxOffset": 2,
-          "fieldName": "parameterIds",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
-          },
-          "sConstraint": "(1 .. 10)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 160,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-3@TEST-CASE.MyPDU.payload.alt-20-3",
-      "name": "Payload-20-3",
-      "kind": "SEQUENCE",
-      "tasInfo": null,
-      "usagePath": "TEST-CASE.MyPDU.payload.alt-20-3",
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 3,
-      "maxLengthInBytes": 21,
-      "comments": [],
-      "acnParameters": [],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "n",
-          "comments": [
-            "size determinant for TEST-CASE.MyPDU.payload.alt-20-3.parameterIds "
-          ],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (MyUInt8)"
-          },
-          "sConstraint": "(0 .. 255)",
-          "minLengthInBits": 8,
-          "maxLengthInBits": 8,
-          "sUnits": null,
-          "rowType": "FieldRow"
-        },
-        {
-          "idxOffset": 2,
-          "fieldName": "parameterIds",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "reference",
-            "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
-          },
-          "sConstraint": "(1 .. 10)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 160,
-          "sUnits": null,
-          "rowType": "LengthDeterminantRow"
         }
       ]
     }
