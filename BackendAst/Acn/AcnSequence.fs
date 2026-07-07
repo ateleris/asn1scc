@@ -563,7 +563,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
             let chRows = chRows0 |> List.collect id
             let compositeChildren = compositeChildren0 |> List.collect id
-            uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compositeChildren
+            renumberIcdRows (uperPresenceMask@chRows), compositeChildren
         let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
 
         match existsAcnChildWithNoUpdates with

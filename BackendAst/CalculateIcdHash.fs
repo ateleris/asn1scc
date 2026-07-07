@@ -50,6 +50,10 @@ let writeIcdRowType (writer: BinaryWriter) (icdRowType: IcdRowType) =
         // appended after ThreeDOTs so the existing tags (and therefore the
         // hashes of all padding-free tables) stay unchanged
         | PaddingRow -> 5uy
+        // appended after PaddingRow for the same reason: only tables that
+        // actually collapse a SEQUENCE OF (roadmap D2) carry SubItemRow rows,
+        // so no existing table's hash changes.
+        | SubItemRow -> 6uy
     writer.Write(tag)
 
 let writeIcdAcnParameter (w: BinaryWriter) (p: IcdAcnParameter) =

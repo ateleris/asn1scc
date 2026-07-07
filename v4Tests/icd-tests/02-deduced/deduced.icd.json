@@ -177,22 +177,87 @@
         {
           "idxOffset": 2,
           "fieldName": "items",
-          "comments": [],
+          "comments": [
+            "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
+          ],
           "sPresent": "always",
           "sType": {
-            "kind": "reference",
-            "id": "TLVList@DEDUCED-TEST.TLVList"
+            "kind": "plain",
+            "value": "SEQUENCE OF"
           },
           "sConstraint": "(0 .. 100)",
           "minLengthInBits": 0,
           "maxLengthInBits": 1600,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow",
+          "rowType": "FieldRow",
           "offset": {
             "kind": "exact",
             "minBits": 8,
             "maxBits": 8,
             "display": "8"
+          }
+        },
+        {
+          "idxOffset": 1,
+          "fieldName": "items[1]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (MyInt)"
+          },
+          "sConstraint": "(0 .. 16383)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 100,
+          "fieldName": "items[100]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (MyInt)"
+          },
+          "sConstraint": "(0 .. 16383)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
           }
         },
         {

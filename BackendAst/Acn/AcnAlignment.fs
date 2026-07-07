@@ -91,7 +91,10 @@ let prependAlignmentPaddingRow (acnAlignment: AcnGenericTypes.AcnAlignment optio
             let shiftedRows =
                 rows |> List.map (fun rw ->
                     match rw.rowType, rw.idxOffset with
+                    // ThreeDOTs stay unnumbered; SubItemRow rows keep their own
+                    // element index (their "N.k" sub-number, roadmap D2).
                     | IcdRowType.ThreeDOTs, _ -> rw
+                    | IcdRowType.SubItemRow, _ -> rw
                     | _, Some i -> {rw with idxOffset = Some (i+1)}
                     | _, None   -> {rw with idxOffset = Some 2})
             (icdPaddingRow al sPresent) :: shiftedRows, compChildren

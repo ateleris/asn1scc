@@ -18,6 +18,26 @@ let sparkAnnotations (lm:LanguageMacros)  = lm.acn.sparkAnnotations
 
 let THREE_DOTS = {IcdRow.fieldName = ""; comments = []; sPresent="";sType= IcdPlainType ""; sConstraint=None; minLengthInBits = 0I; maxLengthInBits=0I;sUnits=None; rowType = IcdRowType.ThreeDOTs; idxOffset = None}
 
+/// Assign the "No" (index) column of a parent SEQUENCE/CHOICE's flattened rows.
+/// Every real row advances a single top-level counter; SubItemRow rows (the
+/// collapsed SEQUENCE OF elements of roadmap D2) keep their own element index
+/// (1 .. N) so the renderer can print "topIndex.elementIndex", and ThreeDOTs
+/// rows stay unnumbered.  A table without collapsed SEQUENCE OFs is numbered
+/// exactly as the previous `List.mapi (i+1)` did (there are no top-level
+/// ThreeDOTs rows in SEQUENCE/CHOICE tables), so existing tables are unchanged.
+let renumberIcdRows (rows: IcdRow list) : IcdRow list =
+    rows |> List.mapFold (fun topIdx rw ->
+        match rw.rowType with
+        | IcdRowType.SubItemRow -> rw, topIdx
+        | IcdRowType.ThreeDOTs  -> rw, topIdx
+        | IcdRowType.FieldRow
+        | IcdRowType.ReferenceToCompositeTypeRow
+        | IcdRowType.LengthDeterminantRow
+        | IcdRowType.PresentDeterminantRow
+        | IcdRowType.PaddingRow ->
+            let n = topIdx + 1
+            {rw with idxOffset = Some n}, n) 0 |> fst
+
 let getAcnDeterminantName = AcnCreateFromAntlr.getAcnDeterminantName
 
 /// Join the per-constraint ASN.1 strings of a type into the optional text
@@ -50,6 +70,7 @@ let icdAuxAddNamedTypeSuffix (soTasName: string option) (icdAux: IcdArgAux) : Ic
                 | IcdRowType.LengthDeterminantRow
                 | IcdRowType.PresentDeterminantRow
                 | IcdRowType.PaddingRow
+                | IcdRowType.SubItemRow
                 | IcdRowType.ThreeDOTs -> rw
             let rowsFunc fieldName sPresent comments =
                 let rows, comp = icdAux.rowsFunc fieldName sPresent comments

@@ -122,11 +122,11 @@ $arrsChildren;separator="\n"$
 >>
 
 /* soStartOffset (roadmap D1, append-only): cumulative "starts at" bit offset. */
-EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset) ::= <<
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset, soIndexOverride) ::= <<
 $if(noAlignToNextSize)$
 | | padding field | present due to align-to-next property | | padding bits | | | 0 | $noAlignToNextSize$ | $soUnit$ |
 $endif$
-| $nIndex$ | $sName$ | $sComment$ | $sPresentWhen$ | $sType$ | $sConstraint$ | $soStartOffset$ | $sMin$ | $sMax$ | $soUnit$ |
+| $if(soIndexOverride)$$soIndexOverride$$else$$nIndex$$endif$ | $sName$ | $sComment$ | $sPresentWhen$ | $sType$ | $sConstraint$ | $soStartOffset$ | $sMin$ | $sMax$ | $soUnit$ |
 >>
 
 EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<

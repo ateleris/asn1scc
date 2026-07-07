@@ -154,11 +154,11 @@ $arrsChildren;separator="\n\\hline\n"$
 >>
 
 /* soStartOffset (roadmap D1, append-only): cumulative "starts at" bit offset. */
-EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset) ::= <<
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset, soIndexOverride) ::= <<
 $if(noAlignToNextSize)$
  & padding field & present due to align-to-next property & & padding bits & & & 0 & $noAlignToNextSize$ & \protect\detokenize{$soUnit$} \\\\ \hline
 $endif$
-$nIndex$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & \protect\detokenize{$sPresentWhen$} & $sType$ & \protect\detokenize{$sConstraint$} & \protect\detokenize{$soStartOffset$} & $sMin$ & $sMax$ & \protect\detokenize{$soUnit$} \\\\
+$if(soIndexOverride)$\protect\detokenize{$soIndexOverride$}$else$$nIndex$$endif$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & \protect\detokenize{$sPresentWhen$} & $sType$ & \protect\detokenize{$sConstraint$} & \protect\detokenize{$soStartOffset$} & $sMin$ & $sMax$ & \protect\detokenize{$soUnit$} \\\\
 >>
 
 EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<

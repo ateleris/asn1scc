@@ -32,7 +32,7 @@ let buildReferenceIcdArgAux
     // is added centrally by AcnFunctionWrapper.createAcnFunction from the
     // resolved instance's inheritInfo - the delegation below must therefore
     // NOT suffix the rows again.
-    let icdFnc, extraComment, name =
+    let icdFnc, extraComment, name, refCanBeEmbedded =
         match r.args.generateAcnIcd with
         | true  ->
             match o.encodingOptions with
@@ -57,8 +57,12 @@ let buildReferenceIcdArgAux
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =
                         baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                    icdFnc, baseTypeIcdTas.comments, name
-                | None -> emptyIcdFnc, [], name
+                    // A plain reference inherits the referenced type's embeddability,
+                    // so a reference to a collapsible SEQUENCE OF (roadmap D2) inlines
+                    // it into the parent just as an inline SEQUENCE OF child does
+                    // (e.g. deduced MyPDU.items -> TLVList).
+                    icdFnc, baseTypeIcdTas.comments, name, baseTypeIcdTas.canBeEmbedded
+                | None -> emptyIcdFnc, [], name, false
             | Some encOptions ->
                 let sContainerKind, sSizeUnit =
                     match encOptions.octOrBitStr with
@@ -82,12 +86,17 @@ let buildReferenceIcdArgAux
                     let icdFnc fieldName sPresent comments  =
                         let rows, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
                         lengthDetRow@rows |> List.mapi(fun i rw -> {rw with idxOffset = Some (i+1)}), compChildren
-                    icdFnc, (containingComments@baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR")
-                | None -> emptyIcdFnc, [], None
-        | false -> emptyIcdFnc, [], None
+                    // A CONTAINING carrier keeps its own table and is never inlined
+                    // into its parent, even when the contained type is an embeddable
+                    // SEQUENCE OF / primitive: the octet/bit-string framing boundary
+                    // must stay visible (roadmap D2 "not the direct target of a
+                    // CONTAINING clause").
+                    icdFnc, (containingComments@baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR"), false
+                | None -> emptyIcdFnc, [], None, false
+        | false -> emptyIcdFnc, [], None, false
     match baseType.icdTas with
     | Some baseTypeIcdTas ->
-        Some {IcdArgAux.canBeEmbedded = baseTypeIcdTas.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=extraComment; scope="REFTYPE"; name=name}
+        Some {IcdArgAux.canBeEmbedded = refCanBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=extraComment; scope="REFTYPE"; name=name}
     | None -> None
 
 

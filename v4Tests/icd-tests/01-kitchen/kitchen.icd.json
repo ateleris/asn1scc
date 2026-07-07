@@ -16,7 +16,6 @@
     "Payload@KITCHEN-SINK.Payload",
     "Position@KITCHEN-SINK.Telemetry.opt-pos",
     "Telemetry@KITCHEN-SINK.Telemetry",
-    "Samples@KITCHEN-SINK.Telemetry.smpl",
     "Payload@KITCHEN-SINK.Telemetry.pld"
   ],
   "tables": [
@@ -1260,22 +1259,87 @@
         {
           "idxOffset": 14,
           "fieldName": "smpl",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: smplCount"
+          ],
           "sPresent": "always",
           "sType": {
-            "kind": "reference",
-            "id": "Samples@KITCHEN-SINK.Telemetry.smpl"
+            "kind": "plain",
+            "value": "SEQUENCE OF (Samples)"
           },
           "sConstraint": "(0 .. 10)",
           "minLengthInBits": 0,
           "maxLengthInBits": 160,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow",
+          "rowType": "FieldRow",
           "offset": {
             "kind": "range",
             "minBits": 114,
             "maxBits": 241,
             "display": "114..241"
+          }
+        },
+        {
+          "idxOffset": 1,
+          "fieldName": "smpl[1]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (U16)"
+          },
+          "sConstraint": "(0 .. 65535)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 10,
+          "fieldName": "smpl[10]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (U16)"
+          },
+          "sConstraint": "(0 .. 65535)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
           }
         },
         {
@@ -1362,89 +1426,6 @@
             "minBits": 114,
             "maxBits": 1024,
             "display": "114..1024"
-          }
-        }
-      ]
-    },
-    {
-      "id": "Samples@KITCHEN-SINK.Telemetry.smpl",
-      "name": "Samples (as Telemetry.smpl)",
-      "kind": "SEQUENCE OF",
-      "tasInfo": null,
-      "module": "KITCHEN-SINK",
-      "usagePath": "KITCHEN-SINK.Telemetry.smpl",
-      "usageSites": [
-        "KITCHEN-SINK.Telemetry.smpl"
-      ],
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 0,
-      "maxLengthInBytes": 20,
-      "comments": [
-        "Length is determined by the external field: smplCount"
-      ],
-      "acnParameters": [],
-      "rows": [
-        {
-          "idxOffset": 1,
-          "fieldName": "Item #1",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (U16)"
-          },
-          "sConstraint": "(0 .. 65535)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 16,
-          "sUnits": null,
-          "rowType": "FieldRow",
-          "offset": {
-            "kind": "exact",
-            "minBits": 0,
-            "maxBits": 0,
-            "display": "0"
-          }
-        },
-        {
-          "idxOffset": null,
-          "fieldName": "",
-          "comments": [],
-          "sPresent": "",
-          "sType": {
-            "kind": "plain",
-            "value": ""
-          },
-          "sConstraint": null,
-          "minLengthInBits": 0,
-          "maxLengthInBits": 0,
-          "sUnits": null,
-          "rowType": "ThreeDOTs",
-          "offset": {
-            "kind": "none",
-            "minBits": null,
-            "maxBits": null,
-            "display": null
-          }
-        },
-        {
-          "idxOffset": 10,
-          "fieldName": "Item #10",
-          "comments": [],
-          "sPresent": "always",
-          "sType": {
-            "kind": "plain",
-            "value": "INTEGER (U16)"
-          },
-          "sConstraint": "(0 .. 65535)",
-          "minLengthInBits": 16,
-          "maxLengthInBits": 16,
-          "sUnits": null,
-          "rowType": "FieldRow",
-          "offset": {
-            "kind": "variable",
-            "minBits": null,
-            "maxBits": null,
-            "display": "variable"
           }
         }
       ]

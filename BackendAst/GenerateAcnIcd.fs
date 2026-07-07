@@ -274,7 +274,7 @@ let emitSequenceComponent (r:AstRoot) stgFileName (optionalLikeUperChildren:Asn1
     let sMaxBits, sMaxBytes = acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMaxSizeInBits)/8.0)).ToString()
     let sMinBits, sMinBytes = acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMinSizeInBits)/8.0)).ToString()
     // old pipeline: no bit-offset column (roadmap D1 populates it in the new pipeline only)
-    icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits noAlignToNextSize soUnit None
+    icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits noAlignToNextSize soUnit None None
 
 
 let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Type) (m:Asn1Module) (r:AstRoot)  isAnonymousType : string list=
@@ -346,7 +346,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     optionalLikeUperChildren |> Seq.mapi(fun i c -> icd_acn.EmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
 
                 let nLen = optionalLikeUperChildren |> Seq.length
-                let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmitSequencePreambleComment stgFileName arrsOptWihtNoPresentWhenChildren)  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None None None
+                let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmitSequencePreambleComment stgFileName arrsOptWihtNoPresentWhenChildren)  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None None None None
                 Some ret
         let emitSequenceRow (i:int, curResult:string list) (ch:SeqChildInfo) =
             let di, newLines =
@@ -360,7 +360,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         let lengthLine =
                             let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
 
-                            icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) "length" "uper length determinant"  "???"  "OCTET STRING" "N/A" sMinBits sMaxBits None None None
+                            icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) "length" "uper length determinant"  "???"  "OCTET STRING" "N/A" sMinBits sMaxBits None None None None
 
                         1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
                     | _ -> 1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
@@ -423,7 +423,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sMaxBits, sMaxBytes = ch.chType.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.chType.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMinSizeInBits)/8.0)).ToString()
             let soUnit = GenerateUperIcd.getUnits ch.chType
-            icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits None soUnit None
+            icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits None soUnit None None
         let children = chInfo.children
         let children = children |> List.filter(fun ch -> match ch.Optionality with  Some (Asn1AcnAst.ChoiceAlwaysAbsent) -> false | _ -> true)
         let arrRows =
@@ -436,7 +436,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     | false     ->
                         let sComment = icd_acn.EmitChoiceIndexComment stgFileName ()
                         let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))).ToString()
-                        let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize None None None
+                        let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize None None None None
                         [ret], 2
                     //icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
@@ -768,15 +768,22 @@ let private computeRowOffsets (kind:string) (rows: IcdRow list) : IcdRowOffset l
         // a sizeable alternative's Length + content) accumulate because they are
         // all present once that alternative is selected.
         let restOffsets =
-            rest |> List.mapFold (fun (cMin, cMax, variable, curCond) rw ->
+            rest |> List.mapFold (fun (cMin, cMax, variable, curCond, prevSub) rw ->
                 match rw.rowType with
-                | ThreeDOTs -> OffNone, (cMin, cMax, true, curCond)
+                // Collapsed SEQUENCE OF element (roadmap D2): the alternative's
+                // header row already carries the whole array size, so the element
+                // rows and the ThreeDOTs that closes the group are transparent.
+                | SubItemRow -> OffNone, (cMin, cMax, variable, curCond, true)
+                | ThreeDOTs ->
+                    match prevSub with
+                    | true  -> OffNone, (cMin, cMax, variable, curCond, false)
+                    | false -> OffNone, (cMin, cMax, true, curCond, false)
                 | _ ->
                     let cMin, cMax, variable =
                         if curCond <> Some rw.sPresent then baseMin, baseMax, false
                         else cMin, cMax, variable
                     offsetOf cMin cMax variable,
-                    (cMin + rw.minLengthInBits, cMax + rw.maxLengthInBits, variable, Some rw.sPresent)) (baseMin, baseMax, false, None)
+                    (cMin + rw.minLengthInBits, cMax + rw.maxLengthInBits, variable, Some rw.sPresent, false)) (baseMin, baseMax, false, None, false)
             |> fst
         preambleOffsets @ restOffsets
     | _ ->
@@ -784,13 +791,23 @@ let private computeRowOffsets (kind:string) (rows: IcdRow list) : IcdRowOffset l
         // A guaranteed-present row advances the minimum by its own minimum; an
         // optional/conditional row advances only the maximum (it may be absent);
         // an always-absent row advances neither.
-        rows |> List.mapFold (fun (cMin, cMax, variable) rw ->
+        rows |> List.mapFold (fun (cMin, cMax, variable, prevSub) rw ->
             match rw.rowType with
-            | ThreeDOTs -> OffNone, (cMin, cMax, true)
+            // Collapsed SEQUENCE OF element (roadmap D2): the header row already
+            // accounts for the whole array size, so the element rows show no
+            // offset and do not advance the parent's position.
+            | SubItemRow -> OffNone, (cMin, cMax, variable, true)
+            // A ThreeDOTs that closes a collapsed SEQUENCE OF group is
+            // transparent; a top-level ThreeDOTs (elided repeats of an embedded
+            // sizeable) makes downstream offsets unbounded.
+            | ThreeDOTs ->
+                match prevSub with
+                | true  -> OffNone, (cMin, cMax, variable, false)
+                | false -> OffNone, (cMin, cMax, true, false)
             | _ ->
                 let minContrib = if isAlways rw then rw.minLengthInBits else 0I
                 let maxContrib = if isNever rw then 0I else rw.maxLengthInBits
-                offsetOf cMin cMax variable, (cMin + minContrib, cMax + maxContrib, variable)) (0I, 0I, false)
+                offsetOf cMin cMax variable, (cMin + minContrib, cMax + maxContrib, variable, false)) (0I, 0I, false, false)
         |> fst
 
 let private offsetDisplayBits (n:BigInteger) = n.ToString(CultureInfo.InvariantCulture)
@@ -802,7 +819,24 @@ let private offsetDisplay (off:IcdRowOffset) : string option =
     | OffVariable   -> Some "variable"
     | OffNone       -> None
 
-let emitIcdRow stgFileName (r:AstRoot) (soOffset:string option) (rw:IcdRow) =
+// The "No" (index) column string of each row - roadmap D2.  A collapsed
+// SEQUENCE OF's element rows (SubItemRow) are sub-numbered "topIndex.elementIndex"
+// under their header FieldRow so the reader sees they belong to the array; every
+// other row returns None, so the template keeps rendering the plain integer
+// $nIndex$ (the byte output of tables without any collapse is unchanged).
+// ThreeDOTs carry no number.
+let private computeRowIndexOverrides (rows: IcdRow list) : string option list =
+    rows |> List.mapFold (fun lastTop rw ->
+        match rw.rowType with
+        | SubItemRow ->
+            let k = match rw.idxOffset with Some z -> z | None -> 1
+            Some (sprintf "%d.%d" lastTop k), lastTop
+        | ThreeDOTs -> None, lastTop
+        | _ ->
+            let n = match rw.idxOffset with Some z -> z | None -> 1
+            None, n) 0 |> fst
+
+let emitIcdRow stgFileName (r:AstRoot) (soOffset:string option) (soIndexOverride:string option) (rw:IcdRow) =
     let i = match rw.idxOffset with Some z -> z | None -> 1
     let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     // No constraint -> empty cell.  "N.A." is manufactured noise (roadmap A4).
@@ -810,7 +844,7 @@ let emitIcdRow stgFileName (r:AstRoot) (soOffset:string option) (rw:IcdRow) =
     let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
     match rw.rowType with
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName ()
-    | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits soOffset
+    | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits soOffset soIndexOverride
 
 // All usage paths that share this table.  More than one element means that
 // byte-identical specializations were merged into a single table by the
@@ -831,8 +865,9 @@ let emitTas2 stgFileName (r:AstRoot) (selectedHashes:Set<string>) (displayName:s
         | _  -> icdTas.comments @ [sprintf "Used by: %s" (otherUsageSites |> String.concat ", ")]
     let sCommentLine = comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let offsets = computeRowOffsets icdTas.kind icdTas.rows
+    let indexOverrides = computeRowIndexOverrides icdTas.rows
     let arRows =
-        List.map2 (fun rw off -> emitIcdRow stgFileName r (offsetDisplay off) rw) icdTas.rows offsets
+        List.map3 (fun rw off soIdx -> emitIcdRow stgFileName r (offsetDisplay off) soIdx rw) icdTas.rows offsets indexOverrides
     let bHasAcnDef = icdTas.hasAcnDefinition
     let sMaxBitsExplained = ""
     icd_acn.EmitSequenceOrChoice stgFileName false displayName icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (emitTasParams stgFileName r selectedHashes icdTas 4I) (sCommentLine.Split [|'\n'|])
@@ -1145,6 +1180,7 @@ let private icdRowTypeName (rowType:IcdRowType) =
     | LengthDeterminantRow        -> "LengthDeterminantRow"
     | PresentDeterminantRow       -> "PresentDeterminantRow"
     | PaddingRow                  -> "PaddingRow"
+    | SubItemRow                  -> "SubItemRow"
     | ThreeDOTs                   -> "ThreeDOTs"
 
 // The cumulative bit offset ("starts at") of a row - roadmap D1. exact/range

@@ -54,6 +54,12 @@ type IcdRowType =
     // align-to-next property; prepended by the alignment wrappers in
     // BackendAst/Acn/AcnAlignment.fs (roadmap B3).
     | PaddingRow
+    // A repeated-element row of a SEQUENCE OF that has been collapsed into its
+    // parent's row group (roadmap D2).  Rendered indented and sub-numbered
+    // ("N.k") under the SEQUENCE OF's header FieldRow, and treated as
+    // transparent by the parent's bit-offset fold (the header row already
+    // carries the SEQUENCE OF's full size range).
+    | SubItemRow
     | ThreeDOTs
 
 type IcdRow = {

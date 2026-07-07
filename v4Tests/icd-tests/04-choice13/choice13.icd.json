@@ -6,9 +6,7 @@
     "Parameter-ID@TEST-CASE.Parameter-ID",
     "Payload-17-1@TEST-CASE.Payload-17-1",
     "Payload-20-1@TEST-CASE.Payload-20-1",
-    "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds",
     "Payload-20-3@TEST-CASE.Payload-20-3",
-    "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds",
     "MyPayload@TEST-CASE.MyPayload",
     "MyHeader@TEST-CASE.MyHeader",
     "MyPDU@TEST-CASE.MyPDU",
@@ -274,49 +272,29 @@
         {
           "idxOffset": 2,
           "fieldName": "parameterIds",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: n"
+          ],
           "sPresent": "always",
           "sType": {
-            "kind": "reference",
-            "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds"
+            "kind": "plain",
+            "value": "SEQUENCE OF"
           },
           "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow",
+          "rowType": "FieldRow",
           "offset": {
             "kind": "exact",
             "minBits": 8,
             "maxBits": 8,
             "display": "8"
           }
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-1-parameterIds@TEST-CASE.Payload-20-1.parameterIds",
-      "name": "Payload-20-1-parameterIds",
-      "kind": "SEQUENCE OF",
-      "tasInfo": null,
-      "module": "TEST-CASE",
-      "usagePath": "TEST-CASE.Payload-20-1.parameterIds",
-      "usageSites": [
-        "TEST-CASE.MyPDU.payload.alt-20-1.parameterIds",
-        "TEST-CASE.MyPayload.alt-20-1.parameterIds",
-        "TEST-CASE.Payload-20-1.parameterIds"
-      ],
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 2,
-      "maxLengthInBytes": 20,
-      "comments": [
-        "Length is determined by the external field: n"
-      ],
-      "acnParameters": [],
-      "rows": [
+        },
         {
           "idxOffset": 1,
-          "fieldName": "Item #1",
+          "fieldName": "parameterIds[1]",
           "comments": [],
           "sPresent": "always",
           "sType": {
@@ -327,12 +305,12 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow",
+          "rowType": "SubItemRow",
           "offset": {
-            "kind": "exact",
-            "minBits": 0,
-            "maxBits": 0,
-            "display": "0"
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
           }
         },
         {
@@ -358,7 +336,7 @@
         },
         {
           "idxOffset": 10,
-          "fieldName": "Item #10",
+          "fieldName": "parameterIds[10]",
           "comments": [],
           "sPresent": "always",
           "sType": {
@@ -369,12 +347,12 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow",
+          "rowType": "SubItemRow",
           "offset": {
-            "kind": "variable",
+            "kind": "none",
             "minBits": null,
             "maxBits": null,
-            "display": "variable"
+            "display": null
           }
         }
       ]
@@ -426,49 +404,29 @@
         {
           "idxOffset": 2,
           "fieldName": "parameterIds",
-          "comments": [],
+          "comments": [
+            "Length is determined by the external field: n"
+          ],
           "sPresent": "always",
           "sType": {
-            "kind": "reference",
-            "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds"
+            "kind": "plain",
+            "value": "SEQUENCE OF"
           },
           "sConstraint": "(1 .. 10)",
           "minLengthInBits": 16,
           "maxLengthInBits": 160,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow",
+          "rowType": "FieldRow",
           "offset": {
             "kind": "exact",
             "minBits": 8,
             "maxBits": 8,
             "display": "8"
           }
-        }
-      ]
-    },
-    {
-      "id": "Payload-20-3-parameterIds@TEST-CASE.Payload-20-3.parameterIds",
-      "name": "Payload-20-3-parameterIds",
-      "kind": "SEQUENCE OF",
-      "tasInfo": null,
-      "module": "TEST-CASE",
-      "usagePath": "TEST-CASE.Payload-20-3.parameterIds",
-      "usageSites": [
-        "TEST-CASE.MyPDU.payload.alt-20-3.parameterIds",
-        "TEST-CASE.MyPayload.alt-20-3.parameterIds",
-        "TEST-CASE.Payload-20-3.parameterIds"
-      ],
-      "hasAcnDefinition": false,
-      "minLengthInBytes": 2,
-      "maxLengthInBytes": 20,
-      "comments": [
-        "Length is determined by the external field: n"
-      ],
-      "acnParameters": [],
-      "rows": [
+        },
         {
           "idxOffset": 1,
-          "fieldName": "Item #1",
+          "fieldName": "parameterIds[1]",
           "comments": [],
           "sPresent": "always",
           "sType": {
@@ -479,12 +437,12 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow",
+          "rowType": "SubItemRow",
           "offset": {
-            "kind": "exact",
-            "minBits": 0,
-            "maxBits": 0,
-            "display": "0"
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
           }
         },
         {
@@ -510,7 +468,7 @@
         },
         {
           "idxOffset": 10,
-          "fieldName": "Item #10",
+          "fieldName": "parameterIds[10]",
           "comments": [],
           "sPresent": "always",
           "sType": {
@@ -521,12 +479,12 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow",
+          "rowType": "SubItemRow",
           "offset": {
-            "kind": "variable",
+            "kind": "none",
             "minBits": null,
             "maxBits": null,
-            "display": "variable"
+            "display": null
           }
         }
       ]

@@ -208,7 +208,7 @@ $arrsChildren;separator="\n"$
 /* soStartOffset (roadmap D1, append-only): the cumulative bit offset at which the
    field starts, measured from the start of the type - an exact number, a
    "min..max" range, or "variable". Empty when not supplied (old pipeline). */
-EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset) ::= <<
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset, soIndexOverride) ::= <<
 $if(noAlignToNextSize)$
 <tr class="$sCssClass$">
 <td class="no"></td>
@@ -225,7 +225,7 @@ $if(noAlignToNextSize)$
 
 $endif$
 <tr class="$sCssClass$">
-<td class="no">$nIndex$</td>
+<td class="no">$if(soIndexOverride)$$soIndexOverride$$else$$nIndex$$endif$</td>
 <td class="field", style="white-space: nowrap;">$sName$</td>
 <td class="comment">$sComment$</td>
 <td class="optional">$sPresentWhen$</td>
