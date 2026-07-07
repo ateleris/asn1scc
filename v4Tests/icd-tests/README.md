@@ -61,9 +61,23 @@ For each test case the grammar is compiled once with C output, `-icdAcn`,
 | `c-macros`       | each TAS table's max bytes equals the `<TAS>_REQUIRED_BYTES_FOR_ACN_ENCODING` macro in the generated C header, and BYTES == ceil(BITS/8) |
 | `tas-coverage`   | every TAS that received `REQUIRED_*` macros in the C headers has an ICD table (catches zero-bit types vanishing from the document) |
 | `html-anchors`   | every `href="#..."` in the `_new.html` resolves to an anchor in the same file |
+| `v2-parity`      | opt-in (see below): the `-icdRaw` JSON produced with `--acn-v2` is byte-identical to the legacy one, so closure conversion / deferred patching does not leak into the ICD (roadmap B8) |
 
 The invariant checks (everything except `golden`) are grammar-independent:
 they hold for any grammar, so new test cases get them for free.
+
+### `v2-parity` (opt-in)
+
+`--acn-v2` (deferred patching + closure conversion) is a C-only, experimental
+encoding backend.  For a grammar that compiles in both modes, its ICD **must**
+match legacy mode: the deferred transform is an implementation detail that the
+document should never expose. A test dir opts in by containing an empty marker
+file `acn-v2-parity.marker`; the runner then recompiles the grammar with
+`--acn-v2 -icdRaw` and diffs the JSON against the legacy one. Dirs without the
+marker skip the check (it is not reported). `03-pdu10` carries the marker: its
+empty `Header` SEQUENCE (cross-scope size/reference determinants) and
+`CONTAINING PayloadData` are exactly where closure conversion used to leak the
+usage-path name, drop determinant comments, and split a merged table.
 
 ## Expected failures (xfails.txt)
 

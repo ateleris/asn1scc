@@ -40,7 +40,19 @@ let buildReferenceIcdArgAux
                 let name =
                     match o.hasExtraConstrainsOrChildrenOrAcnArgs with
                     | false -> None
-                    | true  -> Some t.id.AsString.RDD
+                    | true  ->
+                        // In --acn-v2, closure conversion sets
+                        // hasExtraConstrainsOrChildrenOrAcnArgs=true and appends
+                        // acnArguments to EVERY cross-scope determinant reference,
+                        // even a plain TAS reference the user wrote without extras
+                        // (e.g. pdu10's `hdr Header`).  Using the usage-path RDD
+                        // name (MyModule-PDU-hdr) then leaks the internal transform
+                        // into the ICD; legacy mode names the table after the
+                        // referenced TAS (Header).  Present the deferred reference
+                        // as the referenced TAS so v2 matches legacy (roadmap B8).
+                        match r.args.acnDeferred with
+                        | true  -> None
+                        | false -> Some t.id.AsString.RDD
                 match baseType.icdTas with
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =

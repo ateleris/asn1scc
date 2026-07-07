@@ -21,6 +21,11 @@ temporary directory and then runs:
                        headers has an ICD table (catches zero-bit dropout)
   8. html-anchors    - every href="#..." in the _new.html resolves to an
                        anchor in the same file
+  9. v2-parity       - (opt-in, marker file 'acn-v2-parity.marker') the -icdRaw
+                       JSON produced with --acn-v2 (deferred patching / closure
+                       conversion) is byte-identical to the legacy one, so the
+                       internal transform does not leak into the ICD (roadmap
+                       B8).  Skipped for test dirs without the marker.
 
 Some checks FAIL today because of documented bugs (icd-analysis par.2: R1
 zero-bit dropout, R2 presence mask, R6 dead anchors, R7 duplicate names). A
@@ -52,7 +57,13 @@ DEFAULT_COMPILER = V4TESTS_DIR.parent / "asn1scc" / "bin" / "Debug" / "net10.0" 
 CHECK_NAMES = [
     "golden", "json-structure", "nav-labels", "presence-mask",
     "choice-alts", "c-macros", "tas-coverage", "html-anchors",
+    "v2-parity",
 ]
+
+# A test dir opts into the legacy-vs-v2 ICD comparison by containing this
+# (empty) marker file.  --acn-v2 is C-only, so only grammars that compile in
+# both modes should carry it.
+V2_PARITY_MARKER = "acn-v2-parity.marker"
 
 RED, GREEN, YELLOW, RESET = "\033[31m", "\033[32m", "\033[93m", "\033[0m"
 
@@ -297,6 +308,38 @@ def check_html_anchors(html_path):
             for t, n in sorted(missing.items())]
 
 
+def check_v2_parity(test_dir, compiler, asn1_files, acn_files, legacy_json_path,
+                    keep_temp):
+    """Compile with --acn-v2 and diff the -icdRaw JSON against the legacy one.
+
+    Returns None when the test dir does not carry the opt-in marker (the check
+    is then skipped, not reported).  Otherwise returns the usual error list
+    ([] on a byte-identical match, a unified diff on mismatch)."""
+    if not (test_dir / V2_PARITY_MARKER).exists():
+        return None
+    name = re.sub(r"^\d+-", "", test_dir.name)
+    temp_dir = Path(tempfile.mkdtemp(prefix=f"icd-test-{name}-v2-"))
+    json_path = temp_dir / f"{name}.icd.json"
+    cmd = [str(compiler), "-c", "-ACN", "--acn-v2",
+           "-icdRaw", json_path.name, "-o", "."]
+    cmd += [str(f) for f in asn1_files] + [str(f) for f in acn_files]
+    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=temp_dir)
+    if proc.returncode != 0:
+        return [f"--acn-v2 compile failed:\n{' '.join(cmd)}\n{proc.stdout}{proc.stderr}\n"
+                f"outputs kept in {temp_dir}"]
+    legacy = legacy_json_path.read_text(encoding="utf-8")
+    v2 = json_path.read_text(encoding="utf-8")
+    if legacy == v2:
+        if not keep_temp:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        return []
+    diff = difflib.unified_diff(
+        legacy.splitlines(keepends=True), v2.splitlines(keepends=True),
+        fromfile="legacy/-icdRaw", tofile="acn-v2/-icdRaw")
+    return [f"--acn-v2 -icdRaw differs from legacy (outputs kept in {temp_dir}):\n"
+            + "".join(diff)]
+
+
 # ---------------------------------------------------------------------------
 # xfail markers
 # ---------------------------------------------------------------------------
@@ -368,11 +411,15 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp):
         "c-macros": check_c_macros(icd, ast_root, macros),
         "tas-coverage": check_tas_coverage(icd, ast_root, macros),
         "html-anchors": check_html_anchors(new_html_path),
+        "v2-parity": check_v2_parity(test_dir, compiler, asn1_files, acn_files,
+                                     json_path, keep_temp),
     }
 
     failed = False
     for check in CHECK_NAMES:
         errors = results[check]
+        if errors is None:
+            continue  # check not applicable to this test dir (e.g. no v2 marker)
         xfail = xfails.get(check)
         if errors and xfail is not None:
             print(f"  {YELLOW}XFAIL{RESET} {check:<15} (expected: {xfail[0]} {xfail[1]})".rstrip())

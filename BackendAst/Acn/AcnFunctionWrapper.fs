@@ -210,7 +210,24 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 // "OCTET STRING (Checksum)" (roadmap A4).
                 let icdAux = AcnHelpers.icdAuxAddNamedTypeSuffix (t.inheritInfo |> Option.map (fun ii -> ii.tasName)) icdAux
                 let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
-                let icdTas = AcnIcd.createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition t.acnParameters
+                // In --acn-v2, closure conversion turns the CONTAINING external-field
+                // size into an explicit acnParameter on the contained type's usage
+                // instance (e.g. PayloadData at PDU.payload gains a `pdu-length`
+                // parameter).  Legacy mode carries no such parameter, so it would leak
+                // into the table-identity hash and stop the byte-identical contained
+                // instance from dedup-merging with the standalone TAS table, dropping
+                // a usage site (roadmap B8).  Drop CONTAINING-size determinants from
+                // the ICD parameter list so v2 matches legacy; codegen is unaffected
+                // (this touches ICD content only).  No-op in legacy mode.
+                let icdAcnParameters =
+                    match r.args.acnDeferred with
+                    | false -> t.acnParameters
+                    | true  ->
+                        t.acnParameters |> List.filter (fun prm ->
+                            not (deps.acnDependencies |> List.exists (fun d ->
+                                d.determinant.id = prm.id &&
+                                (match d.dependencyKind with AcnDepSizeDeterminant_bit_oct_str_contain _ -> true | _ -> false))))
+                let icdTas = AcnIcd.createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition icdAcnParameters
                 let ns3 =
                     match ns2.icdHashes.TryFind icdTas.hash with
                     | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}
