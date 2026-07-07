@@ -34,7 +34,7 @@ ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
 RelativeOid()       ::= "RELATIVE-OID"
 
 EmitRowWith3Dots() ::= <<
-\multicolumn{9}{|c|}{. . .} \\\\ \hline
+\multicolumn{10}{|c|}{. . .} \\\\ \hline
 >>
 
 EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
@@ -133,19 +133,19 @@ $arrsParams$
 \end{longtable}
 $endif$
 
-\begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|c|}
+\begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|c|c|}
 \caption{Type content for \protect\detokenize{$sTasName$}}\label{tabparam$sTasNameC$} \\\\
 \hline
 \rowcolor{gray!50}
-\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Offset} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
 \rowcolor{gray!50}
- & & & & & & \textbf{Bits} & \textbf{Bits} & \\\\
+ & & & & & & \textbf{(bits)} & \textbf{Bits} & \textbf{Bits} & \\\\
 \hline\\hline
 \endfirsthead
 \rowcolor{gray!50}
-\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Offset} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
 \rowcolor{gray!50}
- & & & & & & \textbf{Bits} & \textbf{Bits} & \\\\
+ & & & & & & \textbf{(bits)} & \textbf{Bits} & \textbf{Bits} & \\\\
 \hline\\hline
 \endhead
 $arrsChildren;separator="\n\\hline\n"$
@@ -153,11 +153,12 @@ $arrsChildren;separator="\n\\hline\n"$
 \end{longtable}
 >>
 
-EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
+/* soStartOffset (roadmap D1, append-only): cumulative "starts at" bit offset. */
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset) ::= <<
 $if(noAlignToNextSize)$
- & padding field & present due to align-to-next property & & padding bits & & 0 & $noAlignToNextSize$ & \protect\detokenize{$soUnit$} \\\\ \hline
+ & padding field & present due to align-to-next property & & padding bits & & & 0 & $noAlignToNextSize$ & \protect\detokenize{$soUnit$} \\\\ \hline
 $endif$
-$nIndex$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & \protect\detokenize{$sPresentWhen$} & $sType$ & \protect\detokenize{$sConstraint$} & $sMin$ & $sMax$ & \protect\detokenize{$soUnit$} \\\\
+$nIndex$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & \protect\detokenize{$sPresentWhen$} & $sType$ & \protect\detokenize{$sConstraint$} & \protect\detokenize{$soStartOffset$} & $sMin$ & $sMax$ & \protect\detokenize{$soUnit$} \\\\
 >>
 
 EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<

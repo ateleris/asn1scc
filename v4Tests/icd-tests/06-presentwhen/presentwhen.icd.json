@@ -38,7 +38,13 @@
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         },
         {
           "idxOffset": 2,
@@ -55,7 +61,13 @@
           "minLengthInBits": 3,
           "maxLengthInBits": 3,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 8,
+            "maxBits": 8,
+            "display": "8"
+          }
         }
       ]
     }

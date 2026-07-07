@@ -273,7 +273,8 @@ let emitSequenceComponent (r:AstRoot) stgFileName (optionalLikeUperChildren:Asn1
     let acnMinSizeInBits = (if bAlwaysAbsent then 0I else ch.acnMinSizeInBits) - nAlignToNextSize
     let sMaxBits, sMaxBytes = acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMaxSizeInBits)/8.0)).ToString()
     let sMinBits, sMinBytes = acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMinSizeInBits)/8.0)).ToString()
-    icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits noAlignToNextSize soUnit
+    // old pipeline: no bit-offset column (roadmap D1 populates it in the new pipeline only)
+    icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits noAlignToNextSize soUnit None
 
 
 let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Type) (m:Asn1Module) (r:AstRoot)  isAnonymousType : string list=
@@ -345,7 +346,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     optionalLikeUperChildren |> Seq.mapi(fun i c -> icd_acn.EmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
 
                 let nLen = optionalLikeUperChildren |> Seq.length
-                let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmitSequencePreambleComment stgFileName arrsOptWihtNoPresentWhenChildren)  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None None
+                let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmitSequencePreambleComment stgFileName arrsOptWihtNoPresentWhenChildren)  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None None None
                 Some ret
         let emitSequenceRow (i:int, curResult:string list) (ch:SeqChildInfo) =
             let di, newLines =
@@ -359,7 +360,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         let lengthLine =
                             let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
 
-                            icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) "length" "uper length determinant"  "???"  "OCTET STRING" "N/A" sMinBits sMaxBits None None
+                            icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) "length" "uper length determinant"  "???"  "OCTET STRING" "N/A" sMinBits sMaxBits None None None
 
                         1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
                     | _ -> 1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
@@ -422,7 +423,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sMaxBits, sMaxBytes = ch.chType.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.chType.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMinSizeInBits)/8.0)).ToString()
             let soUnit = GenerateUperIcd.getUnits ch.chType
-            icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits None soUnit
+            icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits None soUnit None
         let children = chInfo.children
         let children = children |> List.filter(fun ch -> match ch.Optionality with  Some (Asn1AcnAst.ChoiceAlwaysAbsent) -> false | _ -> true)
         let arrRows =
@@ -435,7 +436,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     | false     ->
                         let sComment = icd_acn.EmitChoiceIndexComment stgFileName ()
                         let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))).ToString()
-                        let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize None None
+                        let ret = icd_acn.EmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize None None None
                         [ret], 2
                     //icd_acn.EmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
@@ -726,7 +727,82 @@ let emitTasParams stgFileName (r:AstRoot) (selectedHashes:Set<string>) (icdTas:I
         icd_acn.PrintParam stgFileName (i+1).AsBigInt p.name sType colSpan)
 
 
-let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
+// ============================================================================
+// Per-row bit offset ("starts at" column) - roadmap D1.
+// The offset of a row is the cumulative bit position at which the field starts,
+// measured from the start of the type/table. It is an exact number while every
+// preceding row is fixed-size and guaranteed present; a "min..max" range once a
+// preceding row is variable-size or optional; and "variable" once a repetition
+// has been elided by a ThreeDOTs row (the hidden repeats make the position
+// unbounded from the row list alone). CHOICE alternatives all restart at the
+// same offset - after the fixed choice-index preamble, if any - because exactly
+// one alternative is present on the wire; optional/conditional SEQUENCE rows
+// contribute 0 to the guaranteed minimum (they may be absent). Computed purely
+// from the already-rendered rows, so it does not touch the content hash or the
+// generated code.
+type private IcdRowOffset =
+    | OffExact    of BigInteger
+    | OffRange    of BigInteger * BigInteger
+    | OffVariable
+    | OffNone                        // the ThreeDOTs row itself: no offset
+
+let private computeRowOffsets (kind:string) (rows: IcdRow list) : IcdRowOffset list =
+    let isAlways (rw:IcdRow) = rw.sPresent = "always"
+    let isNever  (rw:IcdRow) = rw.sPresent = "never"
+    let offsetOf (curMin:BigInteger) (curMax:BigInteger) (variable:bool) =
+        if variable then OffVariable
+        elif curMin = curMax then OffExact curMin
+        else OffRange(curMin, curMax)
+    match kind with
+    | "CHOICE" ->
+        // Leading "always" rows are the choice-index preamble (the ACN index
+        // determinant, when present); they accumulate into the base offset that
+        // every alternative restarts from.
+        let preamble = rows |> List.takeWhile (fun rw -> rw.rowType <> ThreeDOTs && isAlways rw)
+        let rest = rows |> List.skip preamble.Length
+        let preambleOffsets, (baseMin, baseMax) =
+            preamble |> List.mapFold (fun (cMin, cMax) rw ->
+                offsetOf cMin cMax false, (cMin + rw.minLengthInBits, cMax + rw.maxLengthInBits)) (0I, 0I)
+        // An alternative is a maximal run of rows sharing the same presence
+        // condition; each restarts at the base offset, and rows within it (e.g.
+        // a sizeable alternative's Length + content) accumulate because they are
+        // all present once that alternative is selected.
+        let restOffsets =
+            rest |> List.mapFold (fun (cMin, cMax, variable, curCond) rw ->
+                match rw.rowType with
+                | ThreeDOTs -> OffNone, (cMin, cMax, true, curCond)
+                | _ ->
+                    let cMin, cMax, variable =
+                        if curCond <> Some rw.sPresent then baseMin, baseMax, false
+                        else cMin, cMax, variable
+                    offsetOf cMin cMax variable,
+                    (cMin + rw.minLengthInBits, cMax + rw.maxLengthInBits, variable, Some rw.sPresent)) (baseMin, baseMax, false, None)
+            |> fst
+        preambleOffsets @ restOffsets
+    | _ ->
+        // SEQUENCE / SEQUENCE OF / sizeable / primitive: linear accumulation.
+        // A guaranteed-present row advances the minimum by its own minimum; an
+        // optional/conditional row advances only the maximum (it may be absent);
+        // an always-absent row advances neither.
+        rows |> List.mapFold (fun (cMin, cMax, variable) rw ->
+            match rw.rowType with
+            | ThreeDOTs -> OffNone, (cMin, cMax, true)
+            | _ ->
+                let minContrib = if isAlways rw then rw.minLengthInBits else 0I
+                let maxContrib = if isNever rw then 0I else rw.maxLengthInBits
+                offsetOf cMin cMax variable, (cMin + minContrib, cMax + maxContrib, variable)) (0I, 0I, false)
+        |> fst
+
+let private offsetDisplayBits (n:BigInteger) = n.ToString(CultureInfo.InvariantCulture)
+
+let private offsetDisplay (off:IcdRowOffset) : string option =
+    match off with
+    | OffExact n    -> Some (offsetDisplayBits n)
+    | OffRange(a,b) -> Some (sprintf "%s..%s" (offsetDisplayBits a) (offsetDisplayBits b))
+    | OffVariable   -> Some "variable"
+    | OffNone       -> None
+
+let emitIcdRow stgFileName (r:AstRoot) (soOffset:string option) (rw:IcdRow) =
     let i = match rw.idxOffset with Some z -> z | None -> 1
     let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     // No constraint -> empty cell.  "N.A." is manufactured noise (roadmap A4).
@@ -734,7 +810,7 @@ let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
     match rw.rowType with
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName ()
-    | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits
+    | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits soOffset
 
 // All usage paths that share this table.  More than one element means that
 // byte-identical specializations were merged into a single table by the
@@ -754,8 +830,9 @@ let emitTas2 stgFileName (r:AstRoot) (selectedHashes:Set<string>) (displayName:s
         | [] -> icdTas.comments
         | _  -> icdTas.comments @ [sprintf "Used by: %s" (otherUsageSites |> String.concat ", ")]
     let sCommentLine = comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
+    let offsets = computeRowOffsets icdTas.kind icdTas.rows
     let arRows =
-        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName r (i+1) rw)
+        List.map2 (fun rw off -> emitIcdRow stgFileName r (offsetDisplay off) rw) icdTas.rows offsets
     let bHasAcnDef = icdTas.hasAcnDefinition
     let sMaxBitsExplained = ""
     icd_acn.EmitSequenceOrChoice stgFileName false displayName icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (emitTasParams stgFileName r selectedHashes icdTas 4I) (sCommentLine.Split [|'\n'|])
@@ -1070,7 +1147,18 @@ let private icdRowTypeName (rowType:IcdRowType) =
     | PaddingRow                  -> "PaddingRow"
     | ThreeDOTs                   -> "ThreeDOTs"
 
-let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (rw:IcdRow) =
+// The cumulative bit offset ("starts at") of a row - roadmap D1. exact/range
+// carry finite bounds; variable (post-ThreeDOTs) and none (the ThreeDOTs row
+// itself) carry null bounds. display mirrors the HTML "Offset (bits)" column.
+let private jsonOfOffset (off:IcdRowOffset) =
+    let s (n:BigInteger) = n.ToString(CultureInfo.InvariantCulture)
+    match off with
+    | OffExact n    -> JObject [ ("kind", JString "exact");    ("minBits", JNumber n); ("maxBits", JNumber n); ("display", JString (s n)) ]
+    | OffRange(a,b) -> JObject [ ("kind", JString "range");    ("minBits", JNumber a); ("maxBits", JNumber b); ("display", JString (sprintf "%s..%s" (s a) (s b))) ]
+    | OffVariable   -> JObject [ ("kind", JString "variable"); ("minBits", JNull);     ("maxBits", JNull);     ("display", JString "variable") ]
+    | OffNone       -> JObject [ ("kind", JString "none");     ("minBits", JNull);     ("maxBits", JNull);     ("display", JNull) ]
+
+let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (off:IcdRowOffset) (rw:IcdRow) =
     JObject [
         ("idxOffset", match rw.idxOffset with Some i -> JNumber (BigInteger i) | None -> JNull)
         ("fieldName", JString rw.fieldName)
@@ -1082,6 +1170,7 @@ let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (rw:IcdRow) 
         ("maxLengthInBits", JNumber rw.maxLengthInBits)
         ("sUnits", match rw.sUnits with Some u -> JString u | None -> JNull)
         ("rowType", JString (icdRowTypeName rw.rowType))
+        ("offset", jsonOfOffset off)
     ]
 
 // ACN parameter of a parameterized type. Mirrors the HTML rendering: the
@@ -1121,7 +1210,7 @@ let private jsonOfIcdTas (r:AstRoot) (stableIds:Map<string,string>) (selectedHas
         ("maxLengthInBytes", JNumber tas.maxLengthInBytes)
         ("comments", JArray (tas.comments |> List.map JString))
         ("acnParameters", JArray (tas.acnParameters |> List.map (jsonOfIcdAcnParameter r stableIds selectedHashes)))
-        ("rows", JArray (tas.rows |> List.map (jsonOfIcdRow r stableIds)))
+        ("rows", JArray (List.map2 (jsonOfIcdRow r stableIds) (computeRowOffsets tas.kind tas.rows) tas.rows))
     ]
 
 let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =

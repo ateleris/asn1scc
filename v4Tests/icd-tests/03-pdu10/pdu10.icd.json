@@ -41,7 +41,13 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         }
       ]
     },
@@ -77,7 +83,13 @@
           "minLengthInBits": 7,
           "maxLengthInBits": 7,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         }
       ]
     },
@@ -113,7 +125,13 @@
           "minLengthInBits": 32,
           "maxLengthInBits": 32,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow"
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         },
         {
           "idxOffset": 2,
@@ -128,7 +146,13 @@
           "minLengthInBits": 32,
           "maxLengthInBits": 1632,
           "sUnits": null,
-          "rowType": "LengthDeterminantRow"
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 32,
+            "maxBits": 32,
+            "display": "32"
+          }
         }
       ]
     },
@@ -161,7 +185,13 @@
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         },
         {
           "idxOffset": 2,
@@ -178,7 +208,13 @@
           "minLengthInBits": 16,
           "maxLengthInBits": 16,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 8,
+            "maxBits": 8,
+            "display": "8"
+          }
         },
         {
           "idxOffset": 3,
@@ -195,7 +231,13 @@
           "minLengthInBits": 8,
           "maxLengthInBits": 8,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 24,
+            "maxBits": 24,
+            "display": "24"
+          }
         }
       ]
     },
@@ -231,7 +273,13 @@
           "minLengthInBits": 32,
           "maxLengthInBits": 32,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         },
         {
           "idxOffset": 2,
@@ -248,7 +296,13 @@
           "minLengthInBits": 0,
           "maxLengthInBits": 800,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 32,
+            "maxBits": 32,
+            "display": "32"
+          }
         },
         {
           "idxOffset": 3,
@@ -265,7 +319,13 @@
           "minLengthInBits": 0,
           "maxLengthInBits": 800,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 32,
+            "maxBits": 832,
+            "display": "32..832"
+          }
         }
       ]
     },
@@ -332,7 +392,13 @@
           "minLengthInBits": 32,
           "maxLengthInBits": 32,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
         },
         {
           "idxOffset": 2,
@@ -349,7 +415,13 @@
           "minLengthInBits": 0,
           "maxLengthInBits": 800,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 32,
+            "maxBits": 32,
+            "display": "32"
+          }
         },
         {
           "idxOffset": 3,
@@ -366,7 +438,13 @@
           "minLengthInBits": 0,
           "maxLengthInBits": 800,
           "sUnits": null,
-          "rowType": "FieldRow"
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 32,
+            "maxBits": 832,
+            "display": "32..832"
+          }
         }
       ]
     }

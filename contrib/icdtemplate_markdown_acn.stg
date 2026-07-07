@@ -33,7 +33,7 @@ SequenceOf()    ::= "SEQUENCE-OF"
 ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
 RelativeOid()       ::= "RELATIVE-OID"
 
-EmitRowWith3Dots() ::= "| . . . | | | | | | | | |"
+EmitRowWith3Dots() ::= "| . . . | | | | | | | | | |"
 
 EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
 # File: $sFileName$
@@ -116,16 +116,17 @@ $if(arrsParams)$
 $arrsParams$
 $endif$
 
-| No | Field | Comment | Present | Type | Constraint | Min Bits | Max Bits | Unit |
-|---:|:---|:---|:---|:---|:---|---:|---:|:---|
+| No | Field | Comment | Present | Type | Constraint | Offset (bits) | Min Bits | Max Bits | Unit |
+|---:|:---|:---|:---|:---|:---|---:|---:|---:|:---|
 $arrsChildren;separator="\n"$
 >>
 
-EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
+/* soStartOffset (roadmap D1, append-only): cumulative "starts at" bit offset. */
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit, soStartOffset) ::= <<
 $if(noAlignToNextSize)$
-| | padding field | present due to align-to-next property | | padding bits | | 0 | $noAlignToNextSize$ | $soUnit$ |
+| | padding field | present due to align-to-next property | | padding bits | | | 0 | $noAlignToNextSize$ | $soUnit$ |
 $endif$
-| $nIndex$ | $sName$ | $sComment$ | $sPresentWhen$ | $sType$ | $sConstraint$ | $sMin$ | $sMax$ | $soUnit$ |
+| $nIndex$ | $sName$ | $sComment$ | $sPresentWhen$ | $sType$ | $sConstraint$ | $soStartOffset$ | $sMin$ | $sMax$ | $soUnit$ |
 >>
 
 EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
