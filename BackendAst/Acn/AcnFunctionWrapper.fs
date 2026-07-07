@@ -112,6 +112,12 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
             | None ->
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala ->
+                    // No icdResult for inline/parameterized types under Scala:
+                    // the funcBody evaluation below is not supported by the
+                    // Scala backend. An ICD generated from a Scala AST would
+                    // therefore be incomplete - Program.fs rejects -icdAcn /
+                    // -customIcdAcn / -icdRaw when Scala is the first target
+                    // language (roadmap B6).
                     None, None, [], [], None, ns
                 | _ ->
                     match r.args.generateAcnIcd with

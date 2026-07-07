@@ -66,6 +66,9 @@ let PrintAcnAsHTML stgFileName (r:AstRoot)  =
 
 let PrintAcnAsHTML2 stgFileName (r:AstRoot)  (icdHashesToPrint:string list) =
     let icdHashesToPrintSet = icdHashesToPrint |> Set.ofList
+    // TAS name -> hashes of the selected tables of that TAS, deterministic
+    // order (more than one element only when the same TAS name exists in
+    // several modules).
     let fileTypeAssignments =
         r.icdHashes.Values |>
         Seq.collect id |>
@@ -73,17 +76,76 @@ let PrintAcnAsHTML2 stgFileName (r:AstRoot)  (icdHashesToPrint:string list) =
             match z.tasInfo with
             | Some ts when icdHashesToPrintSet.Contains z.hash  -> Some (ts.tasName, z.hash)
             | _ -> None) |>
+        Seq.distinct |>
+        Seq.groupBy fst |>
+        Seq.map(fun (tasName, pairs) -> (tasName, pairs |> Seq.map snd |> Seq.sort |> Seq.toList)) |>
         Map.ofSeq
 
-    let colorize (t: IToken) =
+    // The "ACN" link of a table header targets #ACN_<hash>; that anchor must
+    // exist exactly once in the document (roadmap B5 / R6: the old code
+    // re-emitted it at every occurrence of the name - duplicate anchors,
+    // invalid HTML).  The anchor is placed on the token that defines the ACN
+    // encoding spec of the TAS: a module-level occurrence (brace depth 0)
+    // directly followed by '[', '{' or '<'.  A TAS whose ACN properties only
+    // appear at a usage site (e.g. the type of an ACN-inserted child) falls
+    // back to its first occurrence.  Every other occurrence renders as a
+    // plain link to the ASN.1 definition.
+    let anchorTokenOfName : Map<string, string*int> =
+        let significant (tok: IToken) =
+            match tok.Type with
+            | t when t = acnLexer.WS || t = acnLexer.COMMENT || t = acnLexer.COMMENT2 -> false
+            | _ -> true
+        let defSites   = System.Collections.Generic.Dictionary<string, string*int>()
+        let firstSites = System.Collections.Generic.Dictionary<string, string*int>()
+        for pr in r.acnParseResults do
+            let mutable braceDepth = 0
+            pr.tokens |> Array.iteri(fun idx tok ->
+                match tok.Text with
+                | "{" -> braceDepth <- braceDepth + 1
+                | "}" -> braceDepth <- braceDepth - 1
+                | _   ->
+                    match tok.Type = acnLexer.UID && fileTypeAssignments.ContainsKey tok.Text with
+                    | false -> ()
+                    | true  ->
+                        match firstSites.ContainsKey tok.Text with
+                        | false -> firstSites.[tok.Text] <- (pr.fileName, idx)
+                        | true  -> ()
+                        let nextSignificant = pr.tokens.[idx+1 ..] |> Array.tryFind significant
+                        let isDefSite =
+                            match braceDepth, nextSignificant with
+                            | 0, Some nt -> nt.Text = "[" || nt.Text = "{" || nt.Text = "<"
+                            | _, _       -> false
+                        match isDefSite && not (defSites.ContainsKey tok.Text) with
+                        | true  -> defSites.[tok.Text] <- (pr.fileName, idx)
+                        | false -> ())
+        fileTypeAssignments |>
+        Map.toList |>
+        List.choose(fun (name, _) ->
+            match defSites.TryGetValue name with
+            | true, site -> Some (name, site)
+            | false, _ ->
+                match firstSites.TryGetValue name with
+                | true, site -> Some (name, site)
+                | false, _   -> None) |>
+        Map.ofList
+
+    let colorize (fName: string) (idx: int) (t: IToken) =
             let lt = icd_acn.LeftDiple stgFileName ()
             let gt = icd_acn.RightDiple stgFileName ()
             let isAcnKeyword = acnTokens.Contains t.Text
             let safeText = t.Text.Replace("<",lt).Replace(">",gt)
             let uid =
                 match fileTypeAssignments.TryFind t.Text with
-                |Some hash (*when icdHashesToPrintSet.Contains hash*) -> icd_acn.TasName stgFileName safeText hash
-                |None -> safeText
+                | Some (mainHash::extraHashes) ->
+                    match anchorTokenOfName.TryFind t.Text with
+                    | Some site when site = (fName, idx) ->
+                        // definition site: one ACN_<hash> anchor per selected
+                        // table of this TAS (the extra ones - same TAS name in
+                        // another module - as invisible empty-text anchors)
+                        let extraAnchors = extraHashes |> List.map(fun h -> icd_acn.TasName stgFileName "" h)
+                        (extraAnchors @ [icd_acn.TasName stgFileName safeText mainHash]) |> String.concat ""
+                    | _ -> icd_acn.TasName2 stgFileName safeText mainHash
+                | Some [] | None -> safeText
             let colored =
                 match t.Type with
                 |acnLexer.StringLiteral
@@ -97,9 +159,7 @@ let PrintAcnAsHTML2 stgFileName (r:AstRoot)  (icdHashesToPrint:string list) =
     r.acnParseResults |>
     Seq.map(fun pr -> pr.fileName, pr.tokens) |>
     Seq.map(fun (fName, tokens) ->
-            //let f = r.Files |> Seq.find(fun x -> Path.GetFileNameWithoutExtension(x.FileName) = Path.GetFileNameWithoutExtension(fName))
-            //let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
-            let content = tokens |> Seq.map(fun token -> colorize(token))
+            let content = tokens |> Seq.mapi(fun idx token -> colorize fName idx token)
             icd_acn.EmitFilePart2  stgFileName (Path.GetFileName fName) (content)
     ) |> Seq.toList
 
@@ -1088,10 +1148,10 @@ let DoWorkIcdRawJson (r:AstRoot) (outFileName:string) =
     let root = JObject [ ("navOrder", JArray navOrder); ("tables", JArray tables) ]
     File.WriteAllText(outFileName, formatJson 0 root + "\n")
 
-let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPrint:string list) (f:Asn1File) =
+let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPrint:string list) (emittedAsn1Anchors: System.Collections.Generic.HashSet<string>) (f:Asn1File) =
     let debug (tsName:string) =
-        r.icdHashes.Values |> 
-        Seq.collect id |> 
+        r.icdHashes.Values |>
+        Seq.collect id |>
         Seq.filter(fun ts -> ts.name = tsName) |>
         Seq.iter(fun ts ->
             let content = DAstUtilFunctions.serializeIcdTasToText ts
@@ -1100,21 +1160,45 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
     //debug("ALPHA-TC-SECONDARY-HEADER")
     //let tryCreateRefType = CreateAsn1AstFromAntlrTree.CreateRefTypeContent
     let icdHashesToPrintSet = icdHashesToPrint |> Set.ofList
-    let fileModules = f.Modules |> List.map(fun m -> m.Name.Value) |> Set.ofList
-    let fileTypeAssignments =
-        r.icdHashes.Values |>
-        Seq.collect id |>
-        Seq.choose(fun z ->
-            //match z.tasInfo with
-            //| None -> None
-            //| Some ts when icdHashesToPrintSet.Contains z.hash &&  fileModules.Contains ts.modName -> Some (ts.tasName, z.hash)
-            //| Some _ -> None ) |> 
-            match icdHashesToPrintSet.Contains z.hash with
-            | true  -> Some (z.name, z.hash)
-            | false -> None ) |>
-        Seq.distinct |>
-        Seq.groupBy fst |>
-        Seq.map(fun (tasName, tasHashes) -> (tasName, tasHashes |> Seq.map snd |> List.ofSeq)) |> Map.ofSeq
+    // Names of the TASes defined in the ASN.1 sources: only those names have a
+    // definition-site token ("Name ::= ...") that can carry ASN1_<hash> anchors.
+    let asn1DefinedTasNames =
+        r.Files |>
+        List.collect(fun f -> f.Modules) |>
+        List.collect(fun m -> m.TypeAssignments) |>
+        List.map(fun ts -> ts.Name.Value) |>
+        Set.ofList
+    let representativeOf (hash:string) = selectTypeWithSameHash r.icdHashes.[hash]
+    // Every selected table's header links "#ASN1_<its own hash>", so every
+    // selected hash needs an anchor at a TAS definition site (roadmap B5 / R6:
+    // names mapping to several hashes used to render as plain text - no anchor
+    // at all - leaving the ASN.1 link of all their tables dead).  A hash is
+    // attributed to the table's own name when that name is a real TAS; tables
+    // with synthetic names that never appear in the sources (e.g. the
+    // "<path>_OCT_STR" CONTAINING wrappers) are anchored at the definition of
+    // the TAS at the root of their usage path.
+    let anchorNameOfHash (hash:string) : (string*string) option =
+        let rep = representativeOf hash
+        match asn1DefinedTasNames.Contains rep.name with
+        | true  -> Some (rep.name, hash)
+        | false ->
+            let (ReferenceToType nodes) = rep.typeId
+            match nodes with
+            | _::(TA tasName)::_ when asn1DefinedTasNames.Contains tasName -> Some (tasName, hash)
+            | _ -> None
+    let usagePathLength (hash:string) =
+        let (ReferenceToType nodes) = (representativeOf hash).typeId
+        nodes.Length
+    // TAS name -> the hashes anchored at its definition site, shortest usage
+    // path first: the head is the TAS's own (standalone) table, which is what
+    // the source token links to.
+    let fileTypeAssignments : Map<string, string list> =
+        icdHashesToPrint |>
+        List.choose anchorNameOfHash |>
+        List.groupBy fst |>
+        List.map(fun (tasName, pairs) ->
+            (tasName, pairs |> List.map snd |> List.sortBy(fun h -> (usagePathLength h, h)))) |>
+        Map.ofList
 
 
     //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
@@ -1159,36 +1243,28 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                     match findPrevToken with
                     |Some(tok) -> tok
                     |None -> if idx = 0 then t else f.Tokens.[idx-1]
-                //let tasfileTypeAssignments = fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text)
-                //match tasfileTypeAssignments with
                 match fileTypeAssignments.TryFind t.Text with
                 | None -> safeText
                 | Some ([]) -> safeText
-                //| (_,tasHash)::[] ->
-                | Some (tasHash::[]) ->
-                    if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then
-                        icd_uper.TasName stgFileName safeText tasHash
-                    else
-                        icd_uper.TasName2 stgFileName safeText tasHash
-                | Some tasHashList ->
-                    let tasName = t.Text
-                    let debug () =
-                        printfn "Warning: %s is not unique. %d" t.Text tasHashList.Length
-
-                        printfn "Warning: %A" tasHashList
-                        //print to jso the type assignments that are not unique
-                        tasHashList |> 
-                        Seq.iter (fun (tasHash) -> 
-                            let icdTas = r.icdHashes.[tasHash] 
-                            icdTas |> 
-                            Seq.iter(fun icdTas ->
-                                let content = DAstUtilFunctions.serializeIcdTasToText icdTas
-                                let fileName = sprintf "%s_%s.txt" tasName icdTas.hash
-                                File.WriteAllText(fileName, content)))
-                        
-                    //debug ()
-                    safeText
-                //|None -> safeText
+                | Some (mainHash::extraHashes) ->
+                    match nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID with
+                    | false -> icd_uper.TasName2 stgFileName safeText mainHash
+                    | true  ->
+                        // Definition site: one ASN1_<hash> anchor per attributed
+                        // table.  HashSet.Add reports whether the hash is new -
+                        // a second definition of the same name (same TAS name in
+                        // another module) must not repeat anchors already
+                        // emitted, so only fresh ones are anchored here.
+                        let freshHashes = (mainHash::extraHashes) |> List.filter(fun h -> emittedAsn1Anchors.Add h)
+                        let extraAnchors =
+                            freshHashes |>
+                            List.filter(fun h -> h <> mainHash) |>
+                            List.map(fun h -> icd_uper.BlueTas stgFileName h "")
+                        let tokenHtml =
+                            match freshHashes |> List.contains mainHash with
+                            | true  -> icd_uper.TasName stgFileName safeText mainHash
+                            | false -> icd_uper.TasName2 stgFileName safeText mainHash
+                        (extraAnchors @ [tokenHtml]) |> String.concat ""
             let colored () =
                 match t.Type with
                 |asn1Lexer.StringLiteral
@@ -1214,7 +1290,10 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
         match asn1HtmlStgFileMacros with
         | None  -> stgFileName
         | Some x -> x
-    let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint))
+    // one anchor-uniqueness scope for the whole document (the colorized ASN.1
+    // parts of all files end up in the same HTML page)
+    let emittedAsn1Anchors = System.Collections.Generic.HashSet<string>()
+    let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint emittedAsn1Anchors))
     let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
 
     // Nav pane grouped by module, mirroring the document body; the -icdPdus

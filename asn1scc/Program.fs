@@ -208,6 +208,20 @@ let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
+// The ACN ICD (-icdAcn / -customIcdAcn / -icdRaw) cannot be generated when the
+// Scala backend is among the target languages: Scala does not provide the ICD
+// information for inline and parameterized types (AcnFunctionWrapper skips
+// icdResult when the active language is Scala, and evaluating the Scala
+// funcBody for ICD purposes is not supported), so a Scala-first run would
+// silently produce an incomplete document and a C/Ada-first run crashes while
+// building the Scala backend AST with ICD generation enabled. Reject the
+// combination with a clear error instead (roadmap B6 of the ICD analysis).
+let checkAcnIcdNotWithScala (cliArgs : CliArguments list) cmdoption =
+    match cliArgs |> List.exists (fun a -> a = Scala_Lang) with
+    | true  ->
+        raise (UserException (sprintf "The %s option is not supported for the Scala backend: Scala does not provide the ICD information for inline or parameterized types. Generate the ICD in a separate run using the C or Ada backend (the wire format is the same), or drop %s." cmdoption cmdoption))
+    | false -> ()
+
 let checkArgument (cliArgs : CliArguments list) arg =
     match arg with
     | Version          -> ()
@@ -258,9 +272,15 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Slim -> ()
     | IcdUper  outHtmlFile      -> checkOutFileName outHtmlFile ".html" "-icdUper"
     | CustomIcdUper  comFile    -> checkCompositeFile comFile "-customIcdUper" ".html"
-    | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
-    | CustomIcdAcn  comFile     -> checkCompositeFile comFile "-customIcdAcn" ".html"
-    | IcdRaw  outJsonFile       -> checkOutFileName outJsonFile ".json" "-icdRaw"
+    | IcdAcn  outHtmlFile       ->
+        checkOutFileName outHtmlFile ".html" "-icdAcn"
+        checkAcnIcdNotWithScala cliArgs "-icdAcn"
+    | CustomIcdAcn  comFile     ->
+        checkCompositeFile comFile "-customIcdAcn" ".html"
+        checkAcnIcdNotWithScala cliArgs "-customIcdAcn"
+    | IcdRaw  outJsonFile       ->
+        checkOutFileName outJsonFile ".json" "-icdRaw"
+        checkAcnIcdNotWithScala cliArgs "-icdRaw"
     | IcdPdus _                 -> ()
     | DetectPdus                -> ()
     | AdaUses                   -> ()

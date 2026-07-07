@@ -67,15 +67,16 @@ they hold for any grammar, so new test cases get them for free.
 
 ## Expected failures (xfails.txt)
 
-Some invariants fail today because of documented generator bugs (see the
-ICD analysis roadmap, correctness findings R1-R8):
+An invariant may fail because of a documented, not-yet-fixed generator bug
+(see the ICD analysis roadmap, correctness findings R1-R8). No such bug is
+open at the moment — all previously marked expected failures have been fixed:
 
-- **R6** — the ASN.1 colorizer emits no anchor for a type name that maps to
-  more than one table, leaving dead links
-
-(R7 — duplicate nav labels from in-context tables reusing the bare TAS name —
-was fixed by roadmap B4: byte-identical specializations merge into one table
-and remaining duplicates are disambiguated with their usage context.)
+- R6 (dead colorizer anchors for multi-hash names, duplicate ACN anchors) was
+  fixed by roadmap B5: the definition site anchors every table of the name and
+  references render as plain links.
+- R7 (duplicate nav labels from in-context tables reusing the bare TAS name)
+  was fixed by roadmap B4: byte-identical specializations merge into one table
+  and remaining duplicates are disambiguated with their usage context.
 
 So that the suite is green while those bugs exist, a test dir may contain an
 `xfails.txt` with one marker per line:

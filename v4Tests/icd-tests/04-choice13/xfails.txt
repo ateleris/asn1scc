@@ -1,4 +1,0 @@
-# Expected failures due to documented bugs (q/details-docs/icd-analysis.md par.2).
-# Format: <check-name> <roadmap-id> [reason]
-# Remove a line once the corresponding fix lands, and update the golden.
-html-anchors R6 colorizer emits no ASN1_<hash> anchor when a TAS name maps to multiple hashes (12 dead links; roadmap B5)
