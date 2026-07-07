@@ -47,6 +47,9 @@ let writeIcdRowType (writer: BinaryWriter) (icdRowType: IcdRowType) =
         | LengthDeterminantRow -> 2uy
         | PresentDeterminantRow -> 3uy
         | ThreeDOTs -> 4uy
+        // appended after ThreeDOTs so the existing tags (and therefore the
+        // hashes of all padding-free tables) stay unchanged
+        | PaddingRow -> 5uy
     writer.Write(tag)
 
 let writeIcdAcnParameter (w: BinaryWriter) (p: IcdAcnParameter) =

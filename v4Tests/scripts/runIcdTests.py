@@ -213,7 +213,7 @@ def check_choice_alts(icd, ast_root):
             continue
         expected = set(choice_alternatives(choice_nodes[0]))
         actual = {r["fieldName"] for r in table["rows"]
-                  if r["rowType"] != "ThreeDOTs"
+                  if r["rowType"] not in ("ThreeDOTs", "PaddingRow")
                   and r["fieldName"] not in SYNTHETIC_ROW_FIELDS}
         missing = expected - actual
         unexpected = actual - expected

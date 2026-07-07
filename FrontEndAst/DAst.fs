@@ -50,6 +50,10 @@ type IcdRowType =
     | ReferenceToCompositeTypeRow
     | LengthDeterminantRow
     | PresentDeterminantRow
+    // 0 .. alignment-1 bits inserted in front of a type carrying the ACN
+    // align-to-next property; prepended by the alignment wrappers in
+    // BackendAst/Acn/AcnAlignment.fs (roadmap B3).
+    | PaddingRow
     | ThreeDOTs
 
 type IcdRow = {

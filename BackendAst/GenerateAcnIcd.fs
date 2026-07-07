@@ -870,6 +870,7 @@ let private icdRowTypeName (rowType:IcdRowType) =
     | ReferenceToCompositeTypeRow -> "ReferenceToCompositeTypeRow"
     | LengthDeterminantRow        -> "LengthDeterminantRow"
     | PresentDeterminantRow       -> "PresentDeterminantRow"
+    | PaddingRow                  -> "PaddingRow"
     | ThreeDOTs                   -> "ThreeDOTs"
 
 let private jsonOfIcdRow (r:AstRoot) (stableIds:Map<string,string>) (rw:IcdRow) =

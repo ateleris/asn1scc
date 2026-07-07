@@ -49,11 +49,20 @@ let icdAuxAddNamedTypeSuffix (soTasName: string option) (icdAux: IcdArgAux) : Ic
                 | IcdRowType.ReferenceToCompositeTypeRow
                 | IcdRowType.LengthDeterminantRow
                 | IcdRowType.PresentDeterminantRow
+                | IcdRowType.PaddingRow
                 | IcdRowType.ThreeDOTs -> rw
             let rowsFunc fieldName sPresent comments =
                 let rows, comp = icdAux.rowsFunc fieldName sPresent comments
                 rows |> List.map patchRow, comp
             {icdAux with rowsFunc = rowsFunc}
+
+/// Max size in bits of a type's own ICD field row (roadmap B3): the type's
+/// acnMaxSizeInBits minus the align-to-next padding that AcnEncodingClasses
+/// folds into the max.  The padding is presented as a dedicated PaddingRow
+/// (prepended by the wrappers in AcnAlignment.fs), so the field row itself
+/// must show only the field's own encoding size.
+let icdMaxSizeWithoutAlignment (acnAlignment: AcnGenericTypes.AcnAlignment option) (acnMaxSizeInBits: System.Numerics.BigInteger) =
+    acnMaxSizeInBits - AcnEncodingClasses.getAlignmentSize acnAlignment
 
 let adaptArgument = DAstUPer.adaptArgument
 let adaptArgumentValue = DAstUPer.adaptArgumentValue

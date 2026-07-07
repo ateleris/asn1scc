@@ -93,7 +93,11 @@ let createAsn1PrimitiveStateful (r:Asn1AcnAst.AstRoot)
 
 /// Build the standard 1-row IcdArgAux for a primitive type.  The default
 /// rowsFunc emits a single FieldRow with the supplied type/constraint/units.
-let buildPrimitiveIcdAux (icdType:string)
+/// acnAlignment is the type's own align-to-next property: its padding bits
+/// are folded into maxBits by AcnEncodingClasses but presented as a separate
+/// PaddingRow (AcnAlignment.fs), so they are removed from the field row here.
+let buildPrimitiveIcdAux (acnAlignment:AcnGenericTypes.AcnAlignment option)
+                         (icdType:string)
                          (icdName:string)
                          (sConstraint:string option)
                          (minBits:BigInteger)
@@ -102,7 +106,7 @@ let buildPrimitiveIcdAux (icdType:string)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent = sPresent;
           sType = IcdPlainType icdType; sConstraint = sConstraint;
-          minLengthInBits = minBits; maxLengthInBits = maxBits; sUnits = units;
+          minLengthInBits = minBits; maxLengthInBits = icdMaxSizeWithoutAlignment acnAlignment maxBits; sUnits = units;
           rowType = IcdRowType.FieldRow; idxOffset = None}], []
     {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = icdName; rowsFunc = icdFnc;
      commentsForTas = []; scope = "type"; name = None}
@@ -129,7 +133,8 @@ type SizeableIcdParts = {
     contentComments : string list
 }
 
-let buildSizeableLeafIcdAux (icdType:string)
+let buildSizeableLeafIcdAux (acnAlignment:AcnGenericTypes.AcnAlignment option)
+                            (icdType:string)
                             (icdName:string)
                             (sConstraint:string option)
                             (minBits:BigInteger)
@@ -151,7 +156,7 @@ let buildSizeableLeafIcdAux (icdType:string)
         let contentRow =
             {IcdRow.fieldName = fieldName; comments = comments@parts.contentComments; sPresent = sPresent;
              sType = IcdPlainType icdType; sConstraint = sConstraint;
-             minLengthInBits = minBits - nDeterminantBits; maxLengthInBits = maxBits - nDeterminantBits;
+             minLengthInBits = minBits - nDeterminantBits; maxLengthInBits = (icdMaxSizeWithoutAlignment acnAlignment maxBits) - nDeterminantBits;
              sUnits = units; rowType = IcdRowType.FieldRow; idxOffset = None}
         let terminatorRows =
             match parts.terminatorRow with
@@ -170,7 +175,8 @@ let private deducedLengthComment =
     "Length is deduced from the size of the enclosing container/PDU (no length determinant is encoded)."
 
 /// IA5String / NumericString row breakdown per StringAcnEncodingClass (B1).
-let buildStringIcdAux (o:Asn1AcnAst.StringType)
+let buildStringIcdAux (acnAlignment:AcnGenericTypes.AcnAlignment option)
+                      (o:Asn1AcnAst.StringType)
                       (icdType:string)
                       (icdName:string)
                       (sConstraint:string option)
@@ -217,12 +223,13 @@ let buildStringIcdAux (o:Asn1AcnAst.StringType)
              contentComments = [$"Length is determined by the external field: %s{relPath.AsString}"; sCharComment]}
         | Acn_Enc_String_Ascii_Deduced _ ->
             {SizeableIcdParts.lengthRow = None; terminatorRow = None; contentComments = [deducedLengthComment; sCharComment]}
-    buildSizeableLeafIcdAux icdType icdName sConstraint o.acnMinSizeInBits o.acnMaxSizeInBits units parts
+    buildSizeableLeafIcdAux acnAlignment icdType icdName sConstraint o.acnMinSizeInBits o.acnMaxSizeInBits units parts
 
 /// OCTET STRING / BIT STRING row breakdown per SizeableAcnEncodingClass (B1).
 /// sSizeUnit is "bytes" (octet string) or "bits" (bit string); nMaxItems is
 /// the ASN.1 size upper bound in that unit.
-let buildOctetOrBitStringIcdAux (encClass:Asn1AcnAst.SizeableAcnEncodingClass)
+let buildOctetOrBitStringIcdAux (acnAlignment:AcnGenericTypes.AcnAlignment option)
+                                (encClass:Asn1AcnAst.SizeableAcnEncodingClass)
                                 (sSizeUnit:string)
                                 (nMaxItems:BigInteger)
                                 (icdType:string)
@@ -250,4 +257,4 @@ let buildOctetOrBitStringIcdAux (encClass:Asn1AcnAst.SizeableAcnEncodingClass)
              contentComments = []}
         | SZ_EC_Deduced ->
             {SizeableIcdParts.lengthRow = None; terminatorRow = None; contentComments = [deducedLengthComment]}
-    buildSizeableLeafIcdAux icdType icdName sConstraint minBits maxBits units parts
+    buildSizeableLeafIcdAux acnAlignment icdType icdName sConstraint minBits maxBits units parts

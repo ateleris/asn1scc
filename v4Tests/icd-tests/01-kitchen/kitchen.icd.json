@@ -840,6 +840,23 @@
         },
         {
           "idxOffset": 7,
+          "fieldName": "Padding",
+          "comments": [
+            "Padding inserted by the ACN 'align-to-next byte' property (0 bits when the encoding is already byte-aligned at this point)."
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "padding bits"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "PaddingRow"
+        },
+        {
+          "idxOffset": 8,
           "fieldName": "temp",
           "comments": [],
           "sPresent": "always",
@@ -849,12 +866,12 @@
           },
           "sConstraint": "(-50 .. 150)",
           "minLengthInBits": 16,
-          "maxLengthInBits": 23,
+          "maxLengthInBits": 16,
           "sUnits": null,
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 8,
+          "idxOffset": 9,
           "fieldName": "volt",
           "comments": [],
           "sPresent": "always",
@@ -869,7 +886,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 9,
+          "idxOffset": 10,
           "fieldName": "name",
           "comments": [
             "Each character is encoded as 8-bit ASCII."
@@ -886,7 +903,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 10,
+          "idxOffset": 11,
           "fieldName": "Terminator",
           "comments": [
             "Null terminator '00'H marking the end of the string"
@@ -903,7 +920,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 11,
+          "idxOffset": 12,
           "fieldName": "safe",
           "comments": [],
           "sPresent": "always",
@@ -918,7 +935,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 12,
+          "idxOffset": 13,
           "fieldName": "mask",
           "comments": [
             "Length is fixed to 12 bits (no length determinant is needed)."
@@ -935,7 +952,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 13,
+          "idxOffset": 14,
           "fieldName": "smpl",
           "comments": [],
           "sPresent": "always",
@@ -950,7 +967,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 14,
+          "idxOffset": 15,
           "fieldName": "opt-pos",
           "comments": [],
           "sPresent": "when pos-present is true",
@@ -965,7 +982,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 15,
+          "idxOffset": 16,
           "fieldName": "uper-opt",
           "comments": [],
           "sPresent": "when bit 1 of the Presence Mask is set",
@@ -980,7 +997,7 @@
           "rowType": "FieldRow"
         },
         {
-          "idxOffset": 16,
+          "idxOffset": 17,
           "fieldName": "pld",
           "comments": [],
           "sPresent": "always",
@@ -995,7 +1012,7 @@
           "rowType": "LengthDeterminantRow"
         },
         {
-          "idxOffset": 17,
+          "idxOffset": 18,
           "fieldName": "crc",
           "comments": [
             "Length is fixed to 4 bytes (no length determinant is needed)."

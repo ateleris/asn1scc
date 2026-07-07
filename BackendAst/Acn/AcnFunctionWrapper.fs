@@ -125,7 +125,17 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         let icdResult, udfcs =
                             match content with
                             | None -> zeroBitIcdResult (), []
-                            | Some bodyResult -> bodyResult.icdResult, bodyResult.userDefinedFunctions
+                            | Some bodyResult ->
+                                match bodyResult.icdResult with
+                                | Some _ -> bodyResult.icdResult, bodyResult.userDefinedFunctions
+                                | None   ->
+                                    // A body without icdResult is a zero-bit encoding whose
+                                    // funcBody was synthesized by a wrapper (align-to-next
+                                    // and/or save-position around a pattern-less NULL /
+                                    // empty SEQUENCE).  Synthesize the 0-bit row here and,
+                                    // when the type is aligned, prepend the padding row the
+                                    // alignment emits (roadmap B3).
+                                    AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ()), bodyResult.userDefinedFunctions
                         None, None, udfcs, [], icdResult, ns1a
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
@@ -137,7 +147,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         let emptyStatement = lm.lg.emptyStatement
                         emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], zeroBitIcdResult ()
                     | Some bodyResult ->
-                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, bodyResult.icdResult
+                        // Same zero-bit fallback as the inline branch above: a body
+                        // without icdResult comes from the align-to-next/save-position
+                        // wrappers around a zero-bit encoding.
+                        let icdResult =
+                            match bodyResult.icdResult with
+                            | Some _ -> bodyResult.icdResult
+                            | None   -> AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ())
+                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
