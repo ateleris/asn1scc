@@ -1100,6 +1100,11 @@ type private JsonValue =
     | JObject of (string*JsonValue) list
 
 let private jsonEscapeString (s:string) =
+    // Normalize line endings so the dump is byte-identical regardless of the
+    // source file's EOL convention: a block comment read from a CRLF checkout
+    // (e.g. on Windows/WSL) must produce the same JSON as an LF checkout (CI).
+    // Without this the golden files would depend on the checkout's line endings.
+    let s = s.Replace("\r\n", "\n").Replace("\r", "\n")
     let sb = System.Text.StringBuilder()
     sb.Append('"') |> ignore
     s |> Seq.iter(fun c ->

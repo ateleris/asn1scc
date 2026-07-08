@@ -20,8 +20,8 @@
       "minLengthInBytes": 1,
       "maxLengthInBytes": 2,
       "comments": [
-        "/*\r\nTest case demonstrating the present when expression functionality (see also the 001.acn file)\r\nBusiness requirement: field enm is present when int1 is less than 10 and even number or when it is within range 10..14.\r\n\r\nThe above requirement must be expressed as ASN.1 constraint. Usually, this is done with the usage of WITH COMPONENTS constraints.\r\n\r\n\r\n*/",
-        "/*\r\nthe present-when attribyte can be followed by a boolean expression which can contain one or more non optional ASN.1 fields (not ACN inserted fields).\r\nThe ACN expression can use int and real constants, non optional ASN.1 fields as well as the following operattos\r\n + - * / % <= < >= > and or\r\n \r\n*/"
+        "/*\nTest case demonstrating the present when expression functionality (see also the 001.acn file)\nBusiness requirement: field enm is present when int1 is less than 10 and even number or when it is within range 10..14.\n\nThe above requirement must be expressed as ASN.1 constraint. Usually, this is done with the usage of WITH COMPONENTS constraints.\n\n\n*/",
+        "/*\nthe present-when attribyte can be followed by a boolean expression which can contain one or more non optional ASN.1 fields (not ACN inserted fields).\nThe ACN expression can use int and real constants, non optional ASN.1 fields as well as the following operattos\n + - * / % <= < >= > and or\n \n*/"
       ],
       "acnParameters": [],
       "rows": [
