@@ -1728,7 +1728,7 @@ end if;
 >>
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 --open new scope to declare some variables
 declare --COVERAGE_IGNORE
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1750,7 +1750,7 @@ begin
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 --open new scope to declare some variables
 <if(bFixedSize)>
 declare --COVERAGE_IGNORE
@@ -1789,7 +1789,7 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1811,7 +1811,7 @@ begin
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -2082,8 +2082,8 @@ acn_deferred_det_init_expr() ::= "(others =\> \<\>)"
 /* compile-time trailing constant (nTrailingBits).                           */
 /* ------------------------------------------------------------------------- */
 
-str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_External_Field_Determinant(bs, <p>);"
-str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= <<
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_External_Field_Determinant(bs, <p>);"
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
 declare
     Ded_Avail_Bits : constant Integer := (bs.Size_In_Bytes * 8 - <nTrailingBits>) - bs.Current_Bit_Pos;
     Ded_Count : constant Integer := Ded_Avail_Bits / 8;

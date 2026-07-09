@@ -533,7 +533,36 @@ type LangGeneric_python() =
                     | _ -> false
                 )
             | _ -> false
-        shouldInlineAny || hasExternalSizeDet || isFixedSizeSizable
+        // Also require inlining for 'size deduced' sizable children. A deduced field derives
+        // its element count from the bits remaining in the enclosing region minus the trailing
+        // constant (deducedTrailingBits). That trailing count is context-dependent (it depends
+        // on what follows the field in THIS parent), so it must be materialized at the parent's
+        // call site — a shared standalone decode function would bake in the wrong (usually 0)
+        // trailing count. Inlining emits the deduced code in the parent's nesting scope.
+        let isDeducedSizable =
+            match parentTypeId.Kind with
+            | Asn1AcnAst.Sequence sq ->
+                sq.children
+                |> List.exists (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
+                        let isDeduced (kind: Asn1AcnAst.Asn1TypeKind) =
+                            match kind with
+                            | Asn1AcnAst.OctetString os -> os.acnEncodingClass = SZ_EC_Deduced
+                            | Asn1AcnAst.SequenceOf sof -> sof.acnEncodingClass = SZ_EC_Deduced
+                            | Asn1AcnAst.IA5String s | Asn1AcnAst.NumericString s ->
+                                match s.acnEncodingClass with
+                                | Acn_Enc_String_Ascii_Deduced _ -> true
+                                | _ -> false
+                            | _ -> false
+                        isDeduced ac.Type.Kind ||
+                        (match ac.Type.Kind with
+                         | Asn1AcnAst.ReferenceType rt -> isDeduced rt.resolvedType.Kind
+                         | _ -> false)
+                    | _ -> false
+                )
+            | _ -> false
+        shouldInlineAny || hasExternalSizeDet || isFixedSizeSizable || isDeducedSizable
 
     override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
         match relPath with

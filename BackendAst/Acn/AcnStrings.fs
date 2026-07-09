@@ -54,7 +54,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     | true -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName o.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType codec
                 Some(encDecStatement, [errCode], [], []), us
             | Acn_Enc_String_Ascii_Deduced _ ->
-                Some (lm.acn.str_ascii_deduced pp errCode.errCodeName o.maxSize.acn nestingScope.deducedTrailingBits codec, [errCode], [], []), us
+                Some (lm.acn.str_ascii_deduced pp errCode.errCodeName o.maxSize.acn nestingScope.deducedTrailingBits sType codec, [errCode], [], []), us
         match funcBodyContent with
         | None -> None, ns
         | Some (funcBodyContent,errCodes, localVars, auxiliaries) ->
@@ -172,7 +172,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let x = uper_funcBody errCode nestingScope p
                     Some(x.funcBody, x.errCodes, x.localVariables, x.auxiliaries)
                 | Acn_Enc_String_Ascii_Deduced _ ->
-                    Some (lm.acn.str_ascii_deduced pp errCode.errCodeName t.str.maxSize.acn nestingScope.deducedTrailingBits codec, [], [], [])
+                    Some (lm.acn.str_ascii_deduced pp errCode.errCodeName t.str.maxSize.acn nestingScope.deducedTrailingBits sType codec, [], [], [])
             match funcBodyContent with
             | None -> None
             | Some (funcBodyContent,errCodes, lvs, auxiliaries) ->

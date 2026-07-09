@@ -58,10 +58,12 @@ except Exception as e:
 
 Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 
+# 'size deduced': attach the decoder to a buffer of exactly the encoded byte
+# length so the deduced field derives its element count from the remaining bits.
 decoder = encoder.get_decoder()
+decoder = type(decoder).from_buffer(bytearray(encoder.get_bitstream_buffer()))
 
-# Decode value ('size deduced': the decoder reads from the buffer attached to
-# the exact encoded length)
+# Decode value
 try:
     decodedPDU = <sTasName>.<sFuncName>(decoder)
 

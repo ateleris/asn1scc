@@ -1226,7 +1226,7 @@ rtlModuleName() ::= ""
 sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /* encode to a temporary bitstream */
@@ -1247,7 +1247,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1280,7 +1280,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /* open new scope to declare some variables */
 {
     /* encode to a temporary bitstream */
@@ -1302,7 +1302,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1465,8 +1465,8 @@ acn_deferred_det_init_expr() ::= "// TODO"
 
 
 // 'size deduced' is not supported for Scala (empty stubs for interface parity)
-str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= ""
-str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= ""
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= ""
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= ""
 
 oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""
 oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""

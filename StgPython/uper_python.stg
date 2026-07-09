@@ -905,10 +905,11 @@ if <sLengthTmp> \< <nSizeMin> or <sLengthTmp> \> <nSizeMax>:
 <endif>
 >>
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
-# Encode self as the contained type into a temporary buffer
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+# Encode the contained value into a temporary buffer (unbound call on <p> so it
+# works whether <p> is the containing instance or a field of a parent).
 _inner_enc = UPEREncoder.of_size(<nMaxSize>)
-super().<sFuncName>(_inner_enc, False)
+<sContainedType>.<sFuncName>(<p>, _inner_enc, False)
 _inner_bytes = _inner_enc.get_bitstream_buffer()
 _nCount = (_inner_enc.bit_index + 7) // 8
 codec.encode_constrained_whole_number(_nCount, <nMinSize>, <nMaxSize>)
@@ -917,7 +918,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # Decode contained type from octet string
 _nCount_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
 if not _nCount_len_res or _nCount_len_res.decoded_value is None:
@@ -930,10 +931,10 @@ _inner_dec = UPERDecoder.from_buffer(_inner_bytes_res.decoded_value)
 <p> = <sFuncName>(_inner_dec, False)
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
-# Encode self as the contained type into a temporary buffer
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+# Encode the contained value into a temporary buffer (unbound call on <p>).
 _inner_enc = UPEREncoder.of_size((<nMaxSize> + 7) // 8)
-super().<sFuncName>(_inner_enc, False)
+<sContainedType>.<sFuncName>(<p>, _inner_enc, False)
 _inner_bits = _inner_enc.bit_index
 _inner_bytes = _inner_enc.get_bitstream_buffer()
 codec.encode_constrained_whole_number(_inner_bits, <nMinSize>, <nMaxSize>)
@@ -942,7 +943,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 # Decode contained type from bit string
 _nBits_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
 if not _nBits_len_res or _nBits_len_res.decoded_value is None:

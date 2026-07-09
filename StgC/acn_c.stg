@@ -734,8 +734,8 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 /* compile-time trailing constant (nTrailingBits).                           */
 /* ------------------------------------------------------------------------- */
 
-str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
-str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= <<
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
 {
 	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / 8;
@@ -1581,7 +1581,7 @@ sparkAnnotations_decode(sTypeDefName) ::= ""
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1604,7 +1604,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream whose view is limited to the actual
@@ -1631,7 +1631,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1656,7 +1656,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/

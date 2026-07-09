@@ -249,8 +249,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let noSizeMin = if o.minSize.acn=0I then None else Some o.minSize.acn
                         let funcBodyContent =
                             match o.child.acnMinSizeInBits = o.child.acnMaxSizeInBits with
-                            | true  -> lm.acn.sqf_deduced_fix_elem td pp access (i level) internalItem.funcBody noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
-                            | false -> lm.acn.sqf_deduced_var_elem td pp access (i level) internalItem.funcBody noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
+                            | true  -> lm.acn.sqf_deduced_fix_elem td pp access (i level) (wrapWithAppend internalItem) noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
+                            | false -> lm.acn.sqf_deduced_var_elem td pp access (i level) (wrapWithAppend internalItem) noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = (lv level)@localVariables; userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
