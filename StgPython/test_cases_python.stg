@@ -56,6 +56,20 @@ except Exception as e:
 
 >>
 
+Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+
+decoder = encoder.get_decoder()
+
+# Decode value ('size deduced': the decoder reads from the buffer attached to
+# the exact encoded length)
+try:
+    decodedPDU = <sTasName>.<sFuncName>(decoder)
+
+except Exception as e:
+    raise Asn1TestcaseDecodeFailedError(e)
+
+>>
+
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 res = decodedPDU.<sFuncName>()
 if not res:
