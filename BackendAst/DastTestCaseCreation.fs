@@ -75,6 +75,17 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement = lm.lg.formatValueAssignmentTestCase (resolveReferenceType v.Type.Kind) valueType initStatement
+    // Python: re-type an alias TAS's value to the alias so the generic XER encode uses the
+    // alias element tag (see PrintAutomaticTestCase for the rationale).
+    let initStatement =
+        match ProgrammingLanguage.ActiveLanguages.Head, v.Type.Kind with
+        | Python, ReferenceType _ ->
+            match v.Type.ActualType.Kind with
+            | Sequence _ | Choice _ | SequenceOf _ | OctetString _ | BitString _ | IA5String _ ->
+                let qualifiedAlias = if modName = "" then sTasName else modName + "." + sTasName
+                initStatement + "\n" + sprintf "tc_data.__class__ = %s" qualifiedAlias
+            | _ -> initStatement
+        | _ -> initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
@@ -99,6 +110,23 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
     let initStatement =
         match t.ActualType.Kind with
         | ObjectIdentifier _ -> lm.lg.adjustTestCaseObjectIdentifierInit modName sTasName initStatement
+        | _ -> initStatement
+    // Python: a structured alias TAS's automatic test value is built with the resolved (base)
+    // type's constructor, but this test exercises the alias TAS (its enc_dec functions). For XER
+    // the XML element tag is the value's runtime type name, so a base-typed value encodes
+    // <BaseType> while the alias decode expects <AliasType>. Re-type the value to the alias so
+    // the generic .encode(Encoding) dispatches to the alias's encoder and uses the alias tag
+    // (idempotent when the value is already alias-typed). uPER/ACN have no element tags, so this
+    // is a no-op there. Only structured kinds are handled: scalar/enum/null alias values are
+    // already alias-typed (re-wrapping would corrupt them) and NULL objects reject __class__.
+    let initStatement =
+        match ProgrammingLanguage.ActiveLanguages.Head, t.Kind with
+        | Python, ReferenceType _ ->
+            match t.ActualType.Kind with
+            | Sequence _ | Choice _ | SequenceOf _ | OctetString _ | BitString _ | IA5String _ ->
+                let qualifiedAlias = if modName = "" then sTasName else modName + "." + sTasName
+                initStatement + "\n" + sprintf "tc_data.__class__ = %s" qualifiedAlias
+            | _ -> initStatement
         | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
