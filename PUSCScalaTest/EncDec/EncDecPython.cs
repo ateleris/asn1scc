@@ -44,18 +44,18 @@ public class EncDecPython
     // XER active only for S1/S17 to mirror the validated interop set; others parked.
     [TestMethod] public void S1_XER() => Check(PUS_C_Service.S1, Enc.XER);
     [TestMethod] public void S17_XER() => Check(PUS_C_Service.S17, Enc.XER);
-    [TestMethod, Ignore] public void S2_XER() => Check(PUS_C_Service.S2, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S3_XER() => Check(PUS_C_Service.S3, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S4_XER() => Check(PUS_C_Service.S4, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S5_XER() => Check(PUS_C_Service.S5, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S6_XER() => Check(PUS_C_Service.S6, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S8_XER() => Check(PUS_C_Service.S8, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S9_XER() => Check(PUS_C_Service.S9, Enc.XER);   // paired with C XER (parked)
-    [TestMethod, Ignore] public void S11_XER() => Check(PUS_C_Service.S11, Enc.XER); // paired with C XER (parked)
+    [TestMethod] public void S2_XER() => Check(PUS_C_Service.S2, Enc.XER);
+    [TestMethod] public void S3_XER() => Check(PUS_C_Service.S3, Enc.XER);
+    [TestMethod] public void S4_XER() => Check(PUS_C_Service.S4, Enc.XER);
+    [TestMethod] public void S5_XER() => Check(PUS_C_Service.S5, Enc.XER);
+    [TestMethod] public void S6_XER() => Check(PUS_C_Service.S6, Enc.XER);
+    [TestMethod] public void S8_XER() => Check(PUS_C_Service.S8, Enc.XER);
+    [TestMethod] public void S9_XER() => Check(PUS_C_Service.S9, Enc.XER);
+    [TestMethod] public void S11_XER() => Check(PUS_C_Service.S11, Enc.XER);
     [TestMethod, Ignore] public void S12_XER() => Check(PUS_C_Service.S12, Enc.XER); // S12 TODO
-    [TestMethod, Ignore] public void S13_XER() => Check(PUS_C_Service.S13, Enc.XER); // paired with C XER (parked)
-    [TestMethod, Ignore] public void S14_XER() => Check(PUS_C_Service.S14, Enc.XER); // paired with C XER (parked)
-    [TestMethod, Ignore] public void S15_XER() => Check(PUS_C_Service.S15, Enc.XER); // paired with C XER (parked)
-    [TestMethod, Ignore] public void S18_XER() => Check(PUS_C_Service.S18, Enc.XER); // paired with C XER (parked)
-    [TestMethod, Ignore] public void S19_XER() => Check(PUS_C_Service.S19, Enc.XER); // paired with C XER (parked)
+    [TestMethod] public void S13_XER() => Check(PUS_C_Service.S13, Enc.XER);
+    [TestMethod] public void S14_XER() => Check(PUS_C_Service.S14, Enc.XER);
+    [TestMethod] public void S15_XER() => Check(PUS_C_Service.S15, Enc.XER);
+    [TestMethod] public void S18_XER() => Check(PUS_C_Service.S18, Enc.XER);
+    [TestMethod] public void S19_XER() => Check(PUS_C_Service.S19, Enc.XER);
 }
