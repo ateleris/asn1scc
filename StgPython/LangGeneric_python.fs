@@ -8,6 +8,7 @@ open Asn1AcnAstUtilFunctions
 open CommonTypes
 open System.Numerics
 open DAst
+open DAstUtilFunctions
 open FsUtils
 open Language
 open System.IO
@@ -159,7 +160,283 @@ let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     
 type LangGeneric_python() =
     inherit ILangGeneric()
-    
+
+    override _.programUnitImportStatement (puName: string) : string option =
+        Some $"import asn1pylib.asn1src.{puName}\n"
+
+    // Python needs deep-field-access resolution and deduplication to decide which types a
+    // program unit renders and with which ACN context, because inline ACN encoding produces a
+    // richer (parent-context) variant of a type than its standalone definition. Returns the
+    // ordered (tasForFlags, fullType, encDecType) triples for the generic driver to render.
+    override _.selectProgramUnitRenderTypes (pu: DAst.ProgramUnit) (tases: DAst.TypeAssignment list) (getResolvedTypeAndChildren: DAst.Asn1Type -> DAst.Asn1Type list) : (DAst.TypeAssignment * DAst.Asn1Type * DAst.Asn1Type) list =
+        // Helper function to detect if a type uses deep field access (inline ACN encoding)
+        let typeHasDeepFieldAccess (t: DAst.Asn1Type) : bool =
+            getResolvedTypeAndChildren t
+            |> List.exists (fun typ ->
+                match typ.Kind with
+                | Sequence seq ->
+                    // Check if this sequence has ACN children with presence dependencies
+                    seq.children |> List.exists (function
+                        | AcnChild cld -> cld.deps.acnDependencies
+                                          |> List.filter(function dep -> dep.dependencyKind.IsAcnDepPresence)
+                                          |> List.isEmpty
+                                          |> not
+                        | _ -> false
+                    )
+                | _ -> false
+            )
+
+        // STEP 1: Pre-process types with deep field access.
+        // Build a map: typeId -> (render triple, canonical key)
+        let deepFieldAccessMap =
+            let tasesNeedingDeepFieldAccess =
+                tases |> List.filter (fun tas -> typeHasDeepFieldAccess tas.Type)
+
+            if tasesNeedingDeepFieldAccess.IsEmpty then
+                Map.empty
+            else
+                // Flatten and deduplicate types with deep field access
+                let allTypesFromAllTases =
+                    tasesNeedingDeepFieldAccess |>
+                    List.collect(fun tas ->
+                        let allChildrenRaw = getResolvedTypeAndChildren tas.Type
+
+                        // Keep types that should generate code:
+                        // 1. Types with TypeDefinition (top-level TAS types)
+                        // 2. Resolved Sequences/Choices (even if they don't have TypeDefinition)
+                        let allChildren =
+                            allChildrenRaw
+                            // Remove children not defined in the current PU -> No deep field access over module boundaries (ACN User Manual 4.2)
+                            |> List.filter (fun t -> ToC t.moduleName = ToC pu.name)
+                            |> List.filter (fun t ->
+                                match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
+                                | true, _ -> true
+                                | false, Sequence _ -> true
+                                | false, SequenceOf _ -> true
+                                | false, Choice _ -> true
+                                | false, _ -> false
+                            )
+
+                        allChildren |> List.map (fun t -> (tas, t))
+                    )
+
+                // Deduplicate by type name, keeping the version with more children
+                let deduplicatedTypes =
+                    allTypesFromAllTases
+                    |> List.groupBy (fun (tas, t) ->
+                        match t.tasInfo with
+                        | Some ti -> $"{ti.modName}.{ti.tasName}"
+                        | None -> t.id.AsString
+                    )
+                    |> List.filter (fun (typeKey, _) ->
+                        // A type that has its own top-level TAS must generate its own class body
+                        // via the normal path, not reuse a richer inline ACN variant cached here.
+                        not (tases |> List.exists (fun tas ->
+                            match tas.Type.id.tasInfo with
+                            | Some ti -> $"{ti.modName}.{ti.tasName}" = typeKey
+                            | None -> false))
+                    )
+                    |> List.map (fun (typeKey, tasTypePairs) ->
+                        // Pick the "richest" version - the one with more children in its Sequence
+                        let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
+                            match t.Kind with
+                            | Sequence seq -> seq.children.Length
+                            | _ -> 0
+                        )
+                        (typeKey, chosen)
+                    )
+
+                // For each unique type, compute its render triple (with correct ACN context)
+                let mapEntries =
+                    deduplicatedTypes |> List.collect(fun (canonicalKey, (parentTas, encDecCls)) ->
+                        // Find the correct TAS for this type using the canonicalKey ("ModuleName.TypeName")
+                        // so each type gets its own class name, not the parent's.
+                        let correctTas =
+                            let parts = canonicalKey.Split('.')
+                            if parts.Length >= 2 then
+                                let modName = parts.[0]
+                                let tasName = parts.[parts.Length - 1]
+                                let found = tases |> List.tryFind (fun tas ->
+                                    match tas.Type.id.tasInfo with
+                                    | Some ti -> ti.modName = modName && ti.tasName = tasName
+                                    | None -> false
+                                )
+                                match found with
+                                | Some tas -> tas
+                                | None -> parentTas
+                            else
+                                parentTas
+
+                        let isFullDefinition, fullCls  =
+                            match encDecCls.typeDefinitionOrReference with
+                            | TypeDefinition td ->
+                                true, correctTas.Type
+                            | ReferenceToExistingDefinition ref ->
+                                let myTas = tasesNeedingDeepFieldAccess |> List.filter(fun tas -> ToC tas.python_name = ToC ref.typedefName)
+                                if myTas.Length = 0 then
+                                    false, correctTas.Type
+                                else
+                                    let myTas = myTas |> List.head
+                                    false, myTas.Type
+
+                        let renderTriple = (correctTas, fullCls, encDecCls)
+
+                        // Store with multiple keys so it can be looked up flexibly:
+                        // full scope path and canonical name.
+                        let keys =
+                            [
+                                encDecCls.id.AsString  // Full path
+                                canonicalKey           // Canonical name
+                            ] |> List.distinct
+
+                        keys |> List.map (fun key -> (key, (renderTriple, canonicalKey)))
+                    )
+
+                mapEntries |> Map.ofList
+
+        // STEP 2: Build a flattened, deduplicated list of all types to generate.
+        // First, collect ALL types from ALL tases
+        let allTypesFromAllTases =
+            tases |> List.collect (fun tas ->
+                let allChildrenRaw = getResolvedTypeAndChildren tas.Type
+
+                // Apply same filtering as STEP 1
+                let allChildren =
+                    allChildrenRaw
+                    |> List.filter (fun t -> ToC t.moduleName = ToC pu.name)
+                    |> List.filter (fun t ->
+                        match t.typeDefinitionOrReference.IsTypeDefinition, t.Kind with
+                        | true, _ -> true
+                        | false, Sequence _ -> true
+                        | false, SequenceOf _ -> true
+                        | false, Choice _ -> true
+                        | false, _ -> false
+                    )
+
+                allChildren |> List.map (fun t -> (tas, t))
+            )
+
+        // Deduplicate by canonical key, keeping the richest version.
+        // TypeDefinition versions always win over ReferenceToExistingDefinition.
+        let deduplicatedTypeMap =
+            allTypesFromAllTases
+            |> List.groupBy (fun (tas, t) ->
+                match t.tasInfo with
+                | Some ti -> $"{ti.modName}.{ti.tasName}"
+                | None -> t.id.AsString
+            )
+            |> List.map (fun (canonicalKey, tasTypePairs) ->
+                let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
+                    let isTypeDef = if t.typeDefinitionOrReference.IsTypeDefinition then 10000 else 0
+                    let childCount = match t.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                    isTypeDef + childCount
+                )
+                (canonicalKey, chosen)
+            )
+            |> Map.ofList
+
+        // Helper function to determine which TAS owns a type
+        let getOwningTasKey (canonicalKey: string) (parentTas: DAst.TypeAssignment) =
+            let parts = canonicalKey.Split('.')
+            if parts.Length >= 2 then
+                let modName = parts.[0]
+                let tasName = parts.[parts.Length - 1]
+
+                let owningTas = tases |> List.tryFind (fun tas ->
+                    match tas.Type.id.tasInfo with
+                    | Some ti -> ti.modName = modName && ti.tasName = tasName
+                    | None -> false
+                )
+
+                match owningTas with
+                | Some tas ->
+                    match tas.Type.id.tasInfo with
+                    | Some ti -> $"{ti.modName}.{ti.tasName}"
+                    | None -> canonicalKey
+                | None ->
+                    match parentTas.Type.id.tasInfo with
+                    | Some ti -> $"{ti.modName}.{ti.tasName}"
+                    | None -> canonicalKey
+            else
+                match parentTas.Type.id.tasInfo with
+                | Some ti -> $"{ti.modName}.{ti.tasName}"
+                | None -> canonicalKey
+
+        // Group types by which TAS they belong to, PRESERVING ORIGINAL ORDER
+        // (critical for Python where classes must be defined before use).
+        let typesByOwningTas =
+            allTypesFromAllTases
+            |> List.choose (fun (tas, typ) ->
+                let canonicalKey =
+                    match typ.tasInfo with
+                    | Some ti -> $"{ti.modName}.{ti.tasName}"
+                    | None -> typ.id.AsString
+
+                match deduplicatedTypeMap.TryFind(canonicalKey) with
+                | Some (chosenTas, chosenTyp) when chosenTyp.id.AsString = typ.id.AsString ->
+                    let owningTasKey = getOwningTasKey canonicalKey tas
+                    Some (owningTasKey, typ)
+                | _ -> None
+            )
+            // Full type definitions are always last, so group by key and take the last element
+            |> List.groupBy (fun (tasKey, typ) -> (tasKey, typ.id.AsString))
+            |> List.map (fun (tasKey, items) -> items |> List.last)
+            // Deduplicate: for each type ID, keep only the first TAS that owns it
+            |> List.groupBy (fun (tasKey, typ) -> typ.id.AsString)
+            |> List.collect (fun (typeId, items) -> items |> List.take 1)
+            |> List.groupBy fst
+            |> List.map (fun (tasKey, items) -> (tasKey, items |> List.map snd))
+            |> Map.ofList
+
+        // Helper function to look up types in the deepFieldAccessMap
+        let tryFindInMap (t: DAst.Asn1Type) =
+            let canonicalKey =
+                match t.tasInfo with
+                | Some ti -> Some $"{ti.modName}.{ti.tasName}"
+                | None -> None
+
+            let possibleKeys = [Some t.id.AsString; canonicalKey] |> List.choose id
+
+            possibleKeys
+            |> List.tryPick (fun key ->
+                if deepFieldAccessMap.ContainsKey(key) then
+                    Some (deepFieldAccessMap.[key])
+                else
+                    None
+            )
+
+        // Now process each TAS and yield the render triples for the types that belong to it
+        tases |> List.collect(fun tas ->
+            let tasCanonicalKey =
+                match tas.Type.id.tasInfo with
+                | Some ti -> $"{ti.modName}.{ti.tasName}"
+                | None -> tas.Type.id.AsString
+
+            // Get the types that belong to this TAS (already in correct order)
+            let typesToGenerate =
+                match typesByOwningTas.TryFind(tasCanonicalKey) with
+                | Some typeList -> typeList
+                | None -> []
+
+            // Separate into types with deep field access (in map) and those without
+            let typesInMap, typesNotInMap =
+                typesToGenerate |> List.partition (fun t -> tryFindInMap t |> Option.isSome)
+
+            // For types in the map, use the pre-computed render triple
+            let triplesFromMap =
+                typesInMap |> List.choose (fun typ ->
+                    tryFindInMap typ |> Option.map fst
+                )
+
+            // For types not in the map, render them standalone (fullType = encDecType = cls)
+            let triplesGenerated =
+                typesNotInMap
+                |> List.filter (fun cls -> cls.typeDefinitionOrReference.IsTypeDefinition)
+                |> List.map(fun cls -> (tas, cls, cls))
+
+            triplesFromMap @ triplesGenerated
+        )
+
     override _.ArrayStartIndex = 0
     
     override _.intValueToString (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
