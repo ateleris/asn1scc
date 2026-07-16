@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
-from typing import Optional, List, Union
+from typing import Optional, List, Self, Union
 
+from .bitstream import BitStream
 from .codec import Codec, EncodeResult, ENCODE_OK, BitStreamError, ERROR_INVALID_VALUE, \
     ERROR_CONSTRAINT_VIOLATION
 
@@ -12,6 +13,18 @@ class Encoder(Codec, ABC):
     @abstractmethod
     def get_decoder(self) -> Decoder:
         pass
+
+    @classmethod
+    def empty(cls) -> Self:
+        """Create an encoder over a fresh, growable buffer.
+
+        This is the go-to way to create an encoder when the output size is not
+        known in advance: the buffer grows automatically as values are written.
+        Use of_size() instead when the required size is known, to pre-allocate
+        exactly. empty() is not meaningful for decoders, which wrap existing
+        bytes via from_buffer().
+        """
+        return cls(BitStream(bytearray(), growable=True))
 
     def encode_integer(self, value: int,
                        min_val: int,
