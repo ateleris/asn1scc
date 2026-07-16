@@ -261,6 +261,21 @@ type ILangGeneric () =
         match realClass with
         | ASN1SCC_FP32 -> this.castExpression pp realTypeName
         | _            -> pp
+
+    // Program-unit code-generation hooks used by the generic GenerateFiles driver.
+    // selectProgramUnitRenderTypes picks and orders the (tasForFlags, fullType, encDecType)
+    // triples to render for a program unit. The default is one triple per type assignment;
+    // object-oriented backends (Python) override it to perform deep-field-access resolution
+    // and deduplication (see ACN User Manual 4.2). The resolver argument yields a type and its
+    // resolved children (post-order); it is injected because it lives in the backend layer.
+    abstract member selectProgramUnitRenderTypes : DAst.ProgramUnit -> DAst.TypeAssignment list -> (DAst.Asn1Type -> DAst.Asn1Type list) -> (DAst.TypeAssignment * DAst.Asn1Type * DAst.Asn1Type) list
+    default this.selectProgramUnitRenderTypes _ (tases: DAst.TypeAssignment list) _ = tases |> List.map (fun t -> (t, t.Type, t.Type))
+
+    // Statement to append to the package aggregator file (Python's __init__.py) when a program
+    // unit is emitted. None for languages that have no such file.
+    abstract member programUnitImportStatement : puName:string -> string option
+    default this.programUnitImportStatement _ = None
+
     abstract member createSingleLineComment : string -> string
     abstract member SpecNameSuffix: string
     abstract member SpecExtension : string
