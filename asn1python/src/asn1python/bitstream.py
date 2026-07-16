@@ -26,22 +26,43 @@ class BitStream:
         return (bit_position >= 0 and bit_position < NO_OF_BITS_IN_BYTE and
                 byte_position >= 0 and ((byte_position < buf_length) or (bit_position == 0 and byte_position == buf_length)))
 
-    def __init__(self, data: bytearray):
+    def __init__(self, data: bytearray, growable: bool = False):
         """
         Initialize a BitStream.
 
         Args:
             data: Initial data buffer
+            growable: When True, write operations that would exceed the buffer
+                grow it automatically instead of raising. Used by encoders created
+                without a size estimate (see Encoder.empty()). Left False for
+                fixed-size buffers (of_size / from_buffer) and decoders, where
+                exceeding the buffer must stay an error.
         """
         self._buffer = bytearray(data)
         self._current_bit = 0  # Current bit within byte (0-7)
         self._current_byte = 0  # Current byte position (0-based)
+        self._growable = growable
 
     @classmethod
     def from_bitstream(cls, other: 'BitStream') -> 'BitStream':
         """Method to create a BitStream from an existing BitStream. Copies buffer and segments"""
-        result = cls(other._buffer)
+        result = cls(other._buffer, growable=other._growable)
         return result
+
+    def _grow_to_fit(self, additional_bits: int) -> None:
+        """Grow the buffer so that `additional_bits` more bits fit past the current position.
+
+        Doubles capacity (amortised O(1) appends) until the required byte count is
+        reached. No-op if the buffer is already large enough.
+        """
+        needed_bits = self.current_used_bits + additional_bits
+        needed_bytes = (needed_bits + NO_OF_BITS_IN_BYTE - 1) // NO_OF_BITS_IN_BYTE
+        if needed_bytes <= self.buffer_size:
+            return
+        new_size = max(self.buffer_size, 1)
+        while new_size < needed_bytes:
+            new_size *= 2
+        self._buffer.extend(bytearray(new_size - self.buffer_size))
 
     def get_data(self) -> bytearray:
         """Get the used data buffer"""
@@ -181,8 +202,11 @@ class BitStream:
         
     def write_bit(self, bit: bool) -> None:
         if self.remaining_bits < 1:
-            raise BitStreamError("Cannot write beyond end of bitstream")
-        
+            if self._growable:
+                self._grow_to_fit(1)
+            else:
+                raise BitStreamError("Cannot write beyond end of bitstream")
+
         return self.__write_bit(bit)
 
     def write_bits(self, value: int, bit_count: int) -> None:
@@ -191,7 +215,10 @@ class BitStream:
             raise BitStreamError(f"Bit count {bit_count} out of range [0, 64]")
 
         if self.remaining_bits < bit_count:
-            raise BitStreamError("Cannot write beyond end of bitstream")
+            if self._growable:
+                self._grow_to_fit(bit_count)
+            else:
+                raise BitStreamError("Cannot write beyond end of bitstream")
 
         # Check if value fits in bit_count bits
         if value < 0 or value >= (1 << bit_count):

@@ -35,6 +35,21 @@ class XEREncoder:
         """
         return cls()
 
+    @classmethod
+    def empty(cls) -> "XEREncoder":
+        """
+        Create a new XER encoder over a fresh, growable buffer.
+
+        This is the go-to way to create an encoder when the output size is not
+        known in advance. XER is text and always builds incrementally, so this
+        is equivalent to of_size() without a hint; it exists for API consistency
+        with the binary encoders.
+
+        Returns:
+            A new XEREncoder instance.
+        """
+        return cls()
+
     def write_raw(self, text: str) -> None:
         """
         Write raw text to the encoder.
