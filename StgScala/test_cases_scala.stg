@@ -411,3 +411,11 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 <sBody>
 <sIdentifier>
 >>
+
+Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+// 'size deduced' is not supported for Scala
+codec.base.bitStream.resetBitIndex()
+<sFuncName>(codec) match
+    case LeftMut(_) => return Left(2)
+    case RightMut(pVal) => decodedPDU = pVal
+>>

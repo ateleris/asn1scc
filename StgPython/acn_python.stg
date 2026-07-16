@@ -428,6 +428,106 @@ res = codec.dec_real_ieee754_64_little_endian()
 <CheckDecodeResult(p=p, sInp="res", sErrCode=sErrCode, sType=sType)>
 >>
 
+// Scaled-integer REAL encoding (issue #339). Mirrors the C runtime helpers
+// Acn_Real2ScaledUInt / Acn_ScaledUInt2Real (and the signed variants): the
+// rounding is trunc(x + 0.5) for x > 0 (round half away from zero), else 0.
+Real_ScaledInt_uint_encode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sTmpVar>_x = (<p> - (<sLow>)) / (<sScale>)
+<sTmpVar> = 0 if not (<sTmpVar>_x > 0.0) else (<sUintMax> if <sTmpVar>_x + 0.5 >= <sUintMax> else int(<sTmpVar>_x + 0.5))
+<sIntBody>
+>>
+
+Real_ScaledInt_uint_decode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sIntBody>
+<p> = type(<sTmpVar>)((<sLow>) + <sTmpVar> * (<sScale>))
+>>
+
+Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sTmpVar>_range = (<sIntMax>) - (<sIntMin>)
+<sTmpVar>_x = (<p> - (<sLow>)) / (<sScale>)
+<sTmpVar>_delta = 0 if not (<sTmpVar>_x > 0.0) else (<sTmpVar>_range if <sTmpVar>_x + 0.5 >= <sTmpVar>_range else int(<sTmpVar>_x + 0.5))
+<sTmpVar> = (<sIntMin>) + <sTmpVar>_delta
+<sIntBody>
+>>
+
+Real_ScaledInt_sint_decode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sIntBody>
+<p> = type(<sTmpVar>)((<sLow>) + (<sTmpVar> - (<sIntMin>)) * (<sScale>))
+>>
+
+// 'size deduced' ACN encoding: the element count is not on the wire; on decode
+// it is derived from the bits remaining in the enclosing region (the attached
+// buffer for a top-level PDU, or a CONTAINING sub-buffer), minus the constant
+// number of trailing bits that follow the deduced field. Mirrors the C runtime
+// (Acn_*_deduced templates in StgC/acn_c.stg). The region size in bits is
+// codec.buffer_size * 8; the current position is codec.bit_index.
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
+res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
+<CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
+>>
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
+ded_avail_bits = codec.buffer_size * 8 - <nTrailingBits> - codec.bit_index
+ded_count = ded_avail_bits // 8
+if ded_avail_bits \< 0 or ded_count \> <nAsn1Max>:
+    raise Asn1InvalidValueException(f"Deduced string size out of range (Error {cls.DecodeConstants.<sErrCode>})")
+decoded_result = codec.dec_string_ascii_external_field_determinant(<nAsn1Max>, ded_count)
+if not decoded_result or decoded_result.decoded_value is None:
+    raise Asn1InvalidValueException(f"Decoding of deduced-size string failed: {decoded_result.error_message}")
+<if(sType)>
+<p> = <sType>([ord(c) for c in decoded_result.decoded_value])
+<else>
+<p> = cls([ord(c) for c in decoded_result.decoded_value])
+<endif>
+>>
+
+oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
+codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount)
+>>
+oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
+ded_avail_bits = codec.buffer_size * 8 - <nTrailingBits> - codec.bit_index
+ded_count = ded_avail_bits // 8
+if ded_avail_bits \>= 0 and <if(noSizeMin)>(<noSizeMin>) \<= ded_count and <endif>ded_count \<= <nSizeMax>:
+    decoded_result = codec.decode_octet_string_no_length_vec(ded_count)
+    if not decoded_result.success or decoded_result.decoded_value is None:
+        raise Asn1InvalidValueException(f"Decoding of deduced-size octet string failed: {decoded_result.error_message}")
+    <p> = <sTypedefName>(ded_count, decoded_result.decoded_value)
+else:
+    raise Asn1InvalidValueException(f"Deduced octet string size out of range (Error {cls.DecodeConstants.<sErrCode>})")
+>>
+
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+>>
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+ded_avail_bits = codec.buffer_size * 8 - <nTrailingBits> - codec.bit_index
+ded_count = ded_avail_bits // <nIntItemSize>
+if ded_avail_bits \>= 0 and (ded_avail_bits - ded_count * <nIntItemSize>) \< 8 and <if(noSizeMin)>(<noSizeMin>) \<= ded_count and <endif>ded_count \<= <nSizeMax>:
+    <p>_nCount = ded_count
+    <p>_arr: list = []
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
+    <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+else:
+    raise Asn1InvalidValueException(f"Deduced SEQUENCE OF size out of range (Error {cls.DecodeConstants.<sErrCode>})")
+>>
+
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+>>
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+ded_budget_end = codec.buffer_size * 8 - <nTrailingBits>
+<p>_nCount = 0
+<p>_arr: list = []
+while <p>_nCount \< <nSizeMax> and codec.bit_index + <nIntItemMinSize> \<= ded_budget_end:
+    <i> = <p>_nCount
+    <sInternalItem>
+    if codec.bit_index \> ded_budget_end:
+        raise Asn1InvalidValueException(f"Deduced SEQUENCE OF overran its region (Error {cls.DecodeConstants.<sErrCode>})")
+    <p>_nCount += 1
+if (ded_budget_end - codec.bit_index) \>= 8<if(noSizeMin)> or <p>_nCount \< <noSizeMin><endif>:
+    raise Asn1InvalidValueException(f"Deduced SEQUENCE OF size out of range (Error {cls.DecodeConstants.<sErrCode>})")
+<p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+>>
+
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 true_data = bytearray([<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=", ">])
@@ -1314,10 +1414,13 @@ rtlModuleName() ::= ""
 sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-# Encode self as the contained type into a temporary ACN buffer
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+# Encode the contained value into a temporary ACN buffer. The contained type's
+# instance method is invoked unbound on <p> so this works both when <p> is the
+# containing instance itself (named type) and when it is a field of a parent
+# (anonymous field / CHOICE alternative, where 'super()' would resolve wrongly).
 _inner_enc = ACNEncoder.of_size(<nMaxSize>)
-super().<sFuncName>(_inner_enc, False)
+<sContainedType>.<sFuncName>(<p>, _inner_enc, False)
 _inner_bytes = _inner_enc.get_bitstream_buffer()
 _nCount = (_inner_enc.bit_index + 7) // 8
 <if(!bFixedSize)>
@@ -1329,7 +1432,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 <if(bFixedSize)>
 _nCount = <nMinSize>
 
@@ -1347,10 +1450,11 @@ _inner_dec = ACNDecoder.from_buffer(bytearray(_inner_bytes_res.decoded_value))
 <p> = <sFuncName>(_inner_dec, False)
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
-# Encode self as the contained type into a temporary ACN buffer
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+# Encode the contained value into a temporary ACN buffer (unbound call on <p>;
+# see octet_string_containing_func_encode for why 'super()' is avoided).
 _inner_enc = ACNEncoder.of_size((<nMaxSize> + 7) // 8)
-super().<sFuncName>(_inner_enc, False)
+<sContainedType>.<sFuncName>(<p>, _inner_enc, False)
 _inner_bits = _inner_enc.bit_index
 _inner_bytes = _inner_enc.get_bitstream_buffer()
 <if(!bFixedSize)>
@@ -1362,7 +1466,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 <if(bFixedSize)>
 _nBits = <nMinSize>
 

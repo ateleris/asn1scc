@@ -56,6 +56,22 @@ except Exception as e:
 
 >>
 
+Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+
+# 'size deduced': attach the decoder to a buffer of exactly the encoded byte
+# length so the deduced field derives its element count from the remaining bits.
+decoder = encoder.get_decoder()
+decoder = type(decoder).from_buffer(bytearray(encoder.get_bitstream_buffer()))
+
+# Decode value
+try:
+    decodedPDU = <sTasName>.<sFuncName>(decoder)
+
+except Exception as e:
+    raise Asn1TestcaseDecodeFailedError(e)
+
+>>
+
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 res = decodedPDU.<sFuncName>()
 if not res:
