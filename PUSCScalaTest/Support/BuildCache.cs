@@ -94,9 +94,16 @@ public static partial class BuildCache
 
         var files = ServiceFiles.Files(key.Service);
 
-        var asn1 = files.Select(f => InputPrefix + f + ".asn1").Where(File.Exists);
-        args.AddRange(asn1);
+        // Every entry in the service table must have a .asn1 file; a missing one means a
+        // typo/stale entry that would silently shrink the tested set, so warn loudly.
+        var asn1 = files.Select(f => InputPrefix + f + ".asn1").ToArray();
+        var missingAsn1 = asn1.Where(f => !File.Exists(f)).ToArray();
+        if (missingAsn1.Length > 0)
+            Console.WriteLine($"WARNING: ASN1 files not found for {key}: {string.Join(", ", missingAsn1)}");
+        args.AddRange(asn1.Where(File.Exists));
 
+        // .acn files are optional: a module with no ACN encoding directives has none, so a
+        // missing .acn is normal and not warned about (unlike the required .asn1 above).
         if (key.Enc == Enc.ACN)
             args.AddRange(files.Select(f => InputPrefix + f + ".acn").Where(File.Exists));
 
