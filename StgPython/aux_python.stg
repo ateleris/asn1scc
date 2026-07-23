@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "asn1pylib"
 version = "0.1.0"
 description = "Automatically generated library built by asn1scc."
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = []
 
 [tool.setuptools]
