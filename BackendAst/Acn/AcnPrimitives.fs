@@ -157,7 +157,7 @@ let getMappingFunctionModule (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (soMapFu
             | false -> r.args.mappingFunctionsModule
 
 let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnInteger) (typeName:string)  (us:State) (sType:string) =
-    let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errCodeName         = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errFieldPath = match typeId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
     let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
 
@@ -383,7 +383,7 @@ let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
 
 
 let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnBoolean)  (us:State)  =
-    AcnPrimitiveFactory.createAcnOnlyPrimitive codec typeId us (fun errCode ->
+    AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
             let pp, resultExpr = adaptArgument lm codec p
             let Boolean         = lm.uper.Boolean
@@ -439,7 +439,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
 
 
 let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnNullType)  (us:State)  =
-    AcnPrimitiveFactory.createAcnOnlyPrimitive codec typeId us (fun errCode ->
+    AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
             let pp, resultExpr = adaptArgument lm codec p
             let nullType         = lm.acn.Null_pattern2

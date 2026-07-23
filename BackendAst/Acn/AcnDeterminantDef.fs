@@ -28,7 +28,7 @@ let getDeterminantTypeDefinitionBodyWithinSeq (r:Asn1AcnAst.AstRoot) (lm:Languag
 
     let getTypeDefinitionName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (id : ReferenceToType) =
         let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-        ToC2(r.args.TypePrefix + longName.Replace("#","elem"))
+        ToC2(r.args.TypePrefix + longName.Replace("#","elm"))
 
     match det with
     | AcnChildDeterminant       ch ->

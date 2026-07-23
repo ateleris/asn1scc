@@ -260,13 +260,13 @@ let getAcnDeterminantName (id : ReferenceToType) =
                     ToC2 name
                 | _ ->
                     let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-                    ToC2(longName.Replace("#","elem"))
+                    ToC2(longName.Replace("#","elm"))
         | _ ->
             match path with
             | (MD mdName)::(TA tasName)::(PRM prmName)::[] -> ToC2 prmName
             | _ ->
                 let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-                ToC2(longName.Replace("#","elem"))
+                ToC2(longName.Replace("#","elm"))
 
 
 let private mergeInteger (asn1:Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc:SrcLoc)  (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons thisTypeCons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
@@ -1768,7 +1768,7 @@ let calculateTypeIdsMap (r:Asn1Ast.AstRoot) =
     List.collect(fun f -> f.Modules) |>
     List.collect(fun m -> m.TypeAssignments) |>
     List.collect(fun ta -> mapTypeId [TA ta.Name.Value] ta.Type) |>
-    List.map(fun tid -> ToC ((tid.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elem"))) |>
+    List.map(fun tid -> ToC ((tid.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elm"))) |>
     List.groupBy id |>
     List.map(fun (id, lst) -> (id, Seq.length lst)) |>
     Map.ofList

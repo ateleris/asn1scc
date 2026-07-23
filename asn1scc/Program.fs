@@ -338,7 +338,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
     | Acn_V2 ->
-        match cliArgs |> List.exists (fun a -> a = Scala_Lang) with
+        match cliArgs |> List.exists (fun a -> a = Scala_Lang || a = Python_Lang) with
         | true  -> raise (UserException ("The --acn-deferred option is supported only for C and Ada."))
         | false -> ()
 

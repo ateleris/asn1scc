@@ -143,7 +143,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             match m.Name.Value = o.modName.Value with
             | true  -> ToC2(r.args.TypePrefix + o.tasName.Value)
             | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value)
-    let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
+    let baseFncName = baseTypeDefinitionName + "_ACN" + (lm.lg.codecSuffix Encode)
     let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
     let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
     let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
@@ -165,7 +165,11 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
                 let n = List.length scopeNodes
                 n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
         if not depResolvable then
-            ""
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
@@ -220,7 +224,11 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
                 let n = List.length scopeNodes
                 n >= 2 && n <= List.length parDecNodes && List.take n parDecNodes = scopeNodes)
         if not depResolvable then
-            ""
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
             let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
             let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
@@ -249,7 +257,11 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
                 let n = List.length scopeNodes
                 n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
         if not depResolvable then
-            ""
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
@@ -369,7 +381,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let ret, ns = handleSingleUpdateDependency r deps lm m d1 us
         ret, ns
     | d1::dds         ->
-        let _errCodeName = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+        let _errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix Encode).ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errFieldPath = match acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
         let errCode, us = getNextValidErrorCode us _errCodeName None errFieldPath
 

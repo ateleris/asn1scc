@@ -141,7 +141,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries}
 
 
-    AcnPrimitiveFactory.createAcnOnlyPrimitive codec typeId us (fun errCode ->
+    AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
             let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
             let pp, resultExpr = adaptArgument lm codec p

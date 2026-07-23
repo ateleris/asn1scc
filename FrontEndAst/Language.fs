@@ -291,6 +291,14 @@ type ILangGeneric () =
     abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
     abstract member getXerFuncName              : CommonTypes.Codec -> TypeDefinitionOrReference -> string option
     abstract member getACNFuncName              : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    /// The encode/decode suffix used when building generated function and error-code names.
+    /// C/Ada/Scala use "_Encode"/"_Decode"; Python uses "encode"/"decode". Replaces the old
+    /// Codec.suffix, which decided this by reading the global ActiveLanguages.Head.
+    abstract member codecSuffix                 : CommonTypes.Codec -> string
+    /// Whether the backend tolerates an ACN dependency whose parent scope is not reachable from
+    /// the current nesting (e.g. a type generated standalone). Python needs this; the others must
+    /// fail loudly rather than silently drop a determinant update. See handle* in AcnDependencies.
+    abstract member allowUnresolvedAcnDependency : bool
     
     abstract member RtlFuncNames : string list
     abstract member getAlwaysPresentRtlFuncNames : CommandLineSettings -> string list
@@ -625,20 +633,27 @@ type ILangGeneric () =
         | ReferenceToExistingDefinition  refEx  -> None
         | TypeDefinition   td                   -> Some td.typedefName
 
+    default this.codecSuffix (codec: CommonTypes.Codec): string =
+        match codec with
+        | CommonTypes.Encode -> "_Encode"
+        | CommonTypes.Decode -> "_Decode"
+
+    default this.allowUnresolvedAcnDependency = false
+
     default this.getUPerFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option =
         match t.id.tasInfo with
         | None -> None
-        | Some _ -> Some (td.typeName + codec.suffix)
+        | Some _ -> Some (td.typeName + this.codecSuffix codec)
 
     default this.getXerFuncName (codec: CommonTypes.Codec) (typeDefinition: TypeDefinitionOrReference): string option =
-        this.getFuncNameGeneric typeDefinition ("_XER" + codec.suffix)
+        this.getFuncNameGeneric typeDefinition ("_XER" + this.codecSuffix codec)
 
-    default this.getACNFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option = 
+    default this.getACNFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option =
         match t.acnParameters with
         | []    ->
             match t.id.tasInfo with
             | None -> None
-            | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+            | Some _ -> Some (td.typeName + "_ACN"  + this.codecSuffix codec)
         | _     -> None
      
     default this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) = typeName

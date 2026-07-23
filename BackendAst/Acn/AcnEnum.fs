@@ -124,7 +124,7 @@ let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInse
     // ACN-inserted children referencing an ENUMERATED TAS keep that name on
     // the ICD row ("ENUMERATED (DeviceMode)", roadmap A4).  ACN children
     // bypass AcnFunctionWrapper's central suffixing, so it is applied here.
-    AcnPrimitiveFactory.createAcnOnlyPrimitive codec typeId us (fun errCode ->
+    AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun acnArgs nestingScope p ->
             funcBody errCode acnArgs nestingScope p
             |> Option.map (fun res -> {res with icdResult = res.icdResult |> Option.map (icdAuxAddNamedTypeSuffix (Some t.tasName.Value))}))

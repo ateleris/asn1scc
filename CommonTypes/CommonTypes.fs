@@ -373,13 +373,11 @@ with
 type Codec =
     |Encode
     |Decode
- with
-    member this.suffix =
-        match ProgrammingLanguage.ActiveLanguages.Head, this with
-        | Python, Encode -> "encode"
-        | Python, Decode -> "decode"
-        | _, Encode      -> "_Encode"
-        | _, Decode      -> "_Decode"
+    // The encode/decode name suffix used to live here as `member this.suffix`, but it decided
+    // between "encode"/"decode" (Python) and "_Encode"/"_Decode" (others) by reading the global
+    // ProgrammingLanguage.ActiveLanguages.Head. That is a layering violation (CommonTypes knows
+    // nothing about languages) and would rename the C/Ada functions in a multi-language run with
+    // Python listed first. It is now ILangGeneric.codecSuffix; call `lm.lg.codecSuffix codec`.
 
 
 type ObjectIdentifierValueComponent =
