@@ -859,7 +859,7 @@ type Asn1Value with
         | ReferenceToValue (typePath,(VA2 vasName)::[]) -> ToC vasName
         | ReferenceToValue (typePath, vasPath)      ->
             let longName = (typePath.Tail |> List.map (fun i -> i.StrValue))@ (vasPath |> List.map (fun i -> i.StrValue))  |> Seq.StrJoin "_"
-            ToC2(longName.Replace("#","elem").L1)
+            ToC2(longName.Replace("#","elm").L1)
 
     member this.BaseValue =
         match this.kind with
@@ -1062,7 +1062,7 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
                 | None    -> ToC t.id.ModName, refToExist.typedefName
 
     let baseTypeDefinitionName = getBaseTypeDefName lm typeDefinitionName0 moduleName t o
-    baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix codec.suffix
+    baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix (lm.lg.codecSuffix codec)
 
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =

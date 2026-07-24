@@ -159,7 +159,7 @@ type LangGeneric_a() =
             (sel.appendSelection "Data" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
-            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
+            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elm"))
             prefix + "_NONE"
 
 

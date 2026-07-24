@@ -222,11 +222,11 @@ type LangGeneric_c() =
             (sel.appendSelection "u" ByValue false).appendSelection childName (if childTypeIsString then ArrayElem else ByValue) false
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
-            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
+            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elm"))
             match typeIdsSet.TryFind prefix with
             | None  -> prefix + "_NONE"
             | Some a when a = 1 -> prefix + "_NONE"
-            | Some a            -> ToC ((id.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elem")) + "_NONE"
+            | Some a            -> ToC ((id.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elm")) + "_NONE"
 
         override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"

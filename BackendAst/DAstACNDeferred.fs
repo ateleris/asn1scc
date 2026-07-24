@@ -1042,7 +1042,7 @@ let private createDeferredReferenceFunction
 
             let specFuncName =
                 let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
-                let candidate = ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
+                let candidate = ToC2(r.args.TypePrefix + pathStr) + "_ACN" + (lm.lg.codecSuffix codec)
                 // Disambiguate: if the base type's standalone function has the
                 // same name, insert "_D" to avoid conflicting types in generated C.
                 // This happens when a TAS name with dashes (e.g. MyPDU-a → MyPDU_a)
@@ -1052,11 +1052,11 @@ let private createDeferredReferenceFunction
                 // baseAcnFunc.funcName is None when the resolved type has acnParameters
                 // (closure conversion), so we use baseFncName instead.
                 if baseFncName = candidate then
-                    candidate.Replace("_ACN" + codec.suffix, "_D_ACN" + codec.suffix)
+                    candidate.Replace("_ACN" + (lm.lg.codecSuffix codec), "_D_ACN" + (lm.lg.codecSuffix codec))
                 else candidate
 
-            let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-            let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elem")
+            let errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+            let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
             let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec

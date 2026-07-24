@@ -30,7 +30,7 @@ let getAcnDeterminantName (id : ReferenceToType) =
     | (MD _) :: (TA _) :: (PRM prmName) :: [] -> ToC prmName
     | _ ->
       let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-      ToC (longName.Replace("#","elem"))
+      ToC (longName.Replace("#","elm"))
 
 let fromAcnSizeProps (sizeProps: AcnStringSizeProperty): SizeProps =
   match sizeProps with

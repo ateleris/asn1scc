@@ -38,8 +38,8 @@ type PrimitiveAcnFuncBody = ErrorCode -> PrimitiveAcnInnerFn
 
 
 /// Build the standard "ERR_ACN<E|D>_<dotted-path>" error code from a typeId.
-let primitiveErrCode (codec:CommonTypes.Codec) (typeId:ReferenceToType) (us:State) =
-    let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+let primitiveErrCode (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (us:State) =
+    let errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errFieldPath = match typeId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." (first :: rest)).Replace("#","elm")
     getNextValidErrorCode us errCodeName None errFieldPath
 
@@ -47,11 +47,12 @@ let primitiveErrCode (codec:CommonTypes.Codec) (typeId:ReferenceToType) (us:Stat
 /// Wrapper for ACN-only primitives (AcnBoolean / AcnNullType / AcnReferenceToEnumerated
 /// / AcnReferenceToIA5String).  Allocates the error code from the typeId and
 /// applies the supplied builder.
-let createAcnOnlyPrimitive (codec:CommonTypes.Codec)
+let createAcnOnlyPrimitive (lm:LanguageMacros)
+                           (codec:CommonTypes.Codec)
                            (typeId:ReferenceToType)
                            (us:State)
                            (mkBody: ErrorCode -> PrimitiveAcnInnerFn) =
-    let errCode, ns = primitiveErrCode codec typeId us
+    let errCode, ns = primitiveErrCode lm codec typeId us
     (mkBody errCode), ns
 
 

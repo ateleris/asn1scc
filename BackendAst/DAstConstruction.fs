@@ -799,7 +799,7 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.ChChildInfo) (newChildType : Asn1Type, us:State) =
     let typeDefinitionName =
         let longName = newChildType.id.AcnAbsPath.Tail |> List.rev |> List.tail |> List.rev |> Seq.StrJoin "_"
-        ToC2(r.args.TypePrefix + longName.Replace("#","elem"))
+        ToC2(r.args.TypePrefix + longName.Replace("#","elm"))
     let ret =
         {
 
@@ -1310,7 +1310,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         //Seq.collect(fun f -> f.Modules) |>
         //Seq.collect(fun m -> m.TypeAssignments) |>
         //Seq.collect(fun tas -> mapTypeId r deps tas.Type) |>
-        //Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))) |>
+        //Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elm"))) |>
         //Seq.groupBy id |>
         //Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         //Map.ofSeq

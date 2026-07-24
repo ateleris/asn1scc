@@ -589,6 +589,16 @@ type LangGeneric_python() =
     override this.decodeEmptySeq _ = None
     override this.decode_nullType _ = None
 
+    override this.codecSuffix (codec: CommonTypes.Codec): string =
+        match codec with
+        | CommonTypes.Encode -> "encode"
+        | CommonTypes.Decode -> "decode"
+
+    // Python processes types standalone (no declaration-before-use), so an ACN dependency's
+    // parent scope may legitimately be unreachable from the current nesting; skip the update
+    // instead of emitting an access against the wrong scope. See handle* in AcnDependencies.
+    override this.allowUnresolvedAcnDependency = true
+
     override this.Length exp sAcc =
         isvalid_python.ArrayLen exp sAcc
     override this.FixedSizeSizableHasCount = true
@@ -643,7 +653,7 @@ type LangGeneric_python() =
         | CommonTypes.Decode -> Some "decode_uper"
 
     override this.getXerFuncName (codec:CommonTypes.Codec) (typeDefinition:TypeDefinitionOrReference): option<string> =
-        this.getFuncNameGeneric typeDefinition (codec.suffix + "_xer")
+        this.getFuncNameGeneric typeDefinition (this.codecSuffix codec + "_xer")
 
     override this.getACNFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td:FE_TypeDefinition): string option =
         match codec with

@@ -417,7 +417,7 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
         //    | ParameterizedAsn1Ast.TypeScope(m,t)   ->  Asn1Ast.TypeScope(m,t)
         c_name = vas.c_name
         scala_name = vas.scala_name
-        python_name = vas.scala_name
+        python_name = ToC2 vas.Name.Value
         ada_name = vas.ada_name
     }
 
