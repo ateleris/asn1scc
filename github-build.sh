@@ -26,3 +26,7 @@ python3 ./scripts/runIcdTests.py || exit 1
 # Scala & Interop tests
 cd ../PUSCInteropTest || exit 1
 dotnet test || exit 1
+
+# Python runtime unit tests
+cd ../asn1python || exit 1
+uvx --python=3.11 pytest tests -v || exit 1
