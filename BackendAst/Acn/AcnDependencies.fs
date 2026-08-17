@@ -168,7 +168,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
@@ -227,7 +227,7 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
             let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
@@ -260,7 +260,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type

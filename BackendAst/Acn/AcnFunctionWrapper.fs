@@ -122,7 +122,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         // The call to funcBody is necessary to get the correct nesting
                         // scope; however it is expensive, so we only call it when the
                         // ICD is requested.
-                        let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                        // This renders an undeclared/inline type in isolation from its
+                        // real usage, so mark the scope isStandaloneRender
+                        let content, ns1a = funcBody ns errCode [] {NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits [] with isStandaloneRender = true} p
                         let icdResult, udfcs =
                             match content with
                             | None -> zeroBitIcdResult (), []

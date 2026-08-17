@@ -4,7 +4,7 @@ Executive summary
 =================
 
 This is the source code of the ASN1SCC compiler - an ASN.1 compiler that
-targets **C**, **Ada** and **Scala** while placing specific emphasis on embedded systems.
+targets **C**, **Ada**, **Scala** and **Python** while placing specific emphasis on embedded systems.
 
 ASN1SCC is the ASN.1 compiler of the **European Space Agency** and is used is space missions to support binary encoding needs in satellite systems flight and ground software.
 

@@ -482,11 +482,13 @@ type NestingScope = {
     // top-level PDU).  Compile-time constant by the region rules of Docs/deduced-size-spec.md.
     // The budget end of a deduced decode loop is <end of bitstream> - deducedTrailingBits.
     deducedTrailingBits: bigint
+    // True for a traversal deliberately started in isolation from a type's real usage
+    isStandaloneRender: bool
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
-        parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I}
+        parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I; isStandaloneRender = false}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {
