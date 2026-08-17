@@ -1,4 +1,4 @@
-namespace PUS_C_Scala_Test;
+namespace PUS_C_Interop_Test;
 
 [TestClass]
 public class InteropXer

@@ -65,7 +65,7 @@ echo "run c tests, with word-size=8, slim-mode=true"
 echo "run Ada tests, with word-size=8, slim-mode=true"
 ../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
 
-#scala tests
+# Scala & Interop tests
 echo "run scala tests"
-cd ../PUSCScalaTest || exit 1
+cd ../PUSCInteropTest || exit 1
 dotnet test || exit 1

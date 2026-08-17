@@ -1,6 +1,6 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PUS_C_Scala_Test;
+namespace PUS_C_Interop_Test;
 
 public enum PUS_C_Service
 {

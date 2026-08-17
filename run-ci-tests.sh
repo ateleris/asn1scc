@@ -8,6 +8,6 @@ dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
 
-# Scala  & Interop tests
-cd PUSCScalaTest || exit 1
+# Scala & Interop tests
+cd PUSCInteropTest || exit 1
 dotnet test || exit 1

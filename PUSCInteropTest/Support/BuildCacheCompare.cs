@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace PUS_C_Scala_Test;
+namespace PUS_C_Interop_Test;
 
 public static partial class BuildCache
 {

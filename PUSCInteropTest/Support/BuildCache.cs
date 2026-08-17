@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace PUS_C_Scala_Test;
+namespace PUS_C_Interop_Test;
 
 public enum Lang { C, Scala, Python }
 public enum Enc { UPER, ACN, XER }
@@ -14,8 +14,8 @@ public sealed record BuildResult(Lang Lang, Enc Enc, bool TestsPassed, string Ou
 
 public static partial class BuildCache
 {
-    private const string InputPrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/";
-    private const string OutPrefix = "../../../../PUSCScalaTest/GenTests/Test/";
+    private const string InputPrefix = "../../../../PUSCInteropTest/asn1-pusc-lib-asn1CompilerTestInput/";
+    private const string OutPrefix = "../../../../PUSCInteropTest/GenTests/Test/";
     private const string CConfig = "release";
     private const string CProject = "VsProject";
 
