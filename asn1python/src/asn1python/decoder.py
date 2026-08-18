@@ -508,7 +508,7 @@ class Decoder(Codec):
         """
         Decode octet string without length prefix.
 
-        Matches C: BitStream_DecodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches C: BitStream_DecodeOctetString_no_length(pBitStrm, arr, n_count)
         Matches Scala: BitStream.readByteArray without length decoding
         Used by: ACN for fixed-size or externally-determined length octet strings
 
@@ -673,7 +673,7 @@ class Decoder(Codec):
         """
         Read bits until a null terminator pattern is found.
 
-        Reads bits one by one until the specified terminator pattern is encountered
+        Reads bits one by one until the specified terminator pattern is en_countered
         at the current position, or until max_read_bits are read.
 
         Matches C: BitStream_ReadBits_nullterminated(pBitStrm, bit_terminated_pattern,
@@ -1218,17 +1218,17 @@ class Decoder(Codec):
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID first subidentifier")
 
         result = Asn1ObjectIdentifier()
-        result.nCount = 2
+        result.n_count = 2
         result.values[0] = si // 40
         result.values[1] = si % 40
 
         # Decode remaining subidentifiers
-        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+        while total_size > 0 and result.n_count < OBJECT_IDENTIFIER_MAX_LENGTH:
             si, total_size = decode_subidentifier(total_size)
             if si is None:
                 return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID subidentifier")
-            result.values[result.nCount] = si
-            result.nCount += 1
+            result.values[result.n_count] = si
+            result.n_count += 1
 
         if total_size != 0:
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="OID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")
@@ -1269,14 +1269,14 @@ class Decoder(Codec):
             total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
 
         result = Asn1ObjectIdentifier()
-        result.nCount = 0
+        result.n_count = 0
 
-        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+        while total_size > 0 and result.n_count < OBJECT_IDENTIFIER_MAX_LENGTH:
             si, total_size = decode_subidentifier(total_size)
             if si is None:
                 return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode RelativeOID subidentifier")
-            result.values[result.nCount] = si
-            result.nCount += 1
+            result.values[result.n_count] = si
+            result.n_count += 1
 
         if total_size != 0:
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="RelativeOID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")

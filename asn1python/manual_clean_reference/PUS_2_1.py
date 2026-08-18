@@ -55,7 +55,7 @@ class DeviceAddress(Asn1Base):
 
 @dataclass(frozen=True)
 class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
-    nCount: int = 0
+    n_count: int = 0
     arr: List[DeviceAddress] = field(default_factory=list)
 
     class ErrorCodes:
@@ -64,9 +64,9 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
         DeviceAddress_REQUIRED_BITS_FOR_ACN_ENCODING: int = 0
 
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-        ret = self.nCount <= 63 and self.nCount >= 1        
+        ret = self.n_count <= 63 and self.n_count >= 1        
         if ret:
-            for i in range(self.nCount):
+            for i in range(self.n_count):
                 ret = self.arr[i].is_constraint_valid()
                 if not ret:
                     break
@@ -79,17 +79,17 @@ class TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses:
             ret = self.is_constraint_valid()
             if not ret:
                 raise Asn1Exception("Constraint validation failed. Encoding failed.")
-        codec.encode_constraint_whole_number(self.nCount, 1, 63)
+        codec.encode_constraint_whole_number(self.n_count, 1, 63)
         for val in self.arr:
             val.encode(codec)
 
     @classmethod
     def decode(cls, codec: Codec, check_constraints: bool = True) -> 'TC_2_1_DistributeOnOffDeviceCommands_onOffDeviceAddresses':
-        nCount_val = codec.decode_constraint_whole_number(1, 63)
+        n_count_val = codec.decode_constraint_whole_number(1, 63)
         vals = []
-        for _ in range(nCount_val):
+        for _ in range(n_count_val):
             vals.append(DeviceAddress.decode(codec, check_constraints))
-        instance = cls(nCount=nCount_val, arr=vals)
+        instance = cls(n_count=n_count_val, arr=vals)
         if check_constraints:
             ret = instance.is_constraint_valid()
             if not ret:

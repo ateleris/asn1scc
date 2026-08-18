@@ -134,7 +134,7 @@ initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
 >>
 
 initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
-<p><sAcc>nCount = <nSize>
+<p><sAcc>n_count = <nSize>
 <arrsBytes; separator="\n">
 >>
 
@@ -173,7 +173,7 @@ initFixedSequenceOf(arrsInnerValues) ::= <<
 
 
 initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
-<p><sAcc>nCount = <nSize>
+<p><sAcc>n_count = <nSize>
 <arrsInnerValues; separator="\n">
 >>
 

@@ -436,7 +436,7 @@ class Encoder(Codec, ABC):
         """
         Encode octet string without length prefix.
 
-        Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount)
+        Matches C: BitStream_EncodeOctetString_no_length(pBitStrm, arr, n_count)
         Matches Scala: BitStream.appendByteArray without length encoding
         Used by: ACN for fixed-size or externally-determined length octet strings
 
@@ -955,7 +955,7 @@ class Encoder(Codec, ABC):
         buf: list = []
         combined = val.values[0] * 40 + val.values[1]
         buf.extend(encode_arc(combined))
-        for i in range(2, val.nCount):
+        for i in range(2, val.n_count):
             buf.extend(encode_arc(val.values[i]))
 
         total_size = len(buf)
@@ -1001,7 +1001,7 @@ class Encoder(Codec, ABC):
             return [c | 0x80 for c in chunks[:-1]] + [chunks[-1]]
 
         buf: list = []
-        for i in range(val.nCount):
+        for i in range(val.n_count):
             buf.extend(encode_arc(val.values[i]))
 
         total_size = len(buf)

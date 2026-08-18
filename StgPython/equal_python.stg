@@ -91,9 +91,9 @@ AssignTrue() ::= "ret = True"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-(<p1>nCount == <p2>nCount) and \
-    (bytes(<p1>arr[:<p1>nCount//8]) == bytes(<p2>arr[:<p1>nCount//8])) and \
-    ((<p1>arr[<p1>nCount//8] \>\> (8-<p1>nCount % 8) == <p2>arr[<p1>nCount//8] \>\> (8-<p1>nCount % 8)) if <p1>nCount % 8 > 0 else True)
+(<p1>n_count == <p2>n_count) and \
+    (bytes(<p1>arr[:<p1>n_count//8]) == bytes(<p2>arr[:<p1>n_count//8])) and \
+    ((<p1>arr[<p1>n_count//8] \>\> (8-<p1>n_count % 8) == <p2>arr[<p1>n_count//8] \>\> (8-<p1>n_count % 8)) if <p1>n_count % 8 > 0 else True)
 <else>
 (bytes(<p1>arr[:<nFixedSize>//8]) == bytes(<p2>arr[:<nFixedSize>//8])) and \
     ((<p1>arr[<nFixedSize>//8] \>\> (8-<nFixedSize> % 8) == <p2>arr[<nFixedSize>//8] \>\> (8-<nFixedSize> % 8)) if <nFixedSize> % 8 > 0 else True)
@@ -104,7 +104,7 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-    (<p1>nCount == <p2>nCount) and (<p1>arr[:<p1>nCount] == <p2>arr[:<p1>nCount])
+    (<p1>n_count == <p2>n_count) and (<p1>arr[:<p1>n_count] == <p2>arr[:<p1>n_count])
 <else>
     <p1>arr == <p2>arr
 <endif>
@@ -129,10 +129,10 @@ isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
-ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
+ret = (<p1><sAcc>n_count == <p2><sAcc>n_count)
 <if (soInnerStatement)>
 <i>: int = 0
-while ret and <i> \< <p1><sAcc>nCount:
+while ret and <i> \< <p1><sAcc>n_count:
     <soInnerStatement>
     <i> += 1
 

@@ -156,13 +156,13 @@ else:
 
 
 OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-codec.encode_octet_string(<sTag>, bytes(<p><sAcc>arr), <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
+codec.encode_octet_string(<sTag>, bytes(<p><sAcc>arr), <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>, <nLevel>)
 >>
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 _os = codec.decode_octet_string(<sTag>)
 <if(!bIsFixedSize)>
-<p> = cls(nCount=len(_os), arr=list(_os))
+<p> = cls(n_count=len(_os), arr=list(_os))
 <else>
 <p> = cls(arr=list(_os))
 <endif>
@@ -171,17 +171,17 @@ _os = codec.decode_octet_string(<sTag>)
 
 
 BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-_bs_bits = ''.join(f'{_b:08b}' for _b in <p><sAcc>arr)[:<if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>]
-codec.encode_bit_string(<sTag>, _bs_bits, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
+_bs_bits = ''.join(f'{_b:08b}' for _b in <p><sAcc>arr)[:<if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>]
+codec.encode_bit_string(<sTag>, _bs_bits, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>, <nLevel>)
 >>
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 _bs = codec.decode_bit_string(<sTag>)
-_bs_ncount = <if(!bIsFixedSize)>len(_bs)<else><nSizeMax><endif>
-_bs_padded = _bs.ljust((_bs_ncount + 7) // 8 * 8, '0')
+_bs_n_count = <if(!bIsFixedSize)>len(_bs)<else><nSizeMax><endif>
+_bs_padded = _bs.ljust((_bs_n_count + 7) // 8 * 8, '0')
 _bs_arr = [int(_bs_padded[_i*8:_i*8+8], 2) for _i in range(len(_bs_padded) // 8)]
 <if(!bIsFixedSize)>
-<p> = cls(nCount=_bs_ncount, arr=_bs_arr)
+<p> = cls(n_count=_bs_n_count, arr=_bs_arr)
 <else>
 <p> = cls(arr=_bs_arr)
 <endif>
@@ -192,7 +192,7 @@ _bs_arr = [int(_bs_padded[_i*8:_i*8+8], 2) for _i in range(len(_bs_padded) // 8)
 
 SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 codec.complex_start(<sTag>, <nLevel>)
-for <sI> in range(<if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>):
+for <sI> in range(<if(!bFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>):
     <sChildBody>
 codec.complex_end(<sTag>, <nLevel>)
 >>
@@ -215,7 +215,7 @@ while not codec.at_end_element(<sTag>):
     <sChildBody>
     <sI> += 1
 <if(!bFixedSize)>
-<p><sAcc>nCount = <sI>
+<p><sAcc>n_count = <sI>
 
 <endif>
 <p><sAcc>arr = <p><sAcc>arr[:<sI>]

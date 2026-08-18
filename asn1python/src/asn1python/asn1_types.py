@@ -263,42 +263,42 @@ class Asn1ObjectIdentifier(Asn1Base):
     count of used arcs, matching the C / Scala struct layout so the mutation-style
     generated init code works:
 
-        tc_data.nCount = 3
+        tc_data.n_count = 3
         tc_data.values[0] = 1
         tc_data.values[1] = 2
         tc_data.values[2] = 3
     """
 
     def __init__(self, n_count: int = 0, values=None):
-        self.nCount: int = n_count
+        self.n_count: int = n_count
         self.values: list = list(values) if values is not None else [0] * OBJECT_IDENTIFIER_MAX_LENGTH
         if len(self.values) < OBJECT_IDENTIFIER_MAX_LENGTH:
             self.values += [0] * (OBJECT_IDENTIFIER_MAX_LENGTH - len(self.values))
 
     def is_structurally_valid(self) -> bool:
         """Basic OID structural rules: at least 2 arcs, first ≤ 2, second ≤ 39."""
-        return (self.nCount >= 2) and (self.values[0] <= 2) and (self.values[1] <= 39)
+        return (self.n_count >= 2) and (self.values[0] <= 2) and (self.values[1] <= 39)
 
     def is_roid_structurally_valid(self) -> bool:
         """RELATIVE-OID structural rule: at least one arc."""
-        return self.nCount > 0
+        return self.n_count > 0
 
     # --- Equality ---
     def __eq__(self, other) -> bool:
         if not isinstance(other, Asn1ObjectIdentifier):
             return False
-        if self.nCount != other.nCount:
+        if self.n_count != other.n_count:
             return False
-        return all(self.values[i] == other.values[i] for i in range(self.nCount))
+        return all(self.values[i] == other.values[i] for i in range(self.n_count))
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     def __hash__(self) -> int:
-        return hash(tuple(self.values[:self.nCount]))
+        return hash(tuple(self.values[:self.n_count]))
 
     def __repr__(self) -> str:
-        return f"Asn1ObjectIdentifier({self.values[:self.nCount]})"
+        return f"Asn1ObjectIdentifier({self.values[:self.n_count]})"
 
     # --- Asn1Base stub ---
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:

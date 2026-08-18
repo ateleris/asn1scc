@@ -1296,7 +1296,7 @@ class ACNDecoder(Decoder):
             return DecodeResult(
                 success=False,
                 error_code=ERROR_INVALID_VALUE,
-                error_message=f"Non-ASCII character encountered: {e}"
+                error_message=f"Non-ASCII character en_countered: {e}"
             )
 
     def _decode_integer_big_endian(self, bits: int, signed: bool) -> DecodeResult[int]:

@@ -2,7 +2,7 @@ group acn_python;
 
 getStringSize(p) ::= "len(<p>.arr)"
 getStringContent(p) /*nogen*/ ::= "\"\".join([chr(a) for a in <p>.arr])"
-getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.nCount"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.n_count"
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<
 <sErrCode> = <nErrValue>  <if(soErrorCodeComment)># <soErrorCodeComment><endif>
@@ -481,7 +481,7 @@ if not decoded_result or decoded_result.decoded_value is None:
 >>
 
 oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
-codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount)
+codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <p><sAcc>n_count)
 >>
 oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
 ded_avail_bits = codec.buffer_size * 8 - <nTrailingBits> - codec.bit_index
@@ -496,36 +496,36 @@ else:
 >>
 
 sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 >>
 sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
 ded_avail_bits = codec.buffer_size * 8 - <nTrailingBits> - codec.bit_index
 ded_count = ded_avail_bits // <nIntItemSize>
 if ded_avail_bits \>= 0 and (ded_avail_bits - ded_count * <nIntItemSize>) \< 8 and <if(noSizeMin)>(<noSizeMin>) \<= ded_count and <endif>ded_count \<= <nSizeMax>:
-    <p>_nCount = ded_count
+    <p>_n_count = ded_count
     <p>_arr: list = []
-    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
-    <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_n_count"])>
+    <p> = <sTypeDefName>(<p>_n_count, <p>_arr)
 else:
     raise Asn1InvalidValueException(f"Deduced SEQUENCE OF size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
 sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 >>
 sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
 ded_budget_end = codec.buffer_size * 8 - <nTrailingBits>
-<p>_nCount = 0
+<p>_n_count = 0
 <p>_arr: list = []
-while <p>_nCount \< <nSizeMax> and codec.bit_index + <nIntItemMinSize> \<= ded_budget_end:
-    <i> = <p>_nCount
+while <p>_n_count \< <nSizeMax> and codec.bit_index + <nIntItemMinSize> \<= ded_budget_end:
+    <i> = <p>_n_count
     <sInternalItem>
     if codec.bit_index \> ded_budget_end:
         raise Asn1InvalidValueException(f"Deduced SEQUENCE OF overran its region (Error {cls.DecodeConstants.<sErrCode>})")
-    <p>_nCount += 1
-if (ded_budget_end - codec.bit_index) \>= 8<if(noSizeMin)> or <p>_nCount \< <noSizeMin><endif>:
+    <p>_n_count += 1
+if (ded_budget_end - codec.bit_index) \>= 8<if(noSizeMin)> or <p>_n_count \< <noSizeMin><endif>:
     raise Asn1InvalidValueException(f"Deduced SEQUENCE OF size out of range (Error {cls.DecodeConstants.<sErrCode>})")
-<p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+<p> = <sTypeDefName>(<p>_n_count, <p>_arr)
 >>
 
 
@@ -803,8 +803,8 @@ else:
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
-codec.encode_constrained_whole_number(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+codec.encode_constrained_whole_number(<p><sAcc>n_count, <nSizeMin>, <nSizeMax>)
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
@@ -813,26 +813,26 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <! Some IDEs report errors in the following line. There are no errors here, the concatenation is correct. !>
-<CheckDecodeResult(p=p+"_nCount", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
+<CheckDecodeResult(p=p+"_n_count", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
 
 <p>_arr: list = []
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_nCount"])>
-<p> = <sType>(<p>_nCount, <p>_arr)
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, "_n_count"])>
+<p> = <sType>(<p>_n_count, <p>_arr)
 >>
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
-for <i> in range(<p><sAcc>nCount):
+for <i> in range(<p><sAcc>n_count):
     <sInternalItem>
 <soCallAux>
 >>
 
 sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
-    <p>_nCount = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
+    <p>_n_count = <if(bIsUnsigned)>int(<sExtFld>)<else><sExtFld><endif>
     <p>_arr: list = []
-    for <i> in range(<p>_nCount):
+    for <i> in range(<p>_n_count):
         <sInternalItem>
-    <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
+    <p> = <sTypeDefName>(<p>_n_count, <p>_arr)
     <soCallAux>
 else:
     raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
@@ -850,7 +850,7 @@ else:
 >>
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
@@ -884,7 +884,7 @@ elif checkBitPatternPresentResult == 2:
 >>
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
-codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>nCount)
+codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>n_count)
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
@@ -913,7 +913,7 @@ else:
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
-codec.append_bits(bytearray(<p><sAcc>arr), <if(bFixedSize)><nSizeMax><else><p><sAcc>nCount<endif>)
+codec.append_bits(bytearray(<p><sAcc>arr), <if(bFixedSize)><nSizeMax><else><p><sAcc>n_count<endif>)
 codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
@@ -924,7 +924,7 @@ if not decoded_result.success or decoded_result.decoded_value is None:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
     raise Asn1InvalidValueException(f"Decoding of null-terminated bit string failed: {decoded_result.error_message}")
 <p>_arr = list(decoded_result.decoded_value)
-<if(bFixedSize)><p> = <sTypeDefName>(arr=<p>_arr)<else><p> = <sTypeDefName>(nCount=decoded_result.bits_consumed, arr=<p>_arr)<endif>
+<if(bFixedSize)><p> = <sTypeDefName>(arr=<p>_arr)<else><p> = <sTypeDefName>(n_count=decoded_result.bits_consumed, arr=<p>_arr)<endif>
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= ""
@@ -1422,28 +1422,28 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 _inner_enc = ACNEncoder.of_size(<nMaxSize>)
 <sContainedType>.<sFuncName>(<p>, _inner_enc, False)
 _inner_bytes = _inner_enc.get_bitstream_buffer()
-_nCount = (_inner_enc.bit_index + 7) // 8
+_n_count = (_inner_enc.bit_index + 7) // 8
 <if(!bFixedSize)>
-codec.encode_constrained_whole_number(_nCount, <nMinSize>, <nMaxSize>)
+codec.encode_constrained_whole_number(_n_count, <nMinSize>, <nMaxSize>)
 
 <endif>
-_res = codec.encode_octet_string_no_length(_inner_bytes, _nCount)
+_res = codec.encode_octet_string_no_length(_inner_bytes, _n_count)
 if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 <if(bFixedSize)>
-_nCount = <nMinSize>
+_n_count = <nMinSize>
 
 <else>
-_nCount_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
-if not _nCount_res or _nCount_res.decoded_value is None:
+_n_count_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
+if not _n_count_res or _n_count_res.decoded_value is None:
     raise Asn1InvalidValueException("CONTAINING decode error: bad length")
-_nCount = int(_nCount_res.decoded_value)
+_n_count = int(_n_count_res.decoded_value)
 
 <endif>
-_inner_bytes_res = codec.decode_octet_string_no_length(_nCount)
+_inner_bytes_res = codec.decode_octet_string_no_length(_n_count)
 if not _inner_bytes_res or _inner_bytes_res.decoded_value is None:
     raise Asn1InvalidValueException("CONTAINING decode error: failed to read bytes")
 _inner_dec = ACNDecoder.from_buffer(bytearray(_inner_bytes_res.decoded_value))

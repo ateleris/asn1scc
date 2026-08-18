@@ -158,14 +158,14 @@ class <td.typeName>(<prTd.typeName>):
 
 Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants, arr_Asn1Encoding) ::= <<
 <if(!bFixedSize)>
-# nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)
+# n_count equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)
 
 <endif>
 
 @dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
-    <if(!bFixedSize)>    nCount: int = 0<endif>
+    <if(!bFixedSize)>    n_count: int = 0<endif>
     arr: List[int] = field(default_factory=list)
 
     <arrsInvariants; separator="\n">
@@ -183,11 +183,11 @@ Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBit
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants, arr_Asn1Encoding) ::= <<
-<if(!bFixedSize)># nCount equals to Number of bits in the array. Max value is : <nMax><endif>
+<if(!bFixedSize)># n_count equals to Number of bits in the array. Max value is : <nMax><endif>
 @dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
-    <if(!bFixedSize)>    nCount: int = 0<endif>
+    <if(!bFixedSize)>    n_count: int = 0<endif>
     arr: List[int] = field(default_factory=list)
 
     <if(arrsNamedBits)>
@@ -204,8 +204,8 @@ class <td.typeName>(Asn1Base):
         while len(self.arr) \<= byte_idx:
             self.arr.append(0)
         self.arr[byte_idx] |= 0x80 \>\> (N % 8)
-        if hasattr(self, 'nCount') and self.nCount \< N + 1:
-            self.nCount = N + 1
+        if hasattr(self, 'n_count') and self.n_count \< N + 1:
+            self.n_count = N + 1
 
     def clear_bit(self, bit: 'NamedBits') -> None:
         N = int(bit).bit_length() - 1
@@ -236,7 +236,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 @dataclass
 class <td.typeName>(Asn1Base):
     __all__.append("<td.typeName>")
-    <if(!bFixedSize)>    nCount: int = 0<endif>
+    <if(!bFixedSize)>    n_count: int = 0<endif>
     arr: List[<sChildType>] = field(default_factory=list)
 
     <arrsInvariants; separator="\n">

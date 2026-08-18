@@ -98,7 +98,7 @@ ExpAndMulti(arrsExp) ::= <<
 >>
 ExpNot(sExp) ::= "(not <sExp>)"
 StrLen(sExp) ::= "len(<sExp>.arr)"
-ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>n_count"
 
 ExpressionToStatement(sExp1) ::=<<
 ret = Asn1ConstraintValidResult(is_valid=<sExp1>)
@@ -180,7 +180,7 @@ if ret:
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>n_count<else><nFixedSize><endif>:
     <sInnerStatement>
     <i> += 1
 >>
@@ -293,7 +293,7 @@ ret = <soErrCode> # todo: this overwrites the above assignment?
 
 <endif>
 <if (soInnerStatement)>
-for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>n_count<else><nFixedSize><endif>):
     if not ret:
         break
     <soInnerStatement>
@@ -303,7 +303,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 ret = Asn1ConstraintValidResult(is_valid=True)
-for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>n_count<else><nFixedSize><endif>):
     <sInnerStatement>
     if not ret:
         return ret
@@ -311,7 +311,7 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
-(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
+(<p><sAccess>n_count == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
@@ -319,7 +319,7 @@ octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
+(<p><sAccess>n_count == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<

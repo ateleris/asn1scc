@@ -30,3 +30,5 @@ dotnet test || exit 1
 # Python runtime unit tests
 cd ../asn1python || exit 1
 uvx --python=3.11 pytest tests -v || exit 1
+# Python code readability and type-hint checks
+./tools/check_generated_code.sh || exit 1
