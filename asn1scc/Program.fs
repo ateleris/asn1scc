@@ -124,7 +124,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
-            | Acn_V2 -> "(Experimental, C only) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
+            | Acn_V2 -> "(C and Ada) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
 
 
 let printVersion () =

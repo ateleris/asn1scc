@@ -30,7 +30,7 @@ with
             | Word_Size      _   -> "8 or 4"
             | Parallel       _   -> ""
             | Init_Globals       -> "generate const globals for types initialization. Applicable only to C."
-            | Acn_V2             -> "use ACN v2 deferred patching mode (--acn-v2 flag to asn1scc). Applicable only to C."
+            | Acn_V2             -> "use ACN v2 deferred patching mode (--acn-v2 flag to asn1scc). Applicable to C and Ada."
 
 let checkArguement arg =
     match arg with
