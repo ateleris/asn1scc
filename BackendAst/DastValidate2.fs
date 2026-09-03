@@ -227,7 +227,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
             c
             st
 
-    let typeName = typeId.AcnAbsPath |> Seq.last |> ToC
+    let typeName = ToC ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
         (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) v.IDQ))  ,s)
         (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen (p.accessPath.joined lm.lg)) intCon s)
