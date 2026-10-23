@@ -26,9 +26,33 @@ if (ret) {
 }   /*COVERAGE_IGNORE*/
 >>
 
+/* Coverage step 10b, Ada only (ReadsCanFail: never used here); kept identical to JoinItems2. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}   /*COVERAGE_IGNORE*/
+>>
+
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}   /*COVERAGE_IGNORE*/
+>>
 
 
 
+
+
+/* Coverage step 11b: says why a check is not in the generated code (e.g. a child that cannot be invalid). */
+validation_comment(sText) ::= <<
+/* <sText> */
+>>
+
+/* Coverage step 11b: used only by languages whose typedefs enforce ranges (Ada). */
+implied_by_type_check(sExp, sConstraint) ::= <<
+>>
 
 always_true_statement ()::= <<
 ret = TRUE;

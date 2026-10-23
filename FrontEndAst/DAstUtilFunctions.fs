@@ -932,24 +932,21 @@ type SeqChildInfo with
 let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: TypeAssignmentInfo option) =
     match encFunc with
     | None  -> false
+    // funcName = None: no standalone ACN function (--acn-v2 exported determinants)
+    | Some fnc when fnc.funcName.IsNone -> false
     | Some fnc ->
         match acnParameters, tasInfo with
         | [], Some _ ->
-            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
-            match ret with
-            | None   -> false
-            | Some _ -> true
+            // A zero-bit encoding can have no inline body and still expose a
+            // callable codec. Automatic tests exercise that emitted function.
+            fnc.funcName.IsSome && fnc.func.IsSome
         | _     -> false
 
 let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     match encFunc with
     | None  -> false
     | Some fnc ->
-            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            match fnc.funcBody (NestingScope.init 0I 0I []) p false with
-            | None   -> false
-            | Some _ -> true
+        fnc.funcName.IsSome && fnc.func.IsSome
 
 let hasXerEncodeFunction (encFunc : XerFunction option)  =
     match encFunc with
@@ -988,7 +985,9 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
 
 let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CodegenScope)=
     seq {
-        match t.Kind with
+        // References can emit initializers for their resolved children. Visit
+        // those children, but yield the reference itself only once below.
+        match t.ActualType.Kind with
         | SequenceOf(conType) ->
             let ii = t.id.SequenceOfLevel + 1
             let i = "0" //sprintf "i%d" ii
@@ -1032,6 +1031,60 @@ let nestItems joinItems2 children =
         |[]     -> None
         |x::xs  -> Some (printChild x (printChildren xs))
     printChildren children
+
+/// nestItems for decode parts whose outcome is known (coverage step 10b, Ada): after a part that may fail
+/// the rest is nested under the success check (JoinItems2); after a part that cannot fail and sets result,
+/// the check becomes an assertion (JoinItemsAssert); after a part that does not touch result
+/// (_FullRange calls), the rest simply follows (JoinItemsNoCheck).
+let nestItemsByOutcome (lm:LanguageMacros) (children: (string * DecodeOutcome) list) =
+    let printChild (content:string) (outcome:DecodeOutcome) (soNestedContent:string option) =
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent when String.IsNullOrWhiteSpace sNestedContent -> content
+        | Some sNestedContent ->
+            match outcome with
+            | MayFail                       -> lm.isvalid.JoinItems2 content sNestedContent
+            | AlwaysSucceeds WritesResult   -> lm.isvalid.JoinItemsAssert content sNestedContent
+            | AlwaysSucceeds NoResultWrite  -> lm.isvalid.JoinItemsNoCheck content sNestedContent
+    let rec printChildren children : Option<string> =
+        match children with
+        |[]           -> None
+        |(x, o)::xs   -> Some (printChild x o (printChildren xs))
+    printChildren children
+
+
+/// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
+/// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
+    let alwaysValid =
+        match isValidFunc with
+        | Some {funcName = Some _; outcome = AlwaysValid}  -> true
+        | Some {funcName = Some _; outcome = MayBeInvalid}
+        | Some {funcName = None}
+        | None                                             -> false
+    // The merged type of a reference with constraints at the site (ByteFlags ::= BitFlags (SIZE(8))) can lend its
+    // encoder to the type assignment (DAstUPer.createReferenceFunction when the encodings differ), but the
+    // IsConstraintValid emitted under that name is the reference's, which calls the wider referenced type's
+    // function: the merged type's outcome says nothing about it (as for 11b's referencedNotCalled).
+    let outcomeIsTheCalledFunctions =
+        match t.inheritInfo with
+        | Some {hasAdditionalConstraints = true}   -> false
+        | Some {hasAdditionalConstraints = false}
+        | None                                     -> true
+    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result)
+    let encodingWritesNoResult =
+        match t.Kind with
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.NullType _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _
+        | Asn1AcnAst.ObjectIdentifier _                                                        -> true
+        | Asn1AcnAst.OctetString o                                                             -> o.isFixedSize
+        | Asn1AcnAst.BitString o                                                               -> o.isFixedSize
+        | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> false
+    match codec, lm.lg.encoderValidationModel with
+    | CommonTypes.Encode, EncodersSkipAlwaysValid           -> alwaysValid && outcomeIsTheCalledFunctions
+    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && encodingWritesNoResult
+    | CommonTypes.Encode, EncodersCallEveryValidation
+    | CommonTypes.Decode, _                                 -> false
 
 
 let nestItems_ret (lm:LanguageMacros) children =

@@ -44,7 +44,8 @@ is
    end record;
 
    type TEST_CASE_STEP is
-     (TC_VALIDATE, TC_ENCODE, TC_DECODE, TC_VALIDATE_DECODED, TC_EQUAL);
+     (TC_VALIDATE, TC_ENCODE, TC_DECODE, TC_VALIDATE_DECODED, TC_EQUAL,
+      TC_DECODE_CORRUPTED);
 
    type TEST_CASE_RESULT is record
       Step      : TEST_CASE_STEP;
@@ -121,6 +122,50 @@ is
       and then arr2'First <= Integer'Last - (len2 - 1)
       and then arr1'First + (len1 - 1) <= arr1'Last
       and then arr2'First + (len2 - 1) <= arr2'Last;
+
+   --  Conversion between the packed (LSB-first) in-memory BitArray and the
+   --  wire-order (MSB-first) array of whole bytes used by the C backend.
+   --  ASN.1 bit k is bit (7 - k mod 8) of byte (k / 8), counting from the MSB.
+   procedure BitString_BitArray_To_Bytes
+     (arr : BitArray; len : Integer; bytes : out OctetBuffer) with
+      Pre => len >= 0
+      and then (len = 0 or else
+                (arr'Length > 0 and then len - 1 <= arr'Last - arr'First))
+      and then (len = 0 or else
+                (bytes'Length > 0
+                 and then (len - 1) / 8 <= bytes'Last - bytes'First));
+
+   procedure BitString_Bytes_To_BitArray
+     (bytes : OctetBuffer; len : Integer; arr : out BitArray) with
+      Pre => len >= 0
+      and then (len = 0 or else
+                (arr'Length > 0 and then len - 1 <= arr'Last - arr'First))
+      and then (len = 0 or else
+                (bytes'Length > 0
+                 and then (len - 1) / 8 <= bytes'Last - bytes'First));
+
+   --  Bit k (0-based) of a BIT STRING stored as whole bytes, MSB-first
+   --  (--ada-bitstring-alignment): bit (7 - k mod 8) of byte k / 8.
+   function BitString_Get_Bit (arr : OctetBuffer; k : Natural) return BIT with
+      Pre => arr'Length > 0 and then k / 8 <= arr'Last - arr'First;
+
+   procedure BitString_Set_Bit
+     (arr : in out OctetBuffer; k : Natural; v : BIT) with
+      Pre => arr'Length > 0 and then k / 8 <= arr'Last - arr'First;
+
+   --  Equality of the first len1 / len2 bits of two BIT STRINGs stored as
+   --  whole bytes; the unused bits of the last byte are ignored, as in C.
+   function BitString_Bytes_Equal
+     (len1 : Integer; len2 : Integer; arr1 : OctetBuffer; arr2 : OctetBuffer)
+      return Boolean with
+      Pre => len1 >= 0 and then len2 >= 0
+      and then len1 <= Integer'Last - 7
+      and then (len1 = 0 or else
+                (arr1'Length > 0
+                 and then (len1 + 7) / 8 - 1 <= arr1'Last - arr1'First))
+      and then (len1 = 0 or else
+                (arr2'Length > 0
+                 and then (len1 + 7) / 8 - 1 <= arr2'Last - arr2'First));
 
    procedure ObjectIdentifier_Init (val : out Asn1ObjectIdentifier);
    function ObjectIdentifier_isValid

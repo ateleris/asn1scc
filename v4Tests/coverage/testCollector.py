@@ -1,0 +1,356 @@
+"""Failure-oriented tests; executable with the Python standard library."""
+import contextlib
+import importlib.util
+import io
+import json
+import copy
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+SCRIPT = Path(__file__).with_name("coverageCollector.py")
+if not SCRIPT.exists():
+    SCRIPT = Path(__file__).resolve().parent.parent / "scripts/coverageCollector.py"
+SPEC = importlib.util.spec_from_file_location("collector", SCRIPT)
+c = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(c)
+
+
+class CollectorTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def source_stats(self, marker=False):
+        source = self.root / "sample1.c"
+        source.write_text("ret = ret ? 0 : ERR; " + ("/*COVERAGE_IGNORE*/" if marker else "") + "\n")
+        entry = {"functions": [{"name": "P_ACN_Decode", "blocks": 3, "blocks_executed": 2}],
+                 "lines": [{"line_number": 1, "count": 2, "function_name": "P_ACN_Decode",
+                            "unexecuted_block": True,
+                            "branches": [{"count": 2, "fallthrough": True, "throw": False},
+                                         {"count": 0, "fallthrough": False, "throw": False}]}]}
+        return c.analyse_file(entry, source, ["unit", "c"], "c")
+
+    def test_partial_line_is_not_full_statement_coverage(self):
+        stat = self.source_stats()
+        self.assertEqual((stat["lines_hit"], stat["lines_total"]), (1, 1))
+        self.assertEqual(stat["partially_executed_lines"], 1)
+        self.assertEqual((stat["branches_taken"], stat["branches_total"]), (1, 2))
+        self.assertEqual((stat["blocks_hit"], stat["blocks_total"]), (2, 3))
+
+    def test_ignore_marker_does_not_exclude_or_prove_branch(self):
+        stat = self.source_stats(marker=True)
+        self.assertEqual(stat["legacy_excluded_lines"], 1)
+        self.assertEqual(stat["branches_total"], 2)
+        self.assertEqual(stat["branch_exclusions"], [])
+        arm = stat["branches"][1]
+        self.assertEqual(arm["pattern_category"], "B6")
+        self.assertEqual(arm["reachability"], "unresolved")
+        self.assertIsNone(arm["proof"])
+
+    def test_branch_ids_reproducible_but_source_scoped(self):
+        first = self.source_stats()
+        same = self.source_stats()
+        changed = self.source_stats(marker=True)
+        self.assertEqual(first["branches"][0]["id"], same["branches"][0]["id"])
+        self.assertNotEqual(first["branches"][0]["id"], changed["branches"][0]["id"])
+        self.assertNotEqual(first["branches"][0]["id"], first["branches"][1]["id"])
+
+    def test_legacy_gate_keeps_real_misses(self):
+        text = "#####:1:do_work();\n#####:2:}\n#####:3:bad(); /*COVERAGE_IGNORE*/\n"
+        self.assertEqual(c.text_gcov_misses(text, "c"), [1])
+
+    def test_hashes_in_comments_are_only_literal_legacy_misses(self):
+        text = "-:1:/* #### decorative comment */\n#####:2:do_work();\n"
+        self.assertEqual(c.text_gcov_misses(text, "c"), [2])
+        self.assertEqual(c.text_gcov_misses(text, "c", literal_legacy=True), [1, 2])
+
+    def test_inventory_includes_exempt_and_accounts_for_no_atc(self):
+        (self.root / "normal.asn1").write_text("--NOCOVERAGE\n--TCLS A[]\n-- TCLS disabled[]\n--TCLS B[]\n")
+        (self.root / "compile_only.asn1").write_text("-- NO_AUTOMATIC_TEST_CASES\n--TCLS C[]\n")
+        units = c.enumerate_units(self.root)
+        args = c.arguments(["--test-root", str(self.root)])
+        chosen = c.select_units(units, args, None)
+        self.assertEqual(len(units), 3)
+        self.assertEqual(len(chosen), 2)
+        self.assertTrue(all(u["nocoverage"] for u in chosen))
+        self.assertEqual(units[0]["selection"], "NO_AUTOMATIC_TEST_CASES")
+
+    def test_first_line_markers_follow_the_regression_runner(self):
+        (self.root / "v2.asn1").write_text("-- ACNV2_ONLY\n--TCLS A[]\n")
+        (self.root / "c.asn1").write_text("-- ACNV2_ONLY C_ONLY\n--TCLS B[]\n")
+        reasons = {}
+        for flags in ([], ["--acn-v2"], ["--acn-v2", "--language", "Ada"]):
+            units = c.enumerate_units(self.root)
+            c.select_units(units, c.arguments(["--test-root", str(self.root), *flags]), None)
+            reasons[" ".join(flags)] = [u["selection"] for u in units]
+        self.assertEqual(reasons[""], ["ACNV2_ONLY", "ACNV2_ONLY"])
+        self.assertEqual(reasons["--acn-v2"], ["selected", "selected"])
+        self.assertEqual(reasons["--acn-v2 --language Ada"], ["C_ONLY", "selected"])
+
+    def test_input_hash_ignores_line_endings_but_covers_helpers(self):
+        (self.root / "a.asn1").write_bytes(b"--TCLS A[]\n")
+        lf = c.enumerate_units(self.root)[0]["input_sha256"]
+        (self.root / "a.asn1").write_bytes(b"--TCLS A[]\r\n")
+        self.assertEqual(c.enumerate_units(self.root)[0]["input_sha256"], lf)
+        helpers = self.root / "a.helpers"
+        helpers.mkdir()
+        (helpers / "map.c").write_text("int f(void) { return 0; }\n")
+        unit = c.enumerate_units(self.root)[0]
+        self.assertNotEqual(unit["input_sha256"], lf)
+        work = self.root / "work"
+        work.mkdir()
+        c.prepare_work(unit, self.root, work)
+        self.assertEqual(sorted(p.name for p in work.iterdir()), ["map.c", "sample1.acn", "sample1.asn1"])
+
+    def test_compile_accepts_only_warning_diagnostics(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        warn = "import sys; print('a.asn1:1:1: warning: unused', file=sys.stderr)"
+        c.run_step([sys.executable, "-c", warn], self.root, logs, "compile", 10, [], strict_stderr="warnings")
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", warn], self.root, logs, "compile2", 10, [], strict_stderr=True)
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", "import sys; print('error: x', file=sys.stderr)"],
+                       self.root, logs, "compile3", 10, [], strict_stderr="warnings")
+
+    def test_missing_acn_recorded_and_outside_corpus_rejected(self):
+        (self.root / "a.asn1").write_text("--TCFS missing.acn\n--TCFS ../outside.acn\n")
+        units = c.enumerate_units(self.root)
+        self.assertTrue(all("input_error" in u for u in units))
+
+    def test_failed_runtime_never_contributes_success_metrics(self):
+        stat = self.source_stats()
+        stat["component"] = "codec"
+        failed = {"status": "run_error", "nocoverage": False, "files": {"sample1.c": stat}}
+        self.assertEqual(c.aggregate([failed])["components"], {})
+
+    def test_large_stack_runs_with_the_hard_limit(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        probe = "import resource; print(resource.getrlimit(resource.RLIMIT_STACK)[0])"
+        _, hard = c.resource.getrlimit(c.resource.RLIMIT_STACK)
+        steps = []
+        out = c.run_step([sys.executable, "-c", probe], self.root, logs, "run", 10, steps, large_stack=True)
+        self.assertEqual(int(out), hard)
+        self.assertEqual(steps[0]["stack_limit"], c.stack_limit_text())
+        steps = []
+        soft, _ = c.resource.getrlimit(c.resource.RLIMIT_STACK)
+        out = c.run_step([sys.executable, "-c", probe], self.root, logs, "run2", 10, steps)
+        self.assertEqual(int(out), soft)
+        self.assertNotIn("stack_limit", steps[0])
+
+    def test_process_failure_keeps_code_and_logs(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        steps = []
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", "import sys; print('failure', file=sys.stderr); sys.exit(7)"],
+                       self.root, logs, "run", 10, steps)
+        self.assertEqual(steps[0]["returncode"], 7)
+        self.assertIn("failure", (logs / "run.stderr").read_text())
+
+    def test_timeout_is_failure(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        with self.assertRaises(c.StageError) as raised:
+            c.run_step([sys.executable, "-c", "import time; time.sleep(60)"],
+                       self.root, logs, "run", 1, [])
+        self.assertTrue(raised.exception.timeout)
+
+    def test_success_exit_with_error_diagnostics_is_failure(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", "import sys; print('profile corrupt', file=sys.stderr)"],
+                       self.root, logs, "gcov", 10, [], strict_stderr=True)
+
+    def test_main_fails_and_writes_report_on_runtime_failure(self):
+        corpus, output = self.root / "corpus", self.root / "out"
+        corpus.mkdir()
+        (corpus / "a.asn1").write_text("--TCLS A[]\n")
+        failed = {"unit": "a.asn1#1", "status": "run_error", "nocoverage": False,
+                  "files": {}, "detail": "test program failed"}
+        with mock.patch.object(c, "tool_version", return_value="test"), \
+             mock.patch.object(c, "tree_manifest", return_value={}), \
+             mock.patch.object(c, "measure_unit", return_value=failed), \
+             contextlib.redirect_stdout(io.StringIO()):
+            result = c.main(["--compiler", sys.executable, "--test-root", str(corpus),
+                             "--outdir", str(output)])
+        self.assertEqual(result, 1)
+        summary = json.loads(next(output.glob("*/summary.json")).read_text())
+        self.assertEqual(summary["status"], "failed")
+        self.assertEqual(summary["unit_statuses"], {"run_error": 1})
+        self.assertEqual(summary["failures"], 1)
+
+    def test_missing_profile_is_not_zero_percent_success(self):
+        corpus = self.root / "corpus"
+        corpus.mkdir()
+        (corpus / "a.asn1").write_text("--TCLS A[]\n")
+        args = c.arguments(["--test-root", str(corpus), "--compiler", sys.executable])
+        unit = c.enumerate_units(corpus)[0]
+        with mock.patch.object(c, "run_step", return_value=""):
+            result = c.measure_unit(unit, args, self.root / "run")
+        self.assertEqual(result["status"], "gcov_error")
+
+    def test_empty_translation_unit_has_no_missing_coverage(self):
+        diagnostic = "empty.gcno:no functions found\nempty.gcda:cannot open data file, assuming not executed\n"
+        self.assertTrue(c.validate_profile({"files": []}, False, diagnostic))
+
+    def test_missing_runtime_data_for_real_code_is_failure(self):
+        payload = {"files": [{"lines": [{"line_number": 1, "count": 0}],
+                              "functions": []}]}
+        with self.assertRaises(c.StageError):
+            c.validate_profile(payload, False, "missing.gcda:cannot open data file, assuming not executed\n")
+
+    def test_empty_profile_does_not_hide_unrelated_gcov_error(self):
+        with self.assertRaises(c.StageError):
+            c.validate_profile({"files": []}, False, "version mismatch")
+
+    def test_only_empty_source_mappings_may_omit_text_report(self):
+        self.assertEqual(c.source_text_report({"lines": [], "functions": []}, {}, "types.ads"), "")
+        with self.assertRaises(c.StageError):
+            c.source_text_report({"lines": [{"count": 1}], "functions": []}, {}, "types.ads")
+
+    def test_reference_cannot_match_missing_or_changed_input(self):
+        reference = {"units": {"a#1": {"input_sha256": "old"}}}
+        self.assertFalse(c.compare_reference([], reference)["matched"])
+        rec = {"unit": "a#1", "status": "ok", "input_sha256": "new"}
+        result = c.compare_reference([rec], reference)
+        self.assertEqual(result["differences"][0]["reason"], "input_changed")
+
+    def test_incomplete_comparison_rejected(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            c.arguments(["--cohort", "historical", "--compare-baseline", "--limit", "1"])
+
+    def test_inventory_cannot_claim_to_check_baseline(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            c.arguments(["--inventory-only", "--compare-baseline"])
+
+    def test_check_encode_rejects_unsupported_measurement_contracts(self):
+        for flags in (["--language", "Ada"], ["--compare-baseline"],
+                      ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--check-encode", *flags])
+
+    def test_decode_rejects_unsupported_contracts(self):
+        for flags in (["--language", "Ada"], ["--compare-baseline"],
+                      ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--decode-stage", "actual", *flags])
+
+    def test_decode_rejects_unknown_truncation_oracle(self):
+        (self.root / "sample1_auto_tcs.c").write_text("#ifdef ASN1SCC_DECODE_ACTUAL_LENGTH\n")
+        for unit, encoding in (("unknown#1", "acn"), ("24-DEDUCED-SIZE/002.asn1#1", "uper")):
+            with self.subTest(unit=unit, encoding=encoding), self.assertRaisesRegex(ValueError, "No explicit"):
+                c.decode_support().prepare(self.root, unit, c.arguments(["--decode-stage", "truncate", "--encodings", encoding]))
+
+    def test_invalid_values_reject_unsupported_contracts(self):
+        for flags in (["--language", "Ada"], ["--encodings", "uper"], ["--encodings", "acn"],
+                      ["--check-encode"], ["--decode-stage", "truncate"], ["--compare-baseline"],
+                      ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--check-invalid-values", *flags])
+
+    def test_invalid_values_require_explicit_oracle_and_reject_reference_export(self):
+        with self.assertRaisesRegex(ValueError, "No explicit"):
+            c.harness_support("invalidValueHarness").prepare(self.root, "unknown#1", c.arguments([]))
+        self.reference_run()
+        path = self.root / "manifest.json"
+        manifest = json.loads(path.read_text())
+        manifest["configuration"]["check_invalid_values"] = True
+        c.write_json(path, manifest)
+        with self.assertRaisesRegex(ValueError, "Reference requires"):
+            c.export_reference(self.root, self.root / "invalid-reference.json")
+
+    def test_invalid_streams_reject_unsupported_contracts(self):
+        for flags in (["--language", "Ada"], ["--encodings", "both"], ["--encodings", "uper"],
+                      ["--check-encode"], ["--decode-stage", "truncate"], ["--check-invalid-values"],
+                      ["--compare-baseline"], ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--encodings", "acn", "--check-invalid-streams", *flags])
+
+    def test_invalid_streams_require_explicit_oracle_and_reject_reference_export(self):
+        with self.assertRaisesRegex(ValueError, "No explicit"):
+            c.harness_support("invalidStreamHarness").prepare(self.root, "unknown#1", c.arguments([]))
+        self.reference_run()
+        path = self.root / "manifest.json"
+        manifest = json.loads(path.read_text())
+        manifest["configuration"]["check_invalid_streams"] = True
+        c.write_json(path, manifest)
+        with self.assertRaisesRegex(ValueError, "Reference requires"):
+            c.export_reference(self.root, self.root / "invalid-reference.json")
+
+    def reference_run(self):
+        stat = self.source_stats()
+        stat["component"] = "codec"
+        records = [{"unit": "a#1", "status": "ok", "input_sha256": "input",
+                    "nocoverage": False, "files": {"sample1.c": stat}}]
+        config = vars(c.arguments([]))
+        config = {k: str(v) if isinstance(v, Path) else v for k, v in config.items()}
+        manifest = {"configuration": config, "compiler": {"sha256": "compiler"}}
+        summary = {"status": "ok", "failures": 0, "errors": [], "threshold_failed": False,
+                   "measurements": c.aggregate(records), "unit_statuses": {"ok": 1}}
+        inventory = [{"unit": "a#1", "selection": "selected", "nocoverage": False,
+                      "input_sha256": "input"}]
+        for name, value in (("summary", summary), ("manifest", manifest), ("inventory", inventory)):
+            c.write_json(self.root / (name + ".json"), value)
+        (self.root / "units.jsonl").write_text(json.dumps(records[0]) + "\n")
+        return records, manifest, summary
+
+    def test_export_reference_round_trip_and_no_overwrite(self):
+        records, _, _ = self.reference_run()
+        target = self.root / "reference.json"
+        c.export_reference(self.root, target)
+        reference = json.loads(target.read_text())
+        self.assertTrue(c.compare_reference(records, reference)["matched"])
+        self.assertEqual(reference["provenance"]["manifest"]["compiler"]["sha256"], "compiler")
+        before = target.read_bytes()
+        with self.assertRaises(FileExistsError):
+            c.export_reference(self.root, target)
+        self.assertEqual(target.read_bytes(), before)
+
+    def test_export_rejects_failed_inventory_and_partial_runs(self):
+        _, manifest, summary = self.reference_run()
+        for status in ("failed", "inventory_only"):
+            with self.subTest(status=status), self.assertRaises(ValueError):
+                c.write_json(self.root / "summary.json", {**summary, "status": status})
+                c.export_reference(self.root, self.root / "reference.json")
+        c.write_json(self.root / "summary.json", summary)
+        for key, value in (("cohort", "pilot"), ("limit", 1), ("filter", "a"),
+                           ("language", "Ada"), ("acn_v2", True), ("inventory_only", True),
+                           ("check_encode", True)):
+            modified = copy.deepcopy(manifest)
+            modified["configuration"][key] = value
+            c.write_json(self.root / "manifest.json", modified)
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                c.export_reference(self.root, self.root / "reference.json")
+
+    def test_export_rejects_missing_duplicate_failed_or_changed_records(self):
+        records, _, _ = self.reference_run()
+        for altered in ([], records * 2, [{**records[0], "status": "run_error"}],
+                        [{**records[0], "input_sha256": "changed"}],
+                        [{**records[0], "nocoverage": True}]):
+            (self.root / "units.jsonl").write_text("".join(json.dumps(r) + "\n" for r in altered))
+            with self.subTest(records=len(altered)), self.assertRaises(ValueError):
+                c.export_reference(self.root, self.root / "reference.json")
+
+    def test_export_rejects_summary_drift_and_ungated_line_misses(self):
+        records, _, summary = self.reference_run()
+        summary["measurements"]["components"]["codec"]["lines_hit"] += 1
+        c.write_json(self.root / "summary.json", summary)
+        with self.assertRaisesRegex(ValueError, "summary"):
+            c.export_reference(self.root, self.root / "reference.json")
+        records[0]["files"]["sample1.c"]["official_line_misses"] = [1]
+        summary["measurements"] = c.aggregate(records)
+        c.write_json(self.root / "summary.json", summary)
+        (self.root / "units.jsonl").write_text(json.dumps(records[0]) + "\n")
+        with self.assertRaisesRegex(ValueError, "line misses"):
+            c.export_reference(self.root, self.root / "reference.json")
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

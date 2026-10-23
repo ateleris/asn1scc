@@ -107,6 +107,29 @@ let collectTestAsn1Files (test_cases_dir:string) =
     
 
 
+// First-line markers restricting a test file (same rules in v4Tests/scripts/runTests.py):
+// ACNV2_ONLY runs the file only with -acnv2, C_ONLY only for the C backend,
+// C_ADA_ONLY only for C and Ada (not the experimental backends),
+// ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags).
+let isTestSelected (t:Test_Case) (lang:string) (enableAcnV2:bool) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY")) && (lang = "c" || lang = "Ada" || not (markers.Contains "C_ADA_ONLY")) && (lang = "Ada" || not (markers.Contains "ADA_BITSTRING_ALIGNMENT"))
+
+// Compiler options requested by first-line markers (same rules in runTests.py):
+// ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs.
+let extraFlags (t:Test_Case) (lang:string) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    match lang = "Ada" && markers.Contains "ADA_BITSTRING_ALIGNMENT" with
+    | true  -> "-adaBitStringAlignment"
+    | false -> ""
+
+// <name>.helpers/ next to <name>.asn1: files copied into the work directory of
+// each test case of that file (e.g. user-provided mapping functions).
+let copyHelpers (asn1FileName:string) workDir =
+    let helpersDir = Path.Combine(Path.GetDirectoryName asn1FileName, Path.GetFileNameWithoutExtension asn1FileName + ".helpers")
+    if Directory.Exists helpersDir then
+        Directory.GetFiles helpersDir |> Seq.iter (fun f -> File.Copy(f, Path.Combine(workDir, Path.GetFileName f)))
+
 let emptyFolder (workDir) =
     let di = DirectoryInfo(workDir)
     di.GetFiles() |> Seq.iter (fun f -> f.Delete())
@@ -130,20 +153,41 @@ END
     //printfn "%s" workDir
     emptyFolder workDir
     File.Copy(asn1FileName, Path.Combine(workDir, "sample1.asn1"))
+    copyHelpers asn1FileName workDir
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
+/// The SPARK check of a RUN_SPARK test case (coverage step 10c, q/issues.md Issue 45): it passes only when
+/// gnatprove proves every check (the Unproved column of the Total row in gnatprove.out is ".") and prints no
+/// message (high / medium / low / warning; warnings are errors, as in the -gnatwe compilation). Returns the problems.
+let sparkProblems (workDir:string) (sparkLog:string list) : string list =
+    let message = System.Text.RegularExpressions.Regex(@"(^|: )\s*(high|medium|low|warning): ")
+    let messages = sparkLog |> List.filter (fun l -> message.IsMatch l || l.Contains "might fail, cannot prove")
+    let summary = Path.Combine(workDir, "obj_x86", "gnatprove", "gnatprove.out")
+    let unproved =
+        match File.Exists summary with
+        | false -> ["no " + summary]
+        | true  ->
+            match File.ReadLines summary |> Seq.tryFind (fun l -> l.StartsWith "Total") with
+            | None       -> ["no Total row in " + summary]
+            | Some total ->
+                match System.Text.RegularExpressions.Regex.Split(total.Trim(), @"\s{2,}") |> Array.last with
+                | "." -> []
+                | n   -> [sprintf "unproved checks: %s (%s)" n summary]
+    messages @ unproved
+
 let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
     let ig = if enableIG then "-ig" else ""
     let acnV2 = if enableAcnV2 then "--acn-v2" else ""
+    let extra = extraFlags t lang
     let target = 
         if lang = "Ada" && ws = 4 then 
             " -t msp430 "
         else
             ""
     
-    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN %s{ig} %s{acnV2} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
+    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN %s{ig} %s{acnV2} %s{extra} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
     //let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
@@ -216,13 +260,9 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                             if res.ExitCode <> 0 then
                                 markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
                             else
-                                let sparkLog = File.ReadLines sparkLogFname
-                                let bSparkFailed =
-                                    sparkLog |> Seq.exists(fun l -> l.Contains "might fail, cannot prove")
-                                if bSparkFailed then
-                                    markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
-                                else
-                                    markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                                match sparkProblems workDir (File.ReadLines sparkLogFname |> Seq.toList) with
+                                | []       -> markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                                | problems -> markError "SPARK Failed. See %s\n%s\n%s" sparkLogFname (problems |> List.truncate 10 |> String.concat "\n") cmd
                         else
                             markSuccess "Make and Code Coverage OK"
 
@@ -364,8 +404,9 @@ let main0 argv =
         let asn1sccInvoications =
             seq {
                 for tc in all_tests do
-                    for m in asn1sccModes do
-                        yield (tc, m)
+                    for (lang, _, _, _, acnV2) as m in asn1sccModes do
+                        if isTestSelected tc lang acnV2 then
+                            yield (tc, m)
             } |> Seq.toList
 
         //asn1sccInvoications |>

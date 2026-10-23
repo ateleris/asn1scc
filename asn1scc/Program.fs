@@ -19,6 +19,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-XER")>]XER_enc
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
     | [<Unique; AltCommandLine("-atc")>]Auto_test_cases
+    | [<Unique; AltCommandLine("-atcSweepBudget")>]Atc_Sweep_Budget of bytes:int64
     | [<Unique; AltCommandLine("-o")>]Out of dir:string
     | [<Unique; AltCommandLine("-equal")>]Equal_Func
     | [<Unique; AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
@@ -55,6 +56,7 @@ type CliArguments =
     | [<AltCommandLine("-if")>] Include_Func of string
     | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
     | [<Unique; AltCommandLine("-acnDeferred")>] Acn_V2
+    | [<Unique; AltCommandLine("-adaBitStringAlignment")>] Ada_BitString_Alignment
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -71,6 +73,7 @@ with
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
             | Auto_test_cases  -> "create automatic test cases."
+            | Atc_Sweep_Budget _ -> "(with -atc, uPER and ACN) bytes decoded per test value by each decode fault sweep of the automatic tests (truncated and corrupted copies of the encoded value must be rejected; C: truncation and corruption, Ada: corruption). At most 128 positions at each end of the encoding are tried, at least 2. Default 1048576 (1 MB). For C the value can also be set when compiling the tests, with -DASN1SCC_SWEEP_BUDGET=<bytes>."
             | Out (_)          -> "directory where all files are produced."
             | Files (_)        -> "List of ASN.1 and ACN files to process."
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."
@@ -127,6 +130,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
             | Acn_V2 -> "(C and Ada) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
+            | Ada_BitString_Alignment -> "(Ada only) Represent BIT STRING values as an array of whole bytes (adaasn1rtl.OctetBuffer), MSB-first as in C, instead of a packed adaasn1rtl.BitArray. X.Data (i) then indexes bytes, not bits; use adaasn1rtl.BitString_Get_Bit/BitString_Set_Bit or the generated X_set_<bit> procedures for single bits. WARNING: this changes the generated Ada type, so it is not source-compatible with existing Ada applications."
 
 
 let printVersion () =
@@ -134,7 +138,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.9.1.0"
+    let version = "4.9.42.0"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -276,6 +280,14 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | XER_enc          -> ()
     | ACN_enc          -> ()
     | Auto_test_cases  -> ()
+    | Atc_Sweep_Budget bytes ->
+        match cliArgs |> List.exists (fun a -> a = Auto_test_cases) with
+        | false -> raise (UserException ("The -atcSweepBudget option requires -atc."))
+        | true  ->
+            match bytes with
+            | _ when bytes < 0L -> raise (UserException ("invalid value for argument -atcSweepBudget. The value must be a number of bytes, 0 or greater."))
+            | 0L -> Console.Error.WriteLine "warning: -atcSweepBudget 0: the decode fault sweeps of the automatic tests cannot be switched off; using the minimum (2 positions at each end of each encoding)."
+            | _  -> ()
     | Equal_Func       -> ()
     | Generate_Test_Grammar -> ()
     | Init_Globals          -> ()
@@ -355,6 +367,10 @@ let checkArgument (cliArgs : CliArguments list) arg =
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
+    | Ada_BitString_Alignment ->
+        match cliArgs |> List.exists (fun a -> a = Ada_Lang) with
+        | true  -> ()
+        | false -> raise (UserException ("The -adaBitStringAlignment option is supported only for Ada."))
     | Acn_V2 ->
         match cliArgs |> List.exists (fun a -> a = Scala_Lang || a = Python_Lang) with
         | true  -> raise (UserException ("The --acn-deferred option is supported only for C and Ada."))
@@ -388,6 +404,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                     | None -> 0u
         GenerateEqualFunctions = (parserResults.Contains <@ Equal_Func @>) || (parserResults.Contains <@ Auto_test_cases @>)
         generateAutomaticTestCases = parserResults.Contains <@ Auto_test_cases @>
+        atcSweepBudget = BigInteger (parserResults.GetResult(<@ Atc_Sweep_Budget @>, defaultValue = 1048576L))
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")
         CheckWithOss = false
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
@@ -495,6 +512,7 @@ let main0 argv =
 
         // Enable line number printing if requested
         ST.printTemplateInfo <- parserResults.Contains <@ PrintTemplateInfo @>
+        CommonTypes.bitStringAlignment <- parserResults.Contains <@ Ada_BitString_Alignment @>
 
         let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) =
             match parserResults.Contains <@ Debug_Asn1 @> with

@@ -28,10 +28,141 @@ let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
             List.map EmitItem
     icd_uper.EmitEnumInternalContents stgFileName itemsHtml
 
+/// The ACN codec of the integer that carries an ENUMERATED value (the item's
+/// acnEncodeValue), applied to the CodegenScope it is called with.
+let private enumIntFuncBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure (typeDefinitionName:string) =
+    let IntFullyConstraintPos               = lm.uper.IntFullyConstraintPos
+    let min = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.min
+    let max = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.max
+    let intTypeClass = getIntEncodingClassByUperRange r.args (Concrete (min,max))
+    let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
+        let pp, resultExpr = adaptArgument lm codec p
+        let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
+        let sSsuffix = lm.lg.getIntDecFuncSuffix intTypeClass
+        let word_size_in_bits = (int r.args.integerSizeInBytes)*8
+        let nbits = GetNumberOfBitsForNonNegativeInteger (max-min)
+        let rangeAssert =
+            match typeId.topLevelTas with
+            | Some tasInfo ->
+                lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
+            | None -> None
+        let intType = Some (lm.typeDef.Declare_Integer())
+        let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert intType codec
+        Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
+    AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass DecodeOutcome.KeepCheckedCall uperInt sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
+
+/// The values that a fixed-size ACN integer encoding can carry; None for the
+/// uPER-like encoding (range-checked by the decoder) and the variable-size ones.
+let private encodableRange (enc:IntEncodingClass) : (BigInteger*BigInteger) option =
+    let unsigned (bits:int) = Some (0I, BigInteger.Pow(2I, bits) - 1I)
+    let signed (bits:int) = Some (-BigInteger.Pow(2I, bits - 1), BigInteger.Pow(2I, bits - 1) - 1I)
+    let digits (n:int) = BigInteger.Pow(10I, n) - 1I
+    match enc with
+    | PositiveInteger_ConstSize_8 -> unsigned 8
+    | PositiveInteger_ConstSize_big_endian_16 | PositiveInteger_ConstSize_little_endian_16 -> unsigned 16
+    | PositiveInteger_ConstSize_big_endian_32 | PositiveInteger_ConstSize_little_endian_32 -> unsigned 32
+    | PositiveInteger_ConstSize_big_endian_64 | PositiveInteger_ConstSize_little_endian_64 -> unsigned 64
+    | PositiveInteger_ConstSize bits -> unsigned (int bits)
+    | TwosComplement_ConstSize_8 -> signed 8
+    | TwosComplement_ConstSize_big_endian_16 | TwosComplement_ConstSize_little_endian_16 -> signed 16
+    | TwosComplement_ConstSize_big_endian_32 | TwosComplement_ConstSize_little_endian_32 -> signed 32
+    | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64 -> signed 64
+    | TwosComplement_ConstSize bits -> signed (int bits)
+    | ASCII_ConstSize bits -> let d = digits (int bits / 8 - 1) in Some (-d, d)        // sign + digits
+    | ASCII_UINT_ConstSize bits -> Some (0I, digits (int bits / 8))
+    | BCD_ConstSize bits -> Some (0I, digits (int bits / 4))
+    | Integer_uPER
+    | ASCII_VarSize_NullTerminated _
+    | ASCII_UINT_VarSize_NullTerminated _
+    | BCD_VarSize_NullTerminated _ -> None
+
+/// Justification of a GNATcoverage exemption region in the generated code; the IDs and
+/// their proofs are in Docs/statement-coverage-exemptions.md (the C uPER / ACN CHOICE
+/// and string templates carry the same COV-001 / COV-002 texts).
+let private covExemptJustification (id:string) =
+    match id with
+    | "ASN1SCC-COV-001" -> "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
+    | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
+
+/// The exemption that proves the `default:` / `when others` arm of the ACN ENUMERATED
+/// decoder unreachable, or None when an invalid stream can reach it (the complement of
+/// createInvalidCodeStream). The item values must fill min..max, and the integer decoder
+/// must return only values of min..max: the uPER-like encoding (range-checked RTL decode,
+/// ASN1SCC-COV-001); a fixed-size encoding when the language's decoders check min..max
+/// (Ada, ASN1SCC-COV-001); in C an unsigned fixed-size encoding whose width holds exactly
+/// min..max (ASN1SCC-COV-003).
+let decodeDefaultArmExemption (lm:LanguageMacros) (o:Asn1AcnAst.Enumerated) : string option =
+    let values = o.items |> List.map(fun x -> x.acnEncodeValue) |> Set.ofList
+    let min, max = Set.minElement values, Set.maxElement values
+    let dense = BigInteger values.Count = max - min + 1I
+    let id =
+        match dense with
+        | false -> None
+        | true ->
+            match o.acnEncodingClass with
+            | Integer_uPER -> Some "ASN1SCC-COV-001"
+            | PositiveInteger_ConstSize_8
+            | PositiveInteger_ConstSize_big_endian_16 | PositiveInteger_ConstSize_little_endian_16
+            | PositiveInteger_ConstSize_big_endian_32 | PositiveInteger_ConstSize_little_endian_32
+            | PositiveInteger_ConstSize_big_endian_64 | PositiveInteger_ConstSize_little_endian_64
+            | PositiveInteger_ConstSize _ ->
+                match lm.lg.atcInvalidStreamCodeOutsideItemRange with
+                | false -> Some "ASN1SCC-COV-001"
+                | true when encodableRange o.acnEncodingClass = Some (min, max) -> Some "ASN1SCC-COV-003"
+                | true -> None
+            | TwosComplement_ConstSize_8
+            | TwosComplement_ConstSize_big_endian_16 | TwosComplement_ConstSize_little_endian_16
+            | TwosComplement_ConstSize_big_endian_32 | TwosComplement_ConstSize_little_endian_32
+            | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64
+            | TwosComplement_ConstSize _
+            | ASCII_ConstSize _ | ASCII_UINT_ConstSize _ | BCD_ConstSize _ ->
+                match lm.lg.atcInvalidStreamCodeOutsideItemRange with
+                | false -> Some "ASN1SCC-COV-001"
+                | true -> None
+            | ASCII_VarSize_NullTerminated _ | ASCII_UINT_VarSize_NullTerminated _ | BCD_VarSize_NullTerminated _ -> None
+    id |> Option.map covExemptJustification
+
+/// An ACN stream that holds only a code of the ENUMERATED type that no item
+/// uses, encoded like the type's own encoder encodes an item value, for the
+/// automatic test of the ACN decoder's default arm. The code is the smallest one
+/// between the smallest and the largest item value. When the items leave no gap,
+/// and the language's ACN integer decoders do not check min..max
+/// (atcInvalidStreamCodeOutsideItemRange, C), a fixed-size encoding still carries
+/// max + 1 or min - 1 (not negative). None otherwise, and for the efficient
+/// (switch-free) enumeration encoding.
+let createInvalidCodeStream (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) : AcnInvalidCodeStream option =
+    let values = o.items |> List.map(fun x -> x.acnEncodeValue) |> Set.ofList
+    let min, max = Set.minElement values, Set.maxElement values
+    let gapCode =
+        Seq.unfold (fun v -> if v > max then None else Some (v, v + 1I)) min |>
+        Seq.tryFind (fun v -> not (values.Contains v))
+    let outsideCode () =
+        match lm.lg.atcInvalidStreamCodeOutsideItemRange, encodableRange o.acnEncodingClass with
+        | true, Some (encMin, encMax) ->
+            [max + 1I; min - 1I] |> List.tryFind (fun v -> v >= encMin && v <= encMax && v >= 0I)
+        | true, None
+        | false, _ -> None
+    match r.args.isEnumEfficientEnabled o.items.Length with
+    | true  -> None
+    | false ->
+        (match gapCode with Some _ -> gapCode | None -> outsideCode ()) |>
+        Option.bind (fun code ->
+            let intTypeClass = getIntEncodingClassByUperRange r.args (Concrete (min,max))
+            let codeVarName = "tc_invalidCode"
+            let p = {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath codeVarName}
+            // The encoder of an in-range code does not fail; its error code is never set.
+            let errCode = {ErrorCode.errCodeValue = 0; errCodeName = "0"; comment = None; fieldPath = ""}
+            let intFuncBody = enumIntFuncBody r lm Codec.Encode t.id o None t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits None ""
+            intFuncBody errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p |>
+            Option.map (fun res ->
+                {AcnInvalidCodeStream.code = code; codeVarName = codeVarName
+                 codeVarType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
+                 encodeStatement = res.funcBody; localVariables = res.localVariables}))
+
 let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefinitionOrReference ) (typeDefinitionName:string) (icdStgFileName:string) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure =
     let EnumeratedEncValues                 = lm.acn.EnumeratedEncValues
     let Enumerated_item                     = lm.acn.Enumerated_item
-    let IntFullyConstraintPos               = lm.uper.IntFullyConstraintPos
     let Enumerated_no_switch                = lm.acn.EnumeratedEncValues_no_switch
 
     let min = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.min
@@ -52,22 +183,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None}]
             lv, varName
         let pVal = {CodegenScope.modName = typeId.ModName; accessPath = AccessPath.valueEmptyPath intVal}
-        let intFuncBody =
-            let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-                let pp, resultExpr = adaptArgument lm codec p
-                let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
-                let sSsuffix = lm.lg.getIntDecFuncSuffix intTypeClass
-                let word_size_in_bits = (int r.args.integerSizeInBytes)*8
-                let nbits = GetNumberOfBitsForNonNegativeInteger (max-min)
-                let rangeAssert =
-                    match typeId.topLevelTas with
-                    | Some tasInfo ->
-                        lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
-                    | None -> None
-                let intType = Some (lm.typeDef.Declare_Integer())
-                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert intType codec
-                Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
-            AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
+        let intFuncBody = enumIntFuncBody r lm codec typeId o sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName
         let funcBodyContent =
             match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
@@ -82,7 +198,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                             List.map(fun it ->
                                 let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
                                 Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, localVar@intAcnFuncBdResult.localVariables
+                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal (decodeDefaultArmExemption lm o) codec, localVar@intAcnFuncBdResult.localVariables
                     | true ->
                         let sEnumIndex = "nEnumIndex"
                         let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))

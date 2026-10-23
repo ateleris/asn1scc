@@ -3,6 +3,18 @@ group a_isvalid;
 rtlModuleName() ::= "adaasn1rtl"
 methodNameSuffix() ::= "_IsConstraintValid"
 
+/* Coverage step 11b: says why a check is not in the generated code (e.g. a child that cannot be invalid). */
+validation_comment(sText) ::= <<
+-- <sText>
+>>
+
+/* Coverage step 11b: a constraint that the Ada type of the value already enforces is not checked at run time;
+   the check stays as an assertion that gnatprove proves (a wrong classification fails the proof). */
+implied_by_type_check(sExp, sConstraint) ::= <<
+-- no run-time check: the Ada type of the value enforces <if(sConstraint)><sConstraint><else>its constraints<endif> (proved below)
+pragma Assert (<sExp>);
+>>
+
 always_true_statement ()::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
@@ -143,6 +155,7 @@ StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <soInnerStatement>
     <i> := <i>+1;
 end loop;
@@ -191,6 +204,7 @@ is
 begin
     while I\<= strLen and ret loop
         pragma Loop_Invariant (I>=1 and I\<=str'Last);
+        pragma Loop_Variant (Increases => I);
         ret := <arrsAlphaConBody; separator=" and ">;
         I := I + 1;
     end loop;
@@ -256,6 +270,7 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => <soIsValidSizeExp>, ErrorCode =
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <soInnerStatement>
     <i> := <i>+1;
 end loop;
@@ -267,6 +282,7 @@ sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <sInnerStatement>
     <i> := <i>+1;
 end loop;
@@ -307,6 +323,20 @@ JoinItems2(sPart, sNestedPart) ::= <<
 if result.Success then
     <sNestedPart>
 end if;
+>>
+
+/* Coverage step 10b (DAstUtilFunctions.nestItemsByOutcome): the part before cannot fail and sets result. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+-- no check: the part above cannot fail (the stream holds the full size); proved by this Assert
+pragma Assert (result.Success);
+<sNestedPart>
+>>
+
+/* Coverage step 10b: the part before cannot fail and does not touch result (_FullRange calls). */
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+<sNestedPart>
 >>
 
 
@@ -363,11 +393,19 @@ octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+<if(bitStringAlignment)>
+<rtlModuleName()>.BitString_Bytes_Equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<else>
 <rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<endif>
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
+<if(bitStringAlignment)>
+<rtlModuleName()>.BitString_Bytes_Equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<else>
 <rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<endif>
 >>
 
 

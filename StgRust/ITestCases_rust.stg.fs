@@ -25,6 +25,12 @@ type ITestCases_rust() =
             test_cases_rust.Codec_validate_output  sModName sFuncName sAmber 
         override this.Codec_compare_input_with_output  (sModName:string) (sFuncName:string) (sVal:string) (sAmber:string) =
             test_cases_rust.Codec_compare_input_with_output  sModName sFuncName sVal sAmber 
+        override this.Codec_DecodeSweep_helper  (nBudget:BigInteger) =
+            test_cases_rust.Codec_DecodeSweep_helper  nBudget 
+        override this.Codec_DecodeSweep_adapter  (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sAmber:string) (soIsValidFunc:string option) =
+            test_cases_rust.Codec_DecodeSweep_adapter  sModName sFuncName sDecFuncName sTasName sAmber soIsValidFunc 
+        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sEnc:string) (sAmber:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) =
+            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName sTasName sEnc sAmber soIsValidFunc bTruncate bDeduced nBudget 
         override this.Codec_write_CharstreamToFile  () =
             test_cases_rust.Codec_write_CharstreamToFile  () 
         override this.Codec_write_bitstreamToFile  () =
@@ -57,11 +63,23 @@ type ITestCases_rust() =
             test_cases_rust.emitTestCaseAsFunc_dummy_init  sTypeName sFuncName sDummyVarname 
         override this.emitTestCaseAsFunc_dummy_init_function  (sTypeName:string) (sFuncName:string) (sDummyVarname:string) =
             test_cases_rust.emitTestCaseAsFunc_dummy_init_function  sTypeName sFuncName sDummyVarname 
-        override this.emitTestCaseAsFunc  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sEnc:string) (bValueAssignment:bool) (sInitializeTcData:string) (bStatic:bool) (sGenerateDatFile:string) (arrsDummyInitStatementsNeededForStatementCoverage:seq<string>) (sInitAmber:string) =
-            test_cases_rust.emitTestCaseAsFunc  sFuncName arrsVars sModName sTasName sAmber sEnc bValueAssignment sInitializeTcData bStatic sGenerateDatFile arrsDummyInitStatementsNeededForStatementCoverage sInitAmber 
+        override this.emitTestCaseAsFunc  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sEnc:string) (bValueAssignment:bool) (sInitializeTcData:string) (bStatic:bool) (sGenerateDatFile:string) (arrsDummyInitStatementsNeededForStatementCoverage:seq<string>) (sInitAmber:string) (soEncDecPrefix:string option) =
+            test_cases_rust.emitTestCaseAsFunc  sFuncName arrsVars sModName sTasName sAmber sEnc bValueAssignment sInitializeTcData bStatic sGenerateDatFile arrsDummyInitStatementsNeededForStatementCoverage sInitAmber soEncDecPrefix 
+        override this.emitInvalidValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sTasName:string) (sAmber:string) (sEnc:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sIsValidFunc:string) (sEncFunc:string) (soEqualFunc:string option) =
+            test_cases_rust.emitInvalidValueTestCase  sFuncName arrsVars sTasName sAmber sEnc sInitializeTcData bStatic sSetInvalidValue sIsValidFunc sEncFunc soEqualFunc 
+        override this.emitExcludedValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sTasName:string) (sAmber:string) (sEnc:string) (sInitializeTcData:string) (bStatic:bool) (sSetExcludedValue:string) (sIsValidFunc:string) (sEncFunc:string) (sDecFunc:string) =
+            test_cases_rust.emitExcludedValueTestCase  sFuncName arrsVars sTasName sAmber sEnc sInitializeTcData bStatic sSetExcludedValue sIsValidFunc sEncFunc sDecFunc 
+        override this.emitInvalidStreamTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sEnc:string) (sCodeVar:string) (sCodeType:string) (nCode:BigInteger) (sEncodeStatement:string) (sDecFunc:string) =
+            test_cases_rust.emitInvalidStreamTestCase  sFuncName arrsVars sModName sTasName sEnc sCodeVar sCodeType nCode sEncodeStatement sDecFunc 
         override this.printTestCaseFileDef  (sThisFile:string) (arrsIncludedModules:seq<string>) (arrsTestFunctionDefs:seq<string>) =
             test_cases_rust.printTestCaseFileDef  sThisFile arrsIncludedModules arrsTestFunctionDefs 
-        override this.printTestCaseFileBody  (sThisFile:string) (arrsIncludedModules:seq<string>) (arrsTestFunctionBodies:seq<string>) (arrsProgramUnitNames:seq<string>) =
-            test_cases_rust.printTestCaseFileBody  sThisFile arrsIncludedModules arrsTestFunctionBodies arrsProgramUnitNames 
+        override this.printTestCaseFileBody  (sThisFile:string) (arrsIncludedModules:seq<string>) (arrsTestFunctionBodies:seq<string>) (arrsProgramUnitNames:seq<string>) (arrsRtlUnits:seq<string>) =
+            test_cases_rust.printTestCaseFileBody  sThisFile arrsIncludedModules arrsTestFunctionBodies arrsProgramUnitNames arrsRtlUnits 
         override this.decodingCaseKind  (sBody:string) (sIdentifier:string) =
             test_cases_rust.decodingCaseKind  sBody sIdentifier 
+        override this.emitConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCodeModule:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) =
+            test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCodeModule sErrCode arrsEncodeChecks 
+        override this.constraintViolationEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCodeModule:string) (sErrCode:string) =
+            test_cases_rust.constraintViolationEncodeCheck  sEncFunc sModName sTasName sEnc sAmber sErrCodeModule sErrCode 
+        override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
+            test_cases_rust.constraintViolationStringChar  sStr nIndex nChar 

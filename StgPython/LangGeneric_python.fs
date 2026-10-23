@@ -990,6 +990,7 @@ type LangGeneric_python() =
                             typeDefinitionBodyWithinSeq = getDeterminantTypeFunc crossDep.dependency.determinant
                             funcBody = (fun _ _ _ _ _ -> None) // Dummy function body - not used for update (5 parameters)
                             funcUpdateStatement = Some updateFunc
+                            deferredTestCaseFnc = None
                             Comments = [||] // Empty array
                             deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [crossDep.dependency] }
                             initExpression = initExpr currentModule (match crossDep.dependency.determinant with AcnChildDeterminant ch -> ch.Type | _ -> failwith "Expected AcnChildDeterminant")
@@ -1442,6 +1443,10 @@ type LangGeneric_python() =
             xerPrefix            = "XER_"
             berPrefix            = "BER_"
         }
+
+    /// Define_subType_bit_string gives a fixed-size BIT STRING subtype the constructor
+    /// __init__(self, arr) (header_python.stg); OCTET STRING / SEQUENCE OF subtypes keep (n_count, arr).
+    override _.bitStringSubtypeHasOwnConstructor = true
 
     override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
         prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1)))

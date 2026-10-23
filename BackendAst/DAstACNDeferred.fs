@@ -48,6 +48,25 @@ let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: 
         (fieldAccess, ".")
 
 
+/// Name of the AcnInsertedFieldRef local variable that holds the ACN field (or
+/// argument) `name` in the caller: ToC name, with the suffix "_ref" when that
+/// would clash with a keyword of the target language or, in a case-insensitive
+/// language (Ada), with a module (package) or type name, which the local would
+/// hide (e.g. "type", or "parameterReportStructureType" hiding package
+/// ParameterReportStructureType). Every place that declares, patches or passes
+/// such a local must use this function.
+let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: string) : string =
+    let cName = ToC name
+    let same (a: string) (b: string) =
+        if lm.lg.isCaseSensitive then a = b else a.ToUpperInvariant() = b.ToUpperInvariant()
+    let isKeyword = lm.lg.Keywords |> Seq.exists (same cName)
+    let hidesModuleOrType =
+        not lm.lg.isCaseSensitive
+        && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
+            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ -> same cName (ToC (r.args.TypePrefix + tasName))))
+    if isKeyword || hidesModuleOrType then cName + "_ref" else cName
+
+
 /// Compute the value expression for a PatchDet call, based on the
 /// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
 /// is an optional block of code to prepend (e.g., a switch/case that
@@ -62,17 +81,24 @@ let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: 
 /// underscore — Ada rejects leading-underscore identifiers and the same
 /// names are emitted into both C and Ada output.
 let computePatchDetValueExpr
+    (r: Asn1AcnAst.AstRoot)
     (lm: LanguageMacros)
+    (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
     (dep: Asn1AcnAst.AcnDependency)
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
     : (string option * string) =
-    let fieldPath = dep.asn1Type.ToScopeNodeList
+    // backend names of the children (fields renamed by -fp AUTO)
+    let backendType = withBackendChildNames r lm dep.asn1Type
+    let fieldPath = backendType.ToScopeNodeList
     let relParts = fieldPath |> List.skip boundaryPath.Length
     match dep.dependencyKind with
-    | Asn1AcnAst.AcnDepSizeDeterminant _ ->
-        let (fieldExpr, acc) = buildRelativeAccess lm relParts specP
-        (None, lm.acn.getSizeableSize fieldExpr acc false)
+    | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
+        if minSize.acn = maxSize.acn then
+            (None, minSize.acn.ToString())
+        else
+            let (fieldExpr, acc) = buildRelativeAccess lm relParts specP
+            (None, lm.acn.getSizeableSize fieldExpr acc false)
 
     | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
         let (fieldExpr, _acc) = buildRelativeAccess lm relParts specP
@@ -82,7 +108,7 @@ let computePatchDetValueExpr
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
         let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
         let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts specP
-        let childName = ToC (dep.asn1Type.lastItem)
+        let childName = ToC (backendType.lastItem)
         (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName)
 
     | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
@@ -119,8 +145,11 @@ let computePatchDetValueExpr
         let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
+        // The value the determinant field itself writes (its own acnEncodeValue): the
+        // CHOICE parameter type may be encoded differently (e.g. encode-values on the field).
+        let fieldItems = determinantEnumItems deps dep.determinant enm.enm
         let switchItems = chc.children |> List.map (fun ch ->
-            let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
+            let enmItem = fieldItems |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
             let presentWhenName = ch.presentWhenName
             // Emit the ACN-encoded integer value (not the enum literal name) so
             // the assignment target — det.Value of type Asn1UInt — accepts it
@@ -137,18 +166,51 @@ let computePatchDetValueExpr
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet, nBitsOpt) function names.
-let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : DetFunctionNames option =
+let private findOriginalDeterminantForParam
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (paramId: ReferenceToType) : Asn1AcnAst.AcnChild option =
     let rec follow (pid: ReferenceToType) =
         deps.acnDependencies |> List.tryPick (fun d ->
             match d.dependencyKind with
             | AcnDepRefTypeArgument p when p.id = pid ->
                 match d.determinant with
-                | Asn1AcnAst.AcnChildDeterminant ac ->
-                    lm.lg.getDeferredDetFunctions ac.Type
+                | Asn1AcnAst.AcnChildDeterminant ac -> Some ac
                 | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
                     follow parentPrm.id
             | _ -> None)
     follow paramId
+
+let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : DetFunctionNames option =
+    findOriginalDeterminantForParam deps paramId
+    |> Option.bind (fun determinant -> lm.lg.getDeferredDetFunctions determinant.Type)
+
+let private getDeferredMappingFunction
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (codec: CommonTypes.Codec)
+        (paramId: ReferenceToType) : string option * string option * UserDefinedFunction list =
+    match findOriginalDeterminantForParam deps paramId with
+    | Some determinant ->
+        match determinant.Type with
+        | Asn1AcnAst.AcnInteger integer ->
+            match integer.acnProperties.mappingFunction with
+            | Some (MappingFunction (explicitModule, functionName)) ->
+                let name = functionName.Value
+                let mappingModule =
+                    match explicitModule with
+                    | Some moduleName -> Some moduleName.Value
+                    | None -> AcnPrimitives.getMappingFunctionModule r lm (Some name)
+                let declaration =
+                    lm.acn.MappingFunctionDeclaration
+                        (DAstACN.getDeterminantTypeDefinitionBodyWithinSeq
+                            r lm (Asn1AcnAst.AcnChildDeterminant determinant))
+                        name codec
+                    |> UserMappingFunction
+                Some name, mappingModule, [declaration]
+            | None -> None, None, []
+        | _ -> None, None, []
+    | None -> None, None, []
 
 
 /// Collect deferred determinant names from the original AST (before the fold).
@@ -156,16 +218,21 @@ let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedF
 let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (seq: Asn1AcnAst.Sequence) : Set<string> =
     if not r.args.acnDeferred then Set.empty
     else
+        // A SEQUENCE OF child passes the arguments of its element type (the
+        // element encoder patches them, once per element), so look through
+        // SEQUENCE OF, nested ones included, to the reference type.
+        let rec argumentNames (kind: Asn1AcnAst.Asn1TypeKind) =
+            match kind with
+            | Asn1AcnAst.ReferenceType rt ->
+                rt.acnArguments
+                |> List.choose (fun (AcnGenericTypes.RelativePath parts) ->
+                    match parts with [] -> None | _ -> Some (parts |> List.last).Value)
+            | Asn1AcnAst.SequenceOf so -> argumentNames so.child.Kind
+            | _ -> []
         let fromChildren =
             seq.children
             |> List.choose (fun c -> match c with Asn1AcnAst.Asn1Child ac -> Some ac | _ -> None)
-            |> List.collect (fun ac ->
-                match ac.Type.Kind with
-                | Asn1AcnAst.ReferenceType rt ->
-                    rt.acnArguments
-                    |> List.choose (fun (AcnGenericTypes.RelativePath parts) ->
-                        match parts with [] -> None | _ -> Some (parts |> List.last).Value)
-                | _ -> [])
+            |> List.collect (fun ac -> argumentNames ac.Type.Kind)
             |> Set.ofList
         let fromOwnParams = t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
         Set.union fromChildren fromOwnParams
@@ -174,13 +241,9 @@ let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Ty
 /// by child reference types within a SEQUENCE.  These are the ACN children
 /// that need deferred handling (InitDet instead of normal encoding).
 let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
-    children
-    |> List.choose (fun c ->
-        match c with
-        | DAst.Asn1Child ac -> Some ac
-        | _ -> None)
-    |> List.collect (fun ac ->
-        match ac.Type.Kind with
+    // As collectDeferredDetNamesFromAst: through SEQUENCE OF to the element.
+    let rec argumentNames (kind: DAst.Asn1TypeKind) =
+        match kind with
         | DAst.ReferenceType rt ->
             rt.baseInfo.acnArguments
             |> List.choose (fun arg ->
@@ -191,7 +254,14 @@ let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
                 match parts with
                 | [] -> None
                 | _  -> Some (parts |> List.last |> fun sl -> sl.Value))
-        | _ -> [])
+        | DAst.SequenceOf so -> argumentNames so.childType.Kind
+        | _ -> []
+    children
+    |> List.choose (fun c ->
+        match c with
+        | DAst.Asn1Child ac -> Some ac
+        | _ -> None)
+    |> List.collect (fun ac -> argumentNames ac.Type.Kind)
     |> Set.ofList
 
 
@@ -221,6 +291,7 @@ let private createDeferredSequenceFunction
         (acnPrms:DastAcnParameter list)
         (us:State) =
 
+    let typePrefix = r.args.TypePrefix
     // Deferred determinant names come from two sources:
     //   (a) child ReferenceTypes' acnArguments — the parent SEQUENCE declares
     //       AcnInsertedFieldRef variables and passes them to children
@@ -242,6 +313,17 @@ let private createDeferredSequenceFunction
             |> List.choose (fun c -> match c with DAst.AcnChild ac -> Some ac.Name.Value | _ -> None)
             |> Set.ofList
 
+        // Consumers of a determinant other than the reference arguments that
+        // make it deferred: siblings in this SEQUENCE sized, selected or made
+        // present by it.
+        let siblingConsumers (detId: ReferenceToType) =
+            deps.acnDependencies |> List.filter (fun dep ->
+                match dep.determinant, dep.dependencyKind with
+                | AcnChildDeterminant d, kind when d.id = detId ->
+                    (match kind with AcnDepRefTypeArgument _ -> false | _ -> true)
+                | _ -> false)
+        let hasSiblingConsumers detId = not (List.isEmpty (siblingConsumers detId))
+
         // Modify direct ACN children that are deferred determinants
         let modifiedChildren =
             children |> List.map (fun child ->
@@ -260,11 +342,11 @@ let private createDeferredSequenceFunction
                         let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
                         // For own parameters (formal AcnInsertedFieldRef*), use full
                         // path name (matches getExternalField0 resolution).
-                        // For local variables, use bare name (matches callerFuncBody's
-                        // ToC(argName) actual param naming).
+                        // For local variables, use the field name (matches callerFuncBody's
+                        // actual param naming, deferredDetLocalName).
                         let detVarName =
                             if isOwnParam then DAstACN.getAcnDeterminantName ac.id
-                            else ToC ac.Name.Value
+                            else deferredDetLocalName r lm ac.Name.Value
                         let originalFuncBody = ac.funcBody
                         // Determinant ICD comment(s) ("size determinant for ...",
                         // "reference determinant for ...") normally reach the row via
@@ -368,18 +450,28 @@ let private createDeferredSequenceFunction
                                     // derived from the target path.  A path containing
                                     // "->" or "." corrupts those variable names, so we
                                     // decode to a clean temp variable and copy afterward.
+                                    // A determinant that siblings of this SEQUENCE
+                                    // also consume (e.g. the size of a direct
+                                    // OCTET STRING child) must stay readable under
+                                    // the name those siblings' decoders use,
+                                    // ac.c_name: decode into that variable and copy
+                                    // it to det.value (temp_copy).
                                     let redirectKind =
                                         match ac.Type with
+                                        | _ when not isOwnParam && hasSiblingConsumers ac.id -> "temp_copy"
                                         | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
                                             let intClass = Asn1AcnAstUtilFunctions.getAcnIntegerClass r.args ai
                                             match intClass with
                                             | Asn1AcnAst.ASN1SCC_UInt _
-                                            | Asn1AcnAst.ASN1SCC_UInt64 _
-                                            | Asn1AcnAst.ASN1SCC_Int _
-                                            | Asn1AcnAst.ASN1SCC_Int64 _ -> "direct_value"
+                                            | Asn1AcnAst.ASN1SCC_UInt64 _ -> "direct_value"
+                                            // signed: the value field is unsigned (det.value is asn1SccUint /
+                                            // Asn1UInt), so decode to a signed temp and copy its bits
                                             | _ -> "temp_copy"
                                         | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "direct_str_value"
                                         | _ -> "temp_copy"
+                                    // the AST root's arguments, for the integer class of the determinant
+                                    // below (r is shadowed by the function body result there)
+                                    let astArgs = r.args
                                     match redirectKind with
                                     | "direct_value" ->
                                         let valueTarget =
@@ -410,7 +502,9 @@ let private createDeferredSequenceFunction
                                         | None -> None
                                     | _ ->
                                         // Decode to a clean temp variable, then copy to det.value
-                                        let tmpName = ac.c_name + "_tmp"
+                                        let tmpName =
+                                            if not isOwnParam && hasSiblingConsumers ac.id then ac.c_name
+                                            else ac.c_name + "_tmp"
                                         let tmpVarDecl =
                                             match ac.Type with
                                             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
@@ -433,13 +527,39 @@ let private createDeferredSequenceFunction
                                                 match ac.Type with
                                                 | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
                                                     lm.acn.acn_deferred_det_copy_bool_tmp detAccess tmpName CommonTypes.Codec.Decode
-                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
+                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm
+                                                        when enm.enumerated.items |> List.forall (fun itm -> itm.acnEncodeValue = itm.definitionValue) ->
                                                     // For enum tmp, Ada needs <EnumType>'Enum_Rep(tmp).
                                                     // The local var declaration above uses
                                                     // ac.typeDefinitionBodyWithinSeq as the enum type
                                                     // name; reuse it here.
                                                     let enumTypeName = ac.typeDefinitionBodyWithinSeq
                                                     lm.acn.acn_deferred_det_copy_enum_tmp detAccess tmpName enumTypeName CommonTypes.Codec.Decode
+                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+                                                    // det.value holds what the field writes (its acnEncodeValue, e.g.
+                                                    // the item index), which here differs from the enum value: map it.
+                                                    let defOrRef =
+                                                        let programUnit = if p.modName = ToC enm.modName.Value then None else Some (ToC enm.modName.Value)
+                                                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = programUnit; typedefName = ToC (typePrefix + enm.tasName.Value); definedInRtl = false}
+                                                    let cases = enm.enumerated.items |> List.map (fun itm ->
+                                                        lm.acn.acn_deferred_det_enum_wire_case (lm.lg.getNamedItemBackendName (Some defOrRef) itm) detAccess (itm.acnEncodeValue.ToString()))
+                                                    lm.acn.acn_deferred_det_copy_enum_wire_tmp detAccess tmpName cases CommonTypes.Codec.Decode
+                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                                                    // det.value is unsigned: a signed determinant is copied with
+                                                    // its two's complement bits
+                                                    match Asn1AcnAstUtilFunctions.getAcnIntegerClass astArgs ai with
+                                                    | Asn1AcnAst.ASN1SCC_Int8 _
+                                                    | Asn1AcnAst.ASN1SCC_Int16 _
+                                                    | Asn1AcnAst.ASN1SCC_Int32 _
+                                                    | Asn1AcnAst.ASN1SCC_Int64 _
+                                                    | Asn1AcnAst.ASN1SCC_Int _ ->
+                                                        lm.acn.acn_deferred_det_copy_signed_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                    | Asn1AcnAst.ASN1SCC_UInt8 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt16 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt32 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt64 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt _ ->
+                                                        lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                                 | _ ->
                                                     lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                             let extraLvars =
@@ -475,6 +595,139 @@ let private createDeferredSequenceFunction
         // funcBody (createDeferredReferenceFunction), via its localVariables
         // result.  Nothing to do here.
 
+        // Patch determinants exposed by a referenced child and consumed by a
+        // sibling in this SEQUENCE. The child reserved their wire position;
+        // this scope owns both the local AcnInsertedFieldRef and the value that
+        // determines it.
+        let producerPatchEpilogue =
+            match codec with
+            | CommonTypes.Codec.Decode -> None
+            | CommonTypes.Codec.Encode ->
+                let parentPath = t.id.ToScopeNodeList
+                let isPrefix (prefix: ScopeNode list) (full: ScopeNode list) =
+                    prefix.Length <= full.Length
+                    && List.take prefix.Length full = prefix
+                let producerLinks =
+                    deps.acnDependencies
+                    |> List.choose (fun dep ->
+                        match dep.dependencyKind, dep.determinant with
+                        | AcnDepRefTypeArgument parameter, AcnChildDeterminant determinant ->
+                            let boundaryPath = dep.asn1Type.ToScopeNodeList
+                            if boundaryPath.Length = parentPath.Length + 1
+                               && isPrefix parentPath boundaryPath then
+                                Some (boundaryPath, determinant, parameter)
+                            else None
+                        | _ -> None)
+                    |> List.distinctBy (fun (_, determinant, _) -> determinant.id)
+                match producerLinks with
+                | [] -> None
+                | _ ->
+                    Some (fun root ->
+                        producerLinks |> List.choose (fun (boundaryPath, determinant, parameter) ->
+                            let producer =
+                                children |> List.pick (function
+                                    | DAst.Asn1Child child when child.Type.id.ToScopeNodeList = boundaryPath -> Some child
+                                    | _ -> None)
+                            let consumers =
+                                deps.acnDependencies |> List.filter (fun dep ->
+                                    dep.determinant.id = parameter.id
+                                    && isPrefix parentPath dep.asn1Type.ToScopeNodeList
+                                    && not (isPrefix boundaryPath dep.asn1Type.ToScopeNodeList)
+                                    && (match dep.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true))
+                            let patches = consumers |> List.choose (fun dep ->
+                                match lm.lg.getDeferredDetFunctions determinant.Type with
+                                | None -> None
+                                | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
+                                    let valueExpr =
+                                        if uperMinOffset = 0I then rawValueExpr
+                                        else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
+                                    let detName = DAstACN.getAcnDeterminantName parameter.id
+                                    let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
+                                    let patchCall =
+                                        if patchFn.Contains("IA5String") then
+                                            match nBitsOpt with
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode codec
+                                            | None -> failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
+                                        else
+                                            match nBitsOpt with
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode codec
+                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode codec
+                                    Some (
+                                        match preBlock with
+                                        | None -> patchCall
+                                        | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall))
+                            match patches with
+                            | [] -> None
+                            | _ ->
+                                let patchBody = String.concat "\n" patches
+                                match producer.Optionality with
+                                | Some (Optional _) ->
+                                    let parent = root.accessPath.joined lm.lg
+                                    let access = lm.lg.getAccess root.accessPath
+                                    let name = lm.lg.getAsn1ChildBackendName producer
+                                    let checks =
+                                        consumers
+                                        |> List.choose (fun dep ->
+                                            children |> List.tryPick (function
+                                                | DAst.Asn1Child child when child.Type.id = dep.asn1Type ->
+                                                    match child.Optionality with
+                                                    | Some AlwaysAbsent -> None
+                                                    | Some (Optional _) -> Some (lm.lg.getAsn1ChildBackendName child)
+                                                    | _ -> Some ""
+                                                | _ -> None))
+                                        |> List.distinct
+                                        |> List.map (fun consumer ->
+                                            lm.acn.acn_deferred_det_optional_producer_check parent access name consumer "ERR_ACN_DET_CONSISTENCY_MISMATCH")
+                                    let guarded =
+                                        lm.acn.acn_deferred_det_optional_producer_wrap parent access name patchBody
+                                    Some (String.concat "\n" (checks @ [guarded]))
+                                | Some AlwaysAbsent -> None
+                                | _ -> Some patchBody)
+                        |> String.concat "\n")
+
+        // Patch local deferred determinants from their sibling consumers
+        // (encode only). The reference arguments' consumers patch them inside
+        // the referenced types; a sibling consumer, e.g. `data [size len]`
+        // beside `item <len> []`, is encoded here and must set the value too,
+        // or be checked against it (ERR_ACN_DET_CONSISTENCY_MISMATCH).
+        let localSiblingEpilogue =
+            match codec with
+            | CommonTypes.Codec.Decode -> None
+            | CommonTypes.Codec.Encode ->
+                let parentPath = t.id.ToScopeNodeList
+                let patches =
+                    children |> List.collect (fun child ->
+                        match child with
+                        | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
+                                             && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
+                            match lm.lg.getDeferredDetFunctions ac.Type with
+                            | None -> []
+                            | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                                siblingConsumers ac.id |> List.map (fun dep root ->
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
+                                    let valueExpr =
+                                        if uperMinOffset = 0I then rawValueExpr
+                                        else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
+                                    let detName = deferredDetLocalName r lm ac.Name.Value
+                                    let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
+                                    let patchCall =
+                                        if patchFn.Contains("IA5String") then
+                                            match nBitsOpt with
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode codec
+                                            | None -> failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
+                                        else
+                                            match nBitsOpt with
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode codec
+                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode codec
+                                    match preBlock with
+                                    | None -> patchCall
+                                    | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall)
+                        | _ -> [])
+                match patches with
+                | [] -> None
+                | _ -> Some (fun root -> patches |> List.map (fun patch -> patch root) |> String.concat "\n")
+
         // Compute fallback PatchDet code for local deferred dets (encode only).
         // When all consumers of a shared determinant are absent at runtime
         // (e.g., present-when booleans are false, or a CHOICE branch was not
@@ -486,7 +739,7 @@ let private createDeferredSequenceFunction
         // The string is passed to createSequenceFunction_inline via its
         // fallbackEpilogue parameter — appended verbatim inside the encode
         // body's nested if(ret) chain.
-        let fallbackEpilogue =
+        let localFallbackEpilogue =
             match codec with
             | CommonTypes.Codec.Encode ->
                 let fallbackDets =
@@ -496,7 +749,7 @@ let private createDeferredSequenceFunction
                                              && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
                             match lm.lg.getDeferredDetFunctions ac.Type with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                let detVarName = ToC ac.Name.Value
+                                let detVarName = deferredDetLocalName r lm ac.Name.Value
                                 let defaultVal = lm.lg.computeDeferredFallbackValue ac.Type uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
                             | None -> None
@@ -524,10 +777,21 @@ let private createDeferredSequenceFunction
                             | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
                                 failwithf "BUG: AcnNullType should not appear as a deferred determinant"
                         ) |> String.concat "\n"
-                    Some fallbackCode
+                    Some (fun _ -> fallbackCode)
             | CommonTypes.Codec.Decode -> None
 
-        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms fallbackEpilogue us
+        let epilogue =
+            [producerPatchEpilogue; localSiblingEpilogue; localFallbackEpilogue]
+            |> List.choose id
+            |> function
+               | [] -> None
+               | blocks -> Some (fun p -> blocks |> List.map (fun block -> block p) |> String.concat "\n")
+
+        // The deferred determinants of modifiedChildren carry no update statement (their value
+        // is patched by the consumers), so check the automatic test values against the original
+        // children: CHOICEs sharing a determinant must select the same alternative.
+        let acnFunction, ns = DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms epilogue us
+        {acnFunction with isTestVaseValid = DAstACN.isTestCaseValidForAcnChildren children}, ns
 
 
 // ---------------------------------------------------------------------------
@@ -537,27 +801,33 @@ let private createDeferredSequenceFunction
 /// Find which acnParameter is the CONTAINING size determinant by checking
 /// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
 /// Returns the parameter, or None if not found.
-let private findContainingSizeParam
+let private findContainingSizeParamInfo
         (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
-        (o: Asn1AcnAst.ReferenceType) : AcnGenericTypes.AcnParameter option =
-    o.resolvedType.acnParameters |> List.tryFind (fun prm ->
-        deps.acnDependencies |> List.exists (fun d ->
-            d.determinant.id = prm.id
-            && (match d.dependencyKind with
-                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
-                | _ -> false)))
+        (o: Asn1AcnAst.ReferenceType) : (AcnGenericTypes.AcnParameter * Asn1AcnAst.ReferenceType) option =
+    o.resolvedType.acnParameters |> List.tryPick (fun prm ->
+        deps.acnDependencies |> List.tryPick (fun d ->
+            if d.determinant.id <> prm.id then None
+            else
+                match d.dependencyKind with
+                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain containing ->
+                    Some (prm, containing)
+                | _ -> None))
+
+let private findContainingSizeParam deps o =
+    findContainingSizeParamInfo deps o |> Option.map fst
             
 /// After boundary post-processing rewrites &name → formal param name in the
 /// body text, the matching AcnInsertedFieldRef local variable declarations
 /// injected by inner callerFuncBodies become orphans.  Strip them — they
 /// are now provided by this function's formal params.
 let private stripOwnParamLocals
+        (r: Asn1AcnAst.AstRoot)
         (lm: LanguageMacros)
         (acnParameters: AcnGenericTypes.AcnParameter list)
         (locals: LocalVariable list) : LocalVariable list =
     let ownParamNames =
         acnParameters
-        |> List.map (fun prm -> ToC prm.name)
+        |> List.map (fun prm -> deferredDetLocalName r lm prm.name)
         |> Set.ofList
     let detTypeName = lm.acn.acn_deferred_det_type_name()
     locals |> List.filter (fun lv ->
@@ -628,20 +898,30 @@ let private buildContainingClosureBody
             match containingSizePrm with
             | Some sizePrm ->
                 let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
+                let mappingFunction, mappingModule, _ =
+                    getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
                 let patchFnName =
                     match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
                     | Some (_, patchFn, _, _) -> patchFn
                     | None -> ""
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName errCode.errCodeName ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName errCode.errCodeName ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
+        let mappingDeclarations =
+            containingSizePrm
+            |> Option.map (fun prm ->
+                let _, _, declarations =
+                    getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec prm.id
+                declarations)
+            |> Option.defaultValue []
         { br with
             funcBody = wrappedBody
             errCodes = br.errCodes @ [errCode]
+            userDefinedFunctions = br.userDefinedFunctions @ mappingDeclarations
             localVariables = stripLocals br.localVariables }, ns2
 
 
@@ -661,6 +941,8 @@ let private buildContainingStandaloneBody
         | _ -> str
     let sizePrm = ctx.o.resolvedType.acnParameters.Head
     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
+    let mappingFunction, mappingModule, mappingDeclarations =
+        getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
     let patchFnName =
         match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
         | Some (_initFn, patchFn, _, _) -> patchFn
@@ -668,12 +950,13 @@ let private buildContainingStandaloneBody
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         errCodes = [errCode]
+        userDefinedFunctions = mappingDeclarations
         bValIsUnReferenced = false
         bBsIsUnReferenced = false }, ns1
 
@@ -730,9 +1013,13 @@ let private appendPatchDetCalls
                     | _ ->
                     // Find the dep inside this boundary where the determinant
                     // is this parameter (consumer-side dependency)
+                    let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
                     let consumerDep =
                         ctx.deps.acnDependencies |> List.tryFind (fun d ->
+                            let dependentPath = d.asn1Type.ToScopeNodeList
                             d.determinant.id = prm.id
+                            && boundaryPath.Length <= dependentPath.Length
+                            && List.take boundaryPath.Length dependentPath = boundaryPath
                             && (match d.determinant with
                                 | Asn1AcnAst.AcnParameterDeterminant _ -> true
                                 | _ -> false)
@@ -752,8 +1039,7 @@ let private appendPatchDetCalls
                         match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm dep boundaryPath specP
+                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =
@@ -817,6 +1103,11 @@ let private emitSpecializedFunctionDecl
     let typeDefinitionName = ctx.typeDefinition.longTypedefName2 (Some ctx.lm.lg) ctx.lm.lg.hasModules ctx.t.moduleName
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
     let soInitFuncName = ctx.lm.lg.getFuncNameGeneric ctx.typeDefinition (ctx.lm.init.methodNameSuffix())
+    // the specialised function's type is usually a reference: its init function is the referenced type's
+    let soValInitFuncName =
+        match soInitFuncName with
+        | Some _ -> soInitFuncName
+        | None   -> Some (typeDefinitionName + ctx.lm.init.methodNameSuffix())
     let nMaxBytesInACN = BigInteger (ceil ((double ctx.t.acnMaxSizeInBits)/8.0))
     let lvars = finalBody.localVariables |> List.map(fun (lv:LocalVariable) -> ctx.lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
@@ -829,16 +1120,33 @@ let private emitSpecializedFunctionDecl
             sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
         | _ -> true
     let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite)
+    let bValInOut =
+        match ctx.codec with
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
+        | Encode -> false
 
+    // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
+    let specBodyContent =
+        match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
+        | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit ctx.r ctx.lm ctx.o.resolvedType ->
+            ctx.lm.uper.decode_result_init () + "\n" + finalBody.funcBody
+        | Decode, ReadsCannotFail
+        | Decode, ReadsCanFail
+        | Encode, _ -> finalBody.funcBody
     let specFuncBody =
         ctx.lm.acn.EmitTypeAssignment_primitive
             varName sStar specFuncName isValidFuncName typeDefinitionName
-            lvars finalBody.funcBody
-            None ""  // soSparkAnnotations, sInitialExp
+            lvars specBodyContent
+            None null  // soSparkAnnotations, no fallback initializer for finalBody
             deferredFormalParams deferredParamNames
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             false
-            soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
+            soValInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
+            true  // bDeferredSpecialization: callers use the specialized body directly
+            false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
+            bValInOut
+            (DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t) // coverage step 12a
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
@@ -856,6 +1164,7 @@ let private emitSpecializedFunctionDecl
             (ctx.t.acnMaxSizeInBits = 0I) nMaxBytesInACN ctx.t.acnMaxSizeInBits
             deferredFormalParams
             None  // soSparkAnnotations
+            bValInOut
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
@@ -889,7 +1198,8 @@ let private buildCallerWrapper
         //     The local AcnInsertedFieldRef must be declared in the
         //     caller's scope, so emit a localVariable for it.
         let extraActualParams, declLevelLocalNames =
-            ctx.o.acnArguments |> List.fold (fun (paramsAcc, localsAcc) arg ->
+            List.zip ctx.o.acnArguments ctx.o.resolvedType.acnParameters
+            |> List.fold (fun (paramsAcc, localsAcc) (arg, resolvedParam) ->
                 let (AcnGenericTypes.RelativePath parts) = arg
                 let argName = parts |> List.last |> fun sl -> sl.Value
                 let parentParam =
@@ -899,7 +1209,52 @@ let private buildCallerWrapper
                     let pStr = DAstACN.getAcnDeterminantName prm.id
                     paramsAcc @ [pStr], localsAcc
                 | None ->
-                    let cName = ToC argName
+                    // At declaration level, use the actual determinant named
+                    // by the RefTypeArgument dependency. The formal parameter
+                    // name belongs to the referenced type; it can differ from
+                    // the caller's field name and is not the local we reserve.
+                    // A producer parameter that no dependency uses has no such
+                    // link (AcnClosureConversion.applyDepRewrites): the local is
+                    // named after the argument, as its consumers expect.
+                    let argumentLink =
+                        ctx.deps.acnDependencies
+                        |> List.tryPick (fun dep ->
+                            if dep.asn1Type = ctx.t.id then
+                                match dep.dependencyKind with
+                                | AcnDepRefTypeArgument prm when prm.id = resolvedParam.id ->
+                                    Some (dep.asn1Type, dep.determinant)
+                                | _ -> None
+                            else None)
+                    let rec resolveActualDeterminant determinant =
+                        match determinant with
+                        | AcnChildDeterminant _ -> determinant
+                        | AcnParameterDeterminant parameter ->
+                            ctx.deps.acnDependencies
+                            |> List.tryPick (fun dep ->
+                                match dep.dependencyKind with
+                                | AcnDepRefTypeArgument prm when prm.id = parameter.id ->
+                                    Some dep.determinant
+                                | _ -> None)
+                            |> Option.map resolveActualDeterminant
+                            |> Option.defaultWith (fun () ->
+                                failwithf "BUG: unresolved RefTypeArgument parameter %s" parameter.id.AsString)
+                    let cName =
+                        match argumentLink with
+                        | None -> deferredDetLocalName ctx.r ctx.lm argName
+                        | Some (argumentBoundary, determinant) ->
+                            let actualDeterminant = resolveActualDeterminant determinant
+                            let (ReferenceToType boundaryPath) = argumentBoundary
+                            let (ReferenceToType determinantPath) = actualDeterminant.id
+                            let determinantIsInsideBoundary =
+                                boundaryPath.Length <= determinantPath.Length
+                                && List.take boundaryPath.Length determinantPath = boundaryPath
+                            // A determinant produced inside the boundary is named after
+                            // the boundary's parameter: that is the name its consumers in
+                            // this scope use (AcnExternalField.getExternalField0).
+                            match actualDeterminant, determinantIsInsideBoundary with
+                            | AcnChildDeterminant child, false -> deferredDetLocalName ctx.r ctx.lm child.Name.Value
+                            | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
+                            | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
                     let pStr = ctx.lm.acn.acn_deferred_det_actual_param cName ctx.codec
                     paramsAcc @ [pStr], localsAcc @ [cName]
             ) ([], [])
@@ -981,11 +1336,11 @@ let private createDeferredReferenceFunction
         | None -> false
 
     // Helper: create a simple funcBody from an STG template call (for CONTAINING FIXED/EMBEDDED)
-    let makeContainingFuncBody (stgCall: string -> string -> (AcnFuncBodyResult option) * State) =
+    let makeContainingFuncBody (stgCall: string -> string -> ErrorCode -> (AcnFuncBodyResult option) * State) =
         let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
-            stgCall pp baseFncName
+            stgCall pp baseFncName errCode
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us
@@ -997,23 +1352,23 @@ let private createDeferredReferenceFunction
         | Some encOptions ->
             match encOptions.acnEncodingClass, encOptions.octOrBitStr with
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInOctString ->
-                Some (makeContainingFuncBody (fun pp fncName ->
+                Some (makeContainingFuncBody (fun pp fncName _ ->
                     let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName codec
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
-                Some (makeContainingFuncBody (fun pp fncName ->
+                Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
-                Some (makeContainingFuncBody (fun pp fncName ->
+                Some (makeContainingFuncBody (fun pp fncName _ ->
                     let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInBitString ->
-                Some (makeContainingFuncBody (fun pp fncName ->
+                Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
             | _ -> None  // ExternalField with params → specialized function below
@@ -1043,6 +1398,8 @@ let private createDeferredReferenceFunction
             let specFuncName =
                 let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
                 let candidate = ToC2(r.args.TypePrefix + pathStr) + "_ACN" + (lm.lg.codecSuffix codec)
+                let containingCandidate =
+                    candidate.Replace("_ACN" + (lm.lg.codecSuffix codec), "_Containing_ACN" + (lm.lg.codecSuffix codec))
                 // Disambiguate: if the base type's standalone function has the
                 // same name, insert "_D" to avoid conflicting types in generated C.
                 // This happens when a TAS name with dashes (e.g. MyPDU-a → MyPDU_a)
@@ -1051,7 +1408,9 @@ let private createDeferredReferenceFunction
                 // from getBaseFuncName) gives the TAS's standalone function name.
                 // baseAcnFunc.funcName is None when the resolved type has acnParameters
                 // (closure conversion), so we use baseFncName instead.
-                if baseFncName = candidate then
+                if isContainingExternalField then
+                    containingCandidate
+                elif baseFncName = candidate then
                     candidate.Replace("_ACN" + (lm.lg.codecSuffix codec), "_D_ACN" + (lm.lg.codecSuffix codec))
                 else candidate
 
@@ -1060,7 +1419,7 @@ let private createDeferredReferenceFunction
             let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec
-            let stripLocals = stripOwnParamLocals lm o.resolvedType.acnParameters
+            let stripLocals = stripOwnParamLocals r lm o.resolvedType.acnParameters
 
             let ctx : DeferredRefCtx = {
                 r              = r
@@ -1081,6 +1440,43 @@ let private createDeferredReferenceFunction
                 | true, true  -> buildContainingClosureBody    ctx specP errCode baseAcnFunc stripLocals ns1
                 | true, false -> buildContainingStandaloneBody ctx specP errCode baseFncName ns1
                 | _           -> buildNormalReferenceBody      ctx specP          baseAcnFunc stripLocals ns1
+
+            // A parameterized CHOICE may use one size parameter for each
+            // alternative's CONTAINING region. Exactly one alternative is
+            // encoded, so the CHOICE boundary is the containing region and
+            // must measure/limit it. The selected child's referenced type has
+            // no explicit ACN argument of its own, so it cannot do this work.
+            let bodyResult =
+                match isContainingExternalField, ctx.o.resolvedType.Kind,
+                      findContainingSizeParamInfo ctx.deps ctx.o with
+                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, Some (sizePrm, containing) ->
+                    // Some alternative's contents use 'size deduced' (Ada decodes
+                    // the region from a stream limited to it).
+                    let bDeducedContent =
+                        ch.children |> List.exists (fun c ->
+                            match c.Type.Kind with
+                            | Asn1AcnAst.Asn1TypeKind.ReferenceType rf when rf.encodingOptions.IsSome ->
+                                Asn1AcnAstUtilFunctions.isLiveDeduced rf.resolvedType
+                            | _ -> false)
+                    let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
+                    let mappingFunction, mappingModule, mappingDeclarations =
+                        getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
+                    let patchFnName =
+                        match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
+                        | Some (_, patchFn, _, _) -> patchFn
+                        | None -> failwithf "BUG: missing PatchDet function for CONTAINING CHOICE parameter %s" sizePrm.id.AsString
+                    let wrappedBody =
+                        match containing.encodingOptions.Value.octOrBitStr with
+                        | CommonTypes.ContainedInOctString ->
+                            ctx.lm.acn.octet_string_containing_deferred_wrapper
+                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName bDeducedContent ctx.codec
+                        | CommonTypes.ContainedInBitString ->
+                            ctx.lm.acn.bit_string_containing_deferred_wrapper
+                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+                    { bodyResult with
+                        funcBody = wrappedBody
+                        userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
+                | _ -> bodyResult
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =

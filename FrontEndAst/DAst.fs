@@ -265,6 +265,9 @@ type ValidationStatement =
     | ValidationStatementTrue   of (string * LocalVariable list)
     | ValidationStatementFalse  of (string * LocalVariable list)
     | ValidationStatement       of (string * LocalVariable list)
+    // always true because the language type enforces the constraint (coverage step 11b, Ada); unlike
+    // ValidationStatementTrue the statement still reads the value (pragma Assert of the check, for the proof)
+    | ValidationStatementImplied of (string * LocalVariable list)
 
 #if MOVE_TO_COMMON
 type ReferenceToExistingDefinition = {
@@ -400,6 +403,31 @@ type AnonymousVariable = {
     valKind             : Asn1ValueKind        // the value
 }
 
+/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
+/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
+/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
+/// Whether the typedef of a constrained type already enforces its range (coverage step 11b): Ada declares ranged
+/// subtypes (INTEGER, the Length of SIZE-constrained types) and enumerations, so a value of the type cannot violate
+/// those constraints and IsConstraintValid does not check them at run time; C, Scala, Python and Rust typedefs
+/// are base types.
+type TypedefConstraintModel =
+    | TypedefsAreBaseTypes
+    | TypedefsEnforceRanges
+
+type ValidationOutcome =
+    | AlwaysValid       // no check, or only checks that the language type already enforces
+    | MayBeInvalid
+
+/// Whether a type's encoder calls its IsConstraintValid when that function cannot fail (coverage step 12a): C and
+/// Ada skip the call and its check (a comment says why); Scala, Python and Rust keep it.
+type EncoderValidationModel =
+    | EncodersCallEveryValidation
+    | EncodersSkipAlwaysValid               // C: ret is TRUE until a part sets it
+    // Ada: without the call the encoder starts with result := (True, 0), an unused assignment (gnatprove flow) when
+    // the first part of the body writes result. Until the parts carry their outcome (step 12b) only types whose
+    // encoding writes no result (no SEQUENCE / SEQUENCE OF / CHOICE / reference) skip the call.
+    | EncodersSkipAlwaysValidPrimitives
+
 type IsValidFunction = {
     errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -413,6 +441,7 @@ type IsValidFunction = {
                                                        //these are the bit and octet string values which cannot be expressed as single primitives in C/Ada
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
+    outcome             : ValidationOutcome
 }
 
 
@@ -490,6 +519,23 @@ type NestingScope = {
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
         parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I; isStandaloneRender = false}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
+
+/// Whether the reads of a decoder can fail in the target language. C (and Scala, Python, Rust) decode
+/// from a buffer of any length, so every read can fail (truncated stream). The Ada decoders require
+/// the full-size stream in their precondition, so only value checks can fail.
+type ReadFailureModel =
+    | ReadsCanFail
+    | ReadsCannotFail
+
+/// What a decode part does with `result` when it cannot fail (coverage step 10b).
+type ResultWrite =
+    | WritesResult          // an RTL call or a generated decoder that sets result (Post: result.Success)
+    | NoResultWrite         // only _FullRange calls, which do not touch result
+
+/// Whether a decode part can fail; decides the join with the next part (DAstUtilFunctions.nestItemsByOutcome).
+type DecodeOutcome =
+    | MayFail
+    | AlwaysSucceeds of ResultWrite
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -580,6 +626,7 @@ type EncodeDecodeTestFunc = {
     funcName            : string               // the name of the function
     func                : string               // the body of the function
     funcDef             : string               // function definition in header file
+    filePrelude         : string option        // code emitted once at the top of the file holding the function (C: decode sweep helper)
 }
 
 type TestCaseFunction = {
@@ -618,6 +665,16 @@ type Integer = {
 
 }
 
+/// An ACN stream that holds only an ENUMERATED code which no item uses, for the
+/// automatic tests of the ACN decoder's default arm (see AcnEnum.createInvalidCodeStream).
+type AcnInvalidCodeStream = {
+    code            : BigInteger
+    codeVarName     : string        // constant that holds the code
+    codeVarType     : string        // its target-language integer type
+    encodeStatement : string        // writes codeVarName with the type's ACN integer encoding
+    localVariables  : LocalVariable list
+}
+
 type Enumerated = {
     baseInfo             : Asn1AcnAst.Enumerated
 
@@ -635,6 +692,7 @@ type Enumerated = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    acnInvalidCodeStream : AcnInvalidCodeStream option
     xerEncFunction      : XerFunction
     xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
@@ -885,6 +943,9 @@ and AcnChild = {
     typeDefinitionBodyWithinSeq : string
     funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string-> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
+    // --acn-v2 deferred determinant (no funcUpdateStatement): the value it takes for an
+    // automatic test value, used only to filter the automatic tests
+    deferredTestCaseFnc         : (AutomaticTestCase -> TestCaseValue option) option
     Comments                    : string array
     deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
     initExpression              : string

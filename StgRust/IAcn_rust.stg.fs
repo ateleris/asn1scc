@@ -15,10 +15,10 @@ type IAcn_rust() =
             acn_rust.EmitAcnParameter  sName sType sDefaultValue 
         override this.EmitEncodingSizeConstants  (sTypeDefName:string) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) =
             acn_rust.EmitEncodingSizeConstants  sTypeDefName nMaxBytesInACN nMaxBitsInACN 
-        override this.EmitTypeAssignment_primitive_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) (arrsAcnPrms:seq<string>) (soSparkAnnotations:string option) (codec:Codec) =
-            acn_rust.EmitTypeAssignment_primitive_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInACN nMaxBitsInACN arrsAcnPrms soSparkAnnotations codec
-        override this.EmitTypeAssignment_primitive  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (arrsAcnPrms:seq<string>) (arrsAcnParamNames:seq<string>) (bEmptyEncodingSpace:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bHasAcnChildrenToReturn:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (codec:Codec) =
-            acn_rust.EmitTypeAssignment_primitive  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp arrsAcnPrms arrsAcnParamNames bEmptyEncodingSpace bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName arrsAnnots arrsPrecond arrsPostcond codec
+        override this.EmitTypeAssignment_primitive_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) (arrsAcnPrms:seq<string>) (soSparkAnnotations:string option) (bValInOut:bool) (codec:Codec) =
+            acn_rust.EmitTypeAssignment_primitive_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInACN nMaxBitsInACN arrsAcnPrms soSparkAnnotations bValInOut codec
+        override this.EmitTypeAssignment_primitive  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (arrsAcnPrms:seq<string>) (arrsAcnParamNames:seq<string>) (bEmptyEncodingSpace:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bHasAcnChildrenToReturn:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (bDeferredSpecialization:bool) (bAlwaysSucceeds:bool) (bValInOut:bool) (bValidityCannotFail:bool) (codec:Codec) =
+            acn_rust.EmitTypeAssignment_primitive  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp arrsAcnPrms arrsAcnParamNames bEmptyEncodingSpace bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName arrsAnnots arrsPrecond arrsPostcond bDeferredSpecialization bAlwaysSucceeds bValInOut bValidityCannotFail codec
         override this.MappingFunctionDeclaration  (sTypeName:string) (sMF:string) (codec:Codec) =
             acn_rust.MappingFunctionDeclaration  sTypeName sMF codec
         override this.alignToNext  (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (codec:Codec) =
@@ -101,8 +101,8 @@ type IAcn_rust() =
             acn_rust.Enumerated_item  p sName sEnumHolder nItemIdx sItemVal sIntVal codec
         override this.EnumeratedEncIdx  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sIntVal:string) (codec:Codec) =
             acn_rust.EnumeratedEncIdx  p td arrsItem sActualCodecFunc sIntVal codec
-        override this.EnumeratedEncValues  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sErrCode:string) (sFirstItemName:string) (sIntVal:string) (codec:Codec) =
-            acn_rust.EnumeratedEncValues  p td arrsItem sActualCodecFunc sErrCode sFirstItemName sIntVal codec
+        override this.EnumeratedEncValues  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sErrCode:string) (sFirstItemName:string) (sIntVal:string) (soCovExempt:string option) (codec:Codec) =
+            acn_rust.EnumeratedEncValues  p td arrsItem sActualCodecFunc sErrCode sFirstItemName sIntVal soCovExempt codec
         override this.EnumeratedEncValues_no_switch  (p:string) (td:FE_EnumeratedTypeDefinition) (sActualCodecFunc:string) (sErrCode:string) (sFirstItemName:string) (sIntVal:string) (sEnumIndex:string) (nLastItemIndex:BigInteger) (bEncodeValues:bool) (codec:Codec) =
             acn_rust.EnumeratedEncValues_no_switch  p td sActualCodecFunc sErrCode sFirstItemName sIntVal sEnumIndex nLastItemIndex bEncodeValues codec
         override this.Acn_String_Ascii_FixSize  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (codec:Codec) =
@@ -129,8 +129,8 @@ type IAcn_rust() =
             acn_rust.sqf_external_field  sTypeDefName p sAcc i sInternalItem noSizeMin nSizeMax sExtFld bIsUnsigned nAlignSize sErrCode nIntItemMinSize nIntItemMaxSize sChildInitExpr bIntroSnap soCallAux codec
         override this.sqf_external_field_fix_size  (sTypeDefName:string) (p:string) (sAcc:string) (i:string) (sInternalItem:string) (noSizeMin:BigInteger option) (nSizeMax:BigInteger) (sExtFld:string) (bIsUnsigned:bool) (nAlignSize:BigInteger) (sErrCode:string) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (sChildInitExpr:string) (bIntroSnap:bool) (soCallAux:string option) (codec:Codec) =
             acn_rust.sqf_external_field_fix_size  sTypeDefName p sAcc i sInternalItem noSizeMin nSizeMax sExtFld bIsUnsigned nAlignSize sErrCode nIntItemMinSize nIntItemMaxSize sChildInitExpr bIntroSnap soCallAux codec
-        override this.oct_sqf_null_terminated  (p:string) (sAcc:string) (i:string) (sInternalItem:string) (noSizeMin:BigInteger option) (nSizeMax:BigInteger) (arruNullBytes:seq<byte>) (nBitPatternLength:BigInteger) (sErrCode:string) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (sType:string) (codec:Codec) =
-            acn_rust.oct_sqf_null_terminated  p sAcc i sInternalItem noSizeMin nSizeMax arruNullBytes nBitPatternLength sErrCode nIntItemMinSize nIntItemMaxSize sType codec
+        override this.oct_sqf_null_terminated  (p:string) (sAcc:string) (i:string) (sInternalItem:string) (noSizeMin:BigInteger option) (nSizeMax:BigInteger) (arruNullBytes:seq<byte>) (nBitPatternLength:BigInteger) (sErrCode:string) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (sType:string) (bFixedSize:bool) (codec:Codec) =
+            acn_rust.oct_sqf_null_terminated  p sAcc i sInternalItem noSizeMin nSizeMax arruNullBytes nBitPatternLength sErrCode nIntItemMinSize nIntItemMaxSize sType bFixedSize codec
         override this.str_ascii_deduced  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (nTrailingBits:BigInteger) (sType:string) (codec:Codec) =
             acn_rust.str_ascii_deduced  p sErrCode nAsn1Max nTrailingBits sType codec
         override this.oct_deduced  (sTypedefName:string) (p:string) (sAcc:string) (noSizeMin:BigInteger option) (nSizeMax:BigInteger) (nTrailingBits:BigInteger) (sErrCode:string) (codec:Codec) =
@@ -203,8 +203,8 @@ type IAcn_rust() =
             acn_rust.ChoiceChild_Enum  p sAcc sEnmName sChildID sChildBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec
         override this.Choice_Enum  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (codec:Codec) =
             acn_rust.Choice_Enum  p sAcc arrsChildren sEnmExtFld td sErrCode bIsDeferred codec
-        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (sTypedefName:string) =
-            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange sTypedefName 
+        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) =
+            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange bCheckMin sTypedefName 
         override this.SizeDependencyFixedSize  (v:string) (nFixedSize:BigInteger) =
             acn_rust.SizeDependencyFixedSize  v nFixedSize 
         override this.ChoiceDependencyEnum_Item  (v:string) (sChildCID:string) (sChildCIDHolder:string) (sEnumCName:string) (nChoiceIdx:BigInteger) (bIsOptional:bool) =
@@ -237,34 +237,36 @@ type IAcn_rust() =
             acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
         override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) =
             acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType 
-        override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) (codec:Codec) =
-            acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sExtField sErrCode soInner codec
-        override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sErrCode:string) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sErrCode codec
+        override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sExtField sErrCode soInner bDeducedContent codec
+        override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName soMF soMFM sErrCode bDeducedContent codec
         override this.octet_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (codec:Codec) =
             acn_rust.octet_string_containing_deferred_fixed_func  p sFuncName codec
-        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits codec
-        override this.octet_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sErrCode:string) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sErrCode codec
-        override this.bit_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sErrCode:string) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sErrCode codec
+        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode bDeducedContent codec
+        override this.octet_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName soMF soMFM sErrCode bDeducedContent codec
+        override this.bit_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName soMF soMFM sErrCode codec
         override this.bit_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_fixed_func  p sFuncName codec
-        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits codec
-        override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sErrCode:string) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sErrCode codec
+        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode codec
+        override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName soMF soMFM sErrCode codec
         override this.bit_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (sExtField:string) (sErrCode:string) (codec:Codec) =
             acn_rust.bit_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sReqBitsForUperEncoding sExtField sErrCode codec
         override this.rtlModuleName  () =
             acn_rust.rtlModuleName  () 
         override this.sparkAnnotations  (sTypeDefName:string) (codec:Codec) =
             acn_rust.sparkAnnotations  sTypeDefName codec
-        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
-            acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize codec
-        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
-            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize codec
+        override this.sparkAnnotations_deducedFixed  (sTypeDefName:string) =
+            acn_rust.sparkAnnotations_deducedFixed  sTypeDefName 
+        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize sErrCode bDeducedContent codec
+        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize sErrCode codec
         override this.acn_deferred_det_declare  (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_declare  sDetName codec
         override this.acn_deferred_det_init_value  (sInitFuncName:string) (sDetName:string) (codec:Codec) =
@@ -315,10 +317,16 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_fallback_value_str  sPatchFuncName sDefaultVal nBits sDetName codec
         override this.acn_deferred_det_copy_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_copy_tmp  sDetAccess sTmpName codec
+        override this.acn_deferred_det_copy_signed_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_signed_tmp  sDetAccess sTmpName codec
         override this.acn_deferred_det_copy_bool_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_copy_bool_tmp  sDetAccess sTmpName codec
         override this.acn_deferred_det_copy_enum_tmp  (sDetAccess:string) (sTmpName:string) (sEnumTypeName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_copy_enum_tmp  sDetAccess sTmpName sEnumTypeName codec
+        override this.acn_deferred_det_enum_wire_case  (sItemName:string) (sDetAccess:string) (sValue:string) =
+            acn_rust.acn_deferred_det_enum_wire_case  sItemName sDetAccess sValue 
+        override this.acn_deferred_det_copy_enum_wire_tmp  (sDetAccess:string) (sTmpName:string) (arrsCases:seq<string>) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_enum_wire_tmp  sDetAccess sTmpName arrsCases codec
         override this.acn_deferred_det_access_value  (sDetName:string) =
             acn_rust.acn_deferred_det_access_value  sDetName 
         override this.acn_deferred_det_access_ptr  (sDetName:string) =
@@ -335,7 +343,19 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_uper_offset_sub  sValue sOffset 
         override this.acn_deferred_det_preblock_wrap  (sPreBlock:string) (sPatchCall:string) =
             acn_rust.acn_deferred_det_preblock_wrap  sPreBlock sPatchCall 
+        override this.acn_deferred_det_optional_producer_check  (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =
+            acn_rust.acn_deferred_det_optional_producer_check  sParent sAcc sProducer sConsumer sErrCode 
+        override this.acn_deferred_det_optional_producer_wrap  (sParent:string) (sAcc:string) (sProducer:string) (sBody:string) =
+            acn_rust.acn_deferred_det_optional_producer_wrap  sParent sAcc sProducer sBody 
         override this.acn_deferred_det_type_name  () =
             acn_rust.acn_deferred_det_type_name  () 
         override this.acn_deferred_det_init_expr  () =
             acn_rust.acn_deferred_det_init_expr  () 
+        override this.AcnIntFullRange  (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) (noBits:BigInteger option) =
+            acn_rust.AcnIntFullRange  p sKind sWidth sSsuffix noBits 
+        override this.sequence_presence_optChild_noErrCode  (p:string) (sChName:string) (soExistVar:string option) =
+            acn_rust.sequence_presence_optChild_noErrCode  p sChName soExistVar 
+        override this.sparkAnnotationsAlwaysSucceeds  (sTypeDefName:string) =
+            acn_rust.sparkAnnotationsAlwaysSucceeds  sTypeDefName 
+        override this.BooleanPatternNoErrCode  (p:string) (bTruePattern:bool) (arrsBits:seq<string>) =
+            acn_rust.BooleanPatternNoErrCode  p bTruePattern arrsBits 

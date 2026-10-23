@@ -1,0 +1,8 @@
+--TCFS   023.acn
+-- A variable-size string whose length does not decode must fail to decode.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Mask ::= OCTET STRING (SIZE (0..8))
+Bits ::= BIT STRING (SIZE (0..8))
+
+END

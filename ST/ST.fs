@@ -236,11 +236,18 @@ let printTemplate(template: StringTemplate) =
                 else 
                     templateString + getDebugComment template
 
+let setGlobalAttr (template:StringTemplate) (name:string) (value:Object) =
+    let attrs = template.Attributes
+    match attrs with
+    | null -> ()
+    | _    -> attrs.[name] <- value
+
 let call fileName macroName (attrs:seq<string*#Object>)=
     let group = get_group fileName
 
     let template = group.GetInstanceOf(macroName);
     attrs |> Seq.iter(fun (attrName, obj) -> template.SetAttribute(attrName,obj))
+    setGlobalAttr template "bitStringAlignment" (box CommonTypes.bitStringAlignment)
     printTemplate template
 
 let call_generic fileName macroName (attrs:seq<string*#Object>)=
@@ -274,6 +281,7 @@ let call_generic fileName macroName (attrs:seq<string*#Object>)=
         | true  -> template.SetAttribute(attrName,obj)
         | false -> ()
         )
+    setGlobalAttr template "bitStringAlignment" (box CommonTypes.bitStringAlignment)
     let ret = template.ToString 80
     //printfn "%s\n" ret
     ret

@@ -33,7 +33,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
-                let fncBody = fixedSize sType pp access o.minSize.acn codec
+                // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+                let fncBody =
+                    match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedOctets true with
+                    | Decode, true -> lm.uper.octet_FixedSize_noCheck pp access o.minSize.acn
+                    | Decode, false
+                    | Encode, _    -> fixedSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
@@ -52,14 +57,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                     | Some (AcnInsertedType.AcnNullType _) -> true
                     | _ -> false
-                let detMaxOpt =
-                    match tp with
-                    | Some (AcnInsertedType.AcnInteger int) ->
-                        match int.uperRange with
-                        | Concrete (_, detMax) -> Some detMax
-                        | NegInf detMax        -> Some detMax
-                        | _                    -> None
-                    | _ -> None
+                let detMaxOpt = getSizeDeterminantWireMax deps t.id
                 let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
                 let noSizeMax =
                     match detMaxOpt with
@@ -77,7 +75,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let internalItem = InternalItem_oct_str pp access i  errCode.errCodeName codec
                 let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I sType codec
+                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I sType (typedefIsFixedSize r t) codec
                 let lv2 =
                     match codec, lm.lg.acn.checkBitPatternPresentResult with
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some (lm.lg.intValueToString 0I (ASN1SCC_Int8 (-128I, 127I))))]
@@ -91,6 +89,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) ->
+            let funcBodyContent = DAstUPer.withFixedSizeCount r lm codec t o.isFixedSize o.minSize.acn p funcBodyContent
             let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createOctetStringFunction r t o)
             let icd = AcnPrimitiveFactory.buildOctetOrBitStringIcdAux t.acnAlignment o.acnEncodingClass "bytes" o.maxSize.acn (getASN1Name t) (getASN1Name t) sAsn1Constraints o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
 
@@ -113,15 +112,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
                 let extField = getExternalField lm r deps t.id
-                let tp = getExternalFieldType r deps t.id
-                let detMaxOpt =
-                    match tp with
-                    | Some (AcnInsertedType.AcnInteger int) ->
-                        match int.uperRange with
-                        | Concrete (_, detMax) -> Some detMax
-                        | NegInf detMax        -> Some detMax
-                        | _                    -> None
-                    | _ -> None
+                let detMaxOpt = getSizeDeterminantWireMax deps t.id
                 let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
                 let noSizeMax =
                     match detMaxOpt with
@@ -139,11 +130,17 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
                 let lv = SequenceOfIndex (p.accessPath.SequenceOfLevel + 1, None)
-                let bFixedSize = o.minSize.acn = o.maxSize.acn
+                // fixed-size layout (no length field): exactly maxSize bits before the pattern
+                let bFixedSize = typedefIsFixedSize r t
                 let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
-                let fncBody = bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
+                // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+                let fncBody =
+                    match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedBits true with
+                    | Decode, true -> lm.uper.bitString_FixSize_noCheck pp access o.minSize.acn
+                    | Decode, false
+                    | Encode, _    -> bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_Deduced ->
@@ -160,6 +157,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) ->
+            let funcBodyContent = DAstUPer.withFixedSizeCount r lm codec t o.isFixedSize o.minSize.acn p funcBodyContent
             let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createBitStringFunction r t o)
             let icd = AcnPrimitiveFactory.buildOctetOrBitStringIcdAux t.acnAlignment o.acnEncodingClass "bits" o.maxSize.acn (getASN1Name t) (getASN1Name t) sAsn1Constraints o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
 

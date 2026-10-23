@@ -17,6 +17,12 @@ open AcnExternalField
 open AcnPrimitives
 
 
+/// How the parts of a decoder are joined (coverage step 10b): by their outcome (Ada, DecodeOutcome.fs), or with a
+/// success check after every part (the other languages; an Ada SEQUENCE with a pre-decoding function).
+type private JoinMode =
+    | OutcomeJoins
+    | CheckEveryPart
+
 type private SequenceChildStmt = {
     body: string option
     lvs: LocalVariable list
@@ -37,6 +43,7 @@ type private SequenceChildResult = {
     props: SequenceChildProps
     auxiliaries: string list
     icdResult : ((IcdRow list) * (IcdTypeAss list))
+    bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -232,6 +239,13 @@ let private handleAsn1Child
                 let childBody (p: CodegenScope) (_: string option): string =
                     lm.acn.sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement true acnParamsForTemplate false None bInlineRequired codec
                 Some childBody, [], [], [], childResultExpr, [], ns2
+            | Some AlwaysAbsent when codec = Decode && lm.lg.decodingKind = InPlace ->
+                // A child without ACN content (e.g. NULL) that the constraints make absent:
+                // the decoder must still clear its presence flag, else the decoded value keeps
+                // whatever the flag held and fails its WITH COMPONENTS check.
+                let childBody (p: CodegenScope) (_: string option): string =
+                    lm.acn.sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName "" childTypeDef soSaveBitStrmPosStatement true codec
+                Some childBody, [], [], [], childResultExpr, [], ns2
             | _ -> None, [], [], [], childResultExpr, [], ns2
         | Some childContent ->
             let isPrimitiveType =
@@ -278,7 +292,13 @@ let private handleAsn1Child
     let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs;  userDefinedFunctions=childUserDefFuncs; errCodes = presentWhenErrs @ childErrs; icdComments = []}
     let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAsn1Child child stmts.icdComments
-    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
+    // An ALWAYS ABSENT child only clears its presence flag: its codec is not emitted.
+    let bsReferenced =
+        match child.Optionality, childContentResult with
+        | Some AlwaysAbsent, _              -> false
+        | _, Some childContent              -> not childContent.bBsIsUnReferenced
+        | _, None                           -> false
+    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
     res, newAcc
 
@@ -348,7 +368,7 @@ let private handleAcnChild
     // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
-    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult}
+    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome}
     let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
     res, newAcc
 
@@ -372,12 +392,19 @@ let private printPresenceBit
     (p:CodegenScope)
     (errCode:ErrorCode)
     (codec:CommonTypes.Codec)
+    (joinMode:JoinMode)
     (child:Asn1Child)
     (existVar:string option) : string option =
     match child.Optionality with
     | Some (Optional opt) ->
-        match opt.acnPresentWhen with
-        | None ->
+        match opt.acnPresentWhen, joinMode with
+        | None, OutcomeJoins ->
+            // coverage step 10b: a presence bit cannot fail and leaves the error code alone (DecodeOutcome.fs)
+            Some (lm.acn.sequence_presence_optChild_noErrCode
+                    (p.accessPath.joined lm.lg)
+                    (lm.lg.getAsn1ChildBackendName child)
+                    existVar)
+        | None, CheckEveryPart ->
             assert (codec = Encode || existVar.IsSome)
             Some (lm.acn.sequence_presence_optChild
                     (p.accessPath.joined lm.lg)
@@ -386,7 +413,7 @@ let private printPresenceBit
                     existVar
                     errCode.errCodeName
                     codec)
-        | Some _ -> None
+        | Some _, _ -> None
     | _ -> None
 
 // `fallbackEpilogue` (deferred-patching only): an extra block of C/Ada code
@@ -394,7 +421,19 @@ let private printPresenceBit
 // patch determinants whose consumer never executed.  Threaded as plain
 // text instead of via a synthetic AcnChild — see DAstACNDeferred for
 // the rationale.
-let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:string option) (us:State)  =
+/// An automatic test value is valid for the ACN encoding of a SEQUENCE when every ACN child
+/// can be updated from the value during the encoding.
+let isTestCaseValidForAcnChildren (children:SeqChildInfo list) (atc:AutomaticTestCase) =
+    children |>
+    List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None) |>
+    List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> true) |>
+    Seq.forall(fun acnChild ->
+        match acnChild.funcUpdateStatement, acnChild.deferredTestCaseFnc with
+        | Some funcUpdateStatement, _   -> (funcUpdateStatement.testCaseFnc atc).IsSome
+        | None, Some testCaseFnc        -> (testCaseFnc atc).IsSome
+        | None, None                    -> false)
+
+let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string) option) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
@@ -577,10 +616,16 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
+        let joinMode =
+            match codec, lm.lg.decodeReadFailureModel, o.acnProperties.preDecodingFunction with
+            | Decode, ReadsCannotFail, None     -> OutcomeJoins
+            | Decode, ReadsCannotFail, Some _
+            | Decode, ReadsCanFail, _
+            | Encode, _, _                      -> CheckEveryPart
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
                 match child with
-                | Asn1Child asn1 -> printPresenceBit lm p errCode codec asn1 res.existVar
+                | Asn1Child asn1 -> printPresenceBit lm p errCode codec joinMode asn1 res.existVar
                 | AcnChild _ -> None))
         let seqProofGen =
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
@@ -621,9 +666,28 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
         let fallbackStmts =
             match codec, fallbackEpilogue with
-            | Encode, Some code -> [code]
+            | Encode, Some makeCode -> [makeCode p]
             | _ -> []
-        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
+        let seqContent =
+            match joinMode with
+            | OutcomeJoins ->
+                // coverage step 10b: no check after a part that cannot fail (DecodeOutcome.fs); presence bits first,
+                // then one part per child (its own statements keep their checks)
+                let partOutcomes =
+                    (presenceBits |> List.map (fun _ -> AlwaysSucceeds WritesResult)) @
+                    (children |> List.map (fun c ->
+                        match c with
+                        | AcnChild _     -> MayFail
+                        | Asn1Child asn1 ->
+                            match DecodeOutcome.acnChildPart r lm asn1.Optionality asn1.Type.toAsn1AcnAst with
+                            | Some (outcome, _) -> outcome
+                            | None              -> MayFail))
+                let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
+                let before = saveInitialBitStrmStatements |> List.map (fun s -> s, MayFail)
+                let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, MayFail)
+                (before @ parts @ after) |> nestItemsByOutcome lm
+            | CheckEveryPart ->
+                (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
         let icdFnc _ _ _  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
@@ -639,38 +703,21 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 match codec with
                 | Encode -> None, ns
                 | Decode ->
-                    match lm.lg.decodeEmptySeq (p.accessPath.joined lm.lg) with
+                    let asn1Children = children |> List.choose (fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
+                    match DAstUPer.decodeSequenceWithoutContent lm p asn1Children with
                     | None -> None, ns
                     | Some decodeEmptySeq ->
                         Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
             | Some ret ->
-                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
+                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
 
         | errChild::_      ->
-            let determinantUsage =
-                match errChild.Type with
-                | AcnInteger               _-> "length"
-                | AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
-                | AcnBoolean               _-> "presence"
-                | AcnReferenceToEnumerated _-> "presence"
-                | AcnReferenceToIA5String  _-> "presence"
-            let errMessage = sprintf "Unused ACN inserted field.
-                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
-                The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
-            raise(SemanticError(errChild.Name.Location, errMessage))
+            raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))
             //let loc = errChild.Name.Location
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
             //None, ns
 
-    let isTestVaseValid (atc:AutomaticTestCase) =
-        //an automatic test case value is valid
-        //if all ach children can be update during the encoding from the value
-        acnChildren |>
-        List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> true) |>
-        Seq.forall(fun acnChild ->
-            match acnChild.funcUpdateStatement with
-            | Some funcUpdateStatement -> (funcUpdateStatement.testCaseFnc atc).IsSome
-            | None                     -> false)
+    let isTestVaseValid (atc:AutomaticTestCase) = isTestCaseValidForAcnChildren children atc
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  [] us

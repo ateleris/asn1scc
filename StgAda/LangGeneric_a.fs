@@ -102,6 +102,8 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
+        // Standard.: the test object "dummy" hides a package named Dummy (22-modules/005)
+        override this.atcQualifiedFuncName programUnit funcName = "Standard." + programUnit + "." + funcName
         override this.allowsSrcFilesWithNoFunctions = false
         override this.requiresValueAssignmentsInSrcFile = false
         override this.supportsStaticVerification = true
@@ -260,7 +262,11 @@ type LangGeneric_a() =
             | FlagLocalVariable (name,None)             -> sprintf "%s:adaasn1rtl.BIT;" name
             | FlagLocalVariable (name,Some iv)          -> sprintf "%s:adaasn1rtl.BIT:=%s;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "%s:Boolean;" name
-            | BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name iv
+            // the <name>_is_initialized flags of ACN determinants (AcnSequence, AcnDependencies): where every path sets
+            // the flag before it is read, gnatprove reports the initial value as having no effect (coverage step 10c,
+            // the SPARK check treats warnings as errors); same local pragma as `ret` in the Equal functions
+            | BooleanLocalVariable (name,Some iv)       ->
+                sprintf "pragma Warnings (Off, \"initialization of \"\"%s\"\" has no effect\");\n%s:Boolean:=%s;\npragma Warnings (On, \"initialization of \"\"%s\"\" has no effect\");" name name iv name
             | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s:%s;" name vartype
             | GenericLocalVariable lv                   ->
                 match lv.initExp with
@@ -286,7 +292,9 @@ type LangGeneric_a() =
         override this.toHex n = sprintf "16#%x#" n
 
         override this.bitStringValueToByteArray (v : BitStringValue) =
-            v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
+            match CommonTypes.bitStringAlignment with
+            | true  -> FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)   // whole bytes, MSB-first, as C
+            | false -> v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
 
         override this.uper =
             {
@@ -416,16 +424,23 @@ type LangGeneric_a() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
+                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with
                 | Asn1AcnAst.Integer_uPER ->
-                    let nItems = enm.enumerated.items.Length
-                    if nItems <= 1 then
-                        Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some 0I, 0I)
-                    else
-                        let nBits = bigint (int (System.Math.Ceiling(System.Math.Log(float nItems, 2.0))))
-                        Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some nBits, 0I)
+                    // uPER constrained whole number over the encoded values: the item
+                    // indexes, or the item values with encode-values (offset = min).
+                    let values = enm.enumerated.items |> List.map (fun itm -> itm.acnEncodeValue)
+                    let minVal, maxVal = (if values.IsEmpty then 0I else List.min values), (if values.IsEmpty then 0I else List.max values)
+                    let nBits = GetNumberOfBitsForNonNegativeInteger (maxVal - minVal)
+                    Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some nBits, minVal)
                 | _ -> mapIntEncoding enm.enumerated.acnEncodingClass
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String ref ->
                 let nChars = ref.str.maxSize.acn
@@ -441,8 +456,9 @@ type LangGeneric_a() =
                 // Ada is strictly typed: Asn1UInt(<enum_literal>) is illegal.
                 // Use the enum's ACN-encoded integer value so the cast in the
                 // fallback PatchDet macro becomes Asn1UInt(<n>) — valid Ada.
+                // The wire value: PatchDet writes its argument as is.
                 match enm.enumerated.items with
-                | firstItem :: _ -> firstItem.acnEncodeValue.ToString()
+                | firstItem :: _ -> (firstItem.acnEncodeValue - uperMinOffset).ToString()
                 | [] -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"
@@ -471,6 +487,24 @@ type LangGeneric_a() =
             + "\npragma Warnings (On, \"*redundant*\");"
             + "\npragma Warnings (On, \"*not assigned a value*\");"
             + "\npragma Warnings (On, \"*is not referenced*\");"
+
+        override _.atcEmitsInvalidStreamTests = true
+        override _.atcInvalidStreamPackages = ["adaasn1rtl.encoding.uper"; "adaasn1rtl.encoding.acn"]
+        // No truncation: a short stream violates the precondition of every Ada decoder
+        // (Current_Bit_Pos + <T>_REQUIRED_BITS_FOR_..._ENCODING <= Size_In_Bytes * 8), it is not a test.
+        // A live 'size deduced' PDU is decoded from a second, exact-length stream inside
+        // Codec_Decode_exact_length: no sweep (C covers it).
+        override _.atcDecodeSweep isLiveDeduced =
+            match isLiveDeduced with
+            | true  -> NoDecodeSweep
+            | false -> CorruptionSweep
+        // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
+        override _.decodeReadFailureModel = ReadsCannotFail
+        // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
+        override _.typedefConstraintModel = TypedefsEnforceRanges
+        // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
+        override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
+        override _.atcEmitsConstraintViolationTests = true
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

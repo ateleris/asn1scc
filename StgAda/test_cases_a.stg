@@ -144,6 +144,30 @@ Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_EQUAL, Success => <sModName>.<sFuncName>(<sVal>, decodedPDU), ErrorCode => result.ErrorCode);
 >>
 
+/* Decode fault sweep of the automatic tests (coverage step 10): the helper lives in the Ada RTL
+   (adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep); no truncation, see LangGeneric_a.atcDecodeSweep. */
+Codec_DecodeSweep_helper(nBudget) ::= <<
+>>
+
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+>>
+
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+--  Decode corrupted copies of the encoded value
+if ret.Success then
+    declare
+        procedure Sweep_Decode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT; Valid : out Boolean) is
+        begin
+            <sModName>.<sDecFuncName>(decodedPDU, bs, Res);
+            Valid := <if(soIsValidFunc)>not Res.Success or else <sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>;
+        end Sweep_Decode;
+    begin
+        adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep(stream, "<sFuncName>", <nBudget>, Sweep_Decode'Access, result);
+        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
+    end;
+end if;
+>>
+
 Codec_write_bitstreamToFile() ::= <<
 adaasn1rtl.encoding.test_cases_aux.Write_BitStream_To_File(stream, Filename & ".dat");
 >>
@@ -323,7 +347,7 @@ procedure <sFuncName> ( totalErrors : in out Integer);
 
 emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
 declare
-   dummy : <sTypeName>;
+   dummy : Standard.<sTypeName>;
 begin 
     <sFuncName>(dummy); 
 end;
@@ -331,16 +355,17 @@ end;
 
 emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= <<
 declare
-   dummy : <sTypeName>;
+   dummy : Standard.<sTypeName>;
 begin 
     dummy := <sFuncName>; 
 end;
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
-    use Ada.Text_IO;
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    procedure Put (Item : String) renames Ada.Text_IO.Put;
     result      : adaasn1rtl.test_case_result;
 
     s1 : Ada.Calendar.Time;
@@ -385,7 +410,7 @@ begin
 	pragma Warnings (Off, "condition is always True");
 	pragma Warnings (Off, "condition is always False");
     s1 := Ada.Calendar.Clock;
-    result := <sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
+    result := <if(soEncDecPrefix)><soEncDecPrefix><endif><sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
     s2 := Ada.Calendar.Clock;
 	pragma Warnings (On, "condition is always True");
 	pragma Warnings (On, "condition is always False");
@@ -405,12 +430,59 @@ begin
                 Put_Line ("Test case '<sFuncName>' failed in the validation of the decoded message");
             when <rtlModuleName()>.TC_EQUAL =>
                 Put_Line ("Test case '<sFuncName>' failed. Encoded and decoded messages are different");
+            when <rtlModuleName()>.TC_DECODE_CORRUPTED =>
+                Put_Line ("Test case '<sFuncName>' failed. A corrupted copy of the encoded value was decoded to an invalid value or without an error code.");
         end case;
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;
     <sGenerateDatFile>
     
+end <sFuncName>;
+>>
+
+/* Automatic tests with invalid in-memory values: C only (ILangGeneric.atcEmitsInvalidValueTests). */
+emitInvalidValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetInvalidValue, sIsValidFunc, sEncFunc, soEqualFunc) ::= <<
+>>
+
+/* Automatic tests with values excluded by a constraint: C only (ILangGeneric.atcEmitsInvalidValueTests). */
+emitExcludedValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetExcludedValue, sIsValidFunc, sEncFunc, sDecFunc) ::= <<
+>>
+
+/* Automatic test of an ACN decoder's 'when others' arm: a stream that holds only
+   an ENUMERATED code which no item uses (a gap between the item values), written
+   the way the type's encoder writes an item value. Decoding must fail
+   (ILangGeneric.atcEmitsInvalidStreamTests). */
+emitInvalidStreamTestCase(sFuncName, arrsVars, sModName, sTasName, sEnc, sCodeVar, sCodeType, nCode, sEncodeStatement, sDecFunc) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    <sCodeVar> : constant <sCodeType> := <nCode>;
+    bs         : <sModName>.<sTasName>_<sEnc>Stream := <sModName>.<sTasName>_<sEnc>Stream'(Size_In_Bytes => <sModName>.<sTasName>_<sEnc>STREAM_SIZE, Current_Bit_Pos => 0, pushDataPrm => 0, fetchDataPrm => 0, Buffer => (others => 0));
+    result     : adaasn1rtl.ASN1_RESULT := (Success => True, ErrorCode => 0);
+	pragma Warnings (Off, "is assigned but never read");
+	pragma Warnings (Off, "is not referenced");
+    decodedPDU : <sModName>.<sTasName>;
+    <arrsVars; separator="\n">
+	pragma Warnings (On, "is not referenced");
+	pragma Warnings (On, "is assigned but never read");
+begin
+    <sEncodeStatement>
+    if result.Success then
+        --  the decoder resets the stream position
+        <sModName>.<sDecFunc>(decodedPDU, bs, result);
+        if result.Success or result.ErrorCode = 0 then
+            Put_Line ("Test case '<sFuncName>' failed. A stream with the code <nCode>, which no item uses, was decoded.");
+            Put_Line ("========================================");
+            totalErrors := totalErrors + 1;
+        else
+            Put_Line ("Test case '<sFuncName>' succeeded");
+        end if;
+    else
+        Put_Line ("Test case '<sFuncName>' failed: the stream could not be written.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
 end <sFuncName>;
 >>
 
@@ -423,12 +495,18 @@ is
 end <sPackageName>;
 >>
 
-printTestCaseFileBody(sPackageName, arrsIncludedModules, arrsTestFunctionBodies, arrsProgramUnitNames) ::= <<
+printTestCaseFileBody(sPackageName, arrsIncludedModules, arrsTestFunctionBodies, arrsProgramUnitNames, arrsRtlUnits) ::= <<
 pragma Style_Checks (Off);
 --  Code automatically generated by asn1scc tool (stg macro : printTestCaseFileBody)
 with Ada.Text_IO;
 with adaasn1rtl;
 use adaasn1rtl;
+<if(arrsRtlUnits)>
+<arrsRtlUnits:{inc|pragma Warnings (Off, "unit * is not referenced");
+with <inc>;
+pragma Warnings (On, "unit * is not referenced");
+}>
+<endif>
 pragma Warnings (Off, "no entities of ""interfaces"" are referenced");
 pragma Warnings (Off, "use clause for package ""Interfaces"" has no effect");
 with interfaces;
@@ -444,7 +522,10 @@ pragma Warnings (On, "no entities of ""<inc>"" are referenced");
 pragma Warnings (On, "use clause for package ""<inc>"" has no effect");
 }; separator="\n">
 with Ada.Calendar;
-use Ada.Calendar;
+--  a file with constraint-violation tests only does not time anything
+pragma Warnings (Off, "use clause for private type ""Ada.Calendar.Time"" has no effect");
+use type Ada.Calendar.Time;
+pragma Warnings (On, "use clause for private type ""Ada.Calendar.Time"" has no effect");
 
 package body <sPackageName> is
 
@@ -456,4 +537,70 @@ end <sPackageName>;
 
 decodingCaseKind(sBody, sIdentifier) ::= <<
 <sBody>
+>>
+
+/* Coverage step 11c (T2): a value just outside one constraint (only values the Ada type can hold). IsConstraintValid
+   and every checked encoder must fail with the error code of that constraint. */
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result  : adaasn1rtl.ASN1_RESULT;
+    ok      : Boolean;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <sInitializeTcData>
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    --  the automatic test value is valid before the change
+    result := <sModName>.<sIsValidFunc> (tc_data);
+    ok := result.Success and result.ErrorCode = 0;
+    if ok then
+        --  <sWhat>
+        <sSetInvalidValue>
+        result := <sModName>.<sIsValidFunc> (tc_data);
+        ok := not result.Success and result.ErrorCode = <sErrCodeModule>.<sErrCode>;
+    end if;
+    <arrsEncodeChecks; separator="\n">
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: not rejected with <sErrCode>, or the starting value was not valid.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>
+
+constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
+if ok then
+    declare
+        pragma Warnings (Off);
+        bs : <sModName>.<sTasName>_<sEnc>Stream;
+        pragma Warnings (On);
+    begin
+        <sModName>.<sEncFunc> (tc_data, bs, result);
+        ok := not result.Success and result.ErrorCode = <sErrCodeModule>.<sErrCode>;
+    end;
+end if;
+>>
+
+/* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
+constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
+<sStr>(<nIndex> + 1) := Character'Val (<nChar>);
 >>

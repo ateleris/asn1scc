@@ -19,7 +19,7 @@ end <sFuncName>;
 >>
 
 
-assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
+assignAny(p, sPtr, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
@@ -142,6 +142,16 @@ end loop;
 >>
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
+<if(bitStringAlignment)>
+<p><sAcc>Data := (others => 0);
+<i> := 1;
+while <i>\<= <nSizeCeiled> / 8 loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeCeiled> / 8);
+    <p><sAcc>Data(<i>) := <if(bZero)>16#00#<else>16#55#<endif>;  --  0101 0101, as the BitArray pattern
+    <i> := <i> + 1;
+end loop;
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+<else>
 <i> := 1;
 while <i>\<= <nSize> loop
     --  commented because it casues this warning
@@ -151,6 +161,7 @@ while <i>\<= <nSize> loop
     <i> := <i> + 1;
 end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+<endif>
 >>
 
 
@@ -250,7 +261,7 @@ initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBas
 procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>) --  COVERAGE_IGNORE
 is
 begin
-    <sVarName>.Data(<sVarName>.Data'First + <nZeroBasedBitIndex>) := 1; --  COVERAGE_IGNORE
+    <sVarName>.Data<if(bitStringAlignment)>(<nZeroBasedByteIndex> + 1) := <sVarName>.Data(<nZeroBasedByteIndex> + 1) or 16#<sHexByteMax>#<else>(<sVarName>.Data'First + <nZeroBasedBitIndex>) := 1<endif>; --  COVERAGE_IGNORE
 end <sFuncName>_set_<sNamedBit>;   --  COVERAGE_IGNORE
 >>
 

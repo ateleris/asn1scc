@@ -76,7 +76,13 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
+/* A static constant, not a compound literal: (T){...} is an object on the stack, as large as the type
+   (PUS-C TM[4,2]: 8 MB), and for a top-level array type (IA5String) the assignment only changed the
+   decayed pointer pVal. sPtr is the address of the value. */
+assignAny(p, sPtr, sValue, sTypeDecl) ::= <<
+static const <sTypeDecl> initValue = <sValue>;
+memcpy(<sPtr>, &initValue, sizeof(initValue));
+>>
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
@@ -234,12 +240,24 @@ initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
 {
-    <sVarName>->arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+    <sVarName>->arr[<nZeroBasedByteIndex>] |= 0x<sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+
+flag <sFuncName>_has_<sNamedBit>(const <sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    return (<sVarName>->arr[<nZeroBasedByteIndex>] & 0x<sHexByteMax>) != 0; /*COVERAGE_IGNORE*/
+}
+
+void <sFuncName>_clear_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>->arr[<nZeroBasedByteIndex>] &= (byte)~0x<sHexByteMax>; /*COVERAGE_IGNORE*/
 }
 >>
 
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+flag <sFuncName>_has_<sNamedBit>(const <sTypeDefName><sStar> <sVarName>);
+void <sFuncName>_clear_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
 >>
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<

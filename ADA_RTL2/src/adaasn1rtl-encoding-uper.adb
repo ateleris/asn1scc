@@ -401,16 +401,29 @@ is
       pragma Warnings
         (Off, "condition can only be False if invalid values present");
       pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
         (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
 
-      Result.Success := Result.Success and then
-        Asn1Real (Standard.Float'First) <= v and then
-        v <= Asn1Real (Standard.Float'Last);
+      --  a value outside the Float range (or a NaN) is an incorrect stream
+      if Result.Success and then
+        not (Asn1Real (Standard.Float'First) <= v and then
+             v <= Asn1Real (Standard.Float'Last))
+      then
+         Result := ASN1_RESULT'(Success => False,
+                                ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       pragma Warnings
         (On, "condition can only be False if invalid values present");
       pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
         (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
 
       if Result.Success then
          RealVal := Standard.Float (v);
@@ -737,13 +750,20 @@ is
          for i in data'First .. (data'First + data_length - 1) loop
             pragma Loop_Invariant
               (bs.Current_Bit_Pos =
-                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
+                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8
+               and success);
             BitStream_DecodeByte (bs, data (i), success);
             exit when not success;
          end loop;
       else
-         data (data'First .. (data'First + data_length - 1)) :=
-           bs.Buffer (Current_Byte .. Current_Byte + data_length - 1);
+         --  The precondition keeps the slice inside the buffer; the test
+         --  keeps a decoder that is called outside its contract (checks
+         --  suppressed with -gnatp) from copying memory past the stream.
+         success := Current_Byte + data_length - 1 <= bs.Buffer'Last;
+         if success then
+            data (data'First .. (data'First + data_length - 1)) :=
+              bs.Buffer (Current_Byte .. Current_Byte + data_length - 1);
+         end if;
          bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8 * data_length;
       end if;
    end BitStream_DecodeOctetString_no_length;
@@ -1133,5 +1153,98 @@ is
       end if;
 
    end BitStream_DecodeBitString;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
+      nBits : Integer)
+   is
+      encVal  : Asn1UInt;
+      success : Boolean;
+   begin
+      BitStream_Decode_Non_Negative_Integer (bs, encVal, nBits, success);
+      pragma Assert (success);
+      --  the mask states the nBits bound for the prover
+      IntVal := MinVal + (encVal and (Shift_Left (Asn1UInt (1), nBits) - 1));
+   end UPER_Dec_ConstraintPosWholeNumber_FullRange;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8;
+      MinVal : Unsigned_8; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber_FullRange
+        (bs, v, Asn1UInt (MinVal), nBits);
+      IntVal := Unsigned_8 (v);
+   end UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt8;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16;
+      MinVal : Unsigned_16; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber_FullRange
+        (bs, v, Asn1UInt (MinVal), nBits);
+      IntVal := Unsigned_16 (v);
+   end UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt16;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32;
+      MinVal : Unsigned_32; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber_FullRange
+        (bs, v, Asn1UInt (MinVal), nBits);
+      IntVal := Unsigned_32 (v);
+   end UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt32;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
+      nBits : Integer)
+   is
+      encVal  : Asn1UInt;
+      success : Boolean;
+   begin
+      BitStream_Decode_Non_Negative_Integer (bs, encVal, nBits, success);
+      pragma Assert (success);
+      --  the mask states the nBits bound for the prover
+      IntVal :=
+        MinVal + Asn1Int (encVal and (Shift_Left (Asn1UInt (1), nBits) - 1));
+   end UPER_Dec_ConstraintWholeNumber_FullRange;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8;
+      MinVal : Integer_8; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber_FullRange
+        (bs, v, Asn1Int (MinVal), nBits);
+      IntVal := Integer_8 (v);
+   end UPER_Dec_ConstraintWholeNumber_FullRangeInt8;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16;
+      MinVal : Integer_16; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber_FullRange
+        (bs, v, Asn1Int (MinVal), nBits);
+      IntVal := Integer_16 (v);
+   end UPER_Dec_ConstraintWholeNumber_FullRangeInt16;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32;
+      MinVal : Integer_32; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber_FullRange
+        (bs, v, Asn1Int (MinVal), nBits);
+      IntVal := Integer_32 (v);
+   end UPER_Dec_ConstraintWholeNumber_FullRangeInt32;
 
 end adaasn1rtl.encoding.uper;

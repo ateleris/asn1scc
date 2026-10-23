@@ -1028,6 +1028,8 @@ type CommandLineSettings = {
     GenerateEqualFunctions : bool
     generateConstInitGlobals : bool
     generateAutomaticTestCases : bool
+    //decode fault sweep of the automatic tests: bytes decoded per sweep and test value (-atcSweepBudget)
+    atcSweepBudget : BigInteger
     TypePrefix:string
     CheckWithOss:bool
     AstXmlAbsFileName:string
@@ -1132,3 +1134,9 @@ let char2SingleStringValue (c:char) =
     elif c = CharHT  then SpecialCharacter HorizontalTab
     elif c = CharNul then SpecialCharacter NullCharacter
     else CStringValue (c.ToString())
+
+
+// When true, the Ada backend represents BIT STRING values with an array of
+// whole bytes (adaasn1rtl.OctetBuffer), byte-for-byte compatible with the C
+// backend. Exposed to the templates as <bitStringAlignment>.
+let mutable bitStringAlignment : bool = false

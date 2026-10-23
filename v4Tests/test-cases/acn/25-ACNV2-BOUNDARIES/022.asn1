@@ -1,0 +1,18 @@
+-- C_ONLY (Ada: the field name `body` is not renamed in the CONTAINING encoder; acn-v2 BIT STRING round trip fails)
+--TCFS   022.acn
+-- An external determinant must not extend a CONTAINING region past the input.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+OuterOct ::= SEQUENCE {
+    body OCTET STRING (CONTAINING Inner)
+}
+
+OuterBits ::= SEQUENCE {
+    body BIT STRING (CONTAINING Inner)
+}
+
+Inner ::= SEQUENCE {
+    data OCTET STRING (SIZE (0..31))
+}
+
+END

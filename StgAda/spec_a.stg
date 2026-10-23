@@ -245,7 +245,7 @@ Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_Sizeable
 
 
 /***********************************       BIT STRING    ************************************************************/
-Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment, nZeroBasedBitIndex, nZeroBasedByteIndex, sHexByteMask) ::= <<
 <td.typeName>_<sTargetLangBitName> : constant <rtlModuleName()>.Asn1UInt:= 16#<sHexValue>#;  --<sComment>
 >>
 
@@ -253,12 +253,24 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 subtype <td.index> is Integer range 1..<nMax>;
+<if(bitStringAlignment)>
+--  C-compatible representation: the value is an array of whole bytes, exactly
+--  like the C backend's "struct { byte arr[ceil(N/8)]; }". ASN.1 bit k is bit
+--  (7 - k mod 8) of byte (k / 8 + 1), counting the mask from the MSB.
+subtype <td.array> is <rtlModuleName()>.OctetBuffer (1 .. <nMaxOctets>);
+<if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
+type <td.typeName> is  record
+<if(!bFixedSize)>    Length : <td.length_index>;<endif>
+    Data  : <td.array>;
+end record;
+<else>
 subtype <td.array> is <rtlModuleName()>.BitArray(<td.index>);
 <if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
 type <td.typeName> is  record
 <if(!bFixedSize)>    Length : <td.length_index>;<endif>
     Data  : <td.array>;
 end record;
+<endif>
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize, arr_Asn1Encoding) ::= <<

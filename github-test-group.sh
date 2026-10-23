@@ -24,6 +24,8 @@ echo "=== Building .NET solution ==="
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
+echo "=== Toolchain ==="
+for t in gcc gcov gnatmake gprbuild gnatprove; do printf '%-10s ' "$t"; ("$t" --version 2>&1 || true) | head -1; done
 
 REGRESSION="../regression/bin/Debug/net10.0/regression"
 
@@ -41,11 +43,14 @@ case "$GROUP" in
     "$REGRESSION" -l c -ws 4 -s false -p 4 -acnv2 || exit 1
     "$REGRESSION" -l c -ws 8 -s true -p 4 -acnv2 || exit 1
     "$REGRESSION" -l c -ws 8 -s false -p 4 -acnv2 || exit 1
+    ./scripts/runWireTests.sh || exit 1
+    ./scripts/runIcdPdusTests.sh || exit 1
     ;;
 
   ada)
     echo "=== Ada regression tests ==="
     cd v4Tests || exit 1
+    ./scripts/proveAdaRtl.sh || exit 1
     "$REGRESSION" -l Ada -ws 4 -s false -p 4 || exit 1
     "$REGRESSION" -l Ada -ws 8 -s false -p 4 || exit 1
     # ACN v2

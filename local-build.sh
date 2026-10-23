@@ -24,8 +24,14 @@ echo "dotnet build"
 dotnet build Antlr/ || exit 1
 dotnet build parseStg2/ || exit 1
 dotnet build "asn1scc.sln" || exit 1
+echo "=== Toolchain ==="
+for t in gcc gcov gnatmake gprbuild gnatprove; do printf '%-10s ' "$t"; ("$t" --version 2>&1 || true) | head -1; done
 cd v4Tests || exit 1
 echo "run local tests"
+
+# --- Ada RTL proof (gnatprove on the SPARK units of the runtime) ---------
+echo "prove the Ada RTL (gnatprove, boards x86 and msp430)"
+./scripts/proveAdaRtl.sh || exit 1
 
 
 # --- Ada+acnv2 (run first: newest path, fail-fast) -----------------------
@@ -46,6 +52,15 @@ echo "run c tests, with word-size=8, slim-mode=true, acnv2"
 
 echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 ../regression/bin/Debug/net10.0/regression -l c -ws 8 -s false -p 48 -acnv2 || exit 1
+
+echo "run acn-v2 wire checks (C)"
+./scripts/runWireTests.sh || exit 1
+
+echo "run -icdPdus checks (C)"
+./scripts/runIcdPdusTests.sh || exit 1
+
+echo "run ICD tests (-icdAcn)"
+python3 ./scripts/runIcdTests.py || exit 1
 
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
@@ -88,3 +103,7 @@ uvx --python=3.11 pytest tests -v || exit 1
 # Python code readability and type-hint checks
 echo "run python readability checks"
 ./tools/check_generated_code.sh || exit 1
+
+# Python backend on the Asn1AcnTestLib corpus (CI workflow "Python Unit Tests")
+echo "run python testlib tests"
+../v4Tests/scripts/runPythonTestlib.sh || exit 1

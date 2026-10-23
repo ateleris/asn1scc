@@ -13,6 +13,35 @@ open Language
 
 open AcnHelpers
 
+// This decoder checks the deduced count before entering its fixed-width item
+// loop. Other decoders still rely on their maximum-capacity preconditions.
+let rec private hasBoundedFixedDeducedDecoder (t: Asn1AcnAst.Asn1Type) =
+    match t.acnAlignment with
+    | Some _ -> false // Alignment consumes bits before the count check.
+    | None ->
+        match t.Kind with
+        | Asn1AcnAst.SequenceOf sq ->
+            sq.acnEncodingClass = SZ_EC_Deduced &&
+            sq.child.acnMinSizeInBits > 0I &&
+            sq.child.acnMinSizeInBits = sq.child.acnMaxSizeInBits
+        | Asn1AcnAst.ReferenceType rf ->
+            match rf.encodingOptions with
+            | None -> hasBoundedFixedDeducedDecoder rf.resolvedType
+            | Some _ -> false // A CONTAINING wrapper reads its own framing.
+        | Asn1AcnAst.Integer _
+        | Asn1AcnAst.Real _
+        | Asn1AcnAst.IA5String _
+        | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _
+        | Asn1AcnAst.TimeType _
+        | Asn1AcnAst.BitString _
+        | Asn1AcnAst.Boolean _
+        | Asn1AcnAst.Enumerated _
+        | Asn1AcnAst.NullType _
+        | Asn1AcnAst.Sequence _
+        | Asn1AcnAst.Choice _
+        | Asn1AcnAst.ObjectIdentifier _ -> false
+
 
 // If the type assignment has acnParameters, then no function is generated.
 // This function can only be inlined by the calling function (i.e. by the parent
@@ -38,7 +67,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (funcDefAnnots: string list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let funcNameAndtasInfo   = lm.lg.getACNFuncName r codec t td
+    // --acn-v2: a type assignment whose ACN field determines a field of an
+    // enclosing type has no standalone ACN function, like a type with ACN
+    // parameters (AcnClosureConversion.findTassesWithExportedDeterminants).
+    let funcNameAndtasInfo   =
+        match t.id.tasInfo with
+        | Some tasInfo when r.tassesWithExportedDeterminants.Contains tasInfo -> None
+        | Some _
+        | None -> lm.lg.getACNFuncName r codec t td
     let errCodeName         = ToC ("ERR_ACN" + (lm.lg.codecSuffix codec).ToUpper() + "_" + (t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
     let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
@@ -46,12 +82,43 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+    // coverage step 12a: an encoder does not call a validity function that cannot fail
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
     let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
 
     let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+    // coverage step 10b: a decoder that cannot fail states result.Success in its contract and its wrapper does not
+    // test it (DecodeOutcome.acn)
+    let decodeOutcome =
+        match codec with
+        | Decode -> DecodeOutcome.acn r lm t
+        | Encode -> MayFail
+    let bAlwaysSucceeds =
+        match decodeOutcome with
+        | AlwaysSucceeds _ -> true
+        | MayFail          -> false
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written; the wrapper initialises it
+    // (a type assignment that is a reference has no init function of its own: the referenced type's)
+    let soValInitFuncName =
+        match soInitFuncName with
+        | Some _ -> soInitFuncName
+        | None   -> Some (typeDefinitionName + lm.init.methodNameSuffix())
+    let bValInOut =
+        match codec with
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite r lm t) soValInitFuncName
+        | Encode -> false
+    let soSparkAnnotations =
+        match codec, decodeOutcome with
+        | Decode, _ when hasBoundedFixedDeducedDecoder t ->
+            Some (lm.acn.sparkAnnotations_deducedFixed typeDefinitionName)
+        | Decode, AlwaysSucceeds _ when soSparkAnnotations.IsSome ->
+            Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+        | Decode, AlwaysSucceeds _
+        | Decode, MayFail
+        | Encode, _ -> soSparkAnnotations
     let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
 
     let funcBodyAsSeqComp (st: State)
@@ -74,7 +141,6 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let p : CodegenScope = lm.lg.getParamTypeSuffix t sf codec
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
-    let sInitialExp = ""
     // Zero-bit encodings — a NULL without an ACN encoding pattern and an empty
     // SEQUENCE — have no funcBody on Encode (content = None below), so the
     // encoders never produce an icdResult and the type would silently vanish
@@ -144,11 +210,21 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                let sInitialExp =
+                    // A null attribute disables the optional template initializer.
+                    match content with
+                    | Some _ -> null
+                    | None ->
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function -> soInitFuncName.orElse null
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Procedure -> null
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
                     match content with
                     | None ->
                         let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], zeroBitIcdResult ()
+                        emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, [], [], zeroBitIcdResult ()
                     | Some bodyResult ->
                         // Same zero-bit fallback as the inline branch above: a body
                         // without icdResult comes from the align-to-next/save-position
@@ -157,7 +233,18 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             match bodyResult.icdResult with
                             | Some _ -> bodyResult.icdResult
                             | None   -> AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ())
-                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
+                        // coverage step 10b: result is defined first when an exit or the end could read an unset
+                        // error code (DecodeOutcome.acnNeedsResultInit)
+                        let body =
+                            match codec, lm.lg.decodeReadFailureModel with
+                            | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r lm t ->
+                                lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
+                            | Decode, ReadsCannotFail
+                            | Decode, ReadsCanFail
+                            | Encode, _                 -> bodyResult.funcBody
+                        // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
+                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -209,21 +296,32 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr =
                     errCodes |>
                     List.groupBy (fun x -> x.errCodeName) |>
                     List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
                     List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) codec)
                 let ns2a =
                     match t.id.topLevelTas with
                     | None -> ns1a
                     | Some tasInfo ->
                         let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
                         let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
-                        addFunctionCallToState ns1a caller callee
+                        let ns2 = addFunctionCallToState ns1a caller callee
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function when content.IsNone ->
+                            // The empty Ada ACN decoder calls its initializer, also
+                            // when -icdPdus retains it through a reference codec.
+                            addFunctionCallToState ns2
+                                {caller with funcType=AcnEncDecFunctionType}
+                                {callee with funcType=InitFunctionType}
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Function
+                        | Decode, InitMethod.Procedure -> ns2
                 func, funcDef, udfcs, auxiliaries, icdResult, ns2a
 
     let icdAux, ns3 =

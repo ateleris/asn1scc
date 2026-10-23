@@ -67,7 +67,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
 
-    let funcUpdateStatement, ns3 =
+    let funcUpdateStatement, deferredTestCaseFnc, ns3 =
         // In deferred mode (--acn-v2), ACN children that will use InitDet/PatchDet
         // (Περίπτωση Β) don't need funcUpdateStatement — their value is patched
         // later by PatchDet inside child functions.  Same-level determinants
@@ -76,10 +76,13 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             match parentData with
             | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
             | _ -> false
+        // A deferred child still needs the value it takes for an automatic test value (CHOICEs
+        // sharing it must select the same alternative, AcnSequence.isTestCaseValidForAcnChildren).
         if isDeferred then
-            None, ns2
+            None, Some (DAstACN.deferredDeterminantTestCaseFnc deps ch.id), ns2
         else
-            DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+            let updateResult, ns = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+            updateResult, None, ns
     let c_name         = ch.c_name //DAstACN.getAcnDeterminantName ch.id
 
     let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CodegenScope) (lvName:string): AcnFuncBodyResult option=
@@ -121,6 +124,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             typeDefinitionBodyWithinSeq = tdBodyWithinSeq
             funcBody                    = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
             funcUpdateStatement         = funcUpdateStatement
+            deferredTestCaseFnc         = deferredTestCaseFnc
             Comments                    = ch.Comments
             deps                        = { acnDependencies = dealiasedDeps }
             initExpression              = initExpression
@@ -449,6 +453,10 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (dep
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
     let acnEncFunction, s4              = TL "EN_07" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3)
     let acnDecFunction, s5              = TL "EN_08" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4)
+    let acnInvalidCodeStream =
+        match r.args.encodings |> List.contains Asn1Encoding.ACN with
+        | true  -> AcnEnum.createInvalidCodeStream r lm t o
+        | false -> None
     let uperEncDecTestFunc,s6           = TL "EN_09" (fun () -> EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7           = TL "EN_10" (fun () -> EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
 //    let automaticTestCasesValues        TL "EN_11" (fun () -> = EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (EnumValue x)))
@@ -470,6 +478,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (dep
             uperDecFunction     = uperDecFunction
             acnEncFunction      = acnEncFunction
             acnDecFunction      = acnDecFunction
+            acnInvalidCodeStream = acnInvalidCodeStream
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             xerEncFunction      = xerEncFunction

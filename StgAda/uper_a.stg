@@ -18,7 +18,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:constant Integer := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:constant Integer := <nMaxBitsInPER>;
@@ -31,10 +31,10 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 ;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
@@ -67,7 +67,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -82,11 +82,18 @@ is
     <arrsLocalVariables; separator="\n">
 begin
     <if(soIValidFuncName)>
+    <if(bValidityCannotFail)>
+    -- no validity check: <soIValidFuncName> cannot fail for any value of this type
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    <sContent>
+
+    <else>
     result := <soIValidFuncName>(<sVarName>);
-    if result.success and  result.ErrorCode = 0 then
+    if result.Success then
         <sContent>
     end if;
 
+    <endif>
     <else>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
@@ -102,36 +109,46 @@ procedure <sFuncName>(<sVarName>:out <sTypeDefName>; Stream : IN OUT <sTypeDefNa
 is
 begin
     Stream.Current_Bit_Pos :=0;
+    <if(bValInOut)>
+    <sVarName> := <soInitFuncName>;
+    <endif>
     <sFuncName>_aux(<sVarName>, Stream, result);
     <if(soIValidFuncName)>
+    <if(bAlwaysSucceeds)>
+    pragma Assert (result.Success);
+    result := <soIValidFuncName>(<sVarName>);
+    <else>
     if result.success then
         result := <soIValidFuncName>(<sVarName>);
     end if;
+    <endif>
 
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
 <endif>
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
     pragma Unreferenced (bs);
 
 <endif>
 <if(bVarNameIsUnreferenced)>
+<if(sInitialExp)><else>
     pragma Unreferenced (<sVarName>);
-
+<endif>
 <endif>
 
     <arrsLocalVariables; separator="\n">
 begin
-    <if(soInitFuncName)>
-    -- <sVarName> := <soInitFuncName>;
-
+    <if(sInitialExp)>
+    -- A codec with no inline decoding body must still define its outputs.
+    <sVarName> := <sInitialExp>;
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <endif>
     <sContent>
 end <sFuncName>_aux;
@@ -256,6 +273,11 @@ result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>
 
+/* Coverage step 10b: BOOLEAN in a uPER decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+BooleanNoErrCode(p) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
+>>
+
 Real_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
 Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
@@ -264,11 +286,17 @@ adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
 ObjectIdentifier_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.ObjectIdentifier_uper_encode(bs, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.ObjectIdentifier_uper_decode(bs, <p>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; --COVERAGE_IGNORE (corrupted input only)
+end if;
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.RelativeOID_uper_encode(bs, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.RelativeOID_uper_decode(bs, <p>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; --COVERAGE_IGNORE (corrupted input only)
+end if;
 >>
 
 
@@ -336,6 +364,11 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
+>>
+
+/* Coverage step 10b: presence bit in a uPER decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+sequence_presence_bit_noErrCode(p, sChName) ::= <<
 <rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
 >>
 
@@ -512,14 +545,13 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
---val := <sTasName>_Init;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <i> := 1;
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 <p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
 result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
 <i> := 1;
@@ -529,8 +561,7 @@ if result.Success then
 end if;
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
---val := <sTasName>_Init;
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 <i> := 1;
@@ -551,12 +582,22 @@ end loop;
 /* OCTET AND BIT STRING*/
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
+<if(bitStringAlignment)>
+<rtlModuleName()>.encoding.BitStream_AppendBit(bs, <rtlModuleName()>.BitString_Get_Bit(<p>.Data, <i> - 1));
+<else>
 <rtlModuleName()>.encoding.BitStream_AppendBit(bs, <p>.Data(<i>));
+<endif>
 >>
 
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
-<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);
-if not result.Success then
+<if(bitStringAlignment)>
+declare
+    bitVal : <rtlModuleName()>.BIT;
+begin
+    <rtlModuleName()>.encoding.BitStream_ReadBit(bs, bitVal, result.Success);
+    <rtlModuleName()>.BitString_Set_Bit(<p>.Data, <i> - 1, bitVal);
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
 >>
@@ -567,18 +608,18 @@ InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 <rtlModuleName()>.encoding.BitStream_DecodeByte(bs, <p>.Data(<i>), result.Success);
-if not result.Success then
-    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
-end if;
 >>
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>));
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+if not result.Success then
+    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
+end if;
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -892,7 +933,7 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -907,7 +948,7 @@ begin
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -917,12 +958,14 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -937,7 +980,7 @@ begin
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -947,6 +990,8 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 >>
@@ -955,13 +1000,33 @@ end;
 
 
 /* BIT STRING*/
+/* Decoding a string subtype whose typedef (of its base type) is a longer array: the decoder
+   fills only the subtype's positions, the rest of the array is set to NUL. */
+str_pad_to_typedef_size(p, nFrom, nTo) ::= <<
+for pad_ix in <nFrom> .. <nTo> loop
+    <p>(pad_ix) := adaasn1rtl.NUL;
+end loop;
+>>
+
+/* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
+   the fixed-size decoder fills only the data. */
+sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= "<p><sAcc>Length := <nFixedSize>;"
+
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
+<if(bitStringAlignment)>
+--  C-compatible representation: the whole bytes are already in wire (MSB-first)
+--  order, exactly as in C, so they can be appended directly.
+adaasn1rtl.encoding.BitStream_AppendBits(bs, <p><sAcc>Data, Integer(<nFixedSize>));
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>));
+<endif>
 >>
 
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
-adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
-if not result.Success then
+<if(bitStringAlignment)>
+<p><sAcc>Data := (others => 0);
+adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);<\n><else>
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
 end if;
 >>
@@ -982,4 +1047,43 @@ if result.Success then
 	<p><sAcc>Length := nStringLength;
 	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
 end if;
+>>
+
+
+/* Coverage step 10b: decode of a field whose every bit pattern is a valid value (RTL _FullRange twins,
+   no Result: the decode cannot fail). */
+IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
+>>
+
+IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
+>>
+
+/* Coverage step 10b: start of a decoder none of whose mandatory parts assigns result.ErrorCode. */
+decode_result_init() ::= <<
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
+
+/* Coverage step 10b: contract of a decoder that cannot fail. */
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post =>
+         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+>>
+
+
+/* Coverage step 10b: fixed-size OCTET / BIT STRING (not fragmented, no alignment option): the RTL call cannot fail
+   (its Post states success), so no failure branch. */
+octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= <<
+adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+>>
+
+bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= <<
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
 >>

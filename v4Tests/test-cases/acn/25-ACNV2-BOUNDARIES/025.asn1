@@ -1,0 +1,6 @@
+--TCFS   025.acn
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Bounded ::= SEQUENCE { data OCTET STRING (SIZE (1..8)) }
+    ZeroMin ::= SEQUENCE { data OCTET STRING (SIZE (0..8)) }
+    Fixed ::= SEQUENCE { data OCTET STRING (SIZE (2)) }
+END

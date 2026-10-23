@@ -51,6 +51,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | true           -> CEC_presWhen
             | false          -> CEC_uper
 
+    // In deferred mode a CHOICE receives its ENUMERATED determinant as an ACN parameter,
+    // i.e. a deferred ref whose value is the encoded integer (Asn1UInt). A determinant field
+    // of the same SEQUENCE (inline CHOICE) is still decoded into a local of the enum type.
+    let isDeferredDeterminant (determinant: Determinant) =
+        match r.args.acnDeferred, determinant with
+        | true, AcnParameterDeterminant _   -> true
+        | true, AcnChildDeterminant _       -> false
+        | false, _                          -> false
+
     let localVariables =
         match ec, codec with
         | _, CommonTypes.Encode             -> []
@@ -177,7 +186,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match ec with
                     | CEC_uper  ->
                         Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
-                    | CEC_enum (enm,_) ->
+                    | CEC_enum (enm, determinant) ->
                         let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                             match p.modName = ToC a.modName with
                             | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
@@ -189,8 +198,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         // .Value field (Asn1UInt) rather than the enum-typed determinant,
                         // so case branches must use the ACN-encoded integer literal.
                         // In legacy mode keep the enum literal name (preserves byte-identity).
+                        // The value is the one the determinant field writes (its own acnEncodeValue),
+                        // which can differ from the CHOICE parameter type's (encode-values on the field).
                         let enmCaseName =
-                            if r.args.acnDeferred && codec = Decode then enmItem.acnEncodeValue.ToString()
+                            if isDeferredDeterminant determinant && codec = Decode then
+                                let fieldItem = determinantEnumItems deps determinant enm.enm |> List.find (fun itm -> itm.Name.Value = child.Name.Value)
+                                fieldItem.acnEncodeValue.ToString()
                             else lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem
                         Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) enmCaseName (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                     | CEC_presWhen  ->
@@ -234,7 +247,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             childContentResult.IsNone ||
                             (match child.chType.ActualType.Kind with NullType _ -> true | _ -> false)
                         Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr bIsPrimitive [] codec)
-            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries|}], ns1
+            // An ALWAYS ABSENT alternative only rejects its selection: the locals of its
+            // (not emitted) codec are unused (Ada -gnatwe; e.g. an IA5String alternative
+            // excluded by WITH COMPONENTS, PUS-C advanced subtyping-with-components).
+            let childContent_localVariables =
+                match child.Optionality with
+                | Some ChoiceAlwaysAbsent           -> []
+                | Some ChoiceAlwaysPresent | None   -> childContent_localVariables
+            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
@@ -243,6 +263,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let childrenUserDefFuncs = childrenStatements0 |> List.collect(fun s -> s.userDefFuncs)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (s) -> s.errCodes)
         let childrenAuxiliaries = childrenStatements0 |> List.collect(fun (a) -> a.auxiliaries)
+        // A decoder that selects the alternative from a determinant (not from a decoded index)
+        // and whose alternatives have no ACN content (NULL) never reads the bitstream
+        // (acn-v2: CHOICE with a determinant parameter, PUS-C S2 AuxiliaryData).
+        let bBsIsUnReferenced =
+            let noChildContent = childrenStatements0 |> List.forall (fun s -> not s.hasContent)
+            match ec, codec with
+            | CEC_uper, _               -> false
+            | _, Encode                 -> false
+            | CEC_enum _, Decode
+            | CEC_presWhen, Decode      -> noChildContent
 
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
@@ -257,12 +287,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 // range. In legacy mode the discriminant is the enum type and
                 // when-others would be redundant — Ada flags it as a warning,
                 // which becomes an error under -gnatwe.
-                let bIsDeferred = r.args.acnDeferred
+                let bIsDeferred = isDeferredDeterminant (snd enm)
                 choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred codec, resultExpr
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
+        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)

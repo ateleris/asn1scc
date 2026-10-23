@@ -17,7 +17,7 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(<sTypeDefName>_ACN_STREAM_SIZE);
 >>
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 
 procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
@@ -29,20 +29,20 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 
 >>
 
-EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bDeferredSpecialization) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
 is
 begin
     --  Stream subtype is constrained to <sTypeDefName>_ACN_STREAM_SIZE; use that
     --  exact value to satisfy the discriminant.  In closure-converted (--acn-v2)
     --  spec functions the actual content may exceed this size, but the public
     --  wrapper is dead code in that path (callers invoke <sFuncName>_aux directly).
-    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
-    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
-end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
+end <sFuncName>; <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
@@ -56,25 +56,31 @@ pragma Unreferenced(<sVarName>);
     <arrsLocalVariables; separator="\n">
 begin
     <if(soIValidFuncName)>
+    <if(bValidityCannotFail)>
+    -- no validity check: <soIValidFuncName> cannot fail for any value of this type
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    <sContent>
+    <else>
     result := <soIValidFuncName>(<sVarName>);
-    if result.success and  result.ErrorCode = 0 then
+    if result.Success then
         <sContent>
     end if;
+    <endif>
     <else>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
 end <sFuncName>_aux;
-<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
+<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace, bDeferredSpecialization=bDeferredSpecialization)>
 >>
 
 
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
 
-procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
 ;
 >>
@@ -84,23 +90,31 @@ PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefN
 is
 begin
     Stream.Current_Bit_Pos :=0; -- COVERAGE_IGNORE
+    <if(bValInOut)>
+    <sVarName> := <soInitFuncName>; -- COVERAGE_IGNORE
+    <endif>
     <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>); -- COVERAGE_IGNORE
     <if(soIValidFuncName)>
+    <if(bAlwaysSucceeds)>
+    pragma Assert (result.Success);
+    result := <soIValidFuncName>(<sVarName>); -- COVERAGE_IGNORE
+    <else>
     if result.success then -- COVERAGE_IGNORE
         result := <soIValidFuncName>(<sVarName>); -- COVERAGE_IGNORE
     end if;
+    <endif>
 
     <endif>
 end <sFuncName>; -- COVERAGE_IGNORE
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
 <endif>
 
-procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
 pragma Unreferenced(bs);
@@ -108,6 +122,11 @@ pragma Unreferenced(bs);
 <endif>
     <arrsLocalVariables; separator="\n">
 begin
+    <if(sInitialExp)>
+    -- A codec with no inline decoding body must still define its outputs.
+    <sVarName> := <sInitialExp>;
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    <endif>
     <sContent>
 end <sFuncName>_aux;
 <if(bVarNameIsUnreferenced)>
@@ -128,6 +147,18 @@ with
          (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
+>>
+
+sparkAnnotations_deducedFixed(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8,
+    Post =>
+      (result.Success and then bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos
+       and then bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+       and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8)
+      or else not result.Success
 >>
 
 sparkAnnotations_decode(sTypeDefName) ::= <<
@@ -729,18 +760,18 @@ end if;
 >>
 
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <EnumeratedEncIdx_encode(p=p, td=td, arrsItem=arrsItem, sActualCodecFunc=sActualCodecFunc)>
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <sActualCodecFunc>
 if result.Success then
     case <sIntVal> is
         <arrsItem; separator="\n">
-    when others =>																				-- COVERAGE_IGNORE
+    when others =><if(soCovExempt)> pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif>																				-- COVERAGE_IGNORE
         <p> := <sFirstItemName>;																-- COVERAGE_IGNORE
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);	-- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<if(soCovExempt)> pragma Annotate (Xcov, Exempt_Off);<endif>	-- COVERAGE_IGNORE
     end case;
 else
     <p> := <sFirstItemName>;																	-- COVERAGE_IGNORE
@@ -894,12 +925,12 @@ end if;
 >>
 
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+<if(bFixedSize)><loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nSizeMax, nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)><else><loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)><endif>
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
 <i> := 1;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>)  loop
@@ -915,13 +946,28 @@ if result.Success and <i> = <nSizeMax>+1  then
 	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 	if result.Success then
 		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
-		<p>.Length := <i>-1;
+		<if(!bFixedSize)><p>.Length := <i>-1;<endif>
 	end if;
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success, ErrorCode => <sErrCode>);
-elsif result.Success and <i> \< <nSizeMax>+1 then
+elsif result.Success and <i> \< <nSizeMax>+1 then<if(bFixedSize)> --COVERAGE_IGNORE<endif>
+<if(bFixedSize)>
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE (fixed size: the pattern came before <nSizeMax> items)<\n>
+<else>
+<if(noSizeMin)>
+	if <i> - 1 \< <noSizeMin> then
+		--  the termination pattern came before <noSizeMin> items
+		result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE (corrupted input only)
+	else
+		<p>.Length := <i>-1;
+		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
+		result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+	end if;<\n>
+<else>
 	<p>.Length := <i>-1;
 	<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
-	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);<\n>
+<endif>
+<endif>
 else
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
 end if;
@@ -1280,11 +1326,15 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 <v>_is_initialized := True;
 <v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
+<if(bCheckMin)>
 result.success := <v> \>= <nMin> and <v> \<= <nMax>;
+<else>
+result.success := <v> \<= <nMax>;
+<endif>
 
 <endif>
 >>
@@ -1355,18 +1405,19 @@ end if;
 >>
 
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => Integer(<sExtField>) \<= <sReqBytesForUperEncoding>, ErrorCode => <sErrCode>);
 if result.success then
     --decode to the temporary bitstream buffer
 	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
 	if result.success then
-        --open new scope: the contained decoder must see a stream view limited
-        --to the actual region size ('size deduced' support)
+        <if(bDeducedContent)>
+        --open new scope: 'size deduced' contents must see a stream view limited
+        --to the actual region size
         declare --COVERAGE_IGNORE
             bs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, Integer(<sExtField>)));
         begin
@@ -1375,8 +1426,24 @@ if result.success then
             end if;
             bs.Buffer(1 .. Integer(<sExtField>)) := tmpBs.Buffer(1 .. Integer(<sExtField>));
             <soInner>
-			--<sFuncName>_aux(<p>, tmpBs, result);
+            if result.Success and then bs.Current_Bit_Pos > bs.Size_In_Bytes * 8 then
+                result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+            end if;
         end;
+        <else>
+        --the contained decoder reads from a stream as large as its largest encoding
+        --(zero after the region) and must not have read past the region
+        tmpBs.Buffer(Integer(<sExtField>) + 1 .. tmpBs.Buffer'Last) := (others => 0);
+        declare --COVERAGE_IGNORE
+            bs : adaasn1rtl.encoding.Bitstream := tmpBs;
+        begin
+            bs.Current_Bit_Pos := 0;
+            <soInner>
+            if result.Success and then bs.Current_Bit_Pos > Integer(<sExtField>) * 8 then
+                result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+            end if;
+        end;
+        <endif>
 	end if;
 end if;
 >>
@@ -1384,14 +1451,15 @@ end if;
 /* CONTAINING with deferred patching.
    Encode: call inner _aux directly into the outer stream, measure the
    bytes/bits written, then PatchDet the determinant with the count.
-   Decode: read the count from the determinant (already decoded into
-   det.Value by the closure-converted parent), record the expected end
-   position, decode the inner type, then force the cursor to the
-   expected end so any unconsumed bytes inside the contained region are
-   skipped. (Ada Bitstream.Size_In_Bytes is an immutable discriminant,
-   so the C trick of temporarily reducing `count` does not translate.) */
+   OCTET STRING decode: validate the declared length against the remaining
+   input, decode, and resume after the region (including its padding). Ada
+   Bitstream.Size_In_Bytes is an immutable discriminant, so the C trick of
+   temporarily reducing `count` does not translate: only size-deduced contents,
+   which must see the end of their region, are decoded from a copy of it (see
+   octet_string_containing_deferred_region_decode). BIT STRING handling below
+   still uses the original stream and advances to its recorded end. */
 
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1399,24 +1467,79 @@ declare
 begin
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes: write zero padding up to the
+        --  next byte boundary, so the region is measured in whole octets and the
+        --  decoder resumes right after it
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+/* Decode the contents of a deferred OCTET STRING CONTAINING region.
+   When the contents use 'size deduced', the contained decoder must see a stream
+   that ends with the region (the deduced templates read bs.Size_In_Bytes), so the
+   region is copied into a stream of exactly that size, as in
+   octet_string_containing_ext_field_func_decode.  The region starts on a byte
+   boundary (q/issues.md Issue 23). */
+octet_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, bDeducedContent) /*nogen*/ ::= <<
+<if(bDeducedContent)>
 declare
-    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+    acn_nBytes : constant Natural := Natural(<sDetParamName>.Value);
+    acn_first : constant Natural := bs.Current_Bit_Pos / 8 + 1;
 begin
-    <sFuncName>_aux(<p>, bs, result);
-    bs.Current_Bit_Pos := acn_expected_end;
+    result := adaasn1rtl.ASN1_RESULT'(Success => bs.Current_Bit_Pos mod 8 = 0 and then acn_nBytes \<= bs.Size_In_Bytes - (acn_first - 1), ErrorCode => <sErrCode>);
+    if result.Success then
+        declare --COVERAGE_IGNORE
+            acn_region : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_nBytes));
+        begin
+            if acn_nBytes = 0 then
+                acn_region.Current_Bit_Pos := 8;  --  empty region: no available bits --COVERAGE_IGNORE
+            end if;
+            acn_region.Buffer(1 .. acn_nBytes) := bs.Buffer(acn_first .. acn_first + acn_nBytes - 1);
+            declare --COVERAGE_IGNORE
+                bs : adaasn1rtl.encoding.Bitstream := acn_region;
+            begin
+                <sBody>
+                --  the contents must not have read past their region
+                if result.Success and then bs.Current_Bit_Pos > bs.Size_In_Bytes * 8 then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+            end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a Bitstream object)
+        end; -- COVERAGE_IGNORE
+        bs.Current_Bit_Pos := (acn_first - 1 + acn_nBytes) * 8;
+    end if;
 end;
+<else>
+if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt((bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8)
+then
+    declare --COVERAGE_IGNORE
+        acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+    begin
+        <sBody>
+        --  the contents must not have read past their region
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
+        bs.Current_Bit_Pos := acn_expected_end;
+    end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
+else
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
+end if;
+<endif>
+>>
+
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+<octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent)>
 >>
 
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1427,7 +1550,7 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1438,6 +1561,10 @@ begin
     acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes, including final padding.
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
@@ -1447,21 +1574,59 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 declare
     acn_nCount : Integer;
-    acn_expected_end : Natural;
 begin
+    result.ErrorCode := <sErrCode>;
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
     if result.Success then
-        acn_expected_end := bs.Current_Bit_Pos + acn_nCount * 8;
-        <sFuncName>_aux(<p>, bs, result);
-        bs.Current_Bit_Pos := acn_expected_end;
+        if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+           acn_nCount \>= 0 and then acn_nCount \<= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
+        then
+            <if(bDeducedContent)>
+            declare --COVERAGE_IGNORE
+                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+                acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+                acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes)); -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+            begin
+                --  Decode from a copy of the stream up to the region end: size-deduced
+                --  contents must see that end, and absolute positions keep the region's
+                --  bit offset (the embedded length need not end on a byte boundary).
+                acn_view.Buffer(1 .. acn_end_bytes) := bs.Buffer(1 .. acn_end_bytes);
+                acn_view.pushDataPrm := bs.pushDataPrm;
+                acn_view.fetchDataPrm := bs.fetchDataPrm;
+                acn_view.Current_Bit_Pos := (if acn_end_bytes = 0 then 8 else bs.Current_Bit_Pos);
+                <sFuncName>_aux(<p>, acn_view, result);
+                --  the contents must not have read past their region
+                if result.Success and then acn_view.Current_Bit_Pos > acn_expected_end then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+                bs.pushDataPrm := acn_view.pushDataPrm;
+                bs.fetchDataPrm := acn_view.fetchDataPrm;
+                bs.Current_Bit_Pos := acn_expected_end;
+            end;
+            <else>
+            declare --COVERAGE_IGNORE
+                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+            begin
+                --  Decode in place: the stream is as large as the enclosing encoding, so the
+                --  contents can be decoded from it; they must not have read past their region.
+                <sFuncName>_aux(<p>, bs, result);
+                if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+                bs.Current_Bit_Pos := acn_expected_end;
+            end;
+            <endif>
+        else
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
+        end if;
     end if;
 end;
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1469,27 +1634,28 @@ declare
 begin
     <sBody>
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes: write zero padding up to the
+        --  next byte boundary, so the region is measured in whole octets and the
+        --  decoder resumes right after it
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
-declare
-    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
-begin
-    <sBody>
-    bs.Current_Bit_Pos := acn_expected_end;
-end;
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+<octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent)>
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1499,22 +1665,22 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
 begin
     <sFuncName>_aux(<p>, bs, result);
     bs.Current_Bit_Pos := acn_expected_end;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1525,7 +1691,7 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1545,11 +1711,12 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_nCount : Integer;
     acn_expected_end : Natural;
 begin
+    result.ErrorCode := <sErrCode>;
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
     if result.Success then
         acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
@@ -1559,7 +1726,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1569,22 +1736,22 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
 begin
     <sBody>
     bs.Current_Bit_Pos := acn_expected_end;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1649,7 +1816,12 @@ end if;
 
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
-adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>));
+<if(bitStringAlignment)>
+--  C-compatible byte array: append the whole bytes directly (MSB-first, as in C).
+adaasn1rtl.encoding.BitStream_AppendBits(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
+<else>
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
+<endif>
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
@@ -1657,40 +1829,102 @@ bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noS
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <noSizeMin>\<=<sExtFld><if(noSizeMax)> AND <sExtFld>\<=<noSizeMax><endif>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-end if;
+<if(bitStringAlignment)>
+    <p><sAcc>Data := (others => 0);
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><endif>end if;
 <else>
 <if(noSizeMax)>
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld>\<=<noSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-end if;
+<if(bitStringAlignment)>
+    <p><sAcc>Data := (others => 0);
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><endif>end if;
 <else>
 <p>.Length := Integer(<sExtFld>);
+<if(bitStringAlignment)>
+<p><sAcc>Data := (others => 0);
+adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<else>
 adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<endif>
 <endif>
 <endif>
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+<if(bitStringAlignment)>
+adaasn1rtl.encoding.BitStream_AppendBits(bs, <p><sAcc>Data, Integer(<nSizeMax>));
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>));
+<endif>
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
-end if;
+<if(bitStringAlignment)>
+    <p><sAcc>Data := (others => 0);
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);<\n><endif>end if;
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
-adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);
-<rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
+<if(bitStringAlignment)>
+declare
+   tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+begin
+   adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>, tmpBits);
+   adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>);
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>);<\n><endif><rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize)  ::= <<
-<rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+<if(bFixedSize)>
+<bit_string_null_terminated_fixed_decode(p=p, sErrCode=sErrCode, sAcc=sAcc, i=i, nSizeMax=nSizeMax, arruNullBytes=arruNullBytes, nBitPatternLength=nBitPatternLength)>
+<else>
+--  the typedef can be larger than this type (subtype of a variable-size BIT STRING):
+--  read at most <nSizeMax> bits and check the count against the SIZE range
+declare
+   nBitsRead : Natural;
+<if(bitStringAlignment)>
+   tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+   adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);<\n>
+<else>
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data(1 .. <nSizeMax>), nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);<\n>
+<endif>
+   result.Success := result.Success and then <if(noSizeMin)><noSizeMin> \<= nBitsRead and then <endif>nBitsRead \<= <nSizeMax>;
+   if result.Success then
+      <p><sAcc>Length := nBitsRead;
+   end if;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)
+if not result.Success then
+    result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
+end if;
+<endif>
+>>
+
+/* Fixed size (the typedef has no Length): exactly <nSizeMax> bits before the pattern. */
+bit_string_null_terminated_fixed_decode(p, sErrCode, sAcc, i, nSizeMax, arruNullBytes, nBitPatternLength) /*nogen*/ ::= <<
+declare
+   nBitsRead : Natural;
+<if(bitStringAlignment)>
+   tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+   adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);<\n>
+<else>
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);<\n>
+<endif>
+   result.Success := result.Success and then nBitsRead = <nSizeMax>;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)
 if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
@@ -1728,7 +1962,7 @@ end if;
 >>
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 --open new scope to declare some variables
 declare --COVERAGE_IGNORE
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1750,7 +1984,7 @@ begin
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 --open new scope to declare some variables
 <if(bFixedSize)>
 declare --COVERAGE_IGNORE
@@ -1761,6 +1995,8 @@ begin
     adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, <nMinSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 
@@ -1770,8 +2006,9 @@ declare
 begin
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, data_length, <nMinSize>, <nMaxSize>, <nBits>, result.success);
     if result.success then
+        <if(bDeducedContent)>
         --decode to a temporary bitstream whose view is limited to the actual
-        --region size ('size deduced' support)
+        --region size ('size deduced' contents)
         declare --COVERAGE_IGNORE
             tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, data_length));
         begin
@@ -1781,15 +2018,39 @@ begin
             adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, data_length, result.success);
             if result.success then
                 <sFuncName>_aux(<p>, tmpBs, result);
+                if result.Success and then tmpBs.Current_Bit_Pos > tmpBs.Size_In_Bytes * 8 then
+                    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+            else
+                result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
             end if;
         end;
+        <else>
+        --decode to a temporary bitstream as large as the largest contents encoding
+        --(zero after the region); the contents must not have read past the region
+        declare --COVERAGE_IGNORE
+            tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+        begin
+            adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, data_length, result.success);
+            if result.success then
+                <sFuncName>_aux(<p>, tmpBs, result);
+                if result.Success and then tmpBs.Current_Bit_Pos > data_length * 8 then
+                    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+            else
+                result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
+            end if;
+        end;
+        <endif>
+    else
+        result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
     end if;
 end;
 <endif>
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1811,7 +2072,7 @@ begin
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1825,6 +2086,8 @@ begin
     adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, <nMinSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 
 	<else>
@@ -1833,7 +2096,11 @@ begin
         adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, data_length, result.success);
 	    if result.success then
 		    <sFuncName>_aux(<p>, tmpBs, result);
+	    else
+		    result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	    end if;
+    else
+        result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
     end if;
 
     <endif>
@@ -2022,19 +2289,56 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 
 /* Group C: Decode redirect — copy decoded temp to det.Value. */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);"
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    pragma Warnings (Off, "*redundant conversion*");
+    <sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);
+    pragma Warnings (On, "*redundant conversion*");
+end if;
+>>
+
+/* Signed integer tmp variant: Value holds the two's complement bits (a conversion to
+   Asn1UInt would raise Constraint_Error for a negative value), so a negative size
+   reaches the size checks as a large unsigned value and fails them. */
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    pragma Warnings (Off, "*redundant conversion*");
+    <sDetAccess> := adaasn1rtl.encoding.To_UInt(adaasn1rtl.Asn1Int(<sTmpName>));
+    pragma Warnings (On, "*redundant conversion*");
+end if;
+>>
 
 /* Boolean tmp variant — Ada disallows direct Boolean→Asn1UInt cast, so use a
    conditional expression. */
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := (if <sTmpName> then 1 else 0);"
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    <sDetAccess> := (if <sTmpName> then 1 else 0);
+end if;
+>>
 
 /* Enum tmp variant — Ada disallows direct enum→Asn1UInt cast.  Use the
    'Enum_Rep attribute on the enum type to obtain the integer value defined
    by the enum's representation clause (which the backend sets to match
    the ACN-encoded value). */
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));"
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= <<
+if result.Success then
+    <sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));
+end if;
+>>
+
+/* Enum tmp variant whose field writes other values than the enum representation
+   (item indexes): det.Value must hold what the field writes, so map each item. */
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "when <sItemName> => adaasn1rtl.Asn1UInt(<sValue>)"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+if result.Success then
+    <sDetAccess> := (case <sTmpName> is
+        <arrsCases; separator=",\n">);
+end if;
+>>
 
 /* Group D: Access paths (codec-independent) */
 
@@ -2060,10 +2364,23 @@ acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
    The preBlock is emitted in the declarative part; the patchCall in the body. */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 declare
-    <sPreBlock>
+<sPreBlock>
 begin
-    <sPatchCall>
+<sPatchCall>
 end;
+>>
+
+acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= <<
+if <sParent>.Exist.<sProducer> = 0<if(sConsumer)> and then <sParent>.Exist.<sConsumer> = 1<endif> then
+    result := (Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
+>>
+
+acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= <<
+if <sParent>.Exist.<sProducer> = 1 then
+    <sBody>
+end if;
 >>
 
 /* AcnInsertedFieldRef type name (used by GenericLocalVariable). */
@@ -2165,4 +2482,38 @@ begin
         end if;
     end if;
 end;
+>>
+
+
+/* Coverage step 10b: ACN INTEGER of an ASN.1 type whose field accepts every bit pattern (RTL _FullRange twins,
+   no Result: the decode cannot fail). */
+AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
+adaasn1rtl.encoding.acn.Acn_Dec_Int_<sKind>_ConstSize<sWidth>_FullRange<sSsuffix>(bs, <p><if(noBits)>, <noBits><endif>);
+>>
+
+/* Coverage step 10b: presence bit in an ACN decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= <<
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <soExistVar>, result.Success);
+<p>.Exist.<sChName> := <soExistVar>;
+>>
+
+/* Coverage step 10b: contract of an ACN decoder that cannot fail. */
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post =>
+         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+>>
+
+
+/* Coverage step 10b: BOOLEAN with a true or false pattern, a part that cannot fail (the call sets result): no error code. */
+BooleanPatternNoErrCode(p, bTruePattern, arrsBits) ::= <<
+<if(bTruePattern)>
+adaasn1rtl.encoding.acn.Acn_Dec_Boolean_true_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">), result);
+<else>
+adaasn1rtl.encoding.acn.Acn_Dec_Boolean_false_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">), result);
+<endif>
 >>

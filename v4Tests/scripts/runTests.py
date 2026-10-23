@@ -11,6 +11,26 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 
+def spark_problems(target_dir: str, log_lines: List[str]) -> List[str]:
+    """The SPARK check of a RUN_SPARK test case (coverage step 10c, q/issues.md Issue 45): gnatprove must prove
+    every check (Unproved column of the Total row in gnatprove.out is ".") and print no message (high / medium /
+    low / warning; warnings are errors, as in the -gnatwe compilation). Returns the problems."""
+    import re
+    message = re.compile(r"(^|: )\s*(high|medium|low|warning): ")
+    problems = [l for l in log_lines if message.search(l) or "might fail, cannot prove" in l]
+    summary = os.path.join(target_dir, "obj_x86", "gnatprove", "gnatprove.out")
+    if not os.path.exists(summary):
+        return problems + ["no " + summary]
+    with open(summary) as f:
+        total = next((l for l in f if l.startswith("Total")), None)
+    if total is None:
+        return problems + ["no Total row in " + summary]
+    unproved = re.split(r"\s{2,}", total.strip())[-1]
+    if unproved != ".":
+        problems.append(f"unproved checks: {unproved} ({summary})")
+    return problems
+
+
 # Thread-safe printing
 _print_lock = threading.Lock()
 
@@ -113,6 +133,50 @@ def mysystem(cfg: TestConfig, targetDir: str, cmd: str, bCanFail: bool, asn1_lab
     return ret
 
 
+def firstLineMarkers(asn1file: str) -> str:
+    """First line of a test .asn1 file, where the test markers live."""
+    with open(asn1file, 'r') as f:
+        return f.readline()
+
+
+def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
+    """First-line markers restricting a test file (same rules in regression/Program.fs):
+    ACNV2_ONLY runs the file only with --acn-v2, C_ONLY only for the C backend,
+    C_ADA_ONLY only for C and Ada (not the experimental backends),
+    ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags)."""
+    markers = firstLineMarkers(asn1file)
+    if "ACNV2_ONLY" in markers and cfg.acnV2 == "":
+        return False
+    if "C_ONLY" in markers and cfg.language != "c":
+        return False
+    if "C_ADA_ONLY" in markers and cfg.language not in ("c", "Ada"):
+        return False
+    if "ADA_BITSTRING_ALIGNMENT" in markers and cfg.language != "Ada":
+        return False
+    return True
+
+
+def extraFlags(cfg: TestConfig, asn1file: str) -> str:
+    """Compiler options requested by first-line markers (same rules in regression/Program.fs):
+    ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs."""
+    if "ADA_BITSTRING_ALIGNMENT" in firstLineMarkers(asn1file) and cfg.language == "Ada":
+        return "-adaBitStringAlignment "
+    return ""
+
+
+def helpersDir(asn1file: str) -> str:
+    """<name>.helpers/ next to <name>.asn1: files copied into the work directory
+    of each test case of that file (e.g. user-provided mapping functions)."""
+    return os.path.splitext(asn1file)[0] + ".helpers"
+
+
+def isWarningOnly(err_msg: str) -> bool:
+    """Compiler stderr that contains nothing but warnings (regression/Program.fs
+    does not look at stderr of passing test cases either)."""
+    lines = [l for l in err_msg.splitlines() if l.strip() != ""]
+    return all(": warning: " in l for l in lines)
+
+
 def CreateACNFile(targetDir: str, content: str):
     str_start = "TEST-CASE DEFINITIONS ::= BEGIN\n"
     str_end = "END\n"
@@ -155,7 +219,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
     res = mysystem(
         cfg, targetDir,
         path_to_asn1scc +
-        " -" + language + " -x ast.xml" + encodingFlags + "-ig -typePrefix ASN1SCC_ " + cfg.acnV2 + cfg.slim + cfg.icdPdus +
+        " -" + language + " -x ast.xml" + encodingFlags + "-ig -typePrefix ASN1SCC_ " + cfg.acnV2 + cfg.slim + cfg.icdPdus + extraFlags(cfg, resolvedir(asn1File)) +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' " + inputFiles +
         " 2>'" + tmp_err_file + "'", True, asn1, acn)
@@ -164,7 +228,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
         err_msg = ferr.read()
 
     if behavior == 0 or behavior == 2:
-        if res != 0 or err_msg != "":
+        if res != 0 or not isWarningOnly(err_msg):
             PrintFailed("Asn.1 compiler failed")
             safe_print("Asn.1 compiler error is: " + err_msg)
             results.add_error(f'Failed {asn1} {acn} in {language}')
@@ -271,8 +335,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                 results.add_error(f'Failed {asn1} {acn} in {language}')
                 raise Exception('TestFailed')
     elif language == 'Ada':
-        makeTarget = "coverage" if bRunCodeCoverage else ""
-        res = mysystem(cfg, targetDir, f"make {makeTarget} >covlog.txt 2>&1", True, asn1, acn)
+        # NOCOVERAGE exempts the line gate; the coverage target also runs the tests.
+        res = mysystem(cfg, targetDir, "make coverage >covlog.txt 2>&1", True, asn1, acn)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
@@ -288,10 +352,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_error(f'Failed {asn1} {acn} in {language}')
             raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
-            # -- NOCOVERAGE
-            doCoverage = "-- NOCOVERAGE" not in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
             runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
-            if doCoverage:
+            if bRunCodeCoverage:
                 gcov_path = os.path.join(targetDir, "obj_x86", "debug", "test_case.adb.gcov")
                 try:
                     with open(gcov_path, 'r') as f:
@@ -309,14 +371,18 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                         raise Exception('TestFailed')
                 except FileNotFoundError as err:
                     safe_print("No file found at : " + gcov_path)
-            if runSpark:
+            if runSpark and shutil.which("gnatprove") is None:
+                # Docker / CI have gnatprove; a host without it (WSL) cannot run the SPARK check
+                safe_print("gnatprove not found: SPARK check skipped")
+            elif runSpark:
                 res = mysystem(cfg, targetDir, "gnatprove -Pasn1_x86.gpr -j0 -u test_case.adb --level=4 >sparklog.txt 2>&1", True, asn1, acn)
                 try:
                     with open(os.path.join(targetDir, "sparklog.txt"), 'r') as f:
                         lines = f.readlines()
-                    lines = filter(lambda x : "might fail, cannot prove" in x, lines)
-                    lines = list(lines)
+                    lines = spark_problems(targetDir, lines)
                     if len(lines) > 0:
+                        for l in lines[:10]:
+                            safe_print(l.rstrip())
                         PrintWarning("Spark failed.")
                         mysystem(cfg, targetDir, "cat sparklog.txt", False, asn1, acn)
                         results.add_error(f'Failed {asn1} {acn} in {language}')
@@ -358,6 +424,9 @@ def collect_work_items_ACN(cfg: TestConfig, asn1file: str) -> List[WorkItem]:
     if not os.path.exists(fnameASN):
         safe_print("File '" + fnameASN + "' does not exist! ")
         results.add_error(f'Failed {asn1file} in {cfg.language}')
+        return items
+
+    if not isTestSelected(cfg, fnameASN):
         return items
 
     asn1_label = os.sep.join(asn1file.split(os.sep)[-2:])
@@ -479,6 +548,9 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
     shutil.rmtree(targetDir, ignore_errors=True)
     os.makedirs(targetDir, exist_ok=True)
     shutil.copyfile(item.asn1file_path, os.path.join(targetDir, "sample1.asn1"))
+    helpers = helpersDir(item.asn1file_path)
+    if os.path.isdir(helpers):
+        shutil.copytree(helpers, targetDir, dirs_exist_ok=True)
 
     # Write or copy the ACN file
     if not cfg.xerMode:

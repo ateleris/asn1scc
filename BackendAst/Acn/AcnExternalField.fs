@@ -58,6 +58,16 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
 
     let baseName = AcnHelpers.getAcnDeterminantName resolvedId
+    let isExposedProducer =
+        r.args.acnDeferred
+        && (match dependency.determinant with
+            | AcnParameterDeterminant prm ->
+                let (ReferenceToType paramNodes) = prm.id
+                let boundaryPath = paramNodes |> List.rev |> List.tail |> List.rev
+                let dependentPath = dependency.asn1Type.ToScopeNodeList
+                not (boundaryPath.Length <= dependentPath.Length
+                     && List.take boundaryPath.Length dependentPath = boundaryPath)
+            | AcnChildDeterminant _ -> false)
     // In deferred mode, when the determinant resolved to a PRM (parameter),
     // the formal parameter is the language-specific deferred ref struct.
     // Use the abstract macros to access the value/str_value fields so the
@@ -65,8 +75,14 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
     if r.args.acnDeferred then
         let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
-        match resolvedLastNode with
-        | PRM _ ->
+        match resolvedLastNode, isExposedProducer with
+        | _, true ->
+            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath baseName)
+            match dependency.dependencyKind with
+            | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr pointer
+            | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr pointer
+            | _                              -> lm.acn.acn_deferred_det_access_ptr pointer
+        | PRM _, false ->
             // Pick the access form by dependency kind.  String determinants
             // need the Str_Value field; Boolean determinants need a Boolean
             // expression (Ada is strictly typed and rejects Asn1UInt-as-Boolean
@@ -75,7 +91,7 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
             | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr baseName
             | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr baseName
             | _                              -> lm.acn.acn_deferred_det_access_ptr baseName
-        | _     -> baseName
+        | _, false -> baseName
     else
         baseName
 
@@ -130,3 +146,69 @@ let getExternalField (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst
 
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
+
+//The largest value the decoder can return for the size determinant of asn1TypeIdWithDependency,
+//or None when its encoding does not bound it. The bound comes from the encoding width, not from
+//the ASN.1 constraint of the determinant (uperRange): the C and Rust fixed-size integer decoders
+//return every value of the width (ESACERT #74995). When the determinant is an ACN parameter,
+//every argument passed to it must be bounded.
+let getSizeDeterminantWireMax (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) : System.Numerics.BigInteger option =
+    let unsignedMax (nBits:System.Numerics.BigInteger) = Some (System.Numerics.BigInteger.Pow(2I, int nBits) - 1I)
+    let signedMax (nBits:System.Numerics.BigInteger) = Some (System.Numerics.BigInteger.Pow(2I, int nBits - 1) - 1I)
+    let encodingMax (int: Asn1AcnAst.AcnInteger) =
+        match int.acnProperties.mappingFunction with
+        | Some _ -> None
+        | None   ->
+            match int.acnEncodingClass with
+            | PositiveInteger_ConstSize_8                  -> unsignedMax 8I
+            | PositiveInteger_ConstSize_big_endian_16      -> unsignedMax 16I
+            | PositiveInteger_ConstSize_little_endian_16   -> unsignedMax 16I
+            | PositiveInteger_ConstSize_big_endian_32      -> unsignedMax 32I
+            | PositiveInteger_ConstSize_little_endian_32   -> unsignedMax 32I
+            | PositiveInteger_ConstSize_big_endian_64      -> unsignedMax 64I
+            | PositiveInteger_ConstSize_little_endian_64   -> unsignedMax 64I
+            | PositiveInteger_ConstSize nBits              -> unsignedMax nBits
+            | TwosComplement_ConstSize_8                   -> signedMax 8I
+            | TwosComplement_ConstSize_big_endian_16       -> signedMax 16I
+            | TwosComplement_ConstSize_little_endian_16    -> signedMax 16I
+            | TwosComplement_ConstSize_big_endian_32       -> signedMax 32I
+            | TwosComplement_ConstSize_little_endian_32    -> signedMax 32I
+            | TwosComplement_ConstSize_big_endian_64       -> signedMax 64I
+            | TwosComplement_ConstSize_little_endian_64    -> signedMax 64I
+            | TwosComplement_ConstSize nBits               -> signedMax nBits
+            | Integer_uPER
+            | ASCII_ConstSize _
+            | ASCII_VarSize_NullTerminated _
+            | ASCII_UINT_ConstSize _
+            | ASCII_UINT_VarSize_NullTerminated _
+            | BCD_ConstSize _
+            | BCD_VarSize_NullTerminated _                 -> None
+    let determinantMax (det: Determinant) =
+        match det with
+        | AcnChildDeterminant child ->
+            match child.Type with
+            | AcnInsertedType.AcnInteger int              -> encodingMax int
+            | AcnInsertedType.AcnNullType _
+            | AcnInsertedType.AcnBoolean _
+            | AcnInsertedType.AcnReferenceToEnumerated _
+            | AcnInsertedType.AcnReferenceToIA5String _   -> None
+        | AcnParameterDeterminant _ -> None
+    let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency)
+    let nodes = match dependency.determinant.id with ReferenceToType nodes -> nodes
+    let candidates =
+        match nodes |> List.last with
+        | PRM _ ->
+            let args =
+                deps.acnDependencies |>
+                List.choose(fun d ->
+                    match d.dependencyKind with
+                    | AcnDepRefTypeArgument prm when prm.id = dependency.determinant.id -> Some d.determinant
+                    | _ -> None)
+            match args with
+            | [] -> [dependency.determinant]
+            | _  -> args
+        | _ -> [dependency.determinant]
+    candidates |> List.fold (fun acc det ->
+        match acc, determinantMax det with
+        | Some m1, Some m2 -> Some (max m1 m2)
+        | _                -> None) (determinantMax candidates.Head)

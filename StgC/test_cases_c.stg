@@ -73,17 +73,50 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 // Encode value
 ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
+/* Encode the valid value again without the constraint check (bCheckConstraints = FALSE):
+   the output must be identical. Compare only valid checked encodes, retaining their stream
+   for the round trip. */
+if (ret) {
+    static byte uncheckedBuff[sizeof encBuff];
+    BitStream uncheckedStrm;
+    int uncheckedError = 0;
+    BitStream_Init(&uncheckedStrm, uncheckedBuff, bitStrm.count);
+    ret = <sFuncName>(<sVal>, &uncheckedStrm, &uncheckedError, FALSE);
+    ret = ret && uncheckedError == 0 &&
+        uncheckedStrm.currentByte == bitStrm.currentByte &&
+        uncheckedStrm.currentBit == bitStrm.currentBit;
+    if (ret) {
+        ret = memcmp(encBuff, uncheckedBuff, (size_t)bitStrm.currentByte) == 0;
+        if (ret && bitStrm.currentBit != 0) {
+            unsigned int mask = 0xFFu \<\< (8 - bitStrm.currentBit);
+            ret = (encBuff[bitStrm.currentByte] & mask) ==
+                  (uncheckedBuff[bitStrm.currentByte] & mask);
+        }
+    }
+    *pErrCode = ret ? 0 : 5;
+}
 >>
 
 Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
-<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+// Encode value
+ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+#ifdef ASN1SCC_DECODE_ACTUAL_LENGTH
+{
+    long encLenBytes = BitStream_GetLength(&bitStrm);
+    BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes);
+}
+#else
 BitStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+#endif
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 /* 'size deduced' PDU: the decoder derives element counts from the end of the
@@ -96,6 +129,7 @@ Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
@@ -103,17 +137,154 @@ ByteStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>E
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 // validate decoded data
 ret = <sFuncName>(<sAmber>decodedPDU, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 3;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<
 ret = <sFuncName>(<sVal>, <sAmber>decodedPDU);
 *pErrCode = ret ? 0 : 4;
+>>
+
+/* Decode fault sweep of the uPER / ACN automatic tests (coverage step 10): after a successful round trip,
+   truncated and corrupted copies of the encoded value are decoded. Emitted once per *_auto_tcs.c file. */
+Codec_DecodeSweep_helper(nBudget) ::= <<
+#include \<stdlib.h\>
+
+/* Decode fault sweep of the automatic tests (asn1scc -atc, uPER and ACN). After a successful round trip,
+   copies of the encoded value are decoded:
+   - truncation: the first k bytes, from a buffer of exactly k bytes (a read past the view is an out-of-bounds
+     read); the decoder must fail with a nonzero error code ('size deduced' PDUs: or succeed with a valid value);
+   - corruption: byte i set to 0x00, then to 0xFF (restored after each decode); the decoder must fail with a
+     nonzero error code or succeed with a valid value.
+   At most ASN1SCC_SWEEP_POSITIONS positions at each end of the encoding, and about ASN1SCC_SWEEP_BUDGET
+   decoded bytes per sweep (asn1scc -atcSweepBudget); at least 2 positions at each end. */
+#ifndef ASN1SCC_SWEEP_POSITIONS
+#define ASN1SCC_SWEEP_POSITIONS 128
+#endif
+#ifndef ASN1SCC_SWEEP_BUDGET
+#define ASN1SCC_SWEEP_BUDGET <nBudget>LL
+#endif
+
+typedef flag (*asn1scc_sweep_decoder)(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid);
+
+/* Positions 0 .. nBytes-1 to try: the head first, then the tail. The cost of a position is the number of bytes
+   the decoder reads: the position itself (truncation, bFullCost FALSE) or nBytes (corruption, bFullCost TRUE). */
+static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost)
+{
+    int nPositions = 0;
+    int side;
+    long lastHead = -1;
+    for (side = 0; side \< 2; side++) {
+        long long spent = 0;
+        int count = 0;
+        long k = side == 0 ? 0 : nBytes - 1;
+        while (side == 0 ? k \< nBytes : k \> lastHead) {
+            if (count \>= ASN1SCC_SWEEP_POSITIONS || (count \>= 2 && spent \>= ASN1SCC_SWEEP_BUDGET / 2)) {
+                break;
+            }
+            positions[nPositions++] = k;
+            count++;
+            spent += bFullCost ? nBytes : k;
+            if (side == 0) {
+                lastHead = k;
+                k++;
+            } else {
+                k--;
+            }
+        }
+    }
+    return nPositions;
+}
+
+/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code) or 7 (a corrupted copy was
+   accepted with an invalid value, or rejected without an error code); stops at the first violation. */
+static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
+                                      asn1scc_sweep_decoder decode, flag bTruncate, flag bDeduced)
+{
+    long positions[2 * ASN1SCC_SWEEP_POSITIONS];
+    int nPositions;
+    int j;
+    int pattern;
+    int errCode;
+    flag ok;
+    flag valid;
+    BitStream sweepStrm;
+
+    if (bTruncate) {
+        nPositions = asn1scc_sweep_positions(positions, nBytes, FALSE);
+        for (j = 0; j \< nPositions; j++) {
+            long k = positions[j];
+            byte* prefix = (byte*)malloc((size_t)(k \> 0 ? k : 1));
+            if (prefix == NULL) {
+                return 0;
+            }
+            memcpy(prefix, encBuff, (size_t)k);
+            BitStream_AttachBuffer(&sweepStrm, prefix, k);
+            errCode = 0;
+            valid = TRUE;
+            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            free(prefix);
+            if (ok ? !(bDeduced && errCode == 0 && valid) : errCode == 0) {
+                printf("%s: decoding the first %ld of %ld bytes returned %s with error code %d%s\n", sTestName, k, nBytes,
+                       ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                return 6;
+            }
+        }
+    }
+    nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE);
+    for (j = 0; j \< nPositions; j++) {
+        long i = positions[j];
+        for (pattern = 0x00; pattern \<= 0xFF; pattern += 0xFF) {
+            byte saved = encBuff[i];
+            if (saved == (byte)pattern) {
+                continue;
+            }
+            encBuff[i] = (byte)pattern;
+            BitStream_AttachBuffer(&sweepStrm, encBuff, nBytes);
+            errCode = 0;
+            valid = TRUE;
+            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            encBuff[i] = saved;
+            if (ok ? (errCode != 0 || !valid) : errCode == 0) {
+                printf("%s: decoding with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName, i, nBytes,
+                       pattern, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                return 7;
+            }
+        }
+    }
+    return 0;
+}
+
+>>
+
+/* Decoder of one automatic test function for asn1scc_decode_fault_sweep: decodes into the function's
+   decodedPDU and reports whether a decoded value is valid. */
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+static flag <sFuncName>_sweep_decoder(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid)
+{
+    int validErrCode = 0;
+    flag ok = <sDecFuncName>(<sAmber>(*(<sTasName>*)pDecoded), pBitStrm, pErrCode);
+    <if(soIsValidFunc)>
+    *pValid = !ok || <soIsValidFunc>(<sAmber>(*(<sTasName>*)pDecoded), &validErrCode);
+    <else>
+    *pValid = TRUE;
+    (void)validErrCode;
+    <endif>
+    return ok;
+}
+>>
+
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+// Decode truncated and corrupted copies of the encoded value
+*pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
+ret = *pErrCode == 0;
 >>
 
 Codec_write_CharstreamToFile() ::= <<
@@ -368,7 +539,7 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 //<sDummyVarname> = <sFuncName>();
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     flag result;
@@ -415,6 +586,15 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         case 4:
             output->report_failure_message("Test case '<sFuncName>' failed. Encoded and decoded messages are different.");
             break;
+        case 5:
+            output->report_failure_message("Test case '<sFuncName>' failed. Checked and unchecked encodings differ or unchecked encoding failed.");
+            break;
+        case 6:
+            output->report_failure_message("Test case '<sFuncName>' failed. A truncated copy of the encoded value was decoded without an error code.");
+            break;
+        case 7:
+            output->report_failure_message("Test case '<sFuncName>' failed. A corrupted copy of the encoded value was decoded to an invalid value or without an error code.");
+            break;
         default:
             output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
         }
@@ -429,6 +609,152 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
 }
 >>
 
+
+/* Automatic test with an invalid in-memory value: a valid automatic test value
+   (checked first) with one CHOICE selector set to <X>_NONE or one ENUMERATED
+   field set to a value outside its items. Validation, checked encoding and
+   unchecked encoding must fail with an error code; Equal must fail for a CHOICE. */
+emitInvalidValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetInvalidValue, sIsValidFunc, sEncFunc, soEqualFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* the automatic test value is valid before the change */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (result) {
+        <sSetInvalidValue>
+        errCode = 0;
+        result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE) && errCode != 0;
+    }
+    <if(soEqualFunc)>
+    if (result) {
+        result = !<soEqualFunc>(<sAmber>tc_data, <sAmber>tc_data);
+    }
+    <endif>
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed. The invalid value was accepted, or the starting value was not valid.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
+/* Automatic test with a value excluded by a constraint: a valid automatic test
+   value (checked first) with one ENUMERATED field set to a declared item that the
+   field's constraints exclude. Validation and checked encoding must fail. When the
+   unchecked encoding accepts the item, decoding that stream must fail too (the
+   decoder's final validation). */
+emitExcludedValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetExcludedValue, sIsValidFunc, sEncFunc, sDecFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    static <sTasName> decodedPDU;
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* the automatic test value is valid before the change */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (result) {
+        <sSetExcludedValue>
+        errCode = 0;
+        result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        if (<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE)) {
+            long encLenBytes = BitStream_GetLength(&bitStrm);
+            BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes);
+            errCode = 0;
+            result = !<sDecFunc>(<sAmber>decodedPDU, &bitStrm, &errCode) && errCode != 0;
+        }
+    }
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed. The excluded value was accepted, or the starting value was not valid.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
+/* Automatic test of an ACN decoder's default arm: a stream that holds only an
+   ENUMERATED code which no item uses (a gap between the item values), written
+   the way the type's encoder writes an item value. Decoding must fail with a
+   non-zero error code (ILangGeneric.atcEmitsInvalidStreamTests). */
+emitInvalidStreamTestCase(sFuncName, arrsVars, sModName, sTasName, sEnc, sCodeVar, sCodeType, nCode, sEncodeStatement, sDecFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag ret = TRUE;
+    int errCode = 0;
+    int* pErrCode = &errCode;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    static <sTasName> decodedPDU;
+    BitStream bitStrm;
+    BitStream* pBitStrm = &bitStrm;
+    const <sCodeType> <sCodeVar> = <nCode>;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    BitStream_Init(pBitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    <sEncodeStatement>
+    if (ret) {
+        long encLenBytes = BitStream_GetLength(pBitStrm);
+        BitStream_AttachBuffer(pBitStrm, encBuff, (int)encLenBytes);
+        errCode = 0;
+        ret = !<sDecFunc>(&decodedPDU, pBitStrm, pErrCode) && errCode != 0;
+    }
+    if (ret) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed. A stream with the code <nCode>, which no item uses, was decoded.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
 
 printTestCaseFileDef(sThisFile, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
 
@@ -456,7 +782,7 @@ extern "C" {
 >>
 
 
-printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, arrsProgramUnitNames) ::= <<
+printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, arrsProgramUnitNames, arrsRtlUnits) ::= <<
 /*  Code automatically generated by asn1scc tool (stg macro : printTestCaseFileBody) */
 
 #include "<sThisFile>.h"
@@ -474,6 +800,10 @@ printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, ar
 
 #include "asn1crt.h"
 
+<if(arrsRtlUnits)>
+<arrsRtlUnits:{inc|#include "<inc>.h"
+}>
+<endif>
 <arrsIncludedModules:{inc| #include "<inc>.h"}; separator="\n">
 
 <arrsTestFunctionBodies;separator="\n\n">
@@ -482,4 +812,54 @@ printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, ar
 
 decodingCaseKind(sBody, sIdentifier) ::= <<
 <sBody>
+>>
+
+/* Coverage step 11c (T2): a value just outside one constraint. IsConstraintValid and every checked encoder must
+   fail with the error code of that constraint. */
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* the automatic test value is valid before the change */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (result) {
+        /* <sWhat> */
+        <sSetInvalidValue>
+        errCode = 0;
+        result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == <sErrCode>;
+    }
+    <arrsEncodeChecks; separator="\n">
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: not rejected with <sErrCode>, or the starting value was not valid.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
+constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
+if (result) {
+    static byte encBuff_<sEnc>[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    errCode = 0;
+    BitStream_Init(&bitStrm, encBuff_<sEnc>, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode == <sErrCode>;
+}
+>>
+
+/* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
+constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
+<sStr>[<nIndex>] = (char)<nChar>;
 >>

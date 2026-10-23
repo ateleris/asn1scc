@@ -510,6 +510,7 @@ supported only by C.
 |--------|-----------|-------------|----------|
 | `--auto-test-cases` | `-atc` | Generate automatic test cases that round-trip-encode and decode every type | All |
 | `--equal-func` | `-equal` | Generate equality-testing functions (automatically enabled by `-atc`) | All |
+| `--atc-sweep-budget <bytes>` | `-atcSweepBudget` | With `-atc` (uPER, ACN): bytes decoded per test value by each decode fault sweep of the automatic tests (default 1048576). See [Docs/automatic-test-decode-sweeps.md](Docs/automatic-test-decode-sweeps.md) | C, Ada |
 | `--type-prefix <prefix>` | `-typePrefix` | Add a prefix to all generated data type names | C, Ada |
 | `--field-prefix <prefix>` | `-fp` | Add a prefix to component/alternative field names. Use `AUTO` to prefix only names that conflict with language keywords | All |
 | `--rename-policy <int>` | `-renamePolicy` | Policy for renaming enumerated values (0 = Ada-style, 1 = C-style, 2 = C-style with underscore, 3 = lower-case). Default: 0 for Ada/Python, 1 for C/Scala/Rust | All |
@@ -520,6 +521,7 @@ supported only by C.
 | `--handle-empty-sequences` | `-es` | Add a dummy integer member to empty SEQUENCE structures (needed for C compliance) | All |
 | `--log-execution-time` | `-let` | Enable detailed logging of execution time | All |
 | `--acn-deferred` | `-acnDeferred` | ACN deferred patching: separate functions for reference types with ACN parameters | C, Ada only |
+| `--ada-bitstring-alignment` | `-adaBitStringAlignment` | Represent Ada BIT STRING values as an array of whole bytes (`adaasn1rtl.OctetBuffer`), byte-for-byte compatible with the C backend, instead of a packed `adaasn1rtl.BitArray`. Changes the generated Ada type: `X.Data (i)` now indexes bytes, not bits. See [Docs/Ada-BitString-C-Alignment.md](Docs/Ada-BitString-C-Alignment.md) | Ada only |
 
 ### ICD (Interface Control Document) options
 

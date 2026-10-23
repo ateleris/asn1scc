@@ -20,9 +20,9 @@ extern "C" {
 d8'          `8b  `"Y8888Y"'   88      `888           88        `"YbbdP'Y8  88       88   `"Ybbd8"'    "Y888  88   `"YbbdP"'   88       88  `"YbbdP"
 */
 
-void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode);
-void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode);
-void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode);
+flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode);
+flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode);
+flag Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode);
 
 /*ACN Integer functions*/
 void Acn_Enc_Int_PositiveInteger_ConstSize(BitStream* pBitStrm, asn1SccUint intVal, int encodedSizeInBits);
@@ -322,6 +322,23 @@ typedef struct {
     asn1SccUint     value;    /* the value that was written (for consistency checking) */
     char            str_value[256]; /* for IA5String determinants (consistency checking) */
 } AcnInsertedFieldRef;
+
+/* Check a CONTAINING region against the enclosing stream before narrowing it. */
+static inline flag Acn_BitStream_HasNBytes(const BitStream* bs, asn1SccUint nBytes) {
+    return bs->currentByte >= 0 && bs->currentByte <= bs->count &&
+           (uint64_t)nBytes <= (uint64_t)(bs->count - bs->currentByte);
+}
+
+static inline flag Acn_BitStream_HasNBits(const BitStream* bs, asn1SccUint nBits) {
+    uint64_t remainingBytes;
+    uint64_t wholeBytes = (uint64_t)nBits / 8;
+    uint64_t trailingBytes = ((uint64_t)bs->currentBit + (uint64_t)nBits % 8 + 7) / 8;
+    if (bs->currentByte < 0 || bs->currentByte > bs->count ||
+        bs->currentBit < 0 || bs->currentBit > 7)
+        return FALSE;
+    remainingBytes = (uint64_t)(bs->count - bs->currentByte);
+    return wholeBytes <= remainingBytes && trailingBytes <= remainingBytes - wholeBytes;
+}
 
 static inline AcnBitStreamPos Acn_BitStream_GetPos(const BitStream* bs) {
     AcnBitStreamPos p;

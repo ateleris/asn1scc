@@ -1622,9 +1622,13 @@ is
       return do_it (x);
    end Float_to_OctetArray4;
 
+   --  Unchecked conversion of wire bytes to a floating-point type: body
+   --  outside SPARK, since any bit pattern (NaN, infinity) can arrive.
    function OctetArray4_to_Float (x : OctetArray4) return Float;
 
-   function OctetArray4_to_Float (x : OctetArray4) return Float is
+   function OctetArray4_to_Float (x : OctetArray4) return Float with
+      SPARK_Mode => Off
+   is
       function do_it is new Ada.Unchecked_Conversion (OctetArray4, Float);
    begin
       return do_it (x);
@@ -1638,9 +1642,13 @@ is
       return do_it (x);
    end Long_Float_to_OctetArray8;
 
+   --  Unchecked conversion of wire bytes to a floating-point type: body
+   --  outside SPARK, since any bit pattern (NaN, infinity) can arrive.
    function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float;
 
-   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float is
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float with
+      SPARK_Mode => Off
+   is
       function do_it is new Ada.Unchecked_Conversion (OctetArray8, Long_Float);
    begin
       return do_it (x);
@@ -1706,16 +1714,29 @@ is
       pragma Warnings
         (Off, "condition can only be False if invalid values present");
       pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
         (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
 
-      Result.Success := Result.Success and then
-        Asn1Real (Standard.Float'First) <= v and then
-        v <= Asn1Real (Standard.Float'Last);
+      --  a value outside the Float range (or a NaN) is an incorrect stream
+      if Result.Success and then
+        not (Asn1Real (Standard.Float'First) <= v and then
+             v <= Asn1Real (Standard.Float'Last))
+      then
+         Result := ASN1_RESULT'(Success => False,
+                                ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       pragma Warnings
         (On, "condition can only be False if invalid values present");
       pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
         (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
 
       if Result.Success then
          RealVal := Standard.Float (v);
@@ -1747,6 +1768,52 @@ is
       end if;
    end Acn_Enc_Real_IEEE754_64_big_endian;
 
+   --  A decoded 64-bit REAL into Asn1Real. Where Asn1Real is Float (msp430
+   --  board), a value outside the Float range or a NaN is an incorrect stream;
+   --  where it is Long_Float, every value is kept.
+   procedure Long_Float_To_Asn1Real
+     (r8      :        Long_Float; RealVal : out Asn1Real;
+      Result  : in out ASN1_RESULT) with
+      Post => (if Asn1Real'Digits >= Long_Float'Digits then
+                 Result = Result'Old);
+
+   procedure Long_Float_To_Asn1Real
+     (r8      :        Long_Float; RealVal : out Asn1Real;
+      Result  : in out ASN1_RESULT)
+   is
+   begin
+      pragma Warnings (Off, "redundant conversion");
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
+
+      if Asn1Real'Digits >= Long_Float'Digits
+        or else (Long_Float (Asn1Real'First) <= r8 and then
+                 r8 <= Long_Float (Asn1Real'Last))
+      then
+         RealVal := Asn1Real (r8);
+      else
+         RealVal := 0.0;
+         Result  := ASN1_RESULT'(Success => False,
+                                 ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
+      pragma Warnings (On, "redundant conversion");
+   end Long_Float_To_Asn1Real;
+
    procedure Acn_Dec_Real_IEEE754_64_big_endian
      (bs : in out Bitstream; RealVal : out Asn1Real; Result : out ASN1_RESULT)
    is
@@ -1770,8 +1837,8 @@ is
          end loop;
       end if;
       pragma Assert (Result.Success);
-      r8      := OctetArray8_to_Long_Float (tmp);
-      RealVal := Asn1Real (r8);
+      r8 := OctetArray8_to_Long_Float (tmp);
+      Long_Float_To_Asn1Real (r8, RealVal, Result);
    end Acn_Dec_Real_IEEE754_64_big_endian;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
@@ -1834,16 +1901,29 @@ is
       pragma Warnings
         (Off, "condition can only be False if invalid values present");
       pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
         (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
 
-      Result.Success := Result.Success and then
-        Asn1Real (Standard.Float'First) <= v and then
-        v <= Asn1Real (Standard.Float'Last);
+      --  a value outside the Float range (or a NaN) is an incorrect stream
+      if Result.Success and then
+        not (Asn1Real (Standard.Float'First) <= v and then
+             v <= Asn1Real (Standard.Float'Last))
+      then
+         Result := ASN1_RESULT'(Success => False,
+                                ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       pragma Warnings
         (On, "condition can only be False if invalid values present");
       pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
         (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
 
       if Result.Success then
          RealVal := Standard.Float (v);
@@ -1897,7 +1977,8 @@ is
          end loop;
       end if;
       pragma Assert (Result.Success);
-      RealVal := Asn1Real (OctetArray8_to_Long_Float (tmp));
+      Long_Float_To_Asn1Real
+        (OctetArray8_to_Long_Float (tmp), RealVal, Result);
    end Acn_Dec_Real_IEEE754_64_little_endian;
 
    function Acn_Real2ScaledUInt
@@ -3228,5 +3309,357 @@ is
       end if;
 
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt; total_bytes : Integer) with
+      Pre => total_bytes >= 0 and then total_bytes <= Asn1UInt'Size / 8
+      and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8
+      and then (if total_bytes * 8 < Asn1UInt'Size then
+                  IntVal < Shift_Left (Asn1UInt (1), total_bytes * 8));
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt; total_bytes : Integer)
+   is
+      encVal : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, encVal, total_bytes);
+      if total_bytes * 8 < Asn1UInt'Size then
+         IntVal :=
+           encVal and (Shift_Left (Asn1UInt (1), total_bytes * 8) - 1);
+      else
+         IntVal := encVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange;
+
+   --  Two's complement value of the nBits-bit pattern raw.
+   function Twos_Complement_Value
+     (raw : Asn1UInt; nBits : Integer) return Asn1Int with
+      Pre => nBits > 0 and then nBits <= Asn1UInt'Size
+      and then (if nBits < Asn1UInt'Size then
+                  raw < Shift_Left (Asn1UInt (1), nBits)),
+      Post => (if nBits < Asn1UInt'Size then
+                 Twos_Complement_Value'Result >=
+                   -Asn1Int (Shift_Left (Asn1UInt (1), nBits - 1))
+                 and then Twos_Complement_Value'Result <
+                   Asn1Int (Shift_Left (Asn1UInt (1), nBits - 1)));
+
+   function Twos_Complement_Value
+     (raw : Asn1UInt; nBits : Integer) return Asn1Int
+   is
+      half : Asn1UInt;
+   begin
+      if nBits = Asn1UInt'Size then
+         return To_Int (raw);
+      end if;
+      half := Shift_Left (Asn1UInt (1), nBits - 1);
+      pragma Assert (Shift_Left (Asn1UInt (1), nBits) = half + half);
+      if raw < half then
+         return Asn1Int (raw);
+      end if;
+      return Asn1Int (raw - half) - Asn1Int (half);
+   end Twos_Complement_Value;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt;
+      nSizeInBits : Integer)
+   is
+      encVal  : Asn1UInt;
+      success : Boolean;
+   begin
+      BitStream_Decode_Non_Negative_Integer
+        (bs, encVal, nSizeInBits, success);
+      pragma Assert (success);
+      --  the value has nSizeInBits bits; the mask states it for the
+      --  prover
+      if nSizeInBits < Asn1UInt'Size then
+         IntVal := encVal and (Shift_Left (Asn1UInt (1), nSizeInBits) - 1);
+      else
+         IntVal := encVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_FullRange;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, IntVal, 8);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange (bs, v);
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRangeUInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, IntVal, 16);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange (bs, v);
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRangeUInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+        (bs, IntVal, 2);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRange;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRange (bs, v);
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRangeUInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, IntVal, 32);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRange;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRange (bs, v);
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRangeUInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+        (bs, IntVal, 4);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRange;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRange (bs, v);
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRangeUInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+      success : Boolean;
+   begin
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Dec_UInt (bs, Asn1UInt'Size / 8, IntVal, success);
+      pragma Assert (success);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64_FullRange;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, IntVal, Asn1UInt'Size / 8);
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64_FullRange;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; nBits : Integer)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int;
+      nSizeInBits : Integer)
+   is
+      raw : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, raw, nSizeInBits);
+      IntVal := Twos_Complement_Value (raw, nSizeInBits);
+   end Acn_Dec_Int_TwosComplement_ConstSize_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, IntVal, 8);
+   end Acn_Dec_Int_TwosComplement_ConstSize_8_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_8_FullRange (bs, v);
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_8_FullRangeInt8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, IntVal, 16);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRange (bs, v);
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRangeInt16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+      raw : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+        (bs, raw, 2);
+      IntVal := Twos_Complement_Value (raw, 16);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRange;
+
+   procedure
+     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRange (bs, v);
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRangeInt16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, IntVal, 32);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRange (bs, v);
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRangeInt32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+      raw : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
+        (bs, raw, 4);
+      IntVal := Twos_Complement_Value (raw, 32);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRange;
+
+   procedure
+     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRange (bs, v);
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRangeInt32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+      raw     : Asn1UInt;
+      success : Boolean;
+   begin
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Dec_UInt (bs, Asn1UInt'Size / 8, raw, success);
+      pragma Assert (success);
+      IntVal := To_Int (raw);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int)
+   is
+      raw : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, raw, Asn1UInt'Size / 8);
+      IntVal := To_Int (raw);
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64_FullRange;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32; nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_FullRange (bs, v, nBits);
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt32;
 
 end adaasn1rtl.encoding.acn;

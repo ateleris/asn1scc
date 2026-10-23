@@ -53,6 +53,19 @@ type InitMethod =
     | Procedure
     | Function
 
+/// Decode fault sweep that an automatic test (uPER, ACN) runs after a successful round trip,
+/// over the stream it encoded (coverage step 10, q/details-docs/coverage/step10-plan.md).
+type AtcDecodeSweep =
+    /// no sweep
+    | NoDecodeSweep
+    /// byte i of the encoding set to 0x00, then to 0xFF (restored after each decode): the decoder must not
+    /// crash, must fail with a nonzero error code or succeed with a valid value
+    | CorruptionSweep
+    /// first the byte prefixes of the encoding, each from a buffer of exactly that size (the decoder must
+    /// fail with a nonzero error code; a live 'size deduced' PDU may succeed with a valid value), then
+    /// the corruption sweep
+    | TruncationAndCorruptionSweep
+
 type DecodingKind =
     | InPlace
     | Copy
@@ -486,6 +499,11 @@ type ILangGeneric () =
     abstract member getObjectIdentifierAccessPair: p:CodegenScope -> string * string
     default this.getObjectIdentifierAccessPair p = (this.joinSelection p.accessPath, this.getAccess p.accessPath)
     abstract member qualifyNameWithModule: targetMod:string -> curMod:string -> name:string -> string
+    /// Name of a function of the generated code (e.g. an init function) as an automatic-test
+    /// file calls it. Ada test files USE every package, so a name that two packages define
+    /// (a type in two modules) is ambiguous unless qualified with its package.
+    abstract member atcQualifiedFuncName: programUnit:string -> funcName:string -> string
+    default _.atcQualifiedFuncName _programUnit funcName = funcName
     default _.qualifyNameWithModule _targetMod _curMod name = name
     abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
     default _.wrapIA5StringValue _typeRef _modName literal = literal
@@ -740,10 +758,74 @@ type ILangGeneric () =
     abstract member atcRunnerImportsAutoTcsUnits : bool
     default _.atcRunnerImportsAutoTcsUnits = false
 
+    /// True when the automatic tests also cover invalid in-memory values: a valid
+    /// test value with one CHOICE selector set to <X>_NONE or one ENUMERATED field set
+    /// outside its items, which validation and encoding must reject (C). Ada, Scala
+    /// and Rust cannot represent such values; Python is not covered yet.
+    abstract member atcEmitsInvalidValueTests : bool
+    default _.atcEmitsInvalidValueTests = false
+
+    /// Automatic tests with a value just outside one constraint (coverage step 11c, DastTestCaseCreation
+    /// constraintViolationTestCases): C and Ada.
+    abstract member atcEmitsConstraintViolationTests : bool
+    default _.atcEmitsConstraintViolationTests = false
+
+    /// True when the automatic tests also decode an ACN stream that holds an
+    /// ENUMERATED code no item uses (a gap between the item values); the decoder must
+    /// fail (C, Ada). See AcnEnum.createInvalidCodeStream.
+    abstract member atcEmitsInvalidStreamTests : bool
+    default _.atcEmitsInvalidStreamTests = false
+
+    /// True when such a test may use a code outside the items' min..max, because the
+    /// ACN integer decoders do not check it (C). The Ada decoders reject it before
+    /// the switch (postcondition Result.Success and IntVal in minVal .. maxVal).
+    abstract member atcInvalidStreamCodeOutsideItemRange : bool
+    default _.atcInvalidStreamCodeOutsideItemRange = false
+
+    /// Units that the automatic test files must import when they contain such tests,
+    /// because the stream is written with the ACN runtime (C header, Ada child units).
+    abstract member atcInvalidStreamPackages : string list
+    default _.atcInvalidStreamPackages = []
+
+    /// Decode fault sweep of the uPER / ACN automatic tests (see AtcDecodeSweep); isLiveDeduced: the PDU is
+    /// decoded from a stream of exactly the encoded length (Codec_Decode_exact_length). Scala, Python, Rust:
+    /// none yet.
+    abstract member atcDecodeSweep : isLiveDeduced:bool -> AtcDecodeSweep
+    default _.atcDecodeSweep _ = NoDecodeSweep
+
+    /// Whether every read of a decoder can fail (see ReadFailureModel). With ReadsCanFail every decode part
+    /// is MayFail and the decoders keep a check after each part; Ada (ReadsCannotFail) drops the checks
+    /// after parts that cannot fail (coverage step 10b, DecodeOutcome.fs).
+    abstract member decodeReadFailureModel : ReadFailureModel
+    default _.decodeReadFailureModel = ReadsCanFail
+
+    /// Whether the IsConstraintValid of an inline child type is still emitted when its parent no longer calls it
+    /// (coverage step 11b: the child cannot be invalid). Scala: the ACN encoders of OPTIONAL children call it too.
+    /// Elsewhere only the parent called it, and an uncalled function would be dead code (C line-coverage gate).
+    abstract member keepsUncalledChildValidators : bool
+    default _.keepsUncalledChildValidators = false
+
+    /// Whether an encoder calls its type's IsConstraintValid when that function is AlwaysValid (see
+    /// EncoderValidationModel; coverage step 12a).
+    abstract member encoderValidationModel : EncoderValidationModel
+    default _.encoderValidationModel = EncodersCallEveryValidation
+
+    /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
+    /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
+    abstract member typedefConstraintModel : TypedefConstraintModel
+    default _.typedefConstraintModel = TypedefsAreBaseTypes
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool
     default _.emitOptionalChildWithEmptyBody = false
+
+    /// True when a fixed-size subtype of a variable-size BIT STRING has a constructor of its own
+    /// without the length (Python: class TByteFlags(TBitFlags) with __init__(self, arr) for
+    /// ByteFlags ::= BitFlags (SIZE(8))), so its values use the subtype's own size layout.
+    /// Otherwise they follow the typedef shared with the base type (typedefIsFixedSize).
+    abstract member bitStringSubtypeHasOwnConstructor : bool
+    default _.bitStringSubtypeHasOwnConstructor = false
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c

@@ -280,7 +280,12 @@ type LangGeneric_c() =
             | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name iv
             | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s %s;" vartype name
             | GenericLocalVariable lv                   ->
-                sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
+                sprintf "%s%s %s%s%s;"
+                    (if lv.isStatic then "static " else "")
+                    lv.varType
+                    lv.name
+                    (lv.arrSize |> Option.map (fun size -> "[" + size + "]") |> Option.defaultValue "")
+                    (lv.initExp |> Option.map (fun value -> " = " + value) |> Option.defaultValue "")
 
 
         override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
@@ -846,16 +851,23 @@ type LangGeneric_c() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
+                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with
                 | Asn1AcnAst.Integer_uPER ->
-                    let nItems = enm.enumerated.items.Length
-                    if nItems <= 1 then
-                        Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some 0I, 0I)
-                    else
-                        let nBits = bigint (int (System.Math.Ceiling(System.Math.Log(float nItems, 2.0))))
-                        Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
+                    // uPER constrained whole number over the encoded values: the item
+                    // indexes, or the item values with encode-values (offset = min).
+                    let values = enm.enumerated.items |> List.map (fun itm -> itm.acnEncodeValue)
+                    let minVal, maxVal = (if values.IsEmpty then 0I else List.min values), (if values.IsEmpty then 0I else List.max values)
+                    let nBits = GetNumberOfBitsForNonNegativeInteger (maxVal - minVal)
+                    Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, minVal)
                 | _ -> mapIntEncoding enm.enumerated.acnEncodingClass
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String ref ->
                 let nChars = ref.str.maxSize.acn
@@ -868,13 +880,26 @@ type LangGeneric_c() =
                 if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+                // The wire value of the first item (PatchDet writes its argument as is);
+                // the literal is kept when it has that value.
                 match enm.enumerated.items with
-                | firstItem :: _ -> this.getNamedItemBackendName None firstItem
+                | firstItem :: _ when uperMinOffset = 0I && firstItem.acnEncodeValue = firstItem.definitionValue ->
+                    this.getNamedItemBackendName None firstItem
+                | firstItem :: _ -> (firstItem.acnEncodeValue - uperMinOffset).ToString()
                 | [] -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"
 
         override _.acnDeferredTempVarName baseName = "_" + baseName
+        override _.atcEmitsInvalidValueTests = true
+        // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
+        override _.encoderValidationModel = EncodersSkipAlwaysValid
+        override _.atcEmitsConstraintViolationTests = true
+        override _.atcEmitsInvalidStreamTests = true
+        override _.atcInvalidStreamCodeOutsideItemRange = true
+        override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]
+        // every read primitive of the C RTL checks the view, so a prefix of a valid encoding must be rejected
+        override _.atcDecodeSweep _ = TruncationAndCorruptionSweep
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

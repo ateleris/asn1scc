@@ -11,13 +11,13 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldP
 
 EmitAcnParameter(sName, sType, sDefaultValue) ::= "<sName>: <sType> = <sDefaultValue>"
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
 REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 <!"""
 <arrsAcnPrms; separator="\n">
 
@@ -37,11 +37,11 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     <sContent>
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 @classmethod
 def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> '<sTypeDefName>':
     <arrsPrecond:{pre|assert <pre>}; separator="\n">
@@ -616,7 +616,7 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 <sActualCodecFunc>
 >>
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <sIntVal>: Optional[int] = None
 <arrsItem; separator="\nel">
 
@@ -624,7 +624,7 @@ if <sIntVal> is not None:
     <sActualCodecFunc>
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <sActualCodecFunc>
 
 <p>_val = None
@@ -849,12 +849,12 @@ else:
     raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 codec.append_bits(bytearray([<arruNullBytes; separator=", ">]), <nBitPatternLength>)
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
 <i>: int = 0
 <p>_arr: list = []
 
@@ -1268,7 +1268,7 @@ else:
 >>
 
 /* Updates */
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
     raise Asn1ValueOutOfRangeException(f"Size dependency value {<v>} out of range [{<nMin>}, {<nMax>}]")
@@ -1277,6 +1277,7 @@ if <v> \< <nMin> or <v> \> <nMax>:
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
+<v>_is_initialized = True
 >>
 
 ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
@@ -1388,11 +1389,11 @@ arr = bytearray(codec.get_bitstream_buffer())
 codec = _codec_save
 >>
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 codec.encode_octet_string_no_length_vec(arr, int(<sExtField>))
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 _decoded_bytes_result = codec.decode_octet_string_no_length_vec(<sExtField>)
 if not _decoded_bytes_result.success or _decoded_bytes_result.decoded_value is None:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
@@ -1413,8 +1414,9 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 rtlModuleName() ::= ""
 sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
+sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 # Encode the contained value into a temporary ACN buffer. The contained type's
 # instance method is invoked unbound on <p> so this works both when <p> is the
 # containing instance itself (named type) and when it is a field of a parent
@@ -1432,7 +1434,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 <if(bFixedSize)>
 _n_count = <nMinSize>
 
@@ -1450,7 +1452,7 @@ _inner_dec = ACNDecoder.from_buffer(bytearray(_inner_bytes_res.decoded_value))
 <p> = <sFuncName>(_inner_dec, False)
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 # Encode the contained value into a temporary ACN buffer (unbound call on <p>;
 # see octet_string_containing_func_encode for why 'super()' is avoided).
 _inner_enc = ACNEncoder.of_size((<nMaxSize> + 7) // 8)
@@ -1466,7 +1468,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 <if(bFixedSize)>
 _nBits = <nMinSize>
 
@@ -1499,10 +1501,10 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 //   ACN Containing Deferred Templates (stubs — Python not supported yet)
 // ========================================================================
 
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1511,23 +1513,23 @@ octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
 octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1536,16 +1538,16 @@ bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
 bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 
@@ -1650,11 +1652,18 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
 
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
+
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
 
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
 acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "# TODO"
+
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "# TODO"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= "# TODO"
 
 acn_deferred_det_access_value(sDetName) ::= "# TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "# TODO"
@@ -1665,5 +1674,17 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "# TODO"
 
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "# TODO"
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "# TODO"
+acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= "# TODO"
+acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "# TODO"
 acn_deferred_det_type_name() ::= "# TODO"
 acn_deferred_det_init_expr() ::= "# TODO"
+
+
+/* Coverage step 10b, Ada only (never used here). */
+AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""
+
+sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= ""
+
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= ""
+
+BooleanPatternNoErrCode(p, bTruePattern, arrsBits) ::= ""

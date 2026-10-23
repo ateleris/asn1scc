@@ -31,7 +31,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 >>
 
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 #define <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING       <nMaxBytesInPER>
 #define <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING        <nMaxBitsInPER>
@@ -39,7 +39,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -55,12 +55,20 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
+    <if(bValidityCannotFail)>
+    *pErrCode = 0;
+    (void)bCheckConstraints;    /* no validity check: <soIValidFuncName>() cannot fail for any value of this type */
+
+    <sContent>
+
+    <else>
 	*pErrCode = 0;
 	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
+	if (ret) {
 	    <sContent>
     } /*COVERAGE_IGNORE*/
 
+    <endif>
     <else>
     *pErrCode = 0;
     (void)bCheckConstraints;
@@ -73,12 +81,12 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 }
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode);
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut, bValidityCannotFail) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
@@ -130,7 +138,7 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, <nLastItemIndex>);
 *pErrCode = ret ? 0 : <sErrCode>;
-if (ret && (charIndex \< 0 || charIndex \> <nLastItemIndex>)) { ret = FALSE; *pErrCode = <sErrCode>; }
+/* GNATCOV_EXEMPT_ON "ASN1SCC-COV-002: character index range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md" */ if (ret && (charIndex \< 0 || charIndex \> <nLastItemIndex>)) { ret = FALSE; *pErrCode = <sErrCode>; } /* GNATCOV_EXEMPT_OFF */
 <p>[<i>] = ret ? allowedCharSet[charIndex] : '\0' ;
 >>
 
@@ -317,9 +325,9 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
         switch(enumIndex)
         {
             <arrsItem; separator="\n">
-            default:                        /*COVERAGE_IGNORE*/
+            default:                        /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md" */
 	            *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
-	            ret = FALSE;                /*COVERAGE_IGNORE*/
+	            ret = FALSE;                /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
         }
     } else {
         <p> = <sFirstItemName>;             /*COVERAGE_IGNORE*/
@@ -377,9 +385,9 @@ if (ret) {
     switch(<sChoiceIndexName>)
     {
     <arrsChildren: {ch|<ch>}; separator="\n">
-    default:                        /*COVERAGE_IGNORE*/
+    default:                        /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md" */
         *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
-        ret = FALSE;                /*COVERAGE_IGNORE*/
+        ret = FALSE;                /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
     }
 }  /*COVERAGE_IGNORE*/
 >>
@@ -392,7 +400,7 @@ if (ret) {
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 ret = BitStream_ReadBit(pBitStrm, &presenceBit);
-<p><sAcc>exist.<sChName> = presenceBit == 0 ? 0 : 1;
+<p><sAcc>exist.<sChName> = (ret && presenceBit) ? 1 : 0; /* presenceBit is not set when the read fails */
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
@@ -467,7 +475,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>[<nFixedSize>] = 0x0;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength = strlen(<p>);
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>);
@@ -475,8 +483,9 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSiz
 
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, <nSizeMin>, <nSizeMax>);
+*pErrCode = ret ? 0 : <sErrCode>;
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 <p>[nStringLength] = 0x0;
 >>
@@ -506,12 +515,13 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSiz
 
 
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>);
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>);
+*pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -522,8 +532,11 @@ ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCo
 octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
-<p><sAcc>nCount = (long)nCount;
-ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+if (ret) {
+	<p><sAcc>nCount = (long)nCount;
+	ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+	*pErrCode = ret ? 0 : <sErrCode>;
+}
 >>
 
 
@@ -532,6 +545,14 @@ ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCo
 
 
 /* BIT STRING*/
+/* Decoding a string subtype whose typedef (of its base type) is a longer array: the decoder
+   fills only the subtype's positions, the rest of the array is set to NUL. */
+str_pad_to_typedef_size(p, nFrom, nTo) ::= ""
+
+/* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
+   the fixed-size decoder fills only the data. */
+sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= "<p><sAcc>nCount = <nFixedSize>;"
+
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= "BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);"
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);
@@ -545,6 +566,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nS
 
 bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
+*pErrCode = ret ? 0 : <sErrCode>;
 if (ret) {
 	<p><sAcc>nCount = (long)nCount;
 	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
@@ -690,7 +712,7 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
         *pErrCode = ret ? 0 : <sErrCodeName>;
 
 	    <else>
-	    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+	    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
 		    <sInternalItem>
 	    }
 
@@ -713,7 +735,7 @@ if (ret) {
     *pErrCode = ret ? 0 : <sErrCodeName>;
 
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
 	    <sInternalItem>
     }
 
@@ -733,13 +755,14 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 
 ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
 
 <endif>
+*pErrCode = ret ? 0 : <sErrCodeName>;
 if (ret) {
     <if(bIsBitStringType)>
     ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
     *pErrCode = ret ? 0 : <sErrCodeName>;
 
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
+    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
     {
 	    <sInternalItem>
     }
@@ -860,7 +883,7 @@ if (ret) {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -876,7 +899,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -885,13 +908,16 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nCount;
 	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
+		/*the contents are decoded from the nCount octets of this region only*/
+		bitStrm.count = nCount;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -907,7 +933,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUper
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -916,7 +942,10 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUper
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nCount;
 	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
+		/*the contents are decoded from the octets of the nCount bits of this region only*/
+		bitStrm.count = (nCount + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
@@ -956,3 +985,21 @@ InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
 
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 >>
+
+
+/* Coverage step 10b, Ada only (never used here). */
+IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= ""
+
+IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= ""
+
+decode_result_init() ::= ""
+
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= ""
+
+BooleanNoErrCode(p) ::= ""
+
+sequence_presence_bit_noErrCode(p, sChName) ::= ""
+
+octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= ""
+
+bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= ""
