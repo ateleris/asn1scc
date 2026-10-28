@@ -1,6 +1,6 @@
 # Python Backend
 
-The asn1scc Python backend generates Python classes for ASN.1 data structures, together with a self-contained runtime library for encoding and decoding them over uPER, ACN, and XER, and for validating them against their ASN.1 constraints. It is a fifth code-generation target alongside the C, Ada, Scala, and Rust backends, developed under ESA's MBEP activity.
+The asn1scc Python backend generates Python classes for ASN.1 data structures, together with a self-contained runtime library for encoding and decoding them over uPER, ACN, and XER, and for validating them against their ASN.1 constraints. It is the fifth code-generation target, after C, Ada, Scala, and Rust, and was developed under ESA's MBEP activity.
 
 This page is a usage-oriented extract of MBEP-ATS-AC-TN-003 (*ASN1SCC Python Backend User Manual and Technical Report*), which remains the reference for further detail; see [Reference](#reference).
 
@@ -340,7 +340,7 @@ python3 -m pytest
 The repository's regression harness runs the same tests for all supported languages; for the Python backend:
 
 ```bash
-python3 scripts/runTests.py -l python
+python3 v4Tests/scripts/runTests.py -l python
 ```
 
 ---
